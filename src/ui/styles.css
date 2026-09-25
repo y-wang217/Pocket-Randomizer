@@ -3225,6 +3225,20 @@ body {
 
 .node__label { font-weight: 600; font-size: var(--fs-base); }
 
+/*
+ * The kind is a mark. **Patch 4.10.1, D46.** The label line carries the node
+ * glyph at 24 and, on a gym, the leader's name; the tier pips have a row of
+ * their own beneath it, where the prompt asked for them. The mark inherits
+ * the label's colour and nothing else: no hue per kind, for the reason the V0
+ * note above gives.
+ */
+.node__label { display: inline-flex; align-items: center; gap: var(--space-1h); }
+.node__kind { display: inline-flex; align-items: center; line-height: 0; }
+.node__tier { display: flex; align-items: center; }
+
+/* The same mark at 16 on the battle header, beside the leader's name. */
+.battle__header .screen__title { display: inline-flex; align-items: center; gap: var(--space-1); }
+
 .node__detail {
   color: var(--text-faint);
   font-family: var(--font-body);

@@ -44,6 +44,13 @@
    "score": 0.265625
   },
   {
+   "family": "node",
+   "a": "node-trainer",
+   "b": "node-shop",
+   "simulation": "none",
+   "score": 0.28125
+  },
+  {
    "family": "category",
    "a": "category-physical",
    "b": "category-status",
@@ -7114,6 +7121,426 @@
    "b": "capability-band-off",
    "simulation": "tritanopia",
    "score": 0.1640625
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-trainer",
+   "simulation": "none",
+   "score": 0.40625
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-rest",
+   "simulation": "none",
+   "score": 0.38671875
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-gym",
+   "simulation": "none",
+   "score": 0.2890625
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-shop",
+   "simulation": "none",
+   "score": 0.3203125
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-event",
+   "simulation": "none",
+   "score": 0.38671875
+  },
+  {
+   "family": "node",
+   "a": "node-trainer",
+   "b": "node-rest",
+   "simulation": "none",
+   "score": 0.33984375
+  },
+  {
+   "family": "node",
+   "a": "node-trainer",
+   "b": "node-gym",
+   "simulation": "none",
+   "score": 0.453125
+  },
+  {
+   "family": "node",
+   "a": "node-trainer",
+   "b": "node-shop",
+   "simulation": "none",
+   "score": 0.28125
+  },
+  {
+   "family": "node",
+   "a": "node-trainer",
+   "b": "node-event",
+   "simulation": "none",
+   "score": 0.38671875
+  },
+  {
+   "family": "node",
+   "a": "node-rest",
+   "b": "node-gym",
+   "simulation": "none",
+   "score": 0.38671875
+  },
+  {
+   "family": "node",
+   "a": "node-rest",
+   "b": "node-shop",
+   "simulation": "none",
+   "score": 0.29296875
+  },
+  {
+   "family": "node",
+   "a": "node-rest",
+   "b": "node-event",
+   "simulation": "none",
+   "score": 0.4453125
+  },
+  {
+   "family": "node",
+   "a": "node-gym",
+   "b": "node-shop",
+   "simulation": "none",
+   "score": 0.37890625
+  },
+  {
+   "family": "node",
+   "a": "node-gym",
+   "b": "node-event",
+   "simulation": "none",
+   "score": 0.41015625
+  },
+  {
+   "family": "node",
+   "a": "node-shop",
+   "b": "node-event",
+   "simulation": "none",
+   "score": 0.4609375
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-trainer",
+   "simulation": "protanopia",
+   "score": 0.40625
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-rest",
+   "simulation": "protanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-gym",
+   "simulation": "protanopia",
+   "score": 0.2890625
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-shop",
+   "simulation": "protanopia",
+   "score": 0.3203125
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-event",
+   "simulation": "protanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "node",
+   "a": "node-trainer",
+   "b": "node-rest",
+   "simulation": "protanopia",
+   "score": 0.33984375
+  },
+  {
+   "family": "node",
+   "a": "node-trainer",
+   "b": "node-gym",
+   "simulation": "protanopia",
+   "score": 0.453125
+  },
+  {
+   "family": "node",
+   "a": "node-trainer",
+   "b": "node-shop",
+   "simulation": "protanopia",
+   "score": 0.28125
+  },
+  {
+   "family": "node",
+   "a": "node-trainer",
+   "b": "node-event",
+   "simulation": "protanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "node",
+   "a": "node-rest",
+   "b": "node-gym",
+   "simulation": "protanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "node",
+   "a": "node-rest",
+   "b": "node-shop",
+   "simulation": "protanopia",
+   "score": 0.29296875
+  },
+  {
+   "family": "node",
+   "a": "node-rest",
+   "b": "node-event",
+   "simulation": "protanopia",
+   "score": 0.4453125
+  },
+  {
+   "family": "node",
+   "a": "node-gym",
+   "b": "node-shop",
+   "simulation": "protanopia",
+   "score": 0.37890625
+  },
+  {
+   "family": "node",
+   "a": "node-gym",
+   "b": "node-event",
+   "simulation": "protanopia",
+   "score": 0.41015625
+  },
+  {
+   "family": "node",
+   "a": "node-shop",
+   "b": "node-event",
+   "simulation": "protanopia",
+   "score": 0.4609375
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-trainer",
+   "simulation": "deuteranopia",
+   "score": 0.40625
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-rest",
+   "simulation": "deuteranopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-gym",
+   "simulation": "deuteranopia",
+   "score": 0.2890625
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-shop",
+   "simulation": "deuteranopia",
+   "score": 0.3203125
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-event",
+   "simulation": "deuteranopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "node",
+   "a": "node-trainer",
+   "b": "node-rest",
+   "simulation": "deuteranopia",
+   "score": 0.33984375
+  },
+  {
+   "family": "node",
+   "a": "node-trainer",
+   "b": "node-gym",
+   "simulation": "deuteranopia",
+   "score": 0.453125
+  },
+  {
+   "family": "node",
+   "a": "node-trainer",
+   "b": "node-shop",
+   "simulation": "deuteranopia",
+   "score": 0.28125
+  },
+  {
+   "family": "node",
+   "a": "node-trainer",
+   "b": "node-event",
+   "simulation": "deuteranopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "node",
+   "a": "node-rest",
+   "b": "node-gym",
+   "simulation": "deuteranopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "node",
+   "a": "node-rest",
+   "b": "node-shop",
+   "simulation": "deuteranopia",
+   "score": 0.29296875
+  },
+  {
+   "family": "node",
+   "a": "node-rest",
+   "b": "node-event",
+   "simulation": "deuteranopia",
+   "score": 0.4453125
+  },
+  {
+   "family": "node",
+   "a": "node-gym",
+   "b": "node-shop",
+   "simulation": "deuteranopia",
+   "score": 0.37890625
+  },
+  {
+   "family": "node",
+   "a": "node-gym",
+   "b": "node-event",
+   "simulation": "deuteranopia",
+   "score": 0.41015625
+  },
+  {
+   "family": "node",
+   "a": "node-shop",
+   "b": "node-event",
+   "simulation": "deuteranopia",
+   "score": 0.4609375
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-trainer",
+   "simulation": "tritanopia",
+   "score": 0.40625
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-rest",
+   "simulation": "tritanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-gym",
+   "simulation": "tritanopia",
+   "score": 0.2890625
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-shop",
+   "simulation": "tritanopia",
+   "score": 0.3203125
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-event",
+   "simulation": "tritanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "node",
+   "a": "node-trainer",
+   "b": "node-rest",
+   "simulation": "tritanopia",
+   "score": 0.33984375
+  },
+  {
+   "family": "node",
+   "a": "node-trainer",
+   "b": "node-gym",
+   "simulation": "tritanopia",
+   "score": 0.453125
+  },
+  {
+   "family": "node",
+   "a": "node-trainer",
+   "b": "node-shop",
+   "simulation": "tritanopia",
+   "score": 0.28125
+  },
+  {
+   "family": "node",
+   "a": "node-trainer",
+   "b": "node-event",
+   "simulation": "tritanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "node",
+   "a": "node-rest",
+   "b": "node-gym",
+   "simulation": "tritanopia",
+   "score": 0.38671875
+  },
+  {
+   "family": "node",
+   "a": "node-rest",
+   "b": "node-shop",
+   "simulation": "tritanopia",
+   "score": 0.29296875
+  },
+  {
+   "family": "node",
+   "a": "node-rest",
+   "b": "node-event",
+   "simulation": "tritanopia",
+   "score": 0.4453125
+  },
+  {
+   "family": "node",
+   "a": "node-gym",
+   "b": "node-shop",
+   "simulation": "tritanopia",
+   "score": 0.37890625
+  },
+  {
+   "family": "node",
+   "a": "node-gym",
+   "b": "node-event",
+   "simulation": "tritanopia",
+   "score": 0.41015625
+  },
+  {
+   "family": "node",
+   "a": "node-shop",
+   "b": "node-event",
+   "simulation": "tritanopia",
+   "score": 0.4609375
   }
  ]
 }

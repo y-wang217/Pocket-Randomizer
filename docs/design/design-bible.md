@@ -1,6 +1,20 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 12, Sept 23, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 13, Sept 25, 2026.
+
+**Rev 13** carries one amendment, ruled 2026-09-25 on row D46, filed before
+patch 4.10.1 wrote any code. Section 2 gains an eleventh family, **node**, the
+kind of a map node as a mark, and its opening line reads eleven. Section 3 gains
+a *Node kind* row. Section 4's map node card goes 3 to **2** and the battle
+screen header 4 to **3**, each one word lighter for the kind that is now a
+glyph; the two notes under the table that argued the kind could have no glyph
+are corrected to say what was ruled and why. Section 5's header row names the
+glyph, and its map node card row, which had said *node-type glyph* since D29
+while section 4 said there was none, is finally true. Section 9's family-size
+hypothesis reads eleven and M7.1 tests it. **This is D37's option 2 taken and
+D28 reversed as a reversal**, which is how D37 said it would have to be done.
+The rules are untouched: R1 is the one rule the amendment invokes, and it is
+satisfied rather than bent.
 
 **Rev 12** carries five amendments, all ruled 2026-09-23 on rows D40 to D44,
 filed before Tier 6 opened. R2 and R3 each gain a permit for R7's exposure label
@@ -206,7 +220,7 @@ Enforce: the amendment process. A proposed sentence at rest is an amendment, not
 
 ## 2. Canonical vocabulary
 
-Ten glyph families (2026-09-22, D37). Adding an eleventh is an amendment.
+Eleven glyph families (2026-09-25, D46; ten under D37, 2026-09-22). Adding a twelfth is an amendment.
 
 | Family | Glyphs | Colour |
 |---|---|---|
@@ -220,6 +234,7 @@ Ten glyph families (2026-09-22, D37). Adding an eleventh is an amendment.
 | Status | Three-letter chip: BRN, PAR, PSN, TOX, SLP, FRZ. Fixed colour each. One per volatile condition on the same pattern, and **not a tenth family** (2026-09-21, D19): a volatile is a thing happening to this Pokemon right now, which is what this family already means, and it takes the same shape, the same slot rule and the same inspect text | Genre-standard |
 | Stat | Six stat glyphs. Stage as multiplier plus ladder bar (shipped in 4.8.0.3), nonzero only | Neutral |
 | Capability | One glyph per capability, plus a band chevron filled to the run's reach — none, latent, known (2026-09-22, D37) | Neutral |
+| Node | One glyph per node kind: a head (trainer), a bush (wild), a tent (rest), a badge (gym), a bag (shop), a question mark (event). On the map node card at 24, on the battle screen header at 16 (2026-09-25, D46) | Neutral |
 
 Font: Pixelify Sans, blanket, per the 4.7.1 decision. If the numeral font jitters on HP and PP counters, `--font-numeral` falls back to the mono stack, one line, and this table is annotated.
 
@@ -251,6 +266,7 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Coverage change (capture card) | Two rows of type chips, plus row and minus row, signs only. The signs are permanent, not an exposure label: coverage is not a glyph family (2026-09-19, D5) | Empty row renders nothing | The full before and after sets |
 | Capability requirement (map node) | Capability glyph plus band chevron (none, latent, known) | None | Capability name, what satisfies it |
 | Tier (map node) | Tier pips, reward-tier pips | None | Tier definition |
+| Node kind (map node, battle header) | Kind glyph. A gym's leader name beside it, a proper noun, is the identity and not the kind (2026-09-25, D46) | Never hidden | The kind's hint, from `KIND_HINTS` |
 | Archetype | Not rendered where the stat bars already draw it (4.8.0.3) | Absent | Not on inspect either; it is a derived label and can lie under randomization |
 
 Disappears from every default view: field labels, type names, category words, accuracy at 100, priority at 0, item names, the coverage sentence, the battle log.
@@ -271,7 +287,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Party row and party drawer | 0 plus the ability name | Species name, nickname, ability name (2026-09-21, D19) |
 | Pokemon battle panel | 0 plus the ability name | Name, nickname, ability name (2026-09-21, D19) |
 | Flag strip (battle) | 1 flag per hit, plus 1 non-hit kind per side | The one flag R9 allows, and the second channel (2026-09-21, D23 and D24) |
-| Battle screen header | 4 | Node kind, opponent, AI tier (2026-09-21, D28) |
+| Battle screen header | 3 | Opponent, AI tier; the kind is the node glyph (2026-09-25, D46; was 4 under D28, 2026-09-21) |
 | Result screen | 6 | Outcome word, "+N", continue |
 | Capture card | 0 | Follows the recipient card |
 | Event screen | 59 | Hook 12, four labels 4, four hints 6 — 52 — plus the Toll's price 5 and the control 2. The requirement, the band and the reward tier are glyphs (2026-09-22, D33) |
@@ -281,7 +297,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Pre-gym screen | 4 | Gym leader name, type chip, "Choose lead" |
 | Confirm overlay (replace) | 6 | "Replace Tackle with Fire Punch?" |
 | Confirm overlay (decline) | 6 | "Forfeit this reward?", and the band's two controls (2026-09-21, D22) |
-| Map node card | 3 | Node kind, the payout's unit, AI tier (2026-09-22, D37) |
+| Map node card | 2 | The payout's unit, AI tier; the kind is the node glyph (2026-09-25, D46; was 3 under D37, 2026-09-22) |
 | Shop stock card | 8 | **None** — one component with the reward card since M5.1, plus a bare price number (2026-09-22, D29 and D36) |
 | Summary and graveyard | Unbudgeted | Archive surfaces; complete outcome in the first screenful |
 
@@ -317,13 +333,14 @@ beside the hit flag — at most one per side, in the protocol's own order. The
 bound is what keeps the row a budget: without it the second channel is the
 unbounded strip R9 was written against.
 
-**The battle screen's header is budgeted at 4** (ruled 2026-09-21, D28), for the
-three facts it has carried since Stage 1: which node this is, who is in it, and
-how that opponent plays. The third has no glyph and cannot be given one — the
-nine families are attributes of a Pokemon or a move, and a tier is neither — so
-R2 has nothing to trade the words for, exactly as it has nothing to trade the
-ability name for one row above. The alternative was a tenth family, which
-section 10.1 reserves for an amendment with an observation behind it.
+**The battle screen's header is budgeted at 3** (ruled 2026-09-25, D46; 4 under
+D28, 2026-09-21), for the three facts it has carried since Stage 1: which node
+this is, who is in it, and how that opponent plays. The first is the node glyph
+since D46, the same mark the card wore before the click, because R1 forbids one
+attribute encoded two ways on two surfaces. The third has no glyph and cannot be
+given one — the families are attributes of a Pokemon, a move or a node, and an
+AI tier is none of those — so R2 has nothing to trade its word for, exactly as
+it has nothing to trade the ability name for one row above.
 
 **The locale screen has a row now** (ruled 2026-09-22, D32). M5.3's done-when
 read *"census reads 0 and 4"*, taking the first number from the *Locale card*
@@ -335,15 +352,17 @@ label six times. It is 4, the pre-gym screen's own figure, because it is the
 same job on the same kind of surface — name the thing you are about to walk
 into, and choose. Measured after the cut: **3**.
 
-**The map node card is budgeted at 3, where it read 0** (ruled 2026-09-22,
-D37). M5.2 assumed zero on the strength of a *node type glyph*, and there is no
-such glyph: section 2's families are attributes of a Pokemon or a move, and a
-node kind is neither — which is the reasoning D28 used one day earlier to keep
-the same attribute a **word** on the battle screen header. Encoding it one way
-here and another there is what R1 forbids, so the kind stays a word on both. The
-three that survive are the kind, the unit word on the payout, and the AI tier —
-the last budgeted by name on the header already, for the same reason. Measured
-before the number was chosen: the worst node card reads exactly 3.
+**The map node card is budgeted at 2, where it read 3 and before that 0**
+(ruled 2026-09-25, D46; 3 under D37, 2026-09-22). M5.2 assumed zero on the
+strength of a *node type glyph*, and D37 ruled there was none: section 2's
+families were attributes of a Pokemon or a move, and a node kind was neither,
+which was D28's reasoning one day earlier for keeping the same attribute a
+**word** on the battle screen header. Encoding it one way here and another
+there is what R1 forbids, so D37 kept the kind a word on both and budgeted the
+card at 3, measured before the number was chosen. D46 took D37's own option 2:
+the eleventh family is the node kind, it is a glyph on both surfaces, and the
+two that survive are the unit word on the payout and the AI tier — the last
+budgeted by name on the header already, for the same reason.
 
 **The two card rows reach zero, and their 8 is headroom** (ruled 2026-09-22,
 D36). Section 3 is this document's *"single source of truth for how each
@@ -383,9 +402,9 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Type chip | Glyph in colour | Everywhere a type appears |
 | Inspect layer | The full explanation of whatever was long-pressed | One mechanism, mounted at the shell |
 | Flag strip | One flag per hit by R9's precedence, plus one non-hit kind per side (2026-09-21, D23) | Battle |
-| Battle screen header | Node kind, opponent, AI tier (2026-09-21, D28) | Battle |
+| Battle screen header | Node glyph at 16, opponent, AI tier (2026-09-25, D46; the kind was a word under D28, 2026-09-21) | Battle |
 | Reward card | The item or berry sprite in a fixed slot, a relic's name, the boosted type chip, the move card on a move kind, and the shop's price number (2026-09-22, D29 and D36) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |
-| Map node card | Node-type glyph, tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29) | The map screen and the map drawer |
+| Map node card | Node glyph at 24 with the leader's name on a gym, then beneath it the tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29; the glyph exists and the pips sit beneath it since 2026-09-25, D46) | The map screen and the map drawer |
 | Locale card | Locale name, four type chips, the palette swatch (2026-09-22, D29) | The locale screen |
 | Confirm band | The question, an optional line, the content being traded, and exactly two controls: the one that commits and the way out (2026-09-22, D29) | `ui/band.ts`, mounted by the four screens that confirm. No screen builds its own |
 | Event choice | The label, the hint, the reward-tier pips and the Toll's price. The requirement and the band sit above the choices, as the map node card's glyph and chevron (2026-09-22, D33) | `screens/event.ts`. One surface, and the only one section 4 budgets prose on |
@@ -483,7 +502,7 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | Event screen holds at 59 words (2026-09-22, D33; was 40) | Rejigged events with four reward tiers need more than two lines to state requirement and choice | Requirement moves to the map node glyph; prompt shrinks |
 | Six-word hints carry the shape of a risk (2026-09-22, D33) | A tester cannot say which of two options is the variable one, or presses a button expecting no cost and is charged | The hints go back up, and the row rises with them rather than the hints being dropped |
 | Move chips suffice for the discard decision | Testers expand every chip to a full card before choosing | Chips gain PP at rest, still no words |
-| Ten glyph families is the right size (2026-09-22, D37) | Testers confuse any two glyphs after labels fade | One of the pair becomes a word permanently |
+| Eleven glyph families is the right size (2026-09-25, D46; ten under D37, 2026-09-22) | Testers confuse any two glyphs after labels fade | One of the pair becomes a word permanently |
 | Reward-tier pips read as a range, not a rating (2026-09-22, D33) | A tester reads more filled pips as a recommendation, or cannot say which options can pay the same thing | The tier letters return beside the pips, and the row rises by four |
 | R7, three exposures is the right count | Inspect rate on a family has not fallen by run three | Count becomes a tuning number per family |
 | A confirm's two controls belong inside its budget (2026-09-21, D22) | A confirm overlay reaches 6 with copy that reads as padded, or a third control is ever needed on one | The controls are excluded from the count and every confirm budget drops by two, rather than the ceiling rising again |

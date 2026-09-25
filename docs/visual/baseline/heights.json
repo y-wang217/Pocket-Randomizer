@@ -7,34 +7,34 @@
   "modes": {
     "simple": {
       "map": {
-        "screenHeight": 866.75,
-        "scrollHeight": 1029,
+        "screenHeight": 695.91,
+        "scrollHeight": 858,
         "decisionCount": 2,
         "decisionTop": 513.44,
-        "decisionBottom": 609.31
+        "decisionBottom": 576.16
       },
       "battle": {
-        "screenHeight": 577.44,
+        "screenHeight": 570.5,
         "scrollHeight": 844,
         "decisionCount": 4,
-        "decisionTop": 445.44,
-        "decisionBottom": 673.94
+        "decisionTop": 438.5,
+        "decisionBottom": 667
       }
     },
     "pocket": {
       "map": {
-        "screenHeight": 658.11,
+        "screenHeight": 513.44,
         "scrollHeight": 844,
         "decisionCount": 2,
-        "decisionTop": 301.39,
-        "decisionBottom": 393.27
+        "decisionTop": 286.97,
+        "decisionBottom": 345.69
       },
       "battle": {
-        "screenHeight": 477.89,
+        "screenHeight": 562.22,
         "scrollHeight": 844,
         "decisionCount": 4,
-        "decisionTop": 355.39,
-        "decisionBottom": 494.39
+        "decisionTop": 351,
+        "decisionBottom": 578.72
       }
     }
   },
@@ -42,66 +42,66 @@
     "columns": {
       "detailed": {
         "map": {
-          "screenHeight": 944.5,
-          "scrollHeight": 1138,
+          "screenHeight": 743.97,
+          "scrollHeight": 937,
           "decisionCount": 2,
           "decisionTop": 558,
-          "decisionBottom": 687.56
+          "decisionBottom": 624.72
         },
         "battle": {
-          "screenHeight": 497.89,
+          "screenHeight": 585.5,
           "scrollHeight": 844,
           "decisionCount": 4,
-          "decisionTop": 472,
-          "decisionBottom": 610.89
+          "decisionTop": 462.5,
+          "decisionBottom": 698.5
         }
       },
       "simple": {
         "map": {
-          "screenHeight": 866.75,
-          "scrollHeight": 1029,
+          "screenHeight": 695.91,
+          "scrollHeight": 858,
           "decisionCount": 2,
           "decisionTop": 513.44,
-          "decisionBottom": 609.31
+          "decisionBottom": 576.16
         },
         "battle": {
-          "screenHeight": 484.83,
+          "screenHeight": 570.5,
           "scrollHeight": 844,
           "decisionCount": 4,
-          "decisionTop": 445.44,
-          "decisionBottom": 581.33
+          "decisionTop": 438.5,
+          "decisionBottom": 667
         }
       },
       "pocket": {
         "map": {
-          "screenHeight": 658.11,
+          "screenHeight": 513.44,
           "scrollHeight": 844,
           "decisionCount": 2,
-          "decisionTop": 301.39,
-          "decisionBottom": 393.27
+          "decisionTop": 286.97,
+          "decisionBottom": 345.69
         },
         "battle": {
-          "screenHeight": 412.28,
+          "screenHeight": 562.22,
           "scrollHeight": 844,
           "decisionCount": 4,
-          "decisionTop": 355.39,
-          "decisionBottom": 428.78
+          "decisionTop": 351,
+          "decisionBottom": 578.72
         }
       }
     }
   },
   "map": {
-    "screenHeight": 705.72,
-    "scrollHeight": 899,
+    "screenHeight": 743.97,
+    "scrollHeight": 937,
     "decisionCount": 2,
     "decisionTop": 558,
-    "decisionBottom": 612.34
+    "decisionBottom": 624.72
   },
   "battle": {
-    "screenHeight": 595,
+    "screenHeight": 585.5,
     "scrollHeight": 844,
     "decisionCount": 4,
-    "decisionTop": 472,
-    "decisionBottom": 708
+    "decisionTop": 462.5,
+    "decisionBottom": 698.5
   }
 }
