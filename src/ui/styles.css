@@ -2701,6 +2701,39 @@ body {
   100% { opacity: 0; transform: translateX(var(--mark-travel)) scaleX(0.6); }
 }
 
+/* ---------- the panel's own beats: a trait fired ----------
+   Stage 4.11 Tier 4, section 6 steps 3 and 7, D48.
+
+   **One keyframe for every ability, never weighted, never coloured.** The
+   name pulses in its own slot when the engine says it fired — Intimidate
+   and Drizzle identically — and the slot delay is the beat's, so a fire
+   rides the lunge or hit it accompanies and the turn gains no time. A berry
+   pops in the item slot's ghost, which holds the sprite the redraw took, and
+   ends at nothing: the slot is empty now and the pop says why. */
+.panel__traits[data-fired] .badge--ability {
+  animation: trait-fired var(--motion-beat) ease-out both;
+}
+.panel__traits[data-fired-slot="2"] .badge--ability { animation-delay: calc(var(--motion-beat) * 2); }
+@keyframes trait-fired {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.panel__item-ghost { display: none; }
+.panel__item-ghost[data-fired] {
+  display: inline-flex;
+  align-items: center;
+  margin-top: var(--space-1h);
+  animation: item-fired var(--motion-beat) ease-out both;
+}
+.panel__item-ghost[data-fired-slot="2"] { animation-delay: calc(var(--motion-beat) * 2); }
+@keyframes item-fired {
+  0% { transform: scale(1); opacity: 1; }
+  45% { transform: scale(1.35); opacity: 1; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
 /* ---------- screens ---------- */
 
 /*
@@ -4236,6 +4269,14 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   .stage__actor[data-abnormal="volatile"] .stage__mark,
   .stage__actor[data-abnormal="field"] .stage__mark,
   .stage__actor[data-abnormal-slot="2"] .stage__mark { animation: none; }
+
+  /* The panel's own beats. **Stage 4.11 Tier 4.** The name stays, unmoved;
+     the berry's ghost is not shown at all, since a sprite that neither pops
+     nor leaves is a stale item on the panel. */
+  .panel__traits[data-fired] .badge--ability,
+  .panel__traits[data-fired-slot="2"] .badge--ability { animation: none; }
+  .panel__item-ghost[data-fired],
+  .panel__item-ghost[data-fired-slot="2"] { display: none; }
 
   /*
    * The priority chevron's flash. **M4.2.**

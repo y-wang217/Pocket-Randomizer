@@ -20,7 +20,7 @@
  */
 import { EFFECTIVENESS_LABELS } from '../core/battle/effectiveness';
 import type { FlaggedTurn } from '../core/battle/flags';
-import type { AbnormalityMark } from './abnormality';
+import type { AbnormalityMark, TraitFire } from './abnormality';
 import { hpStateBare } from '../core/hpCopy';
 import { BOOSTABLE_STATS, STAT_LABELS } from '../core/battle/stats';
 import {
@@ -177,6 +177,15 @@ interface SidePanel {
    */
   item: HTMLElement;
   /**
+   * The last held sprite, kept for one beat after a berry fired. **Stage 4.11
+   * Tier 4, section 6 step 7.** The slot redraws empty the moment the engine
+   * says the berry is gone, which is right for the fact and leaves nothing to
+   * pop. So the sprite is cloned here before the redraw, popped by the
+   * stylesheet and emptied at the next update: the sprite ghost's own rule,
+   * that an element on the stage holds nothing that is not happening.
+   */
+  itemGhost: HTMLElement;
+  /**
    * The stat stages, as V2 chips. **V5.3.**
    *
    * Replaces the six-row block, which cost 89.75px a panel and printed a
@@ -239,6 +248,8 @@ export interface Scene {
      * is still one source of truth about a turn and now three consumers of it.
      */
     marks?: readonly AbnormalityMark[],
+    /** The panels whose trait fired this turn, from `ui/abnormality.ts`. **Stage 4.11 Tier 4.** */
+    fired?: readonly TraitFire[],
   ): void;
   /**
    * Play the end of the fight, and park until it has been seen.
@@ -440,7 +451,33 @@ export function createScene(): Scene {
       moves.replaceChildren();
       clearBench(bench);
     },
-    update(view, onChoose, turns, marks) {
+    update(view, onChoose, turns, marks, fired = []) {
+      /*
+       * The panels' own beats, before the redraw takes the evidence away.
+       * **Stage 4.11 Tier 4, D48.** Cleared on both panels first, because the
+       * attribute is the whole of the state; the reflow is the beats' own
+       * trick, so two fires in a row each get their pulse. A berry's sprite
+       * is cloned into the ghost now, while the slot still holds it.
+       */
+      for (const panel of [me, foe]) {
+        delete panel.traits.dataset['fired'];
+        delete panel.traits.dataset['firedSlot'];
+        delete panel.itemGhost.dataset['fired'];
+        delete panel.itemGhost.dataset['firedSlot'];
+        panel.itemGhost.replaceChildren();
+      }
+      void me.root.offsetWidth;
+      for (const fire of fired) {
+        const panel = fire.side === 'p1' ? me : foe;
+        if (fire.what === 'ability') {
+          panel.traits.dataset['fired'] = 'true';
+          panel.traits.dataset['firedSlot'] = String(fire.slot);
+        } else if (panel.item.firstElementChild && !panel.item.hidden) {
+          panel.itemGhost.replaceChildren(panel.item.firstElementChild.cloneNode(true));
+          panel.itemGhost.dataset['fired'] = 'true';
+          panel.itemGhost.dataset['firedSlot'] = String(fire.slot);
+        }
+      }
       updateActor(foeActor, view.opponent);
       updateActor(meActor, view.player);
       // Whether each bar drew a chunk. The hit beat reads this and nothing
@@ -770,13 +807,15 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
    * pushing the row along.
    */
   const item = el('span', 'panel__item');
+  const itemGhost = el('span', 'panel__item-ghost');
+  itemGhost.setAttribute('aria-hidden', 'true');
   /*
    * Reading order: what it is, what it is built for, what it is carrying, what
    * is happening to it, and what the board has done to it. Fixed properties
    * first and the turn's own facts last, so a row that grows during a fight
    * grows at the end rather than pushing the identity along.
    */
-  chips.append(types, traits, item, volatiles, stages);
+  chips.append(types, traits, item, itemGhost, volatiles, stages);
 
   /*
    * The panel is an inspect trigger. **M3.1, discrepancy D18, ruled 2026-09-21.**
@@ -804,7 +843,7 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   root.setAttribute('role', 'button');
 
   root.append(roster, header, hp.root, meta, chips);
-  return { root, name, level, roster, priority, types, hp, hpText, status, volatiles, traits, item, stages };
+  return { root, name, level, roster, priority, types, hp, hpText, status, volatiles, traits, item, itemGhost, stages };
 }
 
 /**

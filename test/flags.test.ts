@@ -363,6 +363,45 @@ describe('hand-written protocol, driven past what a shipped move reaches', () =>
     expect(field?.subject).toBe('Pelipper');
   });
 
+  /**
+   * The ability that set the weather. **Stage 4.11 Tier 4.** The engine names
+   * it only on the field line's `[from]` tag, so until this the setters were
+   * the one kind of ability firing that never produced an `ability` flag.
+   * Second, after the field, so the strip's second channel still reads the
+   * board and the cause rides the log and the panel's pulse.
+   */
+  it('names the ability that set a field effect, after the field itself', () => {
+    const protocol = [
+      '|switch|p1a: Snorlax|Snorlax, L50, M|235/235',
+      '|switch|p2a: Pelipper|Pelipper, L50, M|155/155',
+      '|-weather|RainDance|[from] ability: Drizzle|[of] p2a: Pelipper',
+      '|turn|1',
+    ];
+    const flags = readFlags(protocol, STUB).flatMap((group) => [...group.actions.flatMap((a) => a.flags), ...group.residual]);
+    expect(flags.map((flag) => [flag.kind, flag.detail, flag.side])).toEqual([
+      ['field', 'RainDance', 'p2'],
+      ['ability', 'Drizzle', 'p2'],
+    ]);
+  });
+
+  /**
+   * An ability that fires through an activation line and writes no
+   * `-ability` line: 7.2% of battles in the Tier 0 census. Same kind, same
+   * word. A move's activation line — the trapping moves — is not an ability
+   * and earns nothing here; the panel's volatile chip already says *Bound*.
+   */
+  it('reads an ability off an activation line, and not a move', () => {
+    const protocol = [
+      '|switch|p1a: Snorlax|Snorlax, L50, M|235/235',
+      '|turn|1',
+      '|move|p1a: Snorlax|Tackle|p2a: Golem',
+      '|-activate|p2a: Golem|ability: Emergency Exit',
+      '|-activate|p2a: Golem|move: Whirlpool|[of] p1a: Snorlax',
+    ];
+    const flags = readFlags(protocol, STUB).flatMap((group) => group.actions.flatMap((a) => a.flags));
+    expect(flags.map((flag) => [flag.kind, flag.detail, flag.side])).toEqual([['ability', 'Emergency Exit', 'p2']]);
+  });
+
   /** And the other half of that finding: weather continuing is not an event. */
   it('says nothing when the weather is only carrying on', () => {
     const protocol = [

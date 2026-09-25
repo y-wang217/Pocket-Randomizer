@@ -11218,3 +11218,33 @@ wash is answered by `visual-field.test.ts` on the gallery's loaded board
 rather than by the walk. **The sweep's verdict on this stage is CI's to give**,
 on the pull request's `check` run, and a red there is this stage's to fix.
 
+**Tier 4, the triggers.** Three defects from the Tier 0 census and one step
+from the bible, and the move half not built, as the census said. **The
+opening batch is shown when it did something**: `screens/battle.ts` used to
+show the opening protocol with `animate=false`, nothing on the strip and no
+marks, and 58% of field starts and 47% of ability announcements land there.
+Now the marks, the panel pulses and the strip run on that batch when it
+carries a flag, and stay silent on a plain start; the turn itself — lunge,
+order, chunk — still does not run, because nothing was chosen. **The reader
+names the setter**: a field line's `[from] ability:` tag becomes an
+`ability` flag after the `field` flag, so Drizzle is no longer the one
+ability firing with no flag, and the strip's one second-channel word still
+reads the board while the cause rides the log and the panel. **And the
+activation-line abilities** (`-activate|…|ability: X`, 7.2% of battles)
+join the same flag with the same word; a move's activation line earns
+nothing, since the panel's *Bound* chip already has it. **The panel pulses
+(D48, section 6 step 3)**: `ui/abnormality.ts` gained `firedTraits`, a
+second reduction beside the marks rather than a sixth class inside them,
+because the actor's ring and the panel's slot are different elements and a
+Drizzle lead earns both — the `field` sweep on the body and the pulse on the
+name. The scene is handed the list and reads no flag; `test/boundaries` is
+untouched. One keyframe, `trait-fired`, for every ability, on the beat's own
+slot delay, cancelled by selector under reduced motion. **The berry pop
+(section 6 step 7) was not built and is now**: the slot redraws empty the
+moment the engine says the berry is gone, so the panel gained an item ghost
+that takes the sprite before the redraw, pops it to nothing, and is emptied
+at the next update; under reduced motion the ghost is not shown at all.
+`test/trait-fired.test.ts` drives all of it, the opening batch through the
+screen's own `attach`. No `core/` change beyond the two reader patterns;
+`contentHash` unmoved.
+

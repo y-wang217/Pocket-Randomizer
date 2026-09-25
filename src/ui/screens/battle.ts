@@ -28,7 +28,7 @@ import { createBattleLog, type BattleLogView } from '../battle-log';
 import { createSpeciesIndex } from '../species-index';
 import { createFlagStrip, type FlagStrip } from '../flag-strip';
 import { createLogSheet, onPullUp, type LogSheet } from '../log-sheet';
-import { abnormalityMarks } from '../abnormality';
+import { abnormalityMarks, firedTraits } from '../abnormality';
 import { createScene, el, type OutroKind, type Scene } from '../scene';
 import { fieldGlyph } from '../chip';
 import { applyField } from '../theme/field';
@@ -198,7 +198,7 @@ export function createBattleScreen(): BattleScreen {
       // Derived on every update, never stored. `BattleUiView` is a pure
       // function of the facts, so rebuilding it is cheaper than keeping one
       // alive and wondering which turn it describes.
-      const draw = (turns?: readonly FlaggedTurn[]): void => {
+      const draw = (turns: readonly FlaggedTurn[] | undefined, batch: readonly FlaggedTurn[]): void => {
         /*
          * The third consumer of the one reading. **Branch 3B.**
          *
@@ -211,7 +211,7 @@ export function createBattleScreen(): BattleScreen {
          * holds: one reading of the protocol, now three consumers.
          */
         const view = buildBattleUiView(session.factsFor('p1'), reveal, abilityEffects);
-        scene.update(view, onChoose, turns, abnormalityMarks(turns));
+        scene.update(view, onChoose, turns, abnormalityMarks(batch), firedTraits(batch));
         // The world behind the stage wears the same state. **Tier 3.**
         applyField(view.field);
         /*
@@ -268,13 +268,23 @@ export function createBattleScreen(): BattleScreen {
         });
         const turns = readFlags(protocol, FLAGS);
         log.append(protocol, turns);
-        // The strip reports the turn that just resolved, so it is silent on
-        // the opening replay for the same reason the jiggle is: nothing has
-        // resolved yet.
-        if (animate) flags.show(turns);
-        // The opening replay is a catch-up, not a turn that just happened.
-        // Animating it would nudge both panels at the start of every battle.
-        draw(animate ? turns : undefined);
+        /*
+         * **The opening batch is shown when it did something.** Stage 4.11
+         * Tier 4, from the Tier 0 census: 58% of field starts and 47% of
+         * ability announcements land before `|turn|1`, in this batch, which
+         * the screen used to show with nothing animated and nothing on the
+         * strip. A lead Sand Stream was invisible outside the log.
+         *
+         * What stays off the opening batch is the *turn*: no lunge, no order,
+         * no chunk, because nothing was chosen and a nudge at the start of
+         * every battle was the reason this was silent. The marks, the panel
+         * pulses and the strip run when the batch carries a flag, and stay
+         * silent on a plain start, so a battle that opens with nothing to say
+         * still says nothing.
+         */
+        const eventful = turns.some((turn) => turn.actions.some((each) => each.flags.length > 0) || turn.residual.length > 0);
+        if (animate || eventful) flags.show(turns);
+        draw(animate ? turns : undefined, turns);
       };
 
       log.clear();

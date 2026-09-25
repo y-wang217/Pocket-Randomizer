@@ -186,6 +186,17 @@ const FAIL = /^\|-fail\|(p[12])[a-c]: ([^|]+)/;
 const BOOST = /^\|-boost\|(p[12])[a-c]: ([^|]+)\|([^|]+)/;
 const UNBOOST = /^\|-unboost\|(p[12])[a-c]: ([^|]+)\|([^|]+)/;
 const ABILITY = /^\|-ability\|(p[12])[a-c]: ([^|]+)\|([^|]+)/;
+/*
+ * An ability that announces itself through an activation line and writes no
+ * `-ability` line at all: Emergency Exit, Lingering Aroma, Quick Draw, Toxic
+ * Debris, Mummy. **Stage 4.11 Tier 4.** The Tier 0 census put these on 7.2% of
+ * battles, which is the build side of Branch 2's own bar, and they are the
+ * same event as `-ability` by any reading of the word — so they are the same
+ * kind, with the same word, and not a new one.
+ */
+const ACTIVATE_ABILITY = /^\|-activate\|(p[12])[a-c]: ([^|]+)\|ability: ([^|]+)/;
+/** The ability that set a weather or terrain, on the field line itself. */
+const FROM_ABILITY = /\|\[from\] ability: ([^|]+)/;
 const VOLATILE = /^\|-start\|(p[12])[a-c]: ([^|]+)\|([^|]+)/;
 /*
  * Weather and terrain. **Both name themselves in group 1, not group 3**, and
@@ -459,7 +470,27 @@ function readBatch(protocol: readonly string[], deps: FlagDeps): FlaggedTurn[] {
       const of = OF_SIDE.exec(line);
       const side = (of?.[1] as ActorSide | undefined) ?? action?.side;
       const subject = of?.[2] ?? action?.actor;
-      if (side && subject) add({ kind: 'field', side, subject, detail: field[1] });
+      if (side && subject) {
+        add({ kind: 'field', side, subject, detail: field[1] });
+        /*
+         * And the ability that set it. **Stage 4.11 Tier 4.** The engine
+         * announces Drizzle on the weather line's `[from]` tag and nowhere
+         * else, so until this line the setters were the one kind of ability
+         * firing that never produced an `ability` flag: every weather in this
+         * game (the census found no other source) began without its cause
+         * being named. Second, after the field, so the strip's one second
+         * channel flag per side still reads the change to the board and the
+         * cause rides the log and the panel's own pulse.
+         */
+        const from = FROM_ABILITY.exec(line);
+        if (from?.[1]) add({ kind: 'ability', side, subject, detail: from[1] });
+      }
+      continue;
+    }
+
+    const activated = ACTIVATE_ABILITY.exec(line);
+    if (activated?.[1] && activated[2] && activated[3]) {
+      add({ kind: 'ability', side: activated[1] as ActorSide, subject: activated[2], detail: activated[3] });
       continue;
     }
 
