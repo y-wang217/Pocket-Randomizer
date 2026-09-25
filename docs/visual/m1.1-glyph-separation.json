@@ -7127,35 +7127,35 @@
    "a": "node-wild",
    "b": "node-trainer",
    "simulation": "none",
-   "score": 0.40625
+   "score": 0.5078125
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-rest",
    "simulation": "none",
-   "score": 0.38671875
+   "score": 0.46875
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-gym",
    "simulation": "none",
-   "score": 0.2890625
+   "score": 0.55859375
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-shop",
    "simulation": "none",
-   "score": 0.3203125
+   "score": 0.4921875
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-event",
    "simulation": "none",
-   "score": 0.38671875
+   "score": 0.55078125
   },
   {
    "family": "node",
@@ -7232,35 +7232,35 @@
    "a": "node-wild",
    "b": "node-trainer",
    "simulation": "protanopia",
-   "score": 0.40625
+   "score": 0.5078125
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-rest",
    "simulation": "protanopia",
-   "score": 0.38671875
+   "score": 0.46875
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-gym",
    "simulation": "protanopia",
-   "score": 0.2890625
+   "score": 0.55859375
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-shop",
    "simulation": "protanopia",
-   "score": 0.3203125
+   "score": 0.4921875
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-event",
    "simulation": "protanopia",
-   "score": 0.38671875
+   "score": 0.55078125
   },
   {
    "family": "node",
@@ -7337,35 +7337,35 @@
    "a": "node-wild",
    "b": "node-trainer",
    "simulation": "deuteranopia",
-   "score": 0.40625
+   "score": 0.5078125
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-rest",
    "simulation": "deuteranopia",
-   "score": 0.38671875
+   "score": 0.46875
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-gym",
    "simulation": "deuteranopia",
-   "score": 0.2890625
+   "score": 0.55859375
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-shop",
    "simulation": "deuteranopia",
-   "score": 0.3203125
+   "score": 0.4921875
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-event",
    "simulation": "deuteranopia",
-   "score": 0.38671875
+   "score": 0.55078125
   },
   {
    "family": "node",
@@ -7442,35 +7442,35 @@
    "a": "node-wild",
    "b": "node-trainer",
    "simulation": "tritanopia",
-   "score": 0.40625
+   "score": 0.5078125
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-rest",
    "simulation": "tritanopia",
-   "score": 0.38671875
+   "score": 0.46875
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-gym",
    "simulation": "tritanopia",
-   "score": 0.2890625
+   "score": 0.55859375
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-shop",
    "simulation": "tritanopia",
-   "score": 0.3203125
+   "score": 0.4921875
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-event",
    "simulation": "tritanopia",
-   "score": 0.38671875
+   "score": 0.55078125
   },
   {
    "family": "node",

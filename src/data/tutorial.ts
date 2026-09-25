@@ -162,7 +162,7 @@ export const TUTORIAL: Readonly<Record<TutorialScreen, readonly TutorialMark[]>>
       anchor: '[data-tutorial="kinds"]',
       title: 'What an option is',
       text:
-        'The bush is a fight against a wild Pokemon, which can be caught. The head is a fight against a ' +
+        'The grass is a fight against a wild Pokemon, which can be caught. The head is a fight against a ' +
         'trainer’s team. The tent restores the party’s HP and PP and pays nothing. The bag sells items for ' +
         'coins. The question mark is an event. The badge is the gym leader at the end of the region.',
     },

@@ -274,12 +274,18 @@ export const GLYPHS: readonly Glyph[] = [
    * the ruling took them.
    *
    * Six silhouettes in one family, so drawn for outline rather than detail: a
-   * head on shoulders, three lobes on a stem, a triangle with a door cut
-   * even-odd, a star, a bag with a hole for the handle, and a `?` thick enough
-   * to survive 16px. The head against the bush and the tent against the badge
+   * head on shoulders, a tuft of grass, a triangle with a door cut even-odd,
+   * a star, a bag with a hole for the handle, and a `?` thick enough to
+   * survive 16px. The head against the bag and the tent against the badge
    * are the pairs the separation sheet is there to catch.
+   *
+   * **The grass, redrawn in 4.10.2.** It was three lobes on a stem, a bush,
+   * and the prompt asked for *"curved grass that's slightly bent from the
+   * wind"*, crown shaped. Five tapered blades from one base, each leaning
+   * right, the middle one tallest, so the outline is a crown that reads as
+   * wind at 24 and as a tuft at 16.
    */
-  { id: 'node-wild', family: 'node', label: labelOf('node-wild'), art: path('M12 3.5a4.2 4.2 0 0 1 4.1 3.3 4 4 0 0 1 4.4 4 4 4 0 0 1-2.4 3.7c.3 2-1.2 3.7-3.2 3.7h-1.6V21h-2.6v-2.8H9.1c-2 0-3.5-1.7-3.2-3.7A4 4 0 0 1 3.5 10.8a4 4 0 0 1 4.4-4A4.2 4.2 0 0 1 12 3.5z') },
+  { id: 'node-wild', family: 'node', label: labelOf('node-wild'), art: path('M2 20.2h20V22H2zM2.4 20.2C2.2 15.6 3.6 12.2 6.6 10c-1.6 3-2 6.4-1.6 10.2zm4.2 0c-.6-5.8 1.2-10.6 5-14.2-2.2 4.4-3 9.2-2.4 14.2zm3.8 0c-.4-7 1.8-12.6 6.4-17.2-2.8 5.4-3.9 11.1-3.7 17.2zm3.6 0c.2-5.8 2.6-10.4 7.2-13.8-3 4.2-4.7 8.8-4.9 13.8zm3.4 0c.8-4 3-7 6.6-8.8-2.4 2.8-3.7 5.8-4.2 8.8z') },
   { id: 'node-trainer', family: 'node', label: labelOf('node-trainer'), art: path('M12 2.5a4.6 4.6 0 0 1 4.6 4.6v1.2A4.6 4.6 0 0 1 12 12.9a4.6 4.6 0 0 1-4.6-4.6V7.1A4.6 4.6 0 0 1 12 2.5zM3 21.5c0-4.3 3.6-7.4 9-7.4s9 3.1 9 7.4z') },
   { id: 'node-rest', family: 'node', label: labelOf('node-rest'), art: path('M12 2.5l10.5 18.5h-21zm0 9.2l-3.4 6.3h6.8z', 'evenodd') },
   { id: 'node-gym', family: 'node', label: labelOf('node-gym'), art: path('M12 2l2.4 5.6 5.8-1.8-3.4 5.2 5.2 3.4-5.8 1.6L14.4 22 12 16.6 9.6 22l-1.8-6-5.8-1.6 5.2-3.4-3.4-5.2 5.8 1.8z') },
