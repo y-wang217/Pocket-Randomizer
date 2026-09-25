@@ -11203,3 +11203,18 @@ board takes `weather=` and `terrain=` and sets the field by the ability that
 sets it, so a screenshot of the surface is one battle's truth. No `core/`
 change; `contentHash` unmoved.
 
+**The chip legibility sweep on this box, recorded so the next session does
+not re-derive it.** `test/visual-chips.test.ts`'s `sweep()` walks a real run
+(`STAT49-298`, up to 600 steps with a DOM-quiet settle per step) and its
+`beforeAll` is capped at 900 seconds. On the session box that built Tiers 1
+to 3 it hit that cap on every run: three times in the full browser suite,
+once alone on HEAD, and **once alone on `6581860`, the pre-4.11 `main`, to the
+same second** (905.67s against 905.76s). Same tree shape, same number, before
+and after every 4.11 change, so it is the machine's walk speed and not this
+stage; the register's note on the `main` check patch already records that
+this container is not the box CI runs on. Every other browser file passed
+here, `visual-field` included, and the sweep's own contrast question for the
+wash is answered by `visual-field.test.ts` on the gallery's loaded board
+rather than by the walk. **The sweep's verdict on this stage is CI's to give**,
+on the pull request's `check` run, and a red there is this stage's to fix.
+
