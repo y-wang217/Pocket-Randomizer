@@ -187,7 +187,6 @@ describe('the band badge renders on every surface that renders a move', () => {
         relics: [],
         tuning: DEFAULT_TUNING,
         slots: partyCapacityAfter(0),
-        backTo: 'Back to the map',
         plan: null,
       },
       { onReorder: () => undefined, onRelease: () => undefined, onPlan: () => undefined, onTeach: () => undefined, onDone: () => undefined },

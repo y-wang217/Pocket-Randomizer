@@ -350,7 +350,6 @@ async function main(): Promise<void> {
           relics: state.relics,
           tuning: state.tuning,
           slots: partyCapacity(state),
-          backTo: 'Back to the map',
           plan: null,
         },
         { onReorder: noop, onRelease: noop, onPlan: noop, onTeach: noop, onDone: noop },

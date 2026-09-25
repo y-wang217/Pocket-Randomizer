@@ -88,7 +88,7 @@ describe('the band', () => {
     // Escape cancels, and the screen's primary is the accent again.
     await page.keyboard.press('Escape');
     expect(await page.locator('.confirm-band').count()).toBe(0);
-    expect(await accentButtons(page)).toEqual(['Back to the map']);
+    expect(await accentButtons(page)).toEqual(['Return']);
 
     // The pinned incoming move card on the replacement screen sits above the
     // band's range. Release A's confirm is not merged; this is the card it

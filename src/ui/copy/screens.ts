@@ -67,6 +67,16 @@ export const PARTY_COPY = {
     short: 'No relics yet.',
   },
   emptyBag: { long: 'Nothing loose. Items you win arrive here.', short: 'Nothing loose.' },
+  /*
+   * The way out. **One word, on purpose** (2026-09-25 playtest).
+   *
+   * It used to name where it went — "Back to the gym", "Back to the map" —
+   * and the choice was made from a variable in `app.ts` that nothing reset,
+   * so the gym label outlived the gym and stood on a screen opened by a rest.
+   * The routing was right; the promise was wrong. `Return` promises nothing
+   * it cannot keep. `generation.md` section 80.
+   */
+  done: { long: 'Return', short: 'Return' },
 } as const satisfies Record<string, Prose>;
 
 export const REPLACE_COPY = {

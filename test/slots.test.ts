@@ -61,7 +61,6 @@ describe('the party screen', () => {
       // Three members need at least three slots; the opening width is two
       // from Stage 4.9, so this view is a run one widening gym in.
       slots: THREE_UP,
-      backTo: 'Back to the map',
       plan: null,
     };
 

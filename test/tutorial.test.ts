@@ -172,7 +172,6 @@ function mount(screen: TutorialScreen): Mounted {
           relics: [RELIC_IDS[0]!],
           tuning: state.tuning,
           slots: 3,
-          backTo: 'map',
           plan: null,
         },
         { onReorder: fire, onRelease: fire, onPlan: fire, onTeach: fire, onDone: fire },

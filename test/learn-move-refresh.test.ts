@@ -83,7 +83,6 @@ describe('the party screen draws a teach the moment it is composed', () => {
       relics: [],
       tuning: DEFAULT_TUNING,
       slots: partyCapacityAfter(0),
-      backTo: 'Back',
     } as const;
     const handlers = {
       onReorder: () => undefined,
@@ -128,8 +127,7 @@ describe('the party screen draws a teach the moment it is composed', () => {
         relics: [],
         tuning: DEFAULT_TUNING,
         slots: partyCapacityAfter(0),
-        backTo: 'Back',
-        plan: planWith([{ move: 'Thunderbolt', slot: 0, replaceSlot: 2 }], 1),
+          plan: planWith([{ move: 'Thunderbolt', slot: 0, replaceSlot: 2 }], 1),
       },
       {
         onReorder: () => undefined,

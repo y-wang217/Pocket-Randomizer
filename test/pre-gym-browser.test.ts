@@ -112,10 +112,11 @@ describe('a party of one at the gym', () => {
     for (let step = 0; step < 60 && (await openScreen(page)) !== 'party'; step++) await page.waitForTimeout(50);
     expect(await openScreen(page), 'the pre-gym screen did not reach the party screen').toBe('party');
 
-    // The way out names where it goes. Entered from the gym, it is the gym —
-    // "Back to the map" here was the softlock announced a click in advance.
+    // The way out is one word: it used to name the gym, and that label
+    // outlived the gym (generation.md section 80). The round trip below is
+    // what proves it goes back to the right screen.
     const done = page.locator(`${visible('party')} .primary-action`);
-    expect(await done.textContent()).toBe('Back to the gym');
+    expect(await done.textContent()).toBe('Return');
     await done.click();
 
     /*
@@ -160,7 +161,7 @@ describe('a party of one at the gym', () => {
     expect(await openScreen(page)).toBe('party');
 
     const done = page.locator(`${visible('party')} .primary-action`);
-    expect(await done.textContent()).toBe('Back to the map');
+    expect(await done.textContent()).toBe('Return');
     await done.click();
     for (let step = 0; step < 60 && (await openScreen(page)) !== 'map'; step++) await page.waitForTimeout(50);
     expect(await openScreen(page), 'Done did not return to the map').toBe('map');

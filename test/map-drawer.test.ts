@@ -284,7 +284,6 @@ describe('every decision surface', () => {
             relics: [],
             tuning: state.tuning,
             slots: partyCapacityAfter(0),
-            backTo: 'Back to the map',
             plan: null,
           },
           { onReorder: bump, onRelease: bump, onPlan: bump, onTeach: bump, onDone: bump },

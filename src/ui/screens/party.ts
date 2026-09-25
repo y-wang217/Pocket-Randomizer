@@ -135,14 +135,6 @@ export interface PartyView {
    */
   slots: number;
   /**
-   * Where the way out goes, as the words on the button.
-   *
-   * The screen has two entrances — the map's Manage button and the pre-gym
-   * screen's — and the caller is the only thing that knows which one was used.
-   * It is the label only: `onDone` does the navigating.
-   */
-  backTo: string;
-  /**
    * A layout the player already composed and has not yet spent, or null.
    *
    * **Needed because a plan is collected here and applied at the next node
@@ -188,8 +180,10 @@ export function createPartyScreen(): PartyScreen {
   const done = document.createElement('button');
   done.type = 'button';
   done.className = 'button primary-action';
-  // Text set per render, from `view.backTo`: the screen has two entrances and a
-  // label naming the wrong one is the softlock told to the player in advance.
+  // One word, from the copy table: the screen has two entrances and the label
+  // used to name one of them, wrongly, after the other had been used
+  // (generation.md section 80). `onDone` does the navigating.
+  setProse(done, PARTY_COPY.done);
 
   root.append(title, blurb, threats.root, partySlots, list, bag, tmPanel, relics, done);
 
@@ -224,7 +218,6 @@ export function createPartyScreen(): PartyScreen {
     root,
     render(view, handlers) {
       onDone = handlers.onDone;
-      done.textContent = view.backTo;
       /*
        * Seed from the unspent plan if there is one, and from the run otherwise.
        *

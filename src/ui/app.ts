@@ -1157,7 +1157,6 @@ export function mountApp(root: HTMLElement): void {
           relics: state.relics,
           tuning: state.tuning,
           slots: partyCapacity(state),
-          backTo: returnTo === 'pre-gym' ? 'Back to the gym' : 'Back to the map',
           plan: pendingPlan,
         },
         {
