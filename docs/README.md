@@ -108,7 +108,7 @@ taking display strings off `EventInstance` so the copy file stays excludable.
 and trigger visuals**, six tiers in one session. The prompt and its plan are in
 [`spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md`](spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md),
 the handoff in [`handoff/4.11-prep.md`](handoff/4.11-prep.md), the record in
-[`generation.md` §81](generation.md). The finding that shaped it: the logic is
+[`generation.md` §82](generation.md). The finding that shaped it: the logic is
 the sim's and always was, the tree read weather as an event and never as a
 state, and every weather in the game is set by an ability on switch-in, the
 one batch the battle screen never animated. The board's weather and terrain

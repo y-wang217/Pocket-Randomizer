@@ -481,7 +481,7 @@ families and section 6 gains two steps. Tiers 0 to 4 built in one session:
 the census, the state headless, the `field` glyph on the header, the field's
 factor on the move button, the wash and the tint on the world, and the
 triggers. Landed before M7.1 for 4.10.1's reason: the playtest should see the
-twelve-family face. Record [`../generation.md` §81](../generation.md), handoff
+twelve-family face. Record [`../generation.md` §82](../generation.md), handoff
 [`../handoff/4.11-prep.md`](../handoff/4.11-prep.md).
 
 ### Tier 7: validation

@@ -3459,6 +3459,6 @@ and sun marks. D48 as ruled: the ability name pulses in its slot on one
 keyframe for every ability, the activation-line abilities included, and the
 opening batch shows it. D49 as ruled: the button's multiplier folds in the
 field's factor and points its tip at the field when no ability explains it.
-Record in [`../generation.md` §81](../generation.md). One item is open
+Record in [`../generation.md` §82](../generation.md). One item is open
 outside this file: `CLAUDE.md`'s restatement of C1.
 
