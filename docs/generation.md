@@ -11169,6 +11169,25 @@ fix is `isolation: isolate` on the control and `z-index: -1` on the bleed,
 so it sits behind the content inside the control's own stacking context; the
 five percent outside the box is still the control's.
 
+### The first CI run, and the second push
+
+Four browser tests failed on the PR's first head, all this patch's.
+
+- **Three phone tests measured the page at 391 and 392 wide.** An
+  absolutely positioned box extends the page's scrollable overflow, and five
+  percent of a full-width button at 390 is 18px, past the shell's 16px side
+  gutter. The bleed is now `max(-5%, -12px)` a side, the 12px as `--space-3` for the token rule: five percent on anything
+  under 240px wide, 12px above that, and never past the edge.
+- **The tutorial test could not click the header's replay button** because a
+  hover-opened sheet for a stat panel sat over it. Docked at the top, a hover
+  sheet now covers the header; it is also a sheet the cursor can never reach,
+  since `mouseout` closes it. So a hover sheet takes no pointer:
+  `data-transient` on the root and `pointer-events: none` for it, scoped
+  under `.shell` as well because `.shell > *:not(.screens)` forces pointer
+  events on every direct child at the same specificity. A held or
+  keyboard-opened sheet keeps its pointer, for the scroll and the close
+  control.
+
 ### The bible
 
 R5's *"Release closes"* clause is gone, and the rule now names the docked

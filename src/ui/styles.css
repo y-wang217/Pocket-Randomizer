@@ -4671,6 +4671,24 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
    it on its own, but a later rule with `display` would: stated so it cannot be. */
 .tip[hidden] { display: none; }
 
+/*
+ * A hover sheet takes no pointer. The docked sheet patch, second push.
+ *
+ * Docked at the top, a sheet the cursor opened in passing now sits over the
+ * header's controls, and a hover sheet is one the cursor cannot reach anyway:
+ * `mouseout` closes it the moment the cursor leaves the trigger. So it is
+ * read where the cursor is and blocks nothing under it. The first CI run
+ * found the tutorial replay button behind a hovered stat panel's sheet. A
+ * held or keyboard-opened sheet keeps its pointer: it scrolls, and it has the
+ * close control.
+ */
+/* Both forms, because `.shell > *:not(.screens)` below sets `pointer-events:
+   auto` on every direct child of the shell at the same specificity and comes
+   later in the file; the second selector outranks it where the layer is
+   mounted, and the first covers any other host. */
+.tip[data-transient='true'],
+.shell > .tip[data-transient='true'] { pointer-events: none; }
+
 /* The sheet's own close control, top right, a glyph and no word. The scrim
    and Escape close it too; this is for the reader whose thumb is already on
    the sheet. */
@@ -4837,6 +4855,12 @@ textarea,
  * so a press that lands just off a control still lands on it. `:where()`
  * keeps the specificity at zero, so a control with its own `position` (the
  * fixed stamps) keeps it.
+ *
+ * **Capped at 12px a side.** An absolutely positioned box extends the
+ * scrollable overflow of the page, and five percent of a full-width button
+ * at 390 wide is 18px, past the shell's 16px side gutter: the first CI run
+ * measured the page at 391 and 392 wide on three phone tests. `max()` with
+ * two negatives keeps the smaller bleed, and 12px never reaches the edge.
  */
 :where(button, [role='button']) {
   position: relative;
@@ -4852,7 +4876,7 @@ textarea,
 :where(button, [role='button'])::after {
   content: '';
   position: absolute;
-  inset: -5%;
+  inset: max(-5%, calc(-1 * var(--space-3)));
   z-index: -1;
 }
 

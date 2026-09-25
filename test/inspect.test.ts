@@ -501,7 +501,7 @@ describe('nothing on the board is a text field', () => {
     const tokens = readFileSync(join(process.cwd(), 'src', 'ui', 'theme', 'tokens.css'), 'utf8');
     expect(css).toMatch(/body\s*\{[^}]*user-select:\s*none;[^}]*-webkit-touch-callout:\s*none;/);
     expect(css).toMatch(/input,\s*textarea,\s*\.log-sheet__body\s*\{[^}]*user-select:\s*text;/);
-    expect(css).toMatch(/:where\(button, \[role='button'\]\)::after\s*\{[^}]*inset:\s*-5%;/);
+    expect(css).toMatch(/:where\(button, \[role='button'\]\)::after\s*\{[^}]*inset:\s*max\(-5%, calc\(-1 \* var\(--space-3\)\)\);/);
     // The slop sits *behind* the control's content, in the control's own
     // stacking context. Painted on top it took every press meant for a chip
     // inside a move card or a panel, and the ability and type triggers were

@@ -362,6 +362,8 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
     if (openFor && openFor !== trigger) openFor.removeAttribute('aria-expanded');
     openFor = trigger;
     transient = byHover;
+    // The stylesheet takes a hover sheet out of the pointer's way.
+    root.dataset['transient'] = byHover ? 'true' : 'false';
     trigger.setAttribute('aria-expanded', 'true');
 
     // Answered by `onClick`, like every other control the layer owns.
