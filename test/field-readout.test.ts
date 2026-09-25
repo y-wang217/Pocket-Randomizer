@@ -21,8 +21,8 @@ import { createTooltips } from '../src/ui/tooltips';
 
 const REVEAL = { ability: true, item: true, teamSize: true };
 
-function mon(species: string, ability: string): PokemonSpec {
-  return { species, ability, moves: ['Tackle'], level: 50 };
+function mon(species: string, ability: string, moves: string[] = ['Tackle']): PokemonSpec {
+  return { species, ability, moves, level: 50 };
 }
 
 function nodeFor(foe: TeamSpec, seed: string): NodeSpec {
@@ -135,3 +135,22 @@ describe('inspect on the field glyph (R5)', () => {
     detach();
   });
 });
+
+describe('the field on the move button (D49)', () => {
+  it('shows the folded number and points it at the weather', () => {
+    const { root, detach } = mount([mon('Pelipper', 'Drizzle', ['Water Gun', 'Ember'])], [mon('Charmander', 'Blaze')]);
+    const badges = [...root.querySelectorAll<HTMLElement>('button.move [data-field="true"]')];
+    // Water Gun on a Fire type is the chart's 2, under rain 3; Ember on a Fire
+    // type is the chart's ½, under rain ¼. Both point at the rain.
+    expect(badges.map((badge) => badge.textContent?.trim())).toEqual(['3', '¼']);
+    expect(badges.map((badge) => badge.dataset['tip'])).toEqual(['field:raindance', 'field:raindance']);
+    detach();
+  });
+
+  it('marks nothing when the board does nothing to the move', () => {
+    const { root, detach } = mount([mon('Pelipper', 'Drizzle', ['Tackle'])], [mon('Charmander', 'Blaze')]);
+    expect(root.querySelectorAll('button.move [data-field="true"]')).toHaveLength(0);
+    detach();
+  });
+});
+

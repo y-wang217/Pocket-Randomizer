@@ -161,6 +161,16 @@ export interface ActiveFacts {
   ability: { id: string; name: string } | null;
   item: { id: string; name: string } | null;
   speed: SpeedFacts;
+  /**
+   * Standing on the ground, as the engine decides it. **Stage 4.11 Tier 2b.**
+   *
+   * Terrain applies to a grounded Pokemon and the engine's `isGrounded` folds
+   * in the Flying type, Levitate, an Air Balloon, Magnet Rise, Iron Ball and
+   * Gravity. Read off the sim rather than re-derived, for the same reason
+   * `speed.engine` is: a list reimplemented here is a list that drifts. The
+   * projection decides what a hidden ability may reveal, not this.
+   */
+  grounded: boolean;
 }
 
 /** A move offered this turn, before effectiveness is computed against a defender. */
@@ -184,6 +194,12 @@ export interface MoveFacts {
    * Ability effects are layered on here, under the visibility rule.
    */
   typeMultiplier: number;
+  /**
+   * The chart against the Flying type alone, for Strong winds. **Stage 4.11
+   * Tier 2b.** Read beside `typeMultiplier` in the adapter, since the chart
+   * is the dex's and this file does not open it.
+   */
+  flyingMultiplier: number;
   /**
    * Everything `describeMove` knows about this move. **Stage 4.7, Part 6.**
    *
@@ -500,6 +516,13 @@ export interface MoveUiView {
    */
   abilityAffected: boolean;
   /**
+   * The field's factor inside `effectiveness`, and the weather or terrain
+   * behind it. **Stage 4.11 Tier 2b, D49.** `fieldFactor` is 1 and
+   * `fieldCause` null when the board does nothing to this move.
+   */
+  fieldFactor: number;
+  fieldCause: string | null;
+  /**
    * The tags on this move's button face. **Stage 4.7, Part 6b.**
    *
    * Capped at `tuning.maxMoveTagsOnFace` and in table priority order, so the
@@ -668,7 +691,7 @@ export function buildBattleUiView(
     player,
     opponent,
     moves: facts.moves.map((move) =>
-      toMoveUiView(move, facts.opponent, facts.player, maxMoveTagsOnFace, reveal, abilityEffects),
+      toMoveUiView(move, facts.opponent, facts.player, maxMoveTagsOnFace, reveal, abilityEffects, facts.field),
     ),
     fasterSide: fasterSide(facts, reveal),
     opponentLeft: {
@@ -774,6 +797,7 @@ function toMoveUiView(
   maxTags: number,
   reveal: RevealPolicy,
   abilityEffects: AbilityEffects,
+  field: FieldFacts,
 ): MoveUiView {
   const base = {
     slot: move.slot,
@@ -806,6 +830,22 @@ function toMoveUiView(
     () => move.typeMultiplier,
     abilityEffects,
     reveal,
+    /*
+     * The board. **Stage 4.11 Tier 2b, D49.** The holder's grounding is the
+     * engine's, since everything about one's own side is visible. The
+     * defender's is the engine's only while its ability is visible: a hidden
+     * Levitate must not leak through a terrain factor that failed to apply,
+     * so with the ability hidden the honest reading is the typing alone —
+     * the same rule `visibleSpeed` follows for a hidden Swift Swim.
+     */
+    {
+      weather: field.weather,
+      terrain: field.terrain,
+      suppressed: field.suppressed,
+      attackerGrounded: holder.grounded,
+      defenderGrounded: reveal.ability ? defender.grounded : !defender.types.includes('Flying'),
+      flyingWeakness: move.flyingMultiplier,
+    },
   );
 
   return {
@@ -816,6 +856,8 @@ function toMoveUiView(
     // `bandOfMove`. The projection looks nothing up here.
     powerBand: move.explanation?.band ?? null,
     abilityAffected: result.abilityAffected,
+    fieldFactor: result.fieldFactor,
+    fieldCause: result.fieldCause,
     tags: move.explanation ? tagsForFace(move.explanation, maxTags, { types: holder.types }) : [],
     effect:
       move.explanation && hasStatusReadout(move.explanation)

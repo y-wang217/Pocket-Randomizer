@@ -637,6 +637,10 @@ function toActiveFacts(pokemon: SimPokemon, own: boolean): ActiveFacts {
     volatiles: Object.keys(pokemon.volatiles),
     ability: ability?.exists ? { id: ability.id, name: ability.name } : null,
     item: item?.exists ? { id: item.id, name: item.name } : null,
+    // The engine's own answer; `null` is its "not grounded, but Ground moves
+    // still land" case (Levitate under Gravity is the shape), and terrain
+    // does not apply there either.
+    grounded: pokemon.isGrounded() === true,
     speed: {
       /*
        * The engine's own answer, not a reimplementation.
@@ -1041,6 +1045,7 @@ export function createBattle(options: BattleOptions): BattleSession {
       usable: move.usable,
       flags: Object.keys(Dex.forGen(GYMRUN_GEN).moves.get(move.id).flags),
       typeMultiplier: typeMultiplier(move.type, defenderTypes),
+      flyingMultiplier: typeMultiplier(move.type, ['Flying']),
       /*
        * The full explanation, carried so the projection can derive tags and a
        * status readout. **Stage 4.7, Part 6.**

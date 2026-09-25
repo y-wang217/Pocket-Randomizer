@@ -1855,6 +1855,20 @@ function renderMove(
         'aria-label',
         `${move.name}: ${EFFECTIVENESS_LABELS[move.band]} — from ${cause.name}`,
       );
+    } else if (move.fieldCause) {
+      /*
+       * The same rule for the field. **Stage 4.11 Tier 2b, D49.**
+       *
+       * A 3 on a Water move against a Rock type is the chart's 2 under rain,
+       * and the number alone does not say so. So the badge points at the
+       * weather or terrain that moved it: tap it and the field panel answers
+       * in the engine's own terms. An ability keeps precedence above, since a
+       * 0x has more to explain than a 1.5.
+       */
+      badge.dataset['field'] = 'true';
+      badge.dataset['tip'] = `field:${move.fieldCause}`;
+      badge.tabIndex = 0;
+      badge.setAttribute('role', 'button');
     }
     effectBadge = badge;
   }
@@ -2197,8 +2211,12 @@ export const CATEGORY_LABELS: Record<MoveUiView['category'], string> = {
  */
 export function effectivenessFraction(multiplier: number | null): string | null {
   if (multiplier === null || multiplier === 1) return null;
-  const VULGAR: Record<string, string> = { '0.25': '¼', '0.5': '½' };
-  return VULGAR[String(multiplier)] ?? String(multiplier);
+  // ¾ joined the two chart fractions with D49: a resisted hit under a 1.5
+  // weather lands there. Anything else prints as a number to two places, so a
+  // terrain's 1.3 on a 2 reads 2.6 and not a float's tail.
+  const VULGAR: Record<string, string> = { '0.25': '¼', '0.5': '½', '0.75': '¾' };
+  const rounded = Number(multiplier.toFixed(2));
+  return VULGAR[String(rounded)] ?? String(rounded);
 }
 
 /**

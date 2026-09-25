@@ -11154,3 +11154,26 @@ measures. The header's budget of 3 holds: a glyph is not a word.
 `test/field-readout.test.ts` is the new file, nine cases through the screen's
 own `attach`. No `core/` change; `contentHash` unmoved.
 
+**Tier 2b, the field on the button.** D49's scope, ruled against the plan's
+recommendation and built as ruled. `core/battle/effectiveness.ts` gained
+`fieldFactor`, the board's own multiplier for a move as the engine applies it:
+rain and sun on Water and Fire, the primal weathers' outright refusal, Strong
+winds taking the Flying weakness off, and the four terrains on a grounded
+attacker or target, with Grassy Terrain's three halved moves by name.
+Sandstorm's and snow's stat-side boosts are not a number on the move and stay
+on the field glyph's inspect. `moveEffectiveness` folds the factor in last,
+after the ability, so a visible immunity stays 0 whatever the sky says; the
+result carries `fieldFactor` and `fieldCause`, the sim id that moved it.
+`ActiveFacts.grounded` is the engine's `isGrounded()`, and the projection
+hands the defender's grounding over only while its ability is visible — with
+it hidden the typing alone decides, the `visibleSpeed` rule again, so a hidden
+Levitate leaks through neither the immunity nor the terrain. `MoveFacts`
+gained `flyingMultiplier`, the chart against Flying alone, because the
+projection's chart closure is a constant and Strong winds needs one more
+number from the dex. On the button the badge prints the folded number
+(`effectivenessFraction` learned ¾ and rounds to two places, so a terrain's
+2.6 is 2.6) and, where no ability explains it, points its tip at the field:
+the same "a number with its reason attached" rule the Levitate `0x` set. No
+version axis moved: `data/` is untouched and the run log records decisions,
+not forecasts.
+
