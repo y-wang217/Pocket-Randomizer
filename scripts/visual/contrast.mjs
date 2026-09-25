@@ -41,7 +41,6 @@ export const STYLES = {
     ['.panel__hp-text', 'party hp text'],
     ['.party__move', 'party move row'],
     ['.step--current .node__label', 'node label'],
-    ['.step--current .node__detail', 'node detail'],
     ['.step--current .tier', 'tier chip'],
     ['.step--upcoming .node__label', 'upcoming node label'],
     ['.map__region .type', 'type chip'],

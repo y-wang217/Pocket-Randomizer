@@ -51,12 +51,10 @@ import { resolveCapability, type CapabilityContext } from '../../core/capabiliti
 import { BAND_LABELS, CAPABILITY_LABELS, RARITY_LABELS } from '../../data/eventCopy';
 import { nodePayout } from '../../core/economy';
 import type { PokemonState } from '../../core/types';
-import { GYMS, gymForSegment } from '../../data/gyms';
+import { GYMS } from '../../data/gyms';
 import { GLYPH_LABELS } from '../../data/glyphLabels';
 import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
 import { createBar } from '../bar';
-import { prose, type Prose } from '../dom';
-import { KIND_HINTS } from '../copy/screens';
 import { capabilityBandChevron, capabilityGlyph, neutralChip, nodeKindGlyph, statusChip, tierPips } from '../chip';
 import { hpTip } from '../member-card';
 import { el, levelAria, levelText } from '../scene';
@@ -78,7 +76,6 @@ const kindWord = (kind: NodeSpec['kind']): string => GLYPH_LABELS[`node-${kind}`
  * double render. The name comes from the gym table, not from trimming the
  * string.
  */
-const gymLeaderName = (segment: number): string => gymForSegment(segment).leader;
 
 export interface RunMap {
   root: HTMLElement;
@@ -443,11 +440,8 @@ function renderNode(
    * reveal what a node contains before the player has chosen it. A gym's team
    * size is named too — see the heading.
    */
-  label.append(nodeKindGlyph(node.kind, kindWord(node.kind), 24));
-  if (node.kind === 'gym') {
-    const size = node.encounter?.team.length ?? 0;
-    label.append(document.createTextNode(`${gymLeaderName(segment)}${size > 1 ? ` · ${size} Pokemon` : ''}`));
-  }
+  const mark = nodeKindGlyph(node.kind, kindWord(node.kind), 24);
+  label.append(mark);
 
   /*
    * The tier, beneath the mark, on every step the player can still see. Not
@@ -484,30 +478,35 @@ function renderNode(
     element.append(label);
   }
 
-  const detail = el('span', 'node__detail');
+  /*
+   * **The face is the mark. Patch 4.10.2, D47.**
+   *
+   * Everything this block used to print beside the mark, it now writes onto
+   * the mark's `node:` tip as `data-detail`, one line per fact, and the
+   * inspect panel prints them under the kind's hint. Nothing is dropped (C2);
+   * a press is where each fact lives now (R5), as it is for the tier's
+   * definition and a gate's rarity. The prompt: *"remove the things that
+   * aren't the icon, so it's even more closely resembles the sts map."*
+   */
+  const lines: string[] = [];
   if (visit?.result) {
     // Past nodes name what was fought. That is information the player already
     // has, and it turns the chain into a record of the run rather than a
     // progress bar.
     const turns = `${visit.result.turns} turn${visit.result.turns === 1 ? '' : 's'}`;
-    detail.textContent = node.encounter ? `${node.encounter.opponent} · ${turns}` : turns;
-  } else if (visit) {
-    detail.textContent = 'restored';
-  } else if (phase === 'current') {
+    lines.push(node.encounter ? `${node.encounter.opponent} · ${turns}` : turns);
+  } else if (!visit && (phase === 'current' || phase === 'upcoming')) {
     /*
-     * The trade, spelled out before the click.
+     * The trade, one press away before the click.
      *
      * The coin payout is exact rather than a range, because it *is* exact — a
      * pure function of kind, tier and segment, computed by the same
-     * `nodePayout` that pays it out. Showing a number the player can plan
-     * against costs nothing in surprise and buys the whole decision.
+     * `nodePayout` that pays it out. On every step the player can still see,
+     * for the reason the pips are: routing toward a payout two steps ahead is
+     * only a plan if you can read it.
      */
     const payout = nodePayout(node, segment);
-    // Numbers as text, prose in both of its forms (density modes patch): the
-    // tier sentence from `data/tierInfo.ts` and the kind's hint from
-    // `ui/copy/screens.ts`, separated by the same middle dot as before.
-    const parts: (string | Prose)[] = [];
-    if (payout > 0) parts.push(`${payout} coins`);
+    if (payout > 0) lines.push(`${payout} coins`);
     /*
      * Who is across the field, on a fight node. **The AI tiers patch.**
      *
@@ -525,36 +524,25 @@ function renderNode(
       // but it wraps this card to a second line, and the map's vertical budget
       // is a gate that V5 spent three decisions to meet. The sentence lives on
       // the battle panel, where the fight it describes is.
-      parts.push(AI_TIER_LABEL[tier]);
+      lines.push(AI_TIER_LABEL[tier]);
     }
     /*
-     * **The tier sentence is gone from the face. M5.2.**
-     *
-     * Section 3's Tier row puts the tier *definition* in the inspect column,
-     * and `TIER_INFO` is that definition — "What the segment fields, at its own
-     * level and band. Pays a move in its own band." It was the longest thing on
-     * this card and it is a sentence at rest, which R2 forbids on a card. The
-     * pips carry the fact and the `tier:` tip carries the sentence.
-     *
-     * An untiered node keeps its kind hint: it has no pips to read the fact
-     * off, and M5.2 does not name it.
+     * **The tier sentence is gone from the face. M5.2.** Section 3's Tier
+     * row puts the tier *definition* in the inspect column, and the pips
+     * carry the fact while the `tier:` tip carries the sentence. The kind's
+     * hint that an untiered node printed here until 4.10.2 is the `node:`
+     * panel's first line already, so it is not repeated.
      */
-    if (!node.tier) parts.push(KIND_HINTS[node.kind]);
     if (node.kind === 'shop' && node.shop) {
       const cheapest = Math.min(...node.shop.items.map((item) => item.price));
-      parts.push(`${node.shop.items.length} on the shelf, from ${cheapest}`);
+      lines.push(`${node.shop.items.length} on the shelf, from ${cheapest}`);
     }
-    detail.replaceChildren(
-      ...parts.flatMap((part, index) => [
-        ...(index > 0 ? [document.createTextNode(' · ')] : []),
-        typeof part === 'string' ? document.createTextNode(part) : prose(part),
-      ]),
-    );
-  } else {
-    detail.textContent = '';
+    // A gym's team size, which the face said beside the leader's name until
+    // 4.10.2. The leader is on the rail and in the heading above the chain.
+    const size = node.encounter?.team.length ?? 0;
+    if (node.kind === 'gym' && size > 1) lines.push(`${size} Pokemon`);
   }
-
-  element.append(detail);
+  if (lines.length > 0) mark.dataset['detail'] = lines.join('\n');
 
   /*
    * The requirement, and the band the run reads at for it.

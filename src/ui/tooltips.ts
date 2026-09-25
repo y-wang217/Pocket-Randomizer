@@ -718,7 +718,7 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
     case 'tier':
       return renderTier(id);
     case 'node':
-      return renderNodeKind(id);
+      return renderNodeKind(id, trigger?.dataset['detail']);
     case 'capability-band':
       return renderCapabilityBand(id);
     case 'reward-tier':
@@ -848,11 +848,19 @@ function renderTier(id: string): HTMLElement | null {
  * *What an option is* paraphrased. The title is the glyph's own word, so the
  * panel and the exposure label cannot disagree on what to call the mark.
  */
-function renderNodeKind(id: string): HTMLElement | null {
+function renderNodeKind(id: string, detail?: string): HTMLElement | null {
   const hint = KIND_HINTS[id as keyof typeof KIND_HINTS];
   if (!hint) return null;
   const body = panel(GLYPH_LABELS[`node-${id}`] ?? id);
   body.append(line(hint.long, 'tip__text'));
+  /*
+   * **The node's own lines. Patch 4.10.2, D47.** The payout, the AI tier, a
+   * shop's shelf, a gym's team size, a done node's record: what the card
+   * printed beside the mark until the face became the mark. Written by
+   * `screens/run-map.ts` onto the trigger, one per line, because they are
+   * facts about *this* node and not about the kind.
+   */
+  for (const item of (detail ?? '').split('\n').filter((text) => text.length > 0)) body.append(line(item, 'tip__text'));
   return body;
 }
 

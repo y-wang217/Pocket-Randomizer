@@ -1564,7 +1564,6 @@ body {
 
 /* The map's upcoming steps in Pocket: one line per node. The current step's
    cards keep their detail line — the trade is the decision. */
-:root[data-density="pocket"] .step--upcoming .node__detail:empty { display: none; }
 :root[data-density="pocket"] .step--upcoming .node { padding: var(--space-h) var(--space-1h); }
 
 /* Backpack rows in Pocket: the slot, the item and a compact fold control on
@@ -3227,10 +3226,11 @@ body {
 
 /*
  * The kind is a mark. **Patch 4.10.1, D46.** The label line carries the node
- * glyph at 24 and, on a gym, the leader's name; the tier pips have a row of
- * their own beneath it, where the prompt asked for them. The mark inherits
- * the label's colour and nothing else: no hue per kind, for the reason the V0
- * note above gives.
+ * glyph at 24; the tier pips have a row of their own beneath it, where the
+ * prompt asked for them. The mark inherits the label's colour and nothing
+ * else: no hue per kind, for the reason the V0 note above gives. **Since
+ * 4.10.2 (D47) the mark is the whole face**: the detail line that carried the
+ * payout and the AI tier is gone and those facts are on the mark's tip.
  */
 .node__label { display: inline-flex; align-items: center; gap: var(--space-1h); }
 .node__kind { display: inline-flex; align-items: center; line-height: 0; }
@@ -3238,13 +3238,6 @@ body {
 
 /* The same mark at 16 on the battle header, beside the leader's name. */
 .battle__header .screen__title { display: inline-flex; align-items: center; gap: var(--space-1); }
-
-.node__detail {
-  color: var(--text-faint);
-  font-family: var(--font-body);
-  font-size: var(--fs-sm);
-  line-height: 1.35;
-}
 
 .node--current {
   cursor: pointer;

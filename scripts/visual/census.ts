@@ -244,7 +244,7 @@ export const COMPONENTS: readonly { id: string; selector: string; why: string; b
   {
     id: 'map node card',
     selector: '.node',
-    why: 'Section 4 budgets it at 2 since D46 (3 under D37, 0 before). Two call sites, the map screen and the map drawer, which is what makes it a component by section 5\'s own test.',
+    why: 'Section 4 budgets it at 0 since D47 (2 under D46, 3 under D37, 0 before D37). Two call sites, the map screen and the map drawer, which is what makes it a component by section 5\'s own test.',
   },
   {
     id: 'locale card',
