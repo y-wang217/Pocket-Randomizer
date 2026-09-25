@@ -560,9 +560,16 @@ function mountLoadedBattle(
    * writes `Trainer's <species>`. A fixture that measures a surface must render
    * what the surface renders.
    */
+  /*
+   * And a real kind. **Patch 4.10.1.** It read `battle`, which no node has
+   * ever had, and nothing noticed while the kind was a word the fixture set
+   * itself. The header wears the kind's *mark* now, looked up by kind, and a
+   * kind the sheet does not draw rendered an empty title — the same defect
+   * the label had, found the same way.
+   */
   const node = {
     id: 's1-1-0',
-    kind: 'battle',
+    kind: 'trainer',
     tier: 'normal',
     label: 'Trainer battle',
     encounter: { team: LOADED_P2, opponent: `Trainer's ${LOADED_P2[0]?.species ?? 'Golem'}`, simSeed: seed },

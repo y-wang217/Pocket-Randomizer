@@ -21,6 +21,9 @@ import type { NodeSpec } from '../../core/encounters';
 import type { Choice } from '../../core/types';
 import { abilityEffects } from '../../data/abilityEffects';
 import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
+import { GLYPH_LABELS } from '../../data/glyphLabels';
+import { gymForSegment } from '../../data/gyms';
+import { nodeKindGlyph } from '../chip';
 import { createBattleLog, type BattleLogView } from '../battle-log';
 import { createSpeciesIndex } from '../species-index';
 import { createFlagStrip, type FlagStrip } from '../flag-strip';
@@ -137,7 +140,22 @@ export function createBattleScreen(): BattleScreen {
     outro: (kind) => scene.outro(kind),
     cancel: () => scene.cancel(),
     attach(session, node, reveal, onChoose, segment) {
-      title.textContent = node.label;
+      /*
+       * **The kind is the node's mark, at 16. Patch 4.10.1, D46.**
+       *
+       * D28 budgeted this header at 4 with the kind as a word, on the reasoning
+       * that no family could carry a node kind. D46 gave it one, and R1 then
+       * puts the same mark here that the card wore before the click: the head
+       * the player chose is the head the fight is under. A gym keeps its
+       * leader's name beside the badge; the other kinds carry the mark alone,
+       * because the detail line below already names who is in the fight.
+       */
+      title.replaceChildren(nodeKindGlyph(node.kind, GLYPH_LABELS[`node-${node.kind}`] ?? node.kind, 16));
+      // The leader's name from the gym table, not the node's `"<Leader>'s Gym"`
+      // label, which `core/` keeps for the log and which would double the mark.
+      if (node.kind === 'gym') {
+        title.append(document.createTextNode(segment === undefined ? node.label : gymForSegment(segment).leader));
+      }
       /*
        * **The team size came off this header**, and it had to.
        *

@@ -51,24 +51,34 @@ import { resolveCapability, type CapabilityContext } from '../../core/capabiliti
 import { BAND_LABELS, CAPABILITY_LABELS, RARITY_LABELS } from '../../data/eventCopy';
 import { nodePayout } from '../../core/economy';
 import type { PokemonState } from '../../core/types';
-import { GYMS } from '../../data/gyms';
+import { GYMS, gymForSegment } from '../../data/gyms';
+import { GLYPH_LABELS } from '../../data/glyphLabels';
 import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
 import { createBar } from '../bar';
 import { prose, type Prose } from '../dom';
 import { KIND_HINTS } from '../copy/screens';
-import { capabilityBandChevron, capabilityGlyph, neutralChip, statusChip, tierPips } from '../chip';
+import { capabilityBandChevron, capabilityGlyph, neutralChip, nodeKindGlyph, statusChip, tierPips } from '../chip';
 import { hpTip } from '../member-card';
 import { el, levelAria, levelText } from '../scene';
 import { typeChip } from './starter-select';
 
-const KIND_LABELS: Record<NodeSpec['kind'], string> = {
-  wild: 'Wild',
-  trainer: 'Trainer',
-  rest: 'Rest',
-  gym: 'Gym',
-  shop: 'Shop',
-  event: '?',
-};
+/**
+ * The kind's word, for the mark's accessible name and nothing on the face.
+ * **Patch 4.10.1, D46.** `KIND_LABELS` lived here from Stage 3 to 4.10.1 and
+ * was the label line; the mark is the label line now, and the word is what a
+ * screen reader and R7's exposure label say for it. Read from the glyph
+ * label table so the two cannot drift.
+ */
+const kindWord = (kind: NodeSpec['kind']): string => GLYPH_LABELS[`node-${kind}`] ?? kind;
+
+/**
+ * The leader's name, for a gym node's face. The node's own `label` is
+ * `"<Leader>'s Gym"`, which the run log and the share text read and which
+ * `core/` keeps; on the face the mark says gym, so the suffix would be R3's
+ * double render. The name comes from the gym table, not from trimming the
+ * string.
+ */
+const gymLeaderName = (segment: number): string => gymForSegment(segment).leader;
 
 export interface RunMap {
   root: HTMLElement;
@@ -424,19 +434,29 @@ function renderNode(
 
   const label = el('span', 'node__label');
   if (phase === 'current') label.dataset['tutorial'] = 'kinds';
-  // The gym is named; the rest are a kind, because naming them would reveal
-  // what a node contains before the player has chosen it. A gym's team size is
-  // named too — see the heading.
-  const size = node.encounter?.team.length ?? 0;
-  label.textContent =
-    node.kind === 'gym'
-      ? `${node.label}${size > 1 ? ` · ${size} Pokemon` : ''}`
-      : KIND_LABELS[node.kind];
+  /*
+   * **The kind is a mark. Patch 4.10.1, D46.**
+   *
+   * A head, a bush, a tent, a badge, a bag or a question mark, at 24, where
+   * the word stood from Stage 3 to 4.10.1. The gym is still named beside its
+   * mark, and the rest are a kind and nothing more, because naming them would
+   * reveal what a node contains before the player has chosen it. A gym's team
+   * size is named too — see the heading.
+   */
+  label.append(nodeKindGlyph(node.kind, kindWord(node.kind), 24));
+  if (node.kind === 'gym') {
+    const size = node.encounter?.team.length ?? 0;
+    label.append(document.createTextNode(`${gymLeaderName(segment)}${size > 1 ? ` · ${size} Pokemon` : ''}`));
+  }
 
   /*
-   * The tier, on the label line, on every step the player can still see. Not
+   * The tier, beneath the mark, on every step the player can still see. Not
    * only the current one: taking a fight now is a different decision when you
-   * can see an elite two steps ahead.
+   * can see an elite two steps ahead. **Beneath since 4.10.1**: it shared the
+   * label line with the kind word, and the prompt's one instruction about it
+   * was *"the tier levels can remain as labels beneath"*, so the pips have a
+   * row of their own under the mark. A slot moved inside one component, on
+   * both of its call sites, which is what R1 permits.
    *
    * **Through `tierChip` directly since the R19 close-out.** It came through
    * `tierBadge` in `screens/reward.ts`, which was the reward screen re-exporting
@@ -457,7 +477,11 @@ function renderNode(
      */
     const badge = tierPips(node.tier);
     if (phase === 'current') badge.dataset['tutorial'] = 'tier';
-    label.append(document.createTextNode(' '), badge);
+    const tier = el('span', 'node__tier');
+    tier.append(badge);
+    element.append(label, tier);
+  } else {
+    element.append(label);
   }
 
   const detail = el('span', 'node__detail');
@@ -530,7 +554,7 @@ function renderNode(
     detail.textContent = '';
   }
 
-  element.append(label, detail);
+  element.append(detail);
 
   /*
    * The requirement, and the band the run reads at for it.
