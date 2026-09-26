@@ -4887,18 +4887,38 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
  * and is inherited; `user-select: none` on an ancestor resolves every
  * descendant's `auto` to none.
  */
-body {
+html,
+body,
+body *,
+body *::before,
+body *::after {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
 }
 
+/*
+ * On every element, not only on `body`. **Message 4 of the same patch,
+ * 2026-09-26.** With the rule on `body` alone, iOS Safari still selected the
+ * ability chip under a long press, bounded to the chip, with the built
+ * stylesheet carrying the rule. Whatever iOS does with the inherited value,
+ * a value set on the element itself is not inherited, so this states it on
+ * everything and lets the two exceptions below win by order. The layer adds
+ * a `selectstart` guard behind it (`ui/tooltips.ts`).
+ */
+
 input,
 textarea,
-.log-sheet__body {
+.log-sheet__body,
+.log-sheet__body * {
   -webkit-user-select: text;
   user-select: text;
 }
+
+/* No double-tap zoom on a control, which also shortens the tap on a phone. */
+button,
+[role='button'],
+[data-tip] { touch-action: manipulation; }
 
 /*
  * Every clickable surface is a tenth larger than it draws. The same patch.

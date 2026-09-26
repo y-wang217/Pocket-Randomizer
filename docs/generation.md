@@ -11382,3 +11382,43 @@ build in [`design/bible-discrepancies.md`](design/bible-discrepancies.md).
 reason, and the two reads in `core/` report what the sim already decided.
 The chip legibility sweep is the one gate this box cannot run, on any
 commit, and is CI's to give.
+
+## 83. The chip still selected on iOS, so the rule goes on every element and the layer refuses the selection
+
+**2026-09-26.** Message 4 of
+[`spec/gymrun-patch-inspect-docked-sheet.md`](spec/gymrun-patch-inspect-docked-sheet.md),
+filed with its screenshot before any change, on the same branch restarted
+from `main` after [#72](https://github.com/y-wang217/Pocket-Randomizer/pull/72)
+merged. Presentation only: no `core/` change, no data table, no version axis
+moves, `contentHash` unmoved.
+
+### What was happening
+
+#72 put `user-select: none` and `-webkit-touch-callout: none` on `body`, on
+the reading that WebKit inherits the value and every descendant's `auto`
+resolves to none. The built stylesheet on the deploy the author tested
+carries both rules (checked in `dist/` from the same tree), and iOS still
+selected the ability chip under a long press: the selection bounded to the
+chip, with the copy handles on it and nothing else selected. Whatever iOS
+does with the inherited value on that element, the rule as written did not
+reach it. iOS cannot be driven from this box, so the fix is layered rather
+than reasoned to a single cause.
+
+### What was built
+
+- **The rule on every element.** `html, body, body *` and the two
+  pseudo-elements carry `user-select: none` and the callout directly, so
+  nothing depends on inheritance. The two exceptions, the inputs and the log
+  sheet's body (and everything inside it), come after and win by order.
+- **The layer refuses the selection.** `ui/tooltips.ts` cancels `selectstart`
+  on anything that is not an input or the log body, and on `selectionchange`
+  clears a selection whose anchor is inside the host and outside those two.
+  iOS shows its copy callout only while a selection stands, so a selection
+  that is cleared the moment it appears never raises it. Two tests in
+  `test/inspect.test.ts` hold both halves and the exception.
+- **`touch-action: manipulation`** on buttons, role-buttons and triggers:
+  no double-tap zoom on a control, which is also what makes a phone's tap
+  land without the double-tap delay.
+
+The heights baseline does not move: nothing here changes a box.
+
