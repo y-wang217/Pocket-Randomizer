@@ -501,8 +501,10 @@ describe('nothing on the board is a text field', () => {
     const { join } = await import('node:path');
     const css = readFileSync(join(process.cwd(), 'src', 'ui', 'styles.css'), 'utf8');
     const tokens = readFileSync(join(process.cwd(), 'src', 'ui', 'theme', 'tokens.css'), 'utf8');
-    expect(css).toMatch(/body\s*\{[^}]*user-select:\s*none;[^}]*-webkit-touch-callout:\s*none;/);
-    expect(css).toMatch(/input,\s*textarea,\s*\.log-sheet__body\s*\{[^}]*user-select:\s*text;/);
+    // On every element, not `body` alone: message 4 found iOS ignoring the
+    // inherited value on a chip.
+    expect(css).toMatch(/html,\s*body,\s*body \*,\s*body \*::before,\s*body \*::after\s*\{[^}]*user-select:\s*none;[^}]*-webkit-touch-callout:\s*none;/);
+    expect(css).toMatch(/input,\s*textarea,\s*\.log-sheet__body,\s*\.log-sheet__body \*\s*\{[^}]*user-select:\s*text;/);
     expect(css).toMatch(/:where\(button, \[role='button'\]\)::after\s*\{[^}]*inset:\s*max\(-5%, calc\(-1 \* var\(--space-3\)\)\);/);
     // The slop sits *behind* the control's content, in the control's own
     // stacking context. Painted on top it took every press meant for a chip
@@ -512,6 +514,58 @@ describe('nothing on the board is a text field', () => {
     expect(css).toMatch(/:where\(button, \[role='button'\]\)::after\s*\{[^}]*z-index:\s*-1;/);
     expect(tokens).toMatch(/--tap-scale:\s*1\.1;/);
     expect(css).toMatch(/\.tip\s*\{[^}]*position:\s*fixed;[^}]*top:/);
+  });
+});
+
+describe('the layer refuses a selection the stylesheet did not stop', () => {
+  /**
+   * Message 4 of the docked sheet patch: iOS selected the ability chip with
+   * `user-select: none` in the built stylesheet. The layer cancels
+   * `selectstart` on anything but an input or the log body, and clears a
+   * selection that lands inside the host anyway.
+   */
+  it('cancels selectstart on a trigger and leaves the log body alone', () => {
+    const { host, done } = mount();
+    const node = trigger(host, 'ability:intimidate');
+    node.textContent = 'Intimidate';
+    const log = document.createElement('div');
+    log.className = 'log-sheet__body';
+    log.textContent = 'Turn 1';
+    host.append(log);
+
+    const onChip = new Event('selectstart', { bubbles: true, cancelable: true });
+    node.dispatchEvent(onChip);
+    expect(onChip.defaultPrevented, 'a chip started a selection').toBe(true);
+
+    const onLog = new Event('selectstart', { bubbles: true, cancelable: true });
+    log.dispatchEvent(onLog);
+    expect(onLog.defaultPrevented, 'the log body must stay copyable').toBe(false);
+    done();
+  });
+
+  it('clears a selection that lands on a chip, and keeps one in the log body', () => {
+    const { host, done } = mount();
+    const node = trigger(host, 'ability:intimidate');
+    node.textContent = 'Intimidate';
+    const log = document.createElement('div');
+    log.className = 'log-sheet__body';
+    log.textContent = 'Turn 1';
+    host.append(log);
+
+    const select = (target: HTMLElement): Selection => {
+      const selection = document.getSelection();
+      if (!selection) throw new Error('no selection API');
+      selection.removeAllRanges();
+      const range = document.createRange();
+      range.selectNodeContents(target);
+      selection.addRange(range);
+      document.dispatchEvent(new Event('selectionchange'));
+      return selection;
+    };
+
+    expect(select(node).rangeCount, 'the chip kept its selection').toBe(0);
+    expect(select(log).rangeCount, 'the log body lost its selection').toBe(1);
+    done();
   });
 });
 

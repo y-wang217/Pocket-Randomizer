@@ -31,6 +31,23 @@ Message 3, while the first two were being built:
 > Do that for all buttons. Even the moves or other things. And make clickable
 > surfaces a little bigger? Like 10% bigger if possible
 
+Message 4, 2026-09-26, after the first four items were merged in
+[#72](https://github.com/y-wang217/Pocket-Randomizer/pull/72), on the same
+branch restarted from `main`:
+
+> It doesnt work. I still highlight it
+
+Attached: one iPhone screenshot, stamped `00:32`, kept beside this file as
+[`assets/inspect-docked-sheet-ios-selection-party-screen.png`](assets/inspect-docked-sheet-ios-selection-party-screen.png).
+Safari, on a `charlies-projects-9b525b67.vercel.app` preview. The party
+screen in Pocket: three member cards, `Cyndaquil 15`, `Nacli 15`, `Yamask
+15`, each with its ability chip, HP, six stat bars and four move cards. The
+`Nacli` card carries the white outline of an open inspect trigger, and its
+ability chip `AROMA VEIL` is text-selected, with iOS's two selection handles
+on it and nothing else on the page selected. The built stylesheet on that
+deploy carries `user-select: none` and `-webkit-touch-callout: none` on
+`body`, so iOS is not honouring the inherited value on the chip.
+
 ---
 
 ## What the report is
@@ -50,6 +67,10 @@ Three things, and message 2 puts the first one first:
 
 4. **Every button, not only the inspect triggers, should decline text
    selection**, and clickable surfaces should be about a tenth larger.
+5. **The body-level rule is not enough on iOS.** After #72 the ability chip
+   still selects under a long press. The selection is bounded to the chip,
+   which is what iOS does when the pressed element is the one selectable
+   thing under the finger.
 
 Item 3 touches R5's *"Release closes"* and is an amendment, not a fix; the
 bible's own process is followed in the same PR. Items 1 and 2 are

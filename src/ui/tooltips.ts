@@ -643,6 +643,36 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
     if (triggerFor(event.target)) event.preventDefault();
   };
 
+  /** Where a player types or copies from: the two places selection is allowed. */
+  const SELECTABLE = 'input, textarea, .log-sheet__body';
+
+  function selectable(node: Node | null): boolean {
+    const element = node instanceof Element ? node : node?.parentElement ?? null;
+    return element?.closest(SELECTABLE) !== null;
+  }
+
+  /*
+   * **Message 4 of the docked sheet patch, 2026-09-26: the stylesheet was
+   * not enough.** With `user-select: none` on `body` and in the built CSS,
+   * iOS still selected the ability chip under a long press. So the layer
+   * refuses the selection itself, twice: `selectstart` is cancelled before
+   * a selection exists, and `selectionchange` clears one that got through
+   * anyway, since iOS shows its copy callout only while a selection stands.
+   * The inputs and the log sheet's body keep theirs.
+   */
+  const onSelectStart = (event: Event): void => {
+    if (event.target instanceof Node && selectable(event.target)) return;
+    event.preventDefault();
+  };
+
+  const onSelectionChange = (): void => {
+    const selection = host.ownerDocument.getSelection();
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
+    const anchor = selection.anchorNode;
+    if (!anchor || !host.contains(anchor) || selectable(anchor)) return;
+    selection.removeAllRanges();
+  };
+
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key === 'Escape') {
       close();
@@ -709,6 +739,8 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
   host.addEventListener('pointerup', onPointerUp, true);
   host.addEventListener('pointercancel', onPointerCancel, true);
   host.addEventListener('contextmenu', onContextMenu, true);
+  host.addEventListener('selectstart', onSelectStart, true);
+  host.ownerDocument.addEventListener('selectionchange', onSelectionChange);
   host.addEventListener('click', onClick, true);
   host.addEventListener('keydown', onKeyDown, true);
   host.addEventListener('mouseover', onOver);
@@ -724,6 +756,8 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
       host.removeEventListener('pointerup', onPointerUp, true);
       host.removeEventListener('pointercancel', onPointerCancel, true);
       host.removeEventListener('contextmenu', onContextMenu, true);
+      host.removeEventListener('selectstart', onSelectStart, true);
+      host.ownerDocument.removeEventListener('selectionchange', onSelectionChange);
       host.removeEventListener('click', onClick, true);
       host.removeEventListener('keydown', onKeyDown, true);
       host.removeEventListener('mouseover', onOver);
