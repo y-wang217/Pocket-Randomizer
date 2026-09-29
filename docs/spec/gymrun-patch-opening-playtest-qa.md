@@ -96,3 +96,15 @@ The attached report, verbatim:
 > Recommended next pass: pending-reward refresh and double-click checks, then continue to the first gym and verify progression advances once.
 >
 > Evidence: pocket-qa-resume.jpg shows final resumed state with Skrelp incorrectly leading, 48 coins and two Pokémon. The screenshot alone does not show the earlier Lileep lead state; the two observed before/after UI sequences establish that comparison.
+
+---
+
+## The author's rulings on the first report, verbatim
+
+2026-09-29, after the first four findings and the recruitment level were
+built. The three questions put were: QA-001 logged or kept outside the log;
+Continue first when a save exists; a shorter tutorial.
+
+> yes reorders logged, bump the run log version
+> on load, 'continuing' should be assumed. this points to something I noticed as well. when I resume a session on my phone, I get a new run from the starter choice sometimes.
+> yes, tutorial shorter is better.i always skip it.
