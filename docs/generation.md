@@ -11470,3 +11470,46 @@ Regressions: `test/opening-playtest-qa.test.ts`.
   it is a new logged decision and a `RUN_LOG_VERSION` bump.
 - The "Continue first when a save exists" and tutorial length observations
   are presentation decisions, not defects.
+
+## 85. The author's rulings on the opening playtest QA: party edits logged, a save always resumes, a shorter tutorial
+
+**2026-09-29**, from the rulings section of
+[`spec/gymrun-patch-opening-playtest-qa.md`](spec/gymrun-patch-opening-playtest-qa.md).
+**`RUN_LOG_VERSION` moves to `-21`.** `RANDOMIZER_VERSION`, `contentHash` and
+`AI_VERSION` hold. Every `-20` save stops resuming once, and says so.
+
+### Party edits are a logged decision (QA-001)
+
+`{ kind: 'party', edit }`, where an edit is a reorder or a release. The party
+screen used to write both into `live`, which is the object `playRun` holds, so
+the run saw them and the log did not. `playRun` now binds one editor to the
+policy (`RunPolicy.bindPartyEditor`) that refuses, records and applies an edit
+in place, then fires `onState`; the UI calls it instead of writing. The replay
+policy applies every `party` entry at its cursor before reading the answer to
+the question it is asked, which is the point the live edit was made at, and
+trailing edits in a save land before the live tail is asked.
+
+**Releases were in the same hole and are covered by the same entry.** The
+ruling named reorders; a release from the party screen was equally unlogged,
+so a resume handed the released member back. `test/party-edit-log.test.ts`
+holds replay, resume with the party screen open, and refusal.
+
+### A save always resumes (the ruling, and the phone report)
+
+`start` writes each run's seed into the URL, and the boot read a URL seed as
+a request for a fresh run of that seed that won over the save. Reloading a
+run in progress therefore restarted it from the starter choice: the tester's
+"refresh shows starter selection", and the author's "a new run from the
+starter choice sometimes" on a phone, whose restored tab keeps the hash while
+a home screen launch does not. A replayable save now always resumes. A link
+naming a different seed puts it in the box with `SEED_COPY.linkWaiting`; a
+save this build cannot replay starts a new run with `SEED_COPY.saveOutdated`
+rather than silently. `seedBar.warn` now opens the bar, since a phone hides a
+collapsed bar mid-run. Checked in Chromium at 390px.
+
+### The tutorial, 29 marks to 17
+
+Cut along bible section 7: the marks removed explained glyphs or things, which
+are the exposure labels' and inspect's jobs. Before the first fight: 12 to 6.
+The section 7 count is amended with a playtest-log row. `test/tutorial.test.ts`
+now holds a ceiling of 17 and at most 6 marks before the first fight.

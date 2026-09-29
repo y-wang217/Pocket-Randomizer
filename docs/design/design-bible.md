@@ -486,7 +486,7 @@ The log sheet records all of it for the player who pulls it down and for bug rep
 
 Three mechanisms, each with one job. A fourth is an amendment.
 
-- **Coach marks** (shipped, 29 marks over 8 screens) explain screens: what this screen is for and where the decision is.
+- **Coach marks** (shipped, 17 marks over 8 screens) explain screens: what this screen is for and where the decision is. Amended 2026-09-29 (the opening playtest QA, and the playtest log's row of that date): the count was 29, and the twelve marks cut were each explaining a glyph or a thing, the other two mechanisms' jobs. The rule is unchanged; the count follows it.
 - **Exposure labels** (R7) explain glyphs: what this symbol means, the first and third time you see it.
 - **Inspect** (R5) explains things: what this move, item, status or band does, on demand, forever.
 
