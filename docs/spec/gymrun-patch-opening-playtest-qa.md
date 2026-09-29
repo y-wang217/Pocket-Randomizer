@@ -108,3 +108,13 @@ Continue first when a save exists; a shorter tutorial.
 > yes reorders logged, bump the run log version
 > on load, 'continuing' should be assumed. this points to something I noticed as well. when I resume a session on my phone, I get a new run from the starter choice sometimes.
 > yes, tutorial shorter is better.i always skip it.
+
+---
+
+## The author's ruling on the resume button, verbatim
+
+2026-09-29, after the rulings above were built. The report had noted that
+after an automatic resume the seed bar still offers "Resume saved run", which
+only restarts the same run.
+
+> let's hide it to make it not ambiguous
