@@ -11464,7 +11464,7 @@ Regressions: `test/opening-playtest-qa.test.ts`.
 ### Not built, put to the author
 
 - **QA-001, a lead change is lost on resume.** A reorder is unlogged by design
-  (`screens/party.ts` header), so the replay rebuilds the order the decisions
+  (`src/ui/screens/party.ts` header), so the replay rebuilds the order the decisions
   produced. Beyond the lost order, a fight fought after an unlogged reorder
   replays with a different lead feeding the same logged move indexes. Fixing
   it is a new logged decision and a `RUN_LOG_VERSION` bump.
