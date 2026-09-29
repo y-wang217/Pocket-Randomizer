@@ -714,6 +714,9 @@ export interface TmTeach {
  * deterministic policy, so recording the opponent's choices would be recording
  * the engine's output rather than the player's input.
  */
+/** One edit a player makes on the party screen between questions. */
+export type PartyEdit = { kind: 'reorder'; from: number; to: number } | { kind: 'release'; slot: number };
+
 export type RunDecision =
   /*
    * **`target` and `replace` were here and are gone.** They were the recipient
@@ -843,6 +846,18 @@ export type RunDecision =
    * gym 3 is still leading at the first node of segment 4.
    */
   | { kind: 'lead'; index: number }
+  /**
+   * A reorder or a release made on the party screen. **The opening playtest
+   * QA, QA-001, and the author's ruling to log it.**
+   *
+   * Both used to change run state directly and reach no log, so a resumed run
+   * rebuilt the order the other decisions produced and handed back a released
+   * member. Worse than the lost order, a fight fought after either replayed
+   * against a different party with the same logged move indexes. Recorded at
+   * the moment it is made, which is while some other question is open; the
+   * replay applies it at the same point, before answering that question.
+   */
+  | { kind: 'party'; edit: PartyEdit }
   /**
    * Which branch a member evolves along. **Stage 4.9.**
    *

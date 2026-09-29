@@ -14,11 +14,13 @@ import type { BattleSession } from '../core/battle/driver';
 
 import type { NodeSpec } from '../core/encounters';
 import type { AcquisitionDecision } from '../core/acquisition';
-import { applyBattleState, releaseMember, reorderParty } from '../core/party';
+import { applyBattleState } from '../core/party';
 import {
   defaultItemPlan,
   gymClearLevel,
+  describeVersionMismatch,
   isReplayable,
+  versionMismatch,
   localeOf,
   partyCapacity,
   playRun,
@@ -32,7 +34,7 @@ import {
 } from '../core/run';
 import { previewEvolutions } from '../core/evolution';
 
-import type { Choice, ItemPlan, PokemonSpec, PokemonState, RunLog } from '../core/types';
+import type { Choice, ItemPlan, PartyEdit, PokemonSpec, PokemonState, RunLog } from '../core/types';
 import { applyRelicPassives } from '../core/relics';
 import { backpackCapacity, reconcileItemPlan } from '../core/items';
 import { DEFAULT_TUNING } from '../data/tuning';
@@ -558,7 +560,18 @@ export function mountApp(root: HTMLElement): void {
       releaseBattle();
     };
 
+    /*
+     * The run's party editor, bound before the first question. QA-001: a
+     * reorder or a release goes through `core/run.ts`, which applies it, logs
+     * it and reports the new state, rather than being written into `live` here
+     * where no log could see it.
+     */
+    let editParty: ((edit: PartyEdit) => void) | null = null;
+
     const policy: RunPolicy = {
+      bindPartyEditor: (edit) => {
+        editParty = edit;
+      },
       chooseStarter: (options: PokemonSpec[]) => {
         starterScreen.render(options, (index) => starterPick.submit(index));
         showScreen('starter');
@@ -1186,16 +1199,14 @@ export function mountApp(root: HTMLElement): void {
            */
           onReorder: (from, to) => {
             pendingPlan = null;
-            state.party = reorderParty(state.party, from, to);
+            editParty?.({ kind: 'reorder', from, to });
             showParty(partyReturn);
             mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
           },
           onRelease: (slot) => {
             pendingPlan = null;
-            const released = releaseMember(state.party, slot);
-            state.party = released.party;
-            // Their item goes to the bag, not with them.
-            if (released.freed) state.backpack = [...state.backpack, released.freed];
+            // The item goes to the bag, in `core/run.ts`'s editor.
+            editParty?.({ kind: 'release', slot });
             showParty(partyReturn);
             mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
           },
@@ -1517,13 +1528,37 @@ export function mountApp(root: HTMLElement): void {
   seedBar.setResumable(Boolean(saved && isReplayable(saved)));
 
   const fromUrl = seedFromLocation(globalThis.location.href);
-  // A seed in the URL is an explicit request for *that* run, so it wins over a
-  // save. Without one, an interrupted run is resumed where it left off. A
-  // versioned URL made on another build has no paste moment to refuse at, so
+  /*
+   * **Continuing is assumed on load. The opening playtest QA, the author's
+   * ruling.**
+   *
+   * The URL seed used to win over a save, on the reading that a seed in the
+   * URL is an explicit request for that run. But `start` writes every run's
+   * own seed into the URL, so a reload of a run in progress carried its own
+   * seed back in and restarted it from the starter choice with the save
+   * sitting beside it. On a phone that is "sometimes": a restored tab keeps
+   * the hash, a home screen launch does not.
+   *
+   * So a replayable save always resumes. A link naming a *different* seed is
+   * not dropped: it goes in the box with a notice, and Start plays it. A save
+   * this build cannot replay is said out loud rather than replaced silently.
+   */
+  if (saved && isReplayable(saved)) {
+    void start(saved.seed, saved);
+    if (fromUrl && fromUrl.seed !== saved.seed) {
+      seedBar.setSeed(fromUrl.seed);
+      seedBar.warn(SEED_COPY.linkWaiting);
+    }
+    return;
+  }
+  // A versioned URL made on another build has no paste moment to refuse at, so
   // the bare seed starts a fresh run and the bar says why it is not the same one.
   if (fromUrl) {
     void start(fromUrl.seed);
     if (fromUrl.kind === 'foreign') seedBar.refuse(fromUrl);
-  } else if (saved && isReplayable(saved)) void start(saved.seed, saved);
-  else void start(newSeed());
+  } else void start(newSeed());
+  if (saved && fromUrl?.kind !== 'foreign') {
+    console.warn('GYMRUN: the saved run cannot be replayed on this build', describeVersionMismatch(versionMismatch(saved)!));
+    seedBar.warn(SEED_COPY.saveOutdated);
+  }
 }
