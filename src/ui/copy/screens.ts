@@ -178,6 +178,18 @@ export const REWARD_COPY = {
   itemNote: { long: 'Goes to your backpack. Assign it on the party screen.', short: 'To your backpack.' },
   coins: { long: 'Spend it at a shop, on items, healing or a move.', short: 'Spend at a shop.' },
   heal: { long: 'Heals HP and PP, and clears status, for the whole party.', short: 'Full HP, PP and status, whole party.' },
+  /*
+   * A partial heal's line. **The opening playtest QA, QA-004.**
+   *
+   * `heal` above was the only line, so a `Restore 85%` card read "Full HP, PP
+   * and status" under its own title. The share stays in the title and only
+   * there (R3); this line says what it is a share of, which is max HP and PP
+   * added through `recoverParty`, and the status clear, which is total.
+   */
+  healPartial: {
+    long: 'Heals that share of max HP and PP, and clears status, for the whole party.',
+    short: 'Share of max HP and PP. Clears status.',
+  },
   tutor: { long: 'A strong move. You choose who learns it, and what it replaces.', short: 'You choose who learns it.' },
   tm: { long: 'A new move. You choose who learns it, and what it replaces.', short: 'You choose who learns it.' },
   /*

@@ -2450,6 +2450,12 @@ function projectionOf(state: RunState, result: NodeResult, taken: Reward | null)
   if (result.battle?.consumed?.length) {
     party = spendItems({ party, backpack: state.backpack }, result.battle.consumed).party;
   }
+  // A restore card taken on the result screen lands on the party, and the
+  // capture block that follows it on the same screen reads this party (the
+  // opening playtest QA, QA-002). `recoverParty` is `applyReward`'s own call.
+  if (taken?.kind === 'heal') {
+    party = recoverParty(party, taken.fraction);
+  }
   if (result.acquisition) {
     // The capacity the decision was asked under, matching `resolveNode`'s own
     // reading. A battle fold changes no slot, so a decision legal against
@@ -2463,10 +2469,10 @@ function projectionOf(state: RunState, result: NodeResult, taken: Reward | null)
     ).party;
   }
 
-  // A relic is the one reward kind a readout carries before the fold: the
+  // A relic is the other reward kind a readout carries before the fold: the
   // player took the card, and the drawer lists relics. Everything else a card
-  // pays either lands on the party (already above) or in the backpack, which no
-  // read-only surface shows before the boundary.
+  // pays either lands on the party (the heal, above) or in the backpack, which
+  // no read-only surface shows before the boundary.
   const relics =
     taken?.kind === 'relic' && !state.relics.includes(taken.relic)
       ? [...state.relics, taken.relic]

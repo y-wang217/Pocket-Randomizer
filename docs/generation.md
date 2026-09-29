@@ -11422,3 +11422,51 @@ than reasoned to a single cause.
 
 The heights baseline does not move: nothing here changes a box.
 
+
+## 84. The opening playtest QA: four readouts that disagreed with the run, and one row that overflowed
+
+**2026-09-29**, from [`spec/gymrun-patch-opening-playtest-qa.md`](spec/gymrun-patch-opening-playtest-qa.md).
+An outside tester's report against production, filed verbatim. The report
+names symptoms and withholds causes; the causes below were found in the tree.
+No version axis moves: no logged decision, no draw and no data table changed.
+
+### What was built
+
+- **QA-002, the capture block showed the party as the node found it.**
+  `chooseAcquisition` hands the UI `state.party`, which holds the entry HP and
+  PP until `resolveNode` folds the battle in. The block now reads the
+  projection (`decidedParty`) the drawer already reads. `projectionOf` also
+  folds a taken heal card, since the capture block follows that card on the
+  same screen; it is a readout and nothing decides against it.
+- **QA-003, `Carrying 0` beside `+13 · 13`.** The result screen renders
+  before the payout is folded. `renderRewardCard` takes an optional
+  `carrying`, and the result screen passes the balance its own header prints.
+  The shop omits it, because its state is already live.
+- **QA-004, `Restore 85%` over "Full HP, PP and status".** The detail line
+  was one string for every fraction. A partial restore now reads
+  `REWARD_COPY.healPartial`, which names what the share is of and leaves the
+  number in the title only (bible R3). `copy.md` re-recorded.
+- **QA-005, power drawn past the card edge on a first launch.** R7's exposure
+  labels widen the type and category chips; the meta row's third grid column
+  fell to 0px and the number spilled over the next card. Only while a label
+  is on the row, the row flows and wraps. Reproduced and cleared at 1363, 900
+  and 390px; the steady-state face is unchanged.
+- **The recruitment observation was a defect, not missing copy.** The
+  capture card drew the offer as fought (Lileep Lv10 and its HP) while
+  `applyAcquisition` built it at `joinLevelFor(segment)` (Lv15, 49 HP). One
+  core function, `joiningSpec`, now feeds both, so the card shows the Pokemon
+  that joins. Bible C2: the level was a fact of the decision shown wrong.
+
+Bible rules touched: C2 (the capture card and heading), R3 (the heal line keeps
+the share in one place), R7 (the label's row may wrap on exposures 1 and 3).
+Regressions: `test/opening-playtest-qa.test.ts`.
+
+### Not built, put to the author
+
+- **QA-001, a lead change is lost on resume.** A reorder is unlogged by design
+  (`screens/party.ts` header), so the replay rebuilds the order the decisions
+  produced. Beyond the lost order, a fight fought after an unlogged reorder
+  replays with a different lead feeding the same logged move indexes. Fixing
+  it is a new logged decision and a `RUN_LOG_VERSION` bump.
+- The "Continue first when a save exists" and tutorial length observations
+  are presentation decisions, not defects.

@@ -856,7 +856,18 @@ export function mountApp(root: HTMLElement): void {
         if (state) {
           resultScreen.render(lastReview, null, state, () => undefined, {
             offer,
-            party,
+            /*
+             * **The party as the fight left it, not as the node found it. The
+             * opening playtest QA, QA-002.**
+             *
+             * `party` is `state.party`, which holds the HP and PP the node was
+             * entered with until `resolveNode` folds the battle in, so the
+             * capture block showed a Skrelp at 36/44 as 44/44 and full PP. The
+             * projection is the same fold computed in `core/`, and a battle
+             * fold moves no slot, so every slot the block's release control
+             * names is the slot `decisionRefusal` checks.
+             */
+            party: decidedParty ?? party,
             onDecide: (decision) => {
               /*
                * **A release drops the pending plan, for the reason the party

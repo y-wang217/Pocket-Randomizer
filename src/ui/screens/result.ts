@@ -204,7 +204,11 @@ export function createResultScreen(): ResultScreen {
         cardsHeading.replaceChildren(document.createTextNode(TAKE_ONE), offerBadge(offer.badge));
         cards.replaceChildren(
           ...offer.options.map((option, index) =>
-            renderRewardCard(option, state, () => onDone(index)),
+            renderRewardCard(option, state, () => onDone(index), {
+              // The balance the header prints: the payout is not folded into
+              // `state` until the node resolves. QA-003.
+              carrying: state.currency + (review?.currencyEarned ?? 0),
+            }),
           ),
         );
       } else {
@@ -232,6 +236,7 @@ export function createResultScreen(): ResultScreen {
             // The slots the run has now, not a constant: a capture resolving in
             // the same segment a gym unlocked a slot must see the new one.
             partyCapacity(state),
+            state.currentSegment,
           ),
         );
       } else {
