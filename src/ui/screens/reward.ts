@@ -94,6 +94,17 @@ export function offerBadge(badge: OfferBadge): HTMLElement {
  */
 export interface RewardCardOptions {
   /**
+   * The coins held, when the caller knows a balance `state` does not yet.
+   * **The opening playtest QA, QA-003.**
+   *
+   * The result screen is shown before `resolveNode` folds the node's payout
+   * in, so `state.currency` there is the balance the fight was entered with:
+   * the header read `+13 · 13` and the coins card beside it `Carrying 0`. The
+   * screen passes the balance its own header prints. The shop omits it,
+   * because a shop's state is already the live one.
+   */
+  carrying?: number;
+  /**
    * The shop's price, in coins. **Milestone M5.1, discrepancy D29.**
    *
    * Section 4: *"Shop stock card | 8 | Follows the reward card, plus price
@@ -162,13 +173,13 @@ export function renderRewardCard(
     case 'currency':
       name.textContent = `${reward.amount} coins`;
       setProse(detail, REWARD_COPY.coins);
-      setProse(note, carryingLine(state.currency));
+      setProse(note, carryingLine(options.carrying ?? state.currency));
       break;
 
     case 'heal':
       name.textContent =
         reward.fraction >= 1 ? 'Full restore' : `Restore ${Math.round(reward.fraction * 100)}%`;
-      setProse(detail, REWARD_COPY.heal);
+      setProse(detail, reward.fraction >= 1 ? REWARD_COPY.heal : REWARD_COPY.healPartial);
       break;
 
     /*

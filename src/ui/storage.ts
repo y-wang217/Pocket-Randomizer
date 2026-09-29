@@ -128,6 +128,16 @@ function isRunDecision(value: unknown): boolean {
     }
     case 'replace':
       return typeof decision.slot === 'number';
+    /*
+     * A party screen edit. The opening playtest QA, QA-001. Checked here for
+     * the reason this list exists: a kind missing from it makes every save
+     * that holds one silently unresumable.
+     */
+    case 'party': {
+      const edit = decision.edit as { kind?: unknown; from?: unknown; to?: unknown; slot?: unknown } | undefined;
+      if (edit?.kind === 'reorder') return typeof edit.from === 'number' && typeof edit.to === 'number';
+      return edit?.kind === 'release' && typeof edit.slot === 'number';
+    }
     default:
       return false;
   }

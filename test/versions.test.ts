@@ -90,8 +90,11 @@ describe('the versions block', () => {
      * worth the literal, because the four-word rule in `CLAUDE.md` does not
      * obviously cover it and the next reader will wonder.
      * `docs/generation.md` section 49.3.
+     *
+     * `-21` adds a decision, the party edit, which is the plain case of the
+     * four-word rule. `docs/generation.md` section 85.
      */
-    expect(RUN_LOG_VERSION.startsWith('gymrun-run-20/')).toBe(true);
+    expect(RUN_LOG_VERSION.startsWith('gymrun-run-21/')).toBe(true);
     expect(RUN_LOG_VERSION).not.toContain('gymrun-run-14/');
   });
 });

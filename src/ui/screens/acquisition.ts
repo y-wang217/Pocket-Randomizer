@@ -37,7 +37,7 @@
  * after a battle it won, so a `species` reward card lands in the same place a
  * wild capture does. Two screens for one decision is how the two drift.
  */
-import { describeOffer, type AcquisitionDecision, type AcquisitionOffer } from '../../core/acquisition';
+import { describeOffer, joiningSpec, type AcquisitionDecision, type AcquisitionOffer } from '../../core/acquisition';
 import { describeSpecCard } from '../../core/battle/driver';
 import { archetypeChip } from '../archetype-chip';
 import { createBar } from '../bar';
@@ -79,12 +79,22 @@ export function renderCaptureOffer(
    * answer against, so the screen and the rule cannot disagree.
    */
   capacity: number,
+  /**
+   * The segment the run is in, so the card draws the Pokemon that joins rather
+   * than the one that was fought: `joiningSpec` is the same call
+   * `applyAcquisition` builds the member from. Omitted, the card draws the
+   * offer as fought, which is what fixtures without a run want.
+   */
+  segment?: number,
 ): HTMLElement {
   const section = el('div', 'acquire');
   const full = party.length >= capacity;
+  // The heading and the card read one spec, so neither can name a level the
+  // other does not.
+  const joining = segment === undefined ? offer : { ...offer, spec: joiningSpec(offer.spec, segment) };
 
   const title = el('h3', 'result__heading');
-  title.textContent = describeOffer(offer);
+  title.textContent = describeOffer(joining);
 
   // Where it came from, and at a full party the rule that follows. Both
   // forms of both sentences, from `ui/copy/screens.ts`; never what it is worth.
@@ -93,7 +103,7 @@ export function renderCaptureOffer(
   if (full) blurb.append(prose(CAPTURE_FULL));
 
   const offered = el('div', 'acquire__offer');
-  offered.replaceChildren(renderOffered(offer.spec));
+  offered.replaceChildren(renderOffered(joining.spec));
 
   /*
    * The coverage line, before and after, exactly as the species reward card
@@ -314,8 +324,8 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
   const meta = el('div', 'panel__meta');
   const hp = el('span', 'panel__hp-text');
   /*
-   * Full HP, and from 4.6a at the level it was fought at rather than below the
-   * curve. The discount was the price of a free Pokemon; the price is the step
+   * Full HP, at the level it joins at when the caller passes the segment (the
+   * opening playtest QA), which since 4.7 is the party's level. The discount was the price of a free Pokemon; the price is the step
    * the encounter occupied and the slot it takes.
    */
   hp.textContent = `${hpState(detail.maxHp, detail.maxHp)} · joins at full health`;

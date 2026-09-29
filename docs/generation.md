@@ -11422,3 +11422,104 @@ than reasoned to a single cause.
 
 The heights baseline does not move: nothing here changes a box.
 
+
+## 84. The opening playtest QA: four readouts that disagreed with the run, and one row that overflowed
+
+**2026-09-29**, from [`spec/gymrun-patch-opening-playtest-qa.md`](spec/gymrun-patch-opening-playtest-qa.md).
+An outside tester's report against production, filed verbatim. The report
+names symptoms and withholds causes; the causes below were found in the tree.
+No version axis moves: no logged decision, no draw and no data table changed.
+
+### What was built
+
+- **QA-002, the capture block showed the party as the node found it.**
+  `chooseAcquisition` hands the UI `state.party`, which holds the entry HP and
+  PP until `resolveNode` folds the battle in. The block now reads the
+  projection (`decidedParty`) the drawer already reads. `projectionOf` also
+  folds a taken heal card, since the capture block follows that card on the
+  same screen; it is a readout and nothing decides against it.
+- **QA-003, `Carrying 0` beside `+13 · 13`.** The result screen renders
+  before the payout is folded. `renderRewardCard` takes an optional
+  `carrying`, and the result screen passes the balance its own header prints.
+  The shop omits it, because its state is already live.
+- **QA-004, `Restore 85%` over "Full HP, PP and status".** The detail line
+  was one string for every fraction. A partial restore now reads
+  `REWARD_COPY.healPartial`, which names what the share is of and leaves the
+  number in the title only (bible R3). `copy.md` re-recorded.
+- **QA-005, power drawn past the card edge on a first launch.** R7's exposure
+  labels widen the type and category chips; the meta row's third grid column
+  fell to 0px and the number spilled over the next card. Only while a label
+  is on the row, the row flows and wraps. Reproduced and cleared at 1363, 900
+  and 390px; the steady-state face is unchanged.
+- **The recruitment observation was a defect, not missing copy.** The
+  capture card drew the offer as fought (Lileep Lv10 and its HP) while
+  `applyAcquisition` built it at `joinLevelFor(segment)` (Lv15, 49 HP). One
+  core function, `joiningSpec`, now feeds both, so the card shows the Pokemon
+  that joins. Bible C2: the level was a fact of the decision shown wrong.
+
+Bible rules touched: C2 (the capture card and heading), R3 (the heal line keeps
+the share in one place), R7 (the label's row may wrap on exposures 1 and 3).
+Regressions: `test/opening-playtest-qa.test.ts`.
+
+### Not built, put to the author
+
+- **QA-001, a lead change is lost on resume.** A reorder is unlogged by design
+  (`src/ui/screens/party.ts` header), so the replay rebuilds the order the decisions
+  produced. Beyond the lost order, a fight fought after an unlogged reorder
+  replays with a different lead feeding the same logged move indexes. Fixing
+  it is a new logged decision and a `RUN_LOG_VERSION` bump.
+- The "Continue first when a save exists" and tutorial length observations
+  are presentation decisions, not defects.
+
+## 85. The author's rulings on the opening playtest QA: party edits logged, a save always resumes, a shorter tutorial
+
+**2026-09-29**, from the rulings section of
+[`spec/gymrun-patch-opening-playtest-qa.md`](spec/gymrun-patch-opening-playtest-qa.md).
+**`RUN_LOG_VERSION` moves to `-21`.** `RANDOMIZER_VERSION`, `contentHash` and
+`AI_VERSION` hold. Every `-20` save stops resuming once, and says so.
+
+### Party edits are a logged decision (QA-001)
+
+`{ kind: 'party', edit }`, where an edit is a reorder or a release. The party
+screen used to write both into `live`, which is the object `playRun` holds, so
+the run saw them and the log did not. `playRun` now binds one editor to the
+policy (`RunPolicy.bindPartyEditor`) that refuses, records and applies an edit
+in place, then fires `onState`; the UI calls it instead of writing. The replay
+policy applies every `party` entry at its cursor before reading the answer to
+the question it is asked, which is the point the live edit was made at, and
+trailing edits in a save land before the live tail is asked.
+
+**Releases were in the same hole and are covered by the same entry.** The
+ruling named reorders; a release from the party screen was equally unlogged,
+so a resume handed the released member back. `test/party-edit-log.test.ts`
+holds replay, resume with the party screen open, and refusal.
+
+### A save always resumes (the ruling, and the phone report)
+
+`start` writes each run's seed into the URL, and the boot read a URL seed as
+a request for a fresh run of that seed that won over the save. Reloading a
+run in progress therefore restarted it from the starter choice: the tester's
+"refresh shows starter selection", and the author's "a new run from the
+starter choice sometimes" on a phone, whose restored tab keeps the hash while
+a home screen launch does not. A replayable save now always resumes. A link
+naming a different seed puts it in the box with `SEED_COPY.linkWaiting`; a
+save this build cannot replay starts a new run with `SEED_COPY.saveOutdated`
+rather than silently. `seedBar.warn` now opens the bar, since a phone hides a
+collapsed bar mid-run. Checked in Chromium at 390px.
+
+### The tutorial, 29 marks to 17
+
+Cut along bible section 7: the marks removed explained glyphs or things, which
+are the exposure labels' and inspect's jobs. Before the first fight: 12 to 6.
+The section 7 count is amended with a playtest-log row. `test/tutorial.test.ts`
+now holds a ceiling of 17 and at most 6 marks before the first fight.
+
+### The resume button shows only for a save that is not on screen
+
+Ruled by the author the same day: *"let's hide it to make it not
+ambiguous"*. Once a save always resumes, the button beside a resumed run only
+restarted the same run. `start` now offers it only when a fresh run is begun
+over a save (New seed, Start, a linked seed), and the first decision of that
+run hides it again, because that decision is what overwrites the save. Checked
+in Chromium: hidden with no save, hidden after an automatic resume, shown
+after New seed over a save, hidden after that run's starter pick.

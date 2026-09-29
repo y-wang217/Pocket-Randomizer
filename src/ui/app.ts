@@ -14,11 +14,13 @@ import type { BattleSession } from '../core/battle/driver';
 
 import type { NodeSpec } from '../core/encounters';
 import type { AcquisitionDecision } from '../core/acquisition';
-import { applyBattleState, releaseMember, reorderParty } from '../core/party';
+import { applyBattleState } from '../core/party';
 import {
   defaultItemPlan,
   gymClearLevel,
+  describeVersionMismatch,
   isReplayable,
+  versionMismatch,
   localeOf,
   partyCapacity,
   playRun,
@@ -32,7 +34,7 @@ import {
 } from '../core/run';
 import { previewEvolutions } from '../core/evolution';
 
-import type { Choice, ItemPlan, PokemonSpec, PokemonState, RunLog } from '../core/types';
+import type { Choice, ItemPlan, PartyEdit, PokemonSpec, PokemonState, RunLog } from '../core/types';
 import { applyRelicPassives } from '../core/relics';
 import { backpackCapacity, reconcileItemPlan } from '../core/items';
 import { DEFAULT_TUNING } from '../data/tuning';
@@ -491,6 +493,18 @@ export function mountApp(root: HTMLElement): void {
     // the bar back when the player wants it.
     seedBar.collapse();
     seedBar.setSeed(seed);
+    /*
+     * **Resume is offered only for a save that is not the run on screen. The
+     * opening playtest QA, the author's ruling: "hide it to make it not
+     * ambiguous".**
+     *
+     * A resumed run *is* the save, and the button beside it only restarted the
+     * same run. A fresh run started over a save (New seed tapped by accident,
+     * a linked seed) leaves the save intact until that run's first decision
+     * writes over it, and the button is the way back for exactly that window.
+     */
+    const pending = resume ? null : loadRunLog();
+    seedBar.setResumable(Boolean(pending && isReplayable(pending)));
     writeSeedToLocation(seed);
     // A new run starts in no region; the first state with a locale sets one.
     applyLocale(null);
@@ -558,7 +572,18 @@ export function mountApp(root: HTMLElement): void {
       releaseBattle();
     };
 
+    /*
+     * The run's party editor, bound before the first question. QA-001: a
+     * reorder or a release goes through `core/run.ts`, which applies it, logs
+     * it and reports the new state, rather than being written into `live` here
+     * where no log could see it.
+     */
+    let editParty: ((edit: PartyEdit) => void) | null = null;
+
     const policy: RunPolicy = {
+      bindPartyEditor: (edit) => {
+        editParty = edit;
+      },
       chooseStarter: (options: PokemonSpec[]) => {
         starterScreen.render(options, (index) => starterPick.submit(index));
         showScreen('starter');
@@ -856,7 +881,18 @@ export function mountApp(root: HTMLElement): void {
         if (state) {
           resultScreen.render(lastReview, null, state, () => undefined, {
             offer,
-            party,
+            /*
+             * **The party as the fight left it, not as the node found it. The
+             * opening playtest QA, QA-002.**
+             *
+             * `party` is `state.party`, which holds the HP and PP the node was
+             * entered with until `resolveNode` folds the battle in, so the
+             * capture block showed a Skrelp at 36/44 as 44/44 and full PP. The
+             * projection is the same fold computed in `core/`, and a battle
+             * fold moves no slot, so every slot the block's release control
+             * names is the slot `decisionRefusal` checks.
+             */
+            party: decidedParty ?? party,
             onDecide: (decision) => {
               /*
                * **A release drops the pending plan, for the reason the party
@@ -1175,16 +1211,14 @@ export function mountApp(root: HTMLElement): void {
            */
           onReorder: (from, to) => {
             pendingPlan = null;
-            state.party = reorderParty(state.party, from, to);
+            editParty?.({ kind: 'reorder', from, to });
             showParty(partyReturn);
             mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
           },
           onRelease: (slot) => {
             pendingPlan = null;
-            const released = releaseMember(state.party, slot);
-            state.party = released.party;
-            // Their item goes to the bag, not with them.
-            if (released.freed) state.backpack = [...state.backpack, released.freed];
+            // The item goes to the bag, in `core/run.ts`'s editor.
+            editParty?.({ kind: 'release', slot });
             showParty(partyReturn);
             mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
           },
@@ -1412,7 +1446,16 @@ export function mountApp(root: HTMLElement): void {
        * `aiTierFor` per node, which is the same reading the node card and the
        * battle panel already print.
        */
-      const options = { onState, onBattle, onProjection, onDecision: saveRunLog };
+      const options = {
+        onState,
+        onBattle,
+        onProjection,
+        // The first decision of a fresh run replaces the save the button pointed at.
+        onDecision: (log: RunLog) => {
+          saveRunLog(log);
+          seedBar.setResumable(false);
+        },
+      };
       const result: RunResult = resume
         ? await resumeRun(resume, policy, DEFAULT_TUNING, options)
         : await playRun(seed, policy, DEFAULT_TUNING, options);
@@ -1503,16 +1546,39 @@ export function mountApp(root: HTMLElement): void {
   });
 
   const saved = loadRunLog();
-  seedBar.setResumable(Boolean(saved && isReplayable(saved)));
 
   const fromUrl = seedFromLocation(globalThis.location.href);
-  // A seed in the URL is an explicit request for *that* run, so it wins over a
-  // save. Without one, an interrupted run is resumed where it left off. A
-  // versioned URL made on another build has no paste moment to refuse at, so
+  /*
+   * **Continuing is assumed on load. The opening playtest QA, the author's
+   * ruling.**
+   *
+   * The URL seed used to win over a save, on the reading that a seed in the
+   * URL is an explicit request for that run. But `start` writes every run's
+   * own seed into the URL, so a reload of a run in progress carried its own
+   * seed back in and restarted it from the starter choice with the save
+   * sitting beside it. On a phone that is "sometimes": a restored tab keeps
+   * the hash, a home screen launch does not.
+   *
+   * So a replayable save always resumes. A link naming a *different* seed is
+   * not dropped: it goes in the box with a notice, and Start plays it. A save
+   * this build cannot replay is said out loud rather than replaced silently.
+   */
+  if (saved && isReplayable(saved)) {
+    void start(saved.seed, saved);
+    if (fromUrl && fromUrl.seed !== saved.seed) {
+      seedBar.setSeed(fromUrl.seed);
+      seedBar.warn(SEED_COPY.linkWaiting);
+    }
+    return;
+  }
+  // A versioned URL made on another build has no paste moment to refuse at, so
   // the bare seed starts a fresh run and the bar says why it is not the same one.
   if (fromUrl) {
     void start(fromUrl.seed);
     if (fromUrl.kind === 'foreign') seedBar.refuse(fromUrl);
-  } else if (saved && isReplayable(saved)) void start(saved.seed, saved);
-  else void start(newSeed());
+  } else void start(newSeed());
+  if (saved && fromUrl?.kind !== 'foreign') {
+    console.warn('GYMRUN: the saved run cannot be replayed on this build', describeVersionMismatch(versionMismatch(saved)!));
+    seedBar.warn(SEED_COPY.saveOutdated);
+  }
 }

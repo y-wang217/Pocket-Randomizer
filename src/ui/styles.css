@@ -2201,6 +2201,28 @@ body {
   grid-row: 2;
 }
 
+/*
+ * **A first-exposure label wraps the row instead of pushing power out of the
+ * card. The opening playtest QA, QA-005.**
+ *
+ * R7's label sits inside the type and category chips on exposures 1 and 3, and
+ * the two `max-content` columns above grow to hold it. On a card the width of
+ * a starter column that left the power column 0px wide, and the number drew
+ * past the card's edge and over the next one. Only while a label is on the
+ * row, the row flows and wraps: the chips keep their slots, the number drops
+ * beneath them rather than off the card, and a row that fits reads exactly
+ * as the grid does. The steady state, which section 4 budgets, is untouched.
+ */
+.move__meta:has(.exposure-label) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.move__meta:has(.exposure-label) > .move__effect {
+  flex-basis: 100%;
+}
+
 .move__category,
 .move__power {
   color: var(--text-dim);
