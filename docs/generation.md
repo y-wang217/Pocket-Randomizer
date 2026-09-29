@@ -11513,3 +11513,13 @@ Cut along bible section 7: the marks removed explained glyphs or things, which
 are the exposure labels' and inspect's jobs. Before the first fight: 12 to 6.
 The section 7 count is amended with a playtest-log row. `test/tutorial.test.ts`
 now holds a ceiling of 17 and at most 6 marks before the first fight.
+
+### The resume button shows only for a save that is not on screen
+
+Ruled by the author the same day: *"let's hide it to make it not
+ambiguous"*. Once a save always resumes, the button beside a resumed run only
+restarted the same run. `start` now offers it only when a fresh run is begun
+over a save (New seed, Start, a linked seed), and the first decision of that
+run hides it again, because that decision is what overwrites the save. Checked
+in Chromium: hidden with no save, hidden after an automatic resume, shown
+after New seed over a save, hidden after that run's starter pick.

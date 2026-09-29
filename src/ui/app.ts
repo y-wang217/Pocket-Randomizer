@@ -493,6 +493,18 @@ export function mountApp(root: HTMLElement): void {
     // the bar back when the player wants it.
     seedBar.collapse();
     seedBar.setSeed(seed);
+    /*
+     * **Resume is offered only for a save that is not the run on screen. The
+     * opening playtest QA, the author's ruling: "hide it to make it not
+     * ambiguous".**
+     *
+     * A resumed run *is* the save, and the button beside it only restarted the
+     * same run. A fresh run started over a save (New seed tapped by accident,
+     * a linked seed) leaves the save intact until that run's first decision
+     * writes over it, and the button is the way back for exactly that window.
+     */
+    const pending = resume ? null : loadRunLog();
+    seedBar.setResumable(Boolean(pending && isReplayable(pending)));
     writeSeedToLocation(seed);
     // A new run starts in no region; the first state with a locale sets one.
     applyLocale(null);
@@ -1434,7 +1446,16 @@ export function mountApp(root: HTMLElement): void {
        * `aiTierFor` per node, which is the same reading the node card and the
        * battle panel already print.
        */
-      const options = { onState, onBattle, onProjection, onDecision: saveRunLog };
+      const options = {
+        onState,
+        onBattle,
+        onProjection,
+        // The first decision of a fresh run replaces the save the button pointed at.
+        onDecision: (log: RunLog) => {
+          saveRunLog(log);
+          seedBar.setResumable(false);
+        },
+      };
       const result: RunResult = resume
         ? await resumeRun(resume, policy, DEFAULT_TUNING, options)
         : await playRun(seed, policy, DEFAULT_TUNING, options);
@@ -1525,7 +1546,6 @@ export function mountApp(root: HTMLElement): void {
   });
 
   const saved = loadRunLog();
-  seedBar.setResumable(Boolean(saved && isReplayable(saved)));
 
   const fromUrl = seedFromLocation(globalThis.location.href);
   /*
