@@ -322,8 +322,11 @@ describe('the version axes', () => {
      * `-20` is the teach-now patch: a move may be taught at the node that paid
      * it, so a plan that was illegal at that boundary is legal there now and a
      * `-19` reader would drop it. `docs/generation.md` section 49.3.
+     *
+     * `-21` is the opening playtest QA: a party edit is a logged decision.
+     * `docs/generation.md` section 85.
      */
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-20/gymrun-0.3.0');
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-21/gymrun-0.3.0');
     /*
      * Pinned literally, as the Branch 1 value was: a hash nobody can read off
      * the tree by eye is exactly the kind that moves without anyone noticing.
