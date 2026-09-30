@@ -92,7 +92,7 @@ which blocks everything.
 | D74 | every 5.0 stage | The plan carries no census gate, and the standing gate names three density modes | **2026-09-30**, option 1: census per stage |
 | D75 | 5.0/4 | Node positions from a hash of the node id, against "all randomness comes from core/rng.ts" | **2026-09-30**, option 1: a slot by option index, no hash |
 | D76 | 5.0/0, 5.0/1 | 5.0 lands on top of an open Tier 7: which face M7.1 tests, and which items it redoes | **2026-09-30**, option 1: 5.0 before M7.1 |
-| D77 | 5.0/4's census, then 5.0/3 or M7.2 | The map node card's current step prints an untiered node's hint and a shop's shelf in words: 7 against a budget of 1 | **open** |
+| D77 | 5.0/4's census, then 5.0/3 or M7.2 | The map node card's current step prints an untiered node's hint and a shop's shelf in words: 7 against a budget of 1 | **2026-09-30**, option 1: the hint to inspect, the shelf a count and a coin amount |
 
 ## Rulings, 2026-09-19
 
@@ -4460,8 +4460,9 @@ the face that section 9's family-size hypothesis now describes"* (lines
 
 ## D77. The map node card prints an untiered node's hint and a shop's shelf in words
 
-**Filed 2026-09-30, in 5.0/4, by its census. Blocks nothing in 5.0/4; needs a
-ruling before the map node card can read done.**
+**Filed 2026-09-30, in 5.0/4, by its census. Ruled the same day, option 1**
+([`../spec/gymrun-stage5.0-rulings-d77.md`](../spec/gymrun-stage5.0-rulings-d77.md)),
+and built in 5.0/4.
 
 The census's worst instance for the map node card is **7** against section 4's
 budget of **1** (*"AI tier. The payout's unit is the currency glyph"*): a shop
@@ -4571,4 +4572,5 @@ backdrops ship as placeholders; the pitch floor above; the commit stays one tap
 with no confirm. 5.0/4 runs before 5.0/3.
 
 **Still open after these five:** D51, which closes with 5.0/1's merge, and D65
-to D71, which block 5.0/3.
+to D71, which block 5.0/3. D77, filed by this stage's census, was ruled option 1
+the same day and built in 5.0/4.

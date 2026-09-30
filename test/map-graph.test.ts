@@ -18,6 +18,7 @@ import { resolveCapability } from '../src/core/capabilities';
 import { nodePayout } from '../src/core/economy';
 import { localeOf, stepsOf, type RunState } from '../src/core/run';
 import { AI_TIER_LABEL, aiTierFor } from '../src/data/ai';
+import { KIND_HINTS } from '../src/ui/copy/screens';
 import { deepMapState, openingState } from '../src/ui/gallery-fixtures';
 import { DEFAULT_GRID, slotX } from '../src/ui/map-layout';
 import { createMapGraph, planGraph } from '../src/ui/screens/run-map';
@@ -113,7 +114,7 @@ describe('the nodes', () => {
       const current = node.classList.contains('node--current');
       expect(node.querySelector('.node__kind'), 'every node wears its kind').not.toBeNull();
       expect(node.classList.contains(current ? 'node--full' : 'node--compact')).toBe(true);
-      expect(Boolean(node.querySelector('.node__detail')), 'the detail line is on the current row only').toBe(current);
+      if (!current) expect(node.querySelector('.node__detail'), 'the detail line is on the current row only').toBeNull();
       if ([...node.classList].some((name) => name.startsWith('node--tier-'))) {
         expect(node.querySelector('.tier-pips'), 'a tiered node on any row shows its pips').not.toBeNull();
       }
@@ -139,6 +140,29 @@ describe('the nodes', () => {
         expect(element.querySelector('.node__detail')?.textContent).toContain(AI_TIER_LABEL[aiTierFor(node.kind, node.tier, state.currentSegment)]);
       }
     });
+  });
+
+  it('prints no kind hint on any face, and a shelf as a count and a coin amount (D77)', () => {
+    const state = deepMapState(SEED);
+    const root = drawn(state, () => {});
+    for (const hint of Object.values(KIND_HINTS)) {
+      expect(root.textContent, `a kind hint is on a face: ${hint.short}`).not.toContain(hint.short);
+    }
+    stepsOf(state).forEach((step) =>
+      step.options.forEach((node, option) => {
+        if (node.kind !== 'shop' || !node.shop) return;
+        const element = root.querySelector(`[data-anchor="${step.index}:${option}"]`)!.closest<HTMLElement>('.node')!;
+        const cheapest = Math.min(...node.shop.items.map((item) => item.price));
+        const mark = element.querySelector<HTMLElement>('.node__kind')!;
+        expect(mark.dataset['detail']).toContain(`${node.shop.items.length} on the shelf, from ${cheapest}`);
+        if (element.classList.contains('node--current')) {
+          expect(element.querySelector('.node__shelf-count')?.textContent).toBe(String(node.shop.items.length));
+          const price = element.querySelector<HTMLElement>('.chip--currency[data-tip="currency:price"]');
+          expect(price?.dataset['value']).toBe(String(cheapest));
+          expect(element.querySelector('.node__detail')?.textContent).not.toMatch(/shelf|from/);
+        }
+      }),
+    );
   });
 
   it('puts the rest of the card on the mark of every node that does not show it', () => {

@@ -54,8 +54,6 @@ import { nodePayout } from '../../core/economy';
 import { GYMS, gymForSegment } from '../../data/gyms';
 import { GLYPH_LABELS } from '../../data/glyphLabels';
 import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
-import { prose, type Prose } from '../dom';
-import { KIND_HINTS } from '../copy/screens';
 import { applyBackdrop } from '../assets/manifest';
 import { capabilityBandChevron, capabilityGlyph, currencyAmount, nodeKindGlyph, tierPips } from '../chip';
 import { slotX } from '../map-layout';
@@ -505,35 +503,42 @@ function renderGymRow(state: RunState, segment: Segment, plan: Plan): HTMLElemen
 
 /**
  * The detail line's facts, for a node that has not been walked. One function
- * for the face (the step being chosen from) and the press (every other row),
- * so the two cannot disagree about what a node pays or who is across it.
+ * for the face (the step being chosen from) and the press (every node), so
+ * the two cannot disagree about what a node pays or who is across it.
  *
  * The coin payout is exact rather than a range, because it *is* exact: a pure
  * function of kind, tier and segment, computed by the same `nodePayout` that
  * pays it out. The AI tier names the opponent the way the kind names the
  * node, and says nothing about whether the fight is a good idea: an
- * attribute, not a verdict. An untiered node keeps its kind's short hint,
- * having no pips to read the fact off (M5.2). A shop names its shelf.
+ * attribute, not a verdict. A shop's shelf is how many items and the
+ * cheapest price.
+ *
+ * **No kind hint since D77.** M5.2 kept an untiered node's hint at rest, on
+ * the reading that it had no pips to read the fact off; section 3 puts the
+ * hint on the kind glyph's inspect, the `node:` tip carries it there, and the
+ * census counted it as words on a card budgeted at 1.
  */
-function nodeFacts(node: NodeSpec, segment: number): { payout: number; words: (string | Prose)[] } {
+function nodeFacts(node: NodeSpec, segment: number): { payout: number; tier: string | null; shelf: { count: number; cheapest: number } | null } {
   const payout = nodePayout(node, segment);
-  const words: (string | Prose)[] = [];
-  if (node.encounter) words.push(AI_TIER_LABEL[aiTierFor(node.kind, node.tier, segment)]);
-  if (!node.tier) words.push(KIND_HINTS[node.kind]);
-  if (node.kind === 'shop' && node.shop) {
-    const cheapest = Math.min(...node.shop.items.map((item) => item.price));
-    words.push(`${node.shop.items.length} on the shelf, from ${cheapest}`);
-  }
-  return { payout, words };
+  const tier = node.encounter ? AI_TIER_LABEL[aiTierFor(node.kind, node.tier, segment)] : null;
+  const shelf =
+    node.kind === 'shop' && node.shop && node.shop.items.length > 0
+      ? { count: node.shop.items.length, cheapest: Math.min(...node.shop.items.map((item) => item.price)) }
+      : null;
+  return { payout, tier, shelf };
 }
 
-/** The same facts as one line of text, for the press on a row that does not show them. */
+/**
+ * The same facts as one line of words, for the press: the rest of the card on
+ * a row that does not show it, and the shelf's words on the row that does.
+ */
 function nodeDetailText(node: NodeSpec, segment: number, visit?: NodeVisit): string {
   if (visit) return visitText(node, visit);
-  const { payout, words } = nodeFacts(node, segment);
+  const { payout, tier, shelf } = nodeFacts(node, segment);
   return [
     ...(payout > 0 ? [`${payout} coins`] : []),
-    ...words.filter((word) => typeof word === 'string' || word !== KIND_HINTS[node.kind]).map((word) => (typeof word === 'string' ? word : word.long)),
+    ...(tier ? [tier] : []),
+    ...(shelf ? [`${shelf.count} on the shelf, from ${shelf.cheapest}`] : []),
   ].join(' · ');
 }
 
@@ -581,10 +586,8 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
   const label = el('span', 'node__label');
   if (phase === 'current') label.dataset['tutorial'] = 'kinds';
   const kind = nodeKindGlyph(node.kind, kindWord(node.kind), 24);
-  if (!options.full) {
-    const detail = nodeDetailText(node, segment, options.visit);
-    if (detail) kind.dataset['detail'] = detail;
-  }
+  const said = nodeDetailText(node, segment, options.visit);
+  if (said) kind.dataset['detail'] = said;
   label.append(kind);
   mark.append(label);
   element.append(mark);
@@ -630,13 +633,25 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
   if (facts.childElementCount > 0) element.append(facts);
 
   if (options.full) {
-    const detail = el('span', 'node__detail');
-    const { payout, words } = nodeFacts(node, segment);
+    /*
+     * The detail line: the payout as a coin amount, the AI tier, and a shop's
+     * shelf as a count and the cheapest price as a coin amount (D77). Nothing
+     * else, so a node with none of the three carries no line at all.
+     */
+    const { payout, tier, shelf } = nodeFacts(node, segment);
     const parts: Node[] = [];
     if (payout > 0) parts.push(currencyAmount(payout, 'payout'));
-    for (const word of words) parts.push(typeof word === 'string' ? document.createTextNode(word) : prose(word));
-    detail.replaceChildren(...parts.flatMap((part, index) => (index > 0 ? [document.createTextNode(' · '), part] : [part])));
-    element.append(detail);
+    if (tier) parts.push(document.createTextNode(tier));
+    if (shelf) {
+      const count = el('span', 'node__shelf-count');
+      count.textContent = String(shelf.count);
+      parts.push(count, currencyAmount(shelf.cheapest, 'price'));
+    }
+    if (parts.length > 0) {
+      const detail = el('span', 'node__detail');
+      detail.replaceChildren(...parts.flatMap((part, index) => (index > 0 ? [document.createTextNode(' · '), part] : [part])));
+      element.append(detail);
+    }
   }
 
   if (options.onChoose) element.addEventListener('click', options.onChoose);

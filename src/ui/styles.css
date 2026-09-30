@@ -7256,8 +7256,10 @@ button,
 /* The detail line, on the step being chosen from only. A size smaller than
    the name so a shop's shelf fits three lines in a third of the frame. */
 .map-graph .node__detail { max-width: 108px; font-size: var(--fs-xs); line-height: 1.25; }
+/* The coin amount sits bare inside its box: the chip's own inset outline
+   would draw a second box inside the detail line and the wallet. */
 .map-graph .chip--currency,
-.map__wallet .chip--currency { padding: 0; background: none; border: 0; }
+.map__wallet .chip--currency { padding: 0; background: none; border: 0; box-shadow: none; color: var(--text); }
 .map-graph .chip--currency { display: inline-flex; align-items: center; gap: var(--space-h); vertical-align: middle; }
 .map-graph .chip--currency svg { width: 12px; height: 12px; }
 

@@ -264,6 +264,7 @@ export const KIND_HINTS = {
  */
 export const CURRENCY_COPY = {
   payout: 'What this fight pays when it is won.',
+  price: 'The cheapest thing on this shelf.',
   wallet: 'What the run is carrying.',
 } as const;
 

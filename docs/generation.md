@@ -11887,12 +11887,19 @@ What the build found:
     `deepMapState` (`ui/gallery-fixtures.ts`): the longest segment the seed
     draws, walked halfway, with the widest party. A segment-one map had
     neither length nor depth. The census and the exposure walk read it.
-14. **The census found a breach that predates this stage** and is filed as
-    **D77**: the map node card's worst instance is 7 words against a budget of
-    1, a shop on the current step (`Items, healing, moves. · 7 on the shelf,
-    from 72`). The old fixture never had a shop on its current step. Fights
-    read 1, the AI tier, now that the payout's unit is the currency mark (the
-    old worst instance, 2, was `coins Rookie`).
+14. **The census found a breach that predates this stage**, filed as **D77**
+    and ruled the same day ([`spec/gymrun-stage5.0-rulings-d77.md`](spec/gymrun-stage5.0-rulings-d77.md)):
+    the map node card's worst instance was 7 words against a budget of 1, a
+    shop on the current step (`Items, healing, moves. · 7 on the shelf, from
+    72`). The old fixture never had a shop on its current step. Built as
+    option 1: **the kind hint leaves every face** (section 3 already put it on
+    the glyph's inspect), superseding M5.2's choice to keep it at rest on an
+    untiered node; **the shelf is a count and a coin amount** (`7 · ¢72`, the
+    price's `currency:price` tip naming it), with `7 on the shelf, from 72` on
+    the mark's press. The press now carries the detail line's words on every
+    node, the current step's included. Worst instance **1**, the AI tier (the
+    old worst, 2, was `coins Rookie`); the map screen 16 words to 9, shell
+    excluded. A current rest or event has no detail line at all.
 15. **The smoke bot reads the lead's HP through the Team tab**, and only when a
     rest is on offer (`leadHpFraction`, in `scripts/smoke.mjs` and
     `scripts/visual/browser.mjs`). A readout: it submits nothing and draws
