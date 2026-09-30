@@ -183,6 +183,18 @@ describe('the screen (D58, D60)', () => {
     expect(header.compareDocumentPosition(stage as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it('draws the turn header in the header row, and replaces it in place (section 6 step 1)', () => {
+    const screen = createBattleScreen();
+    const session = sessionOf(PARTY, 'S2-TURN');
+    screen.attach(session, nodeOf('wild'), REVEAL, () => {});
+    const turn = (): HTMLElement[] => [...screen.root.querySelectorAll<HTMLElement>('.battle__header .battle__turn')];
+    expect(turn()).toHaveLength(1);
+    expect(turn()[0]?.textContent).toBe('Turn 1');
+    for (const side of ['p1', 'p2'] as const) session.submit(side, { kind: 'move', slot: 1 });
+    expect(turn()).toHaveLength(1);
+    expect(turn()[0]?.textContent).toBe('Turn 2');
+  });
+
   it("stands a fight on its locale's backdrop, and a gym on the gym's", () => {
     applyLocale('marsh');
     const screen = createBattleScreen();

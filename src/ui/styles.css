@@ -6969,6 +6969,10 @@ button,
 }
 .screen--battle .battle__header .screen__title { font-size: var(--fs-lg); line-height: 1.2; }
 .screen--battle .battle__header .screen__blurb { color: var(--text); }
+/* The turn header sits at the row's far end, a fixed slot that replaces its
+   own text each turn and so never moves anything else on the row. */
+.screen--battle .battle__turn { margin-left: auto; color: var(--text-dim); font-family: var(--font-numeral); white-space: nowrap; }
+.screen--battle .battle__turn:empty { display: none; }
 
 /* The HP box (D56): the Pokemon panel in the plan's window, every fact kept.
    Name, gender and level on the top line with the roster count opposite it on

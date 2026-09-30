@@ -9,8 +9,9 @@ against 5.0/2, the battle screen
 **D56, D57, D58, D59**: no change. The battle screen's HP box is the Pokemon
 panel restyled, with every fact it carries, both HP numbers and the ability
 name among them; the move button is the full move card, restyled; the header
-row stays above the stage; D26's glyph handle and pull stay the log's only
-way in. **D60**: section 5's *World* row loses the field state and gains a
+row stays above the stage, and section 6's turn header, never built before,
+is built in it and named in section 4's header row; D26's glyph handle and
+pull stay the log's only way in. **D60**: section 5's *World* row loses the field state and gains a
 sibling, the *Scene backdrop*. The World is the locale's layers behind the
 game frame, unchanged. The backdrop is the scene inside the frame: the battle
 stage's and the map's painted art, from the asset manifest. The weather wash
@@ -344,7 +345,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Party row and party drawer | 0 plus the ability name | Species name, nickname, ability name (2026-09-21, D19) |
 | Pokemon battle panel | 0 plus the ability name | Name, nickname, ability name (2026-09-21, D19) |
 | Flag strip (battle) | 1 flag per hit, plus 1 non-hit kind per side | The one flag R9 allows, and the second channel (2026-09-21, D23 and D24) |
-| Battle screen header | 3 | Opponent, AI tier; the kind is the node glyph (2026-09-25, D46; was 4 under D28, 2026-09-21). The field glyph is a glyph and costs nothing (2026-09-25, D47) |
+| Battle screen header | 3 | Opponent, AI tier, and section 6's turn header, `Turn` and its number (2026-09-30, D58); the kind is the node glyph (2026-09-25, D46; was 4 under D28, 2026-09-21). The field glyph is a glyph and costs nothing (2026-09-25, D47) |
 | Backdrop behind the stage | 0 | None. The field state is a wash and a tint, never a word (2026-09-25, D47; the backdrop, not the world, 2026-09-30, D60) |
 | Result screen | 6 | Outcome word, "+N", continue |
 | Capture card | 0 | Follows the recipient card |
@@ -462,7 +463,7 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Type chip | Glyph in colour | Everywhere a type appears |
 | Inspect layer | The full explanation of whatever was long-pressed | One mechanism, mounted at the shell |
 | Flag strip | One flag per hit by R9's precedence, plus one non-hit kind per side (2026-09-21, D23) | Battle |
-| Battle screen header | Node glyph at 16, opponent, AI tier, field glyph at 16 in a fixed slot after the tier (2026-09-25, D46 and D47; the kind was a word under D28, 2026-09-21) | Battle |
+| Battle screen header | Node glyph at 16, opponent, AI tier, field glyph at 16 in a fixed slot after the tier, and the turn header at the row's end (2026-09-25, D46 and D47; the kind was a word under D28, 2026-09-21; the turn, 2026-09-30, D58) | Battle |
 | World | The locale's three layers and drift, behind the game frame (2026-09-25, D47; the field state moved to the scene backdrop, 2026-09-30, D60) | Every screen, mounted once by `app.ts`, outside the frame |
 | Scene backdrop | The game screen's painted scene inside the frame, from the asset manifest: the locale's battle backdrop, or the gym's, behind the battle stage; the locale's map backdrop behind the map. During a battle, the field state as a weather wash and a terrain tint over it, global tokens mixed into the backdrop's own. A missing file is the manifest's placeholder at the correct size (2026-09-30, D60) | The battle stage and the map, inside the frame. Never outside it: that is the World's |
 | Reward card | The item or berry sprite in a fixed slot, a relic's name, the boosted type chip, the move card on a move kind, and the shop's price number (2026-09-22, D29 and D36) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |

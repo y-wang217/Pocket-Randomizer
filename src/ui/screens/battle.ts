@@ -101,7 +101,16 @@ export function createBattleScreen(): BattleScreen {
   const detailText = el('span', 'battle__detail-text');
   const field = el('span', 'battle__field');
   detail.append(detailText, field);
-  header.append(title, detail);
+  /*
+   * The turn header. **Stage 5.0/2, D58; section 6 step 1.** *"Turn 4"*,
+   * replacing itself in place, at the end of the header row. The grammar has
+   * asked for it since the bible's first revision and no build drew it; D58
+   * kept the header's place and ruled it in. One word under section 4's
+   * header budget of 3, which excludes the opponent's name and the number.
+   * Empty before the first turn, when nothing has been chosen yet.
+   */
+  const turnHeader = el('span', 'battle__turn');
+  header.append(title, detail, turnHeader);
 
   const board = el('div', 'board');
   const scene: Scene = createScene();
@@ -285,6 +294,10 @@ export function createBattleScreen(): BattleScreen {
         });
         const turns = readFlags(protocol, FLAGS);
         log.append(protocol, turns);
+        // The turn about to be played: the last `|turn|` the batch opened,
+        // off the same reading the log and the strip take.
+        const turn = turns.reduce<number | null>((latest, group) => group.turn ?? latest, null);
+        if (turn !== null) turnHeader.textContent = `Turn ${turn}`;
         /*
          * **The opening batch is shown when it did something.** Stage 4.11
          * Tier 4, from the Tier 0 census: 58% of field starts and 47% of
@@ -306,6 +319,7 @@ export function createBattleScreen(): BattleScreen {
 
       log.clear();
       flags.clear();
+      turnHeader.textContent = '';
       /*
        * And the board's own two panels. **The bench-carryover patch.**
        *
