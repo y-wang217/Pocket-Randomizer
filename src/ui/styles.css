@@ -5320,18 +5320,20 @@ button,
  * same width on every card. The card's own `.locale--<id>` class carries the
  * three tokens, so the strip previews the region without the page changing.
  */
-.locale__swatch {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  height: var(--space-1h);
+/* The crop of the region's map backdrop, where the swatch stood. Stage
+   5.0/4, D72. The map graph's own two layers, the drawing over the flat tint,
+   cut to a strip from the drawing's lower middle, where the paths start. */
+.locale__crop {
+  display: block;
+  height: var(--space-6);
   width: 100%;
+  border: var(--hairline) solid var(--border-heavy);
   border-radius: var(--radius-chip);
-  overflow: hidden;
+  background:
+    var(--backdrop-image, none) center 80% / calc(var(--backdrop-w, 0) * var(--art-px)) calc(var(--backdrop-h, 0) * var(--art-px)) no-repeat,
+    color-mix(in srgb, var(--locale-glow) 38%, var(--bg-raised));
+  image-rendering: pixelated;
 }
-
-.locale__swatch-deep { background: var(--locale-deep); }
-.locale__swatch-mid { background: var(--locale-mid); }
-.locale__swatch-glow { background: var(--locale-glow); }
 
 /* ==========================================================================
    Stage V2 — numbered slots
