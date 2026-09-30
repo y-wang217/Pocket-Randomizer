@@ -11687,3 +11687,45 @@ recorded here rather than edited into the prompt:
 17. **Not run here: the WebKit suite and a real iPhone.** This sandbox has
     Chromium only. The plan asks for both before review of 5.0/2; for 5.0/1
     they are the reviewer's.
+
+## 88. Stage 5.0: the author's rulings on D56 to D60, and what 5.0/2 builds that its prompt did not say
+
+**2026-09-30.** [`spec/gymrun-stage5.0-rulings-d56-d60.md`](spec/gymrun-stage5.0-rulings-d56-d60.md),
+answering the 5.0/1 report. Bible Rev 16. No version axis moves: nothing here
+draws, reshapes the log or touches a table.
+
+Deviations from Stage 2 of
+[`spec/gymrun-stage5.0-visual-redesign.md`](spec/gymrun-stage5.0-visual-redesign.md),
+recorded here rather than edited into the prompt:
+
+1. **The HP boxes carry everything the Pokemon panel carries (D56).** The
+   prompt's list (*"name, gender, level, HP bar, HP number for the player
+   side, status, and non-zero stat stages"*) was a sketch. The box is the
+   panel restyled into the reference's shape, and it keeps both HP numbers,
+   the volatile chips, the ability name, the item sprite, the priority
+   chevron, the type chips, the foe's roster marks and the long press to the
+   six base stats. The author named the ability as very important.
+2. **The move button is the full move card, restyled (D57).** Not the
+   prompt's five facts: name, base power, accuracy, priority and the fact
+   strip stay, and the effectiveness marker keeps the field's factor (D49).
+3. **The header row stays above the stage (D58)**, the same component, with
+   the turn header in it. The flag strip keeps each flag on its target's
+   side.
+4. **There is no Info button (D59).** D26's glyph handle and pull stay the
+   log's way in. The secondary row under the grid is Switch alone, and a
+   forced switch opens the bench by itself.
+5. **The painted backdrops do not replace the World (D60).** The prompt was
+   silent on the World and the weather; the author ruled neither of the
+   register's options as written. The World is the locale's layers behind
+   the game frame and does not change. The painted backdrops are the game
+   screen's scene inside the frame: the battle backdrop behind the stage, the
+   map backdrop behind the map. The weather wash and terrain tint sit on the
+   battle backdrop, which is where 5.0/1 already drew them (§87 item 12), so
+   5.0/2 builds nothing new for it. Bible section 5 narrows *World* and adds
+   *Scene backdrop*.
+6. **D62 is carried on the battle screen by items 1 and 2.** The type chip on
+   the panel and the move card stays a glyph, not a genre word badge like the
+   5.0/0 spike's. The row stays open for 5.0/3 and 5.0/4.
+7. **Carried from 5.0/1 into 5.0/2:** the heights instrument reads the
+   frame's scroller, not the document's, and the WebKit suite and a real
+   iPhone before review.
