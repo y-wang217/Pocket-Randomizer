@@ -51,6 +51,8 @@ export function openApp(
 export interface GuardedMeasure {
   screenHeight: number;
   scrollHeight: number;
+  /** The frame scroller's visible height; the screen fits when `scrollHeight` is at or under it. Stage 5.0/2. */
+  clientHeight: number;
   decisionCount: number;
   decisionTop: number | null;
   decisionBottom: number | null;

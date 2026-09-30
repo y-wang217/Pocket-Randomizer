@@ -194,7 +194,11 @@ describe('the stage', () => {
 
     expect(read, 'the stage is on the board with both panels on it').not.toBeNull();
     // The band is the budgeted number, not whatever the content came to.
-    expect(read?.stageHeight).toBe(260);
+    // 272 since Stage 5.0/2 (`docs/spec/gymrun-stage5.0-visual-redesign.md`):
+    // the stage carries the platforms and the HP boxes in their windows, and
+    // the header row gave back the height the band took. Plus the 2px frame
+    // the stage wears as a window on each side.
+    expect(read?.stageHeight).toBe(272);
     // One style for both sides. Not "similar": the same string.
     expect(new Set(read?.panels).size, read?.panels.join('\n')).toBe(1);
     /*

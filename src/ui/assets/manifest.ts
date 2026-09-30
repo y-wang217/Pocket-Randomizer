@@ -180,3 +180,33 @@ export function assetIcon(key: AssetKey): HTMLElement {
   }
   return icon;
 }
+
+/**
+ * A backdrop as the background of a scene element. **Stage 5.0/2, D60.**
+ *
+ * The scene backdrop is the game screen's own art, inside the frame; the
+ * World behind the frame is `scene.ts`'s and does not come through here. The
+ * element keeps its placeholder tint underneath whatever this sets, so a file
+ * that is named but missing, or that fails to load, shows the placeholder at
+ * the element's own size rather than a broken image: the size is the
+ * element's, never the file's.
+ *
+ * `data-backdrop` names the key, which is what the stylesheet reads to pick a
+ * placeholder tint (the gym's differs from a locale's) and what a test reads
+ * to see which backdrop a fight is standing on. `data-art` is `file` only when
+ * a drawing resolved, so the placeholder's painted ground can step aside for
+ * it. `null` clears both.
+ */
+export function applyBackdrop(target: HTMLElement, key: AssetKey | null): void {
+  const asset = key ? MANIFEST.get(key) : undefined;
+  const url = asset?.kind === 'file' ? assetUrl(asset) : null;
+  if (key && asset) target.dataset['backdrop'] = key;
+  else delete target.dataset['backdrop'];
+  if (url) {
+    target.dataset['art'] = 'file';
+    target.style.setProperty('--backdrop-image', `url(${url})`);
+  } else {
+    target.dataset['art'] = 'placeholder';
+    target.style.removeProperty('--backdrop-image');
+  }
+}

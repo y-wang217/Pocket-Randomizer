@@ -689,10 +689,21 @@ async function measureScreen(page, name, decisionSelector) {
       const nodes = [...globalThis.document.querySelectorAll(decision)];
       const rects = nodes.map((node) => node.getBoundingClientRect());
       const r = (n) => Math.round(n * 100) / 100;
-      const scrollY = globalThis.window.scrollY;
+      /*
+       * **The frame's scroller, not the document's. Stage 5.0/2**, carried
+       * from 5.0/1. Since the shell went one viewport tall, the page never
+       * scrolls and the document's `scrollHeight` is always the viewport's,
+       * so the number this reported stopped measuring anything. A screen
+       * scrolls inside `.screens` now: its `scrollHeight` against its
+       * `clientHeight` is whether the screen fits, and its `scrollTop` is
+       * what turns a box into a position in the screen's own content.
+       */
+      const scroller = globalThis.document.querySelector('.screens');
+      const scrollY = scroller ? scroller.scrollTop : globalThis.window.scrollY;
       return {
         screenHeight: r(screen.getBoundingClientRect().height),
-        scrollHeight: globalThis.document.documentElement.scrollHeight,
+        scrollHeight: scroller ? scroller.scrollHeight : globalThis.document.documentElement.scrollHeight,
+        clientHeight: scroller ? scroller.clientHeight : globalThis.window.innerHeight,
         decisionCount: nodes.length,
         decisionTop: rects.length ? r(Math.min(...rects.map((x) => x.top + scrollY))) : null,
         decisionBottom: rects.length ? r(Math.max(...rects.map((x) => x.bottom + scrollY))) : null,

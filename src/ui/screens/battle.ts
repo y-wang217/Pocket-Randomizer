@@ -32,6 +32,9 @@ import { abnormalityMarks, firedTraits } from '../abnormality';
 import { createScene, el, type OutroKind, type Scene } from '../scene';
 import { fieldGlyph } from '../chip';
 import { applyField } from '../theme/field';
+import { currentLocale } from '../theme/locale';
+import { applyBackdrop } from '../assets/manifest';
+import { LOCALE_IDS, type LocaleId } from '../../data/locales';
 
 /**
  * The one lookup the flag reader cannot have, supplied by the adapter.
@@ -103,9 +106,13 @@ export function createBattleScreen(): BattleScreen {
   const board = el('div', 'board');
   const scene: Scene = createScene();
   /*
-   * The strip sits under the scene, where Release C put it and where V5's
-   * one-line event strip goes. V5 re-homed a container rather than restyling
-   * chips, exactly as that placement predicted.
+   * The strip sits directly under the stage. **Stage 5.0/2, D58.** Release C
+   * put it under the scene and V5 made it the one-line event strip; with the
+   * move grid and the Switch row now below it, "under the scene" would have
+   * put the outcome of a turn beneath the buttons for the next one. Under the
+   * stage it is against the two Pokemon it happened to, and each flag still
+   * names its target (`data-side`, and the chip's label), which is R8's
+   * attribution. The chips are Release C's, byte for byte.
    */
   const flags: FlagStrip = createFlagStrip();
   /*
@@ -119,7 +126,8 @@ export function createBattleScreen(): BattleScreen {
    */
   const sheet: LogSheet = createLogSheet();
   const log: BattleLogView = createBattleLog(sheet.panel);
-  board.append(scene.root, flags.root);
+  scene.stage.after(flags.root);
+  board.append(scene.root);
 
   /*
    * The one place a tap becomes an open, and the reason the strip exposes its
@@ -194,6 +202,15 @@ export function createBattleScreen(): BattleScreen {
         .filter((part) => part.length > 0)
         .join(' · ');
       field.replaceChildren();
+      /*
+       * The scene backdrop. **Stage 5.0/2, D60.** The gym's at a gym, the
+       * locale's everywhere else, read off the same `data-locale` the run
+       * writes on every state (`theme/locale.ts`). No locale (the gallery, a
+       * fixed-board test) means no key, and the stage keeps its placeholder.
+       */
+      const locale = currentLocale();
+      const known = LOCALE_IDS.find((id) => id === locale) as LocaleId | undefined;
+      applyBackdrop(scene.stage, node.kind === 'gym' ? 'battle-backdrop:gym' : known ? `battle-backdrop:${known}` : null);
 
       // Derived on every update, never stored. `BattleUiView` is a pure
       // function of the facts, so rebuilding it is cheaper than keeping one

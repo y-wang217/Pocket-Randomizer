@@ -302,9 +302,26 @@ body {
    * weather is still on the board.
    */
   isolation: isolate;
-  background: var(--stage-sky, var(--locale-mid));
+  /*
+   * **The scene backdrop. Stage 5.0/2, D60.** Two bases, sky and ground,
+   * which the placeholder paints and a drawing replaces. A locale's are its
+   * own tokens; the gym's are the gym tint below. `--backdrop-image` is set
+   * by `applyBackdrop` only when the manifest resolves a file, and it sits
+   * on top of the placeholder sky, so a file that fails to load leaves the
+   * placeholder at the stage's own size. The world behind the frame is not
+   * this: it stays as it is (D60).
+   */
+  --stage-sky-base: var(--locale-mid);
+  --stage-ground-base: var(--locale-glow);
+  background: var(--backdrop-image, none) center / cover no-repeat, var(--stage-sky, var(--stage-sky-base));
+  image-rendering: pixelated;
+  border: var(--rule-heavy) solid var(--border-heavy);
   border-radius: var(--radius-card);
   overflow: hidden;
+}
+.stage[data-backdrop='battle-backdrop:gym'] {
+  --stage-sky-base: var(--gym-sky);
+  --stage-ground-base: var(--gym-ground);
 }
 .stage::before,
 .stage::after {
@@ -313,17 +330,42 @@ body {
   z-index: -1;
   pointer-events: none;
 }
-.stage::before { inset: 55% 0 0 0; background: var(--stage-ground, var(--locale-glow)); }
+.stage::before { inset: 55% 0 0 0; background: var(--stage-ground, var(--stage-ground-base)); }
+/* A drawing carries its own ground; the placeholder's steps aside for it. */
+.stage[data-art='file']::before { display: none; }
 .stage::after { inset: 0; background: var(--stage-wash, transparent); }
 :root[data-weather='rain'] .stage { --stage-wash: color-mix(in srgb, var(--weather-rain) calc(var(--weather-wash) * 100%), transparent); }
 :root[data-weather='sun'] .stage { --stage-wash: color-mix(in srgb, var(--weather-sun) calc(var(--weather-wash) * 100%), transparent); }
 :root[data-weather='sand'] .stage { --stage-wash: color-mix(in srgb, var(--weather-sand) calc(var(--weather-wash) * 100%), transparent); }
 :root[data-weather='snow'] .stage { --stage-wash: color-mix(in srgb, var(--weather-snow) calc(var(--weather-wash) * 100%), transparent); }
 :root[data-weather='wind'] .stage { --stage-wash: color-mix(in srgb, var(--weather-wind) calc(var(--weather-wash) * 100%), transparent); }
-:root[data-terrain='electric'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-electric) 32%, var(--locale-glow)); }
-:root[data-terrain='grassy'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-grassy) 32%, var(--locale-glow)); }
-:root[data-terrain='misty'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-misty) 32%, var(--locale-glow)); }
-:root[data-terrain='psychic'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-psychic) 32%, var(--locale-glow)); }
+:root[data-terrain='electric'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-electric) 32%, var(--stage-ground-base)); }
+:root[data-terrain='grassy'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-grassy) 32%, var(--stage-ground-base)); }
+:root[data-terrain='misty'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-misty) 32%, var(--stage-ground-base)); }
+:root[data-terrain='psychic'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-psychic) 32%, var(--stage-ground-base)); }
+
+/* The platforms. **Stage 5.0/2**, class B: a CSS ellipse under each sprite,
+   the ground's own colour darkened, never a file. Fixed to the sprite's box so
+   a Pokemon stands on it whatever its art does, and outside the actor so a
+   beat that moves the body leaves the ground where it is. */
+.stage__platform {
+  position: absolute;
+  z-index: 0;
+  width: calc(var(--sprite-size) * 1.3);
+  height: calc(var(--sprite-size) * 0.26);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--border-heavy) 22%, var(--stage-ground, var(--stage-ground-base)));
+  border: var(--rule-heavy) solid color-mix(in srgb, var(--border-heavy) 40%, var(--stage-ground, var(--stage-ground-base)));
+  pointer-events: none;
+}
+.stage__platform--foe {
+  top: calc(var(--sprite-size) * 0.78);
+  right: calc(var(--sprite-size) * -0.15);
+}
+.stage__platform--me {
+  bottom: calc(var(--sprite-size) * 0.02);
+  left: calc(var(--sprite-size) * -0.15);
+}
 
 .stage__actor {
   position: absolute;
@@ -2110,6 +2152,9 @@ body {
 .move {
   display: flex;
   flex-direction: column;
+  /* The touch floor on every move button and card. Stage 5.0/2: folded in
+     from the phone block, which applied at every frame width. */
+  min-height: 44px;
   gap: calc(calc(var(--space-1) + var(--hairline)) * var(--chrome-pad));
   padding: calc(var(--space-2h) * var(--chrome-pad) * var(--tap-scale)) calc(var(--space-3) * var(--chrome-pad) * var(--tap-scale));
   text-align: left;
@@ -2128,52 +2173,6 @@ body {
   opacity: 0.42;
   cursor: not-allowed;
 }
-
-/*
- * The type watermark. **Chip-audit patch, item 3.**
- *
- * A silhouette of the move's type, in the type's own colour, in the corner
- * beside the move name.
- *
- * **Scoped to `.moves`, the battle grid, and nothing wider.** `.move--card` is
- * the same component on the reward, replacement, party and summary screens, and
- * those cards carry the 4.7.2 expander in this corner — so they neither get a
- * watermark nor a containing block they have no use for. `scene.renderMove` is
- * the only builder that emits one; this rule only has to agree with it.
- *
- * **No `overflow: hidden`.** An earlier placement bled the glyph off the right
- * edge and needed the crop; this one sits fully inside the padding box, so the
- * clip would only ever be a trap for something later.
- *
- * **The ceiling is the brief's: 50% opacity, never more.** The token ships at
- * well under it, because at 0.5 against `--bg-raised` the glyph competes with
- * the move name for the same eye. It is a token so a playtest can move it
- * without touching this rule, and `test/type-icons.test.ts` asserts the ceiling
- * rather than trusting this sentence.
- */
-
-
-/*
- * In the four-column bar the button is 85px wide and the glyph would sit on top
- * of the fields the layout exists to make comparable. It keeps its place and
- * loses its size: the colour is still there at a glance, which is the half of
- * the signal that survives at that width.
- */
-/*
- * In the four-column bar the button is 85px wide and there is no corner to
- * yield: two clamped lines of name already use the full width. So the mark
- * stops being a glyph in a corner and becomes a wash behind the whole button —
- * bigger, fainter, centred, and with the name's padding given back.
- *
- * What survives at that size is the colour, which is the half of the signal the
- * brief actually asked for ("show types in certain colors"). The silhouette is
- * the bonus that the 2x2 has room for.
- */
-
-
-
-/* Reduced motion is not the axis here, but reduced *transparency* is: a reader
-   who has asked for more contrast should not have a tinted shape behind text. */
 
 .move__name { font-weight: 600; }
 
@@ -4208,11 +4207,10 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
      metrics a floating panel wears now live in one place, beside the rest of
      what makes it float. */
 
-  /* 44px minimum, and the grid stays 2x2 rather than collapsing to one column:
-     four buttons in a column is a scroll, and a scroll is what this pass is
-     removing. */
-  .move { min-height: 44px; }
-  .moves { gap: calc(var(--space-1h) * var(--chrome-gap)); }
+  /* The move grid's 44px floor and its gap lived here, and applied on every
+     frame: the frame is never wider than 480px, so this block is always in
+     force. Stage 5.0/2 folded both into the base rules (`.move`, `.moves`)
+     and deleted them here, the battle's share of the dead wide layout. */
 
   /* The map's decision point is what the player came to the screen for, so the
      current step's cards keep their full size while the rest of the chain
@@ -6943,3 +6941,104 @@ button,
 .drawer__tm { padding: var(--space-h) var(--space-1h); border: var(--hairline) solid var(--border); border-radius: var(--radius-chip); }
 
 .settings-sheet__replay { align-self: flex-start; }
+
+/* ---------- 5.0/2: the battle screen ----------
+   Stage 2 of the visual redesign (`docs/spec/gymrun-stage5.0-visual-redesign.md`),
+   under the rulings on D56 to D60 (`docs/spec/gymrun-stage5.0-rulings-d56-d60.md`).
+   A restyle of components the canon already owns: the header row, the Pokemon
+   panel as the HP box, the move card as the move button, the bench behind a
+   Switch button. Nothing here adds a fact, and nothing here takes one away
+   (C2): every rule is position, border, spacing or size.
+
+   Scoped to `.screen--battle` so it wins over the V5 rules above by
+   specificity rather than by source order alone, and so the move card on the
+   reward, replacement and party screens (the other call site) is untouched. */
+
+/* The header: one row, a window's title bar above the stage (D58). The node
+   glyph and the leader's name, then the opponent, the AI tier and the field
+   glyph, in section 5's order. */
+.screen--battle .battle__header {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-h) var(--space-2);
+  padding: var(--space-1h) var(--space-2h);
+  background: var(--bg-raised);
+  border: var(--rule-heavy) solid var(--border-heavy);
+  border-radius: var(--radius-card);
+}
+.screen--battle .battle__header .screen__title { font-size: var(--fs-lg); line-height: 1.2; }
+.screen--battle .battle__header .screen__blurb { color: var(--text); }
+
+/* The HP box (D56): the Pokemon panel in the plan's window, every fact kept.
+   Name, gender and level on the top line with the roster count opposite it on
+   the opponent's box; the bar in a heavy frame; the status chip and the HP
+   number on one line, the number at the right edge where the reference puts
+   it; then the chip row: types, ability, item, volatiles, stat stages. */
+.screen--battle .stage .panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'header roster'
+    'hp hp'
+    'meta meta'
+    'chips chips';
+  align-items: center;
+  gap: var(--space-h) var(--space-2);
+  padding: var(--space-1h) var(--space-2);
+}
+.screen--battle .stage .panel__header { grid-area: header; gap: 0 var(--space-1h); min-width: 0; }
+.screen--battle .stage .panel__roster { grid-area: roster; margin: 0; }
+.screen--battle .stage .panel > .hp {
+  grid-area: hp;
+  height: 6px;
+  border: var(--rule-heavy) solid var(--border-heavy);
+  border-radius: var(--radius-chip);
+}
+.screen--battle .stage .panel__meta {
+  grid-area: meta;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  margin: 0;
+  min-height: 0;
+}
+.screen--battle .stage .panel__hp-text { color: var(--text); font-weight: 600; }
+.screen--battle .stage .panel__chips { grid-area: chips; }
+
+/* The move button (D57): the full move card, in a window. The name on the
+   top line, whole: it wraps rather than truncating, because a cut name is a
+   fact half removed. Then the identity line (type, category, base power) with
+   the PP at its right edge, then the fact strip (band, accuracy, the forecast,
+   the facts), so the card is three rows where it was four. The forecast edge keeps its colour and gains the
+   heavy border's width. */
+.screen--battle .moves .move {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'name name'
+    'meta pp'
+    'facts facts';
+  align-content: start;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-1h) var(--space-2);
+  border-width: var(--rule-heavy);
+  border-color: var(--border-heavy);
+}
+.screen--battle .moves .move__name { grid-area: name; min-width: 0; }
+.screen--battle .moves .move__pp { grid-area: pp; justify-self: end; }
+.screen--battle .moves .move__meta { grid-area: meta; }
+.screen--battle .moves .move__facts { grid-area: facts; }
+.screen--battle .moves .move[data-effect] { border-left-width: calc(var(--rule-heavy) * 2); }
+.screen--battle .moves .move[data-effect='super'] { border-left-color: var(--stage-up); }
+.screen--battle .moves .move[data-effect='resisted'],
+.screen--battle .moves .move[data-effect='none'] { border-left-color: var(--stage-down); }
+
+/* The secondary row, and the bench behind it (D59). The pane is one attribute
+   on the scene: the moves at rest, the bench when Switch is pressed or the
+   fight is waiting on a forced switch. The hidden pane takes no room. */
+.scene__actions { display: flex; }
+.scene__actions[hidden] { display: none; }
+.scene__switch { flex: 1 1 auto; min-height: calc(44px * var(--tap-scale)); }
+.scene__switch[data-forced='true'] { color: var(--emphasis); }
+.scene[data-pane='moves'] > .bench { display: none; }
+.scene[data-pane='bench'] > .moves { display: none; }

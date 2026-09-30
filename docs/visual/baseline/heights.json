@@ -6,16 +6,18 @@
   },
   "map": {
     "screenHeight": 514.22,
-    "scrollHeight": 844,
+    "scrollHeight": 749,
+    "clientHeight": 749,
     "decisionCount": 2,
     "decisionTop": 330.53,
     "decisionBottom": 389.25
   },
   "battle": {
-    "screenHeight": 563.41,
-    "scrollHeight": 844,
+    "screenHeight": 562.22,
+    "scrollHeight": 749,
+    "clientHeight": 749,
     "decisionCount": 4,
-    "decisionTop": 393.78,
-    "decisionBottom": 622.69
+    "decisionTop": 434.78,
+    "decisionBottom": 649.5
   }
 }
