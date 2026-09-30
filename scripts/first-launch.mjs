@@ -62,6 +62,7 @@ export const EXPOSED_FAMILIES = [
   'capability',
   'node',
   'field',
+  'currency',
 ];
 const PAST_EVERY_LABEL = 1_000;
 

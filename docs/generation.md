@@ -11834,3 +11834,36 @@ Stage 3, recorded here rather than edited into the prompt:
    on a card.
 8. **The order question is moot.** 5.0/2 merged as #78 before the rulings
    were filed, so 5.0/3 builds on it in the plan's order.
+
+### What 5.0/3 built, and where it differs from the prompt
+
+**2026-09-30**, the rest of §89, written with the stage's report
+([`visual/reports/5.0-stage3.md`](visual/reports/5.0-stage3.md)).
+
+9. **An offer with a move card stacks all three cards.** D67 says three across
+   where they fit and stacked where they do not; a move card does not fit a third
+   of 390px, and letting it span the row while two mark-faced siblings share one
+   would make siblings differ in size, which Stage V0 forbids. An offer of
+   mark-faced cards alone sits three across.
+10. **The claim band shows an inert copy of the selected card.** The band's dim
+    covers the row, so the thing being claimed has to be in the band, as M2.3's
+    replace band shows its two move cards. The copy is a `div`, not a second
+    control.
+11. **The shop's buy goes through the band; leaving with nothing does not.** D69
+    put the shop on the band's row. The shop already selected before committing,
+    so only the commit changed: *Buy N and leave* opens the band with the basket,
+    and *Back* keeps the basket. An empty leave buys nothing and is not a claim.
+12. **The currency family is drawn as a glyph, not from the manifest.** Section 2
+    makes currency a family, and D41 says every family's marks pass through the
+    glyph renderer so R7 can count them. The manifest's `currency` key stays, unused,
+    until D61 rules on class C art through `glyphNode`. The first drawing, a slotted
+    disc, read as an info mark at 16px; the committed one is a stack of three coins.
+13. **The coins card's balance is on the long press.** QA-003 put the balance on the
+    card; D66 moves it to the `coins:` panel through `data-detail`, from the same
+    number the caller hands in. The result header already prints the balance at
+    rest, so the face lost a repeat (R3), not a fact.
+14. **A reload between a claim and a wild node's capture answer asks the card
+    again.** Found by the plan's test 7. The reward is recorded when the node
+    completes, after the capture, and QA-006's replay hands the unanswered review
+    back to the live player. Nothing is duplicated. Recorded, not changed: moving
+    where `core/` records the pick is a run log question.

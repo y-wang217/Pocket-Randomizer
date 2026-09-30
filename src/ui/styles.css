@@ -4418,10 +4418,27 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 
 /* ---------- reward screen ---------- */
 
+/*
+ * **Three across where they fit, stacked where they do not. Stage 5.0/3,
+ * D67.** A mark-faced card (a sprite, a relic, a coin, a restore) is small
+ * enough for three in a 390px frame. A move card is not: M2.3 measured it at
+ * 262px tall at full width, and a third of the frame would crush it. So an
+ * offer carrying any move card stacks *every* card, rather than letting one
+ * card span the row the others share, which would be a size difference
+ * between siblings, and sibling cards in an offer are identical (Stage V0).
+ */
 .rewards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: calc(var(--space-3) * var(--chrome-gap));
+}
+
+.rewards:has(.move--card) { grid-template-columns: minmax(0, 1fr); }
+
+.rewards .reward:not(:has(.move--card)) {
+  align-items: center;
+  justify-content: center;
+  min-height: 96px;
 }
 
 .reward {
@@ -4500,32 +4517,37 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .reward:hover { border-color: var(--emphasis); transform: translateY(-1px); }
 .reward:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
 
+/*
+ * **The selected state, and only after a tap. Stage 5.0/3, D69.** The plan's
+ * selection cursor is the `--selected` token as a heavy border. Nothing sets
+ * `aria-pressed="true"` before the player's own tap, so no card wears this at
+ * rest (C1).
+ */
+.reward[aria-pressed="true"] {
+  border-color: var(--selected);
+  box-shadow: inset 0 0 0 var(--rule-heavy) var(--selected);
+}
+
+/* A coin amount: the currency glyph beside a bare number (D54, D66). */
+.coin-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-h);
+  font-family: var(--font-numeral);
+  color: var(--text);
+}
+
+.reward__amount { font-size: var(--fs-2xl); font-weight: 600; }
+.reward--heal .hp { width: 100%; }
+
+/* The claim band's copy of the card, and the shop's basket in the buy band. */
+.confirm-band__content .reward { margin: 0 auto; cursor: default; max-width: 100%; }
+.confirm-band__content .reward:not(:has(.move--card)) { align-items: center; min-width: 120px; }
+.shop__basket { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: center; }
+
 /* Stage V0: sibling cards in an offer are identical. The kind is printed on
    the card; it is not a colour on its edge. */
 
-.reward__kind {
-  font-family: var(--font-body);
-  font-size: var(--fs-xs);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-}
-
-.reward__name { font-weight: 600; font-size: var(--fs-xl); }
-.reward__detail { color: var(--text-dim); font-size: var(--fs-md); line-height: 1.45; }
-
-.reward__note {
-  margin-top: auto;
-  padding-top: var(--space-1);
-  color: var(--text-faint);
-  font-family: var(--font-body);
-  font-size: var(--fs-sm);
-  line-height: 1.4;
-}
-
-/* A card that is weak *for this run* says so. A near-dud that announces itself
-   is a legibly low reward; one that hides is a lottery. */
-.reward__note--warn { color: var(--text-dim); }
 
 /* ---------- shop ---------- */
 
@@ -5226,7 +5248,6 @@ button,
 .wheel__heading,
 .seedbar__label,
 .bench__heading,
-.reward__kind,
 .shop__item-kind,
 .shop__coin-label,
 .summary__seed-label,

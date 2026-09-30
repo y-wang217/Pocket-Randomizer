@@ -13,6 +13,7 @@ import { createParty } from '../src/core/party';
 import { createRun } from '../src/core/run';
 import type { PokemonSpec } from '../src/core/types';
 import { renderCaptureOffer } from '../src/ui/screens/acquisition';
+import { restoreTitle } from '../src/ui/copy/screens';
 import { renderRewardCard } from '../src/ui/screens/reward';
 
 const LILEEP: PokemonSpec = { species: 'Lileep', ability: 'Suction Cups', moves: ['Absorb'], level: 10 };
@@ -21,8 +22,11 @@ describe('QA-003: the coins card', () => {
   it('reads the balance the caller hands it, not the pre-payout state', () => {
     const state = { ...createRun('QA-003'), currency: 0 };
     const card = renderRewardCard({ kind: 'currency', amount: 35 }, state, () => undefined, { carrying: 13 });
-    expect(card.textContent).toContain('13');
-    expect(card.querySelector('.reward__note')?.textContent).not.toMatch(/\b0\b/);
+    // The balance moved from the face to the long press in Stage 5.0/3 (D66):
+    // the `coins:` tip reads it off `data-detail`. The fact QA-003 pinned is
+    // still the number the caller hands in, never the pre-payout state.
+    expect(card.dataset['tip']).toBe('coins:35');
+    expect(card.dataset['detail']).toBe('13');
   });
 });
 
@@ -30,10 +34,11 @@ describe('QA-004: the restore card', () => {
   it('does not call a partial restore full', () => {
     const state = createRun('QA-004');
     const partial = renderRewardCard({ kind: 'heal', fraction: 0.85 }, state, () => undefined);
-    expect(partial.textContent).toContain('85%');
-    expect(partial.textContent).not.toMatch(/full/i);
-    const full = renderRewardCard({ kind: 'heal', fraction: 1 }, state, () => undefined);
-    expect(full.textContent).toMatch(/full/i);
+    expect(partial.textContent).toBe('+85%');
+    // The title moved to the long press in Stage 5.0/3 (D66), from one function.
+    expect(partial.dataset['tip']).toBe('restore:85');
+    expect(restoreTitle(0.85)).not.toMatch(/full/i);
+    expect(restoreTitle(1)).toMatch(/full/i);
   });
 });
 

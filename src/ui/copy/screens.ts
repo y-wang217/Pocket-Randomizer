@@ -236,7 +236,24 @@ export const REWARD_COPY = {
   relic: { long: 'Yours for the rest of the run. It cannot be lost or replaced.', short: 'Kept for the whole run.' },
 } as const satisfies Record<string, Prose>;
 
-/** The coins already held, on a currency card. */
+/**
+ * The claim band over a reward card, and the buy band over the shop's basket.
+ * **Stage 5.0/3, D69.** Section 4's *Confirm band (claim, buy)* row, at 6: the
+ * question and the band's two controls. The way out returns to the cards.
+ */
+export const CLAIM_COPY = { title: 'Take this?', confirm: 'Take', cancel: 'Back' } as const;
+export const BUY_COPY = { title: 'Buy and leave?', confirm: 'Buy', cancel: 'Back' } as const;
+
+/**
+ * A restore card's name, for its long press. **Stage 5.0/3, D66.** It was the
+ * card's title at rest; the face is `+N%` beside a bar now, and the words
+ * went to inspect with every other card's name.
+ */
+export function restoreTitle(fraction: number): string {
+  return fraction >= 1 ? 'Full restore' : `Restore ${Math.round(fraction * 100)}%`;
+}
+
+/** The coins already held, on a currency card's long press. */
 export function carryingLine(coins: number): Prose {
   return { long: `You are carrying ${coins}.`, short: `Carrying ${coins}.` };
 }
