@@ -24,7 +24,7 @@ import {
   localeOf,
   partyCapacity,
   playRun,
-  resumeRun,
+  replayRunPolicy,
   type BattleReview,
   type RunPolicy,
   type RunProjection,
@@ -62,7 +62,7 @@ import { replacementNeeded } from '../core/party';
 import { createPartyScreen } from './screens/party';
 import { createLocaleSelect } from './screens/locale-select';
 import { createResultScreen } from './screens/result';
-import { createRouter, DRAWER_SURFACES, MAP_SURFACES, type ScreenName } from './screens/router';
+import { createRouter, DRAWER_SURFACES, type ScreenName } from './screens/router';
 import { createHeader } from './header';
 import { createShopScreen } from './screens/shop';
 import { createRunMap } from './screens/run-map';
@@ -76,11 +76,17 @@ import type { GymDefinition } from '../data/gyms';
 import type { RelicId } from '../data/relics';
 import { createDrawer, type DrawerView } from './drawer';
 import { createMapDrawer } from './map-drawer';
+import { presentAsScreen } from './overlay';
+import type { NavTab } from './assets/manifest';
+import { createDecisionFeed } from './decision-feed';
+import { createNav } from './nav';
+import { createRunInfo, type RunInfoView } from './run-info';
+import { createSettingsSheet } from './settings-sheet';
+import { createSidebar } from './sidebar';
 import { gymForSegment } from '../data/gyms';
 import { itemLayoutOf, partyWithPlan } from './party-layout';
 import { clearItemDraft, clearRunLog, loadItemDraft, loadRunLog, saveItemDraft, saveRunLog } from './storage';
 import { applyMotion } from './theme/motion';
-import { applyDensity } from './theme/density';
 
 /**
  * How this fight should end on the stage. **The battle animation run.**
@@ -111,31 +117,7 @@ export function outroFor(review: BattleReview): OutroKind {
 
 
 export function mountApp(root: HTMLElement): void {
-  /*
-   * The density mode, once at startup and once per change. **Patch 4.7.2,
-   * ruling 4, and this is the whole of the subscription.**
-   *
-   * `initSettings` first so the attribute is written from the stored preference
-   * before any screen is built, rather than the first frame rendering in the
-   * default and flipping.
-   *
-   * The subscription is the line after this one, at the shell rather than
-   * inside a run, and is unsubscribed nowhere, because
-   * the mode outlives every run: it is written onto `<html>` and read only by
-   * the stylesheet, so a screen drawn before a change, after it, or while it
-   * happens is correct without anything re-rendering. That is the difference
-   * from what this replaced — a subscription that redrew the map and the
-   * party screen and left the drawer, pre-gym, reward, summary and battle
-   * screens showing the mode they were built in. Nothing registers with this
-   * and nothing can forget to.
-   *
-   * `ui/theme/density.ts` carries the argument for the attribute over a
-   * redraw, including why a shell-level redraw could not avoid being a
-   * per-screen registration in this router.
-   */
   const settings = initSettings();
-  applyDensity(settings.density);
-  onSettingsChange((next) => applyDensity(next.density));
   /*
    * The move bar layout, once at startup and once per change.
    *
@@ -233,39 +215,39 @@ export function mountApp(root: HTMLElement): void {
   const world = createWorldScene();
 
   /*
-   * The drawer trigger: **one button, mounted at the shell, not one per screen.**
+   * **The shell nav replaces the drawer bar. Stage 5.0/1.**
    *
-   * The rule is that it sits in the same screen position on every decision
-   * surface. Ten per-screen buttons could satisfy that on the day they were
-   * written and drift the first time one screen's header grew a row; one button
-   * outside the router cannot drift, and no screen can forget to add it.
+   * Map, Team, Bag, Run Info, Settings, at the top of the frame on every
+   * viewport (`ui/nav.ts`). The Map and Party triggers the bar carried since
+   * Stage 4.7 are gone; what they opened is what the Map and Team tabs open,
+   * restyled from a sheet to a screen that fills the frame under the nav
+   * (bible section 5, Shell nav, D53).
    *
-   * It is shown on the surfaces that ask the player for something *and* have a
-   * party to show. Starter select is a decision with no party yet; the summary
-   * is a finished run. Both hide it rather than showing an empty drawer.
+   * **The guard.** A tab opened while a decision is pending elsewhere opens a
+   * readout: the party drawer, the map without its picker, Run Info,
+   * Settings. None of them advances run state, submits or draws, and closing
+   * any of them returns to the decision underneath, which never unmounted.
+   * The one writable screen a tab reaches is the party screen, and only from
+   * the map or the pre-gym screen, which are the two places its Manage
+   * buttons already led: between nodes, where a party edit is a logged
+   * decision of its own.
    */
-  const drawerBar = el('div', 'shell__drawer-bar');
-  const drawerTrigger = drawer.trigger();
-  const mapTrigger = mapDrawer.trigger();
-  /*
-   * Map first, Party second, and the order is deliberate.
-   *
-   * The bar is `justify-content: flex-end`, so the *last* child sits hard
-   * against the right edge — which is where the Party button has been since
-   * Stage 4.7 and where a returning player's thumb goes. Appending Map after
-   * Party would have moved Party left to make room, and moving a control a
-   * player already knows is a worse cost than the new one landing beside it.
-   */
-  drawerBar.append(mapTrigger, drawerTrigger);
+  const nav = createNav();
+  const runInfo = createRunInfo();
+  const settingsSheet = createSettingsSheet();
+  for (const layer of [drawer.root, mapDrawer.root, runInfo.overlay.root, settingsSheet.overlay.root]) presentAsScreen(layer);
+  const sidebar = createSidebar();
 
   const replayTutorial = document.createElement('button');
   shell.append(
+    nav.root,
     createHeader(replayTutorial, seedBar.toggle),
     seedBar.root,
-    drawerBar,
     router.root,
     drawer.root,
     mapDrawer.root,
+    runInfo.overlay.root,
+    settingsSheet.overlay.root,
     stamps.root,
   );
 
@@ -276,18 +258,50 @@ export function mountApp(root: HTMLElement): void {
    * to toggle screens and a router that also knew which screens had a party
    * would be a router that knew about the party.
    */
-  const showScreen = (name: ScreenName): void => {
-    router.show(name);
-    drawerTrigger.hidden = !DRAWER_SURFACES.includes(name);
-    mapTrigger.hidden = !MAP_SURFACES.includes(name);
-    // The bar shows when *either* trigger does, so a screen that has a route to
-    // show but no party — or the reverse — still gets a bar rather than an
-    // empty row of chrome.
-    drawerBar.hidden = drawerTrigger.hidden && mapTrigger.hidden;
-    // Closing on navigation, not on open: a drawer left open across a screen
-    // change would be an overlay over a decision the player has already made.
+  /** Which tab's screen is open over the router, if any. */
+  let openTab: NavTab | null = null;
+  /** Which tab led to the party screen, so the right one reads as current. */
+  let partyVia: 'team' | 'bag' = 'team';
+
+  const closeTabScreens = (): void => {
     drawer.close();
     mapDrawer.close();
+    runInfo.overlay.close();
+    settingsSheet.overlay.close();
+  };
+
+  /*
+   * The nav's state follows the router and the open tab screen, in one place.
+   * A tab is available when it has something to show: Settings always, the
+   * rest once a run has state, and Team and Bag on the surfaces the drawer
+   * trigger was shown on, plus the map and the party screen themselves.
+   */
+  const refreshNav = (): void => {
+    const name = router.current();
+    const running = readMap() !== null;
+    const available = new Set<NavTab>(['settings']);
+    if (running) available.add('info');
+    if (running && name !== 'summary' && name !== 'starter') available.add('map');
+    if (name && (DRAWER_SURFACES.includes(name) || name === 'map') && readDrawer() !== null) {
+      available.add('team');
+      available.add('bag');
+    }
+    nav.setAvailable(available);
+    nav.setActive(openTab ?? (name === 'map' ? 'map' : name === 'party' ? partyVia : null));
+  };
+  for (const layer of [drawer, mapDrawer, runInfo.overlay, settingsSheet.overlay]) {
+    layer.onClose(() => {
+      openTab = null;
+      refreshNav();
+    });
+  }
+
+  const showScreen = (name: ScreenName): void => {
+    router.show(name);
+    // Closing on navigation, not on open: a tab screen left open across a
+    // screen change would be a readout over a decision already made.
+    closeTabScreens();
+    refreshNav();
     showTutorialFor(name);
   };
 
@@ -321,31 +335,70 @@ export function mountApp(root: HTMLElement): void {
    */
   let readMap: () => RunState | null = () => null;
 
-  drawerTrigger.addEventListener('click', () => {
-    const view = readDrawer();
-    if (!view) return;
-    // The trigger goes along as the opener: closing the drawer returns focus to
-    // the button that opened it, on whichever surface that was.
-    drawer.open({ ...view, inBattle: router.current() === 'battle' }, drawerTrigger);
-    marks.showFor('drawer', drawer.root);
-  });
-
-  /*
-   * The map overlay's trigger, on the same terms as the party drawer's.
-   *
-   * `live` is read at the moment of the click and nothing else happens: no
-   * pending promise resolves, no stream is touched, no decision is submitted.
-   * That is the whole of "opening it never advances state", and it is the same
-   * getter discipline `readDrawer` above is written for — this one needs no
-   * wrapper because the three renderers read `RunState` directly.
-   *
-   * No `marks.showFor` call: the overlay carries no tutorial marks, and
-   * `ui/map-drawer.ts` says why.
+  /**
+   * The Run Info screen's view, asked at the moment it opens, on the same
+   * getter discipline as the two above. Assigned by `start()`.
    */
-  mapTrigger.addEventListener('click', () => {
-    const state = readMap();
-    if (!state) return;
-    mapDrawer.open(state, mapTrigger);
+  let readRunInfo: () => RunInfoView | null = () => null;
+  /**
+   * The writable party screen, if the surface on view is one it may be
+   * reached from: the map or pre-gym. Returns false everywhere else, and the
+   * tab opens the read-only drawer instead. Assigned by `start()`.
+   */
+  let openPartyRoute: (bag: boolean) => boolean = () => false;
+
+  nav.onPress((id, button) => {
+    const name = router.current();
+    // The tab of what is already on view: close whatever is over it.
+    const onView =
+      openTab === id ||
+      (openTab === null && ((id === 'map' && name === 'map') || ((id === 'team' || id === 'bag') && name === 'party')));
+    if (onView) {
+      closeTabScreens();
+      if (name === 'party' && id !== partyVia) {
+        partyVia = id === 'bag' ? 'bag' : 'team';
+        if (id === 'bag') partyScreen.root.querySelector('.backpack')?.scrollIntoView?.({ block: 'start' });
+      }
+      refreshNav();
+      return;
+    }
+    closeTabScreens();
+    switch (id) {
+      case 'map': {
+        if (name === 'map') break;
+        const state = readMap();
+        if (!state) break;
+        mapDrawer.open(state, button);
+        openTab = 'map';
+        break;
+      }
+      case 'team':
+      case 'bag': {
+        if (openPartyRoute(id === 'bag')) {
+          partyVia = id;
+          break;
+        }
+        const view = readDrawer();
+        if (!view) break;
+        drawer.open({ ...view, inBattle: name === 'battle' }, button);
+        openTab = id;
+        if (id === 'bag') drawer.showBag();
+        marks.showFor('drawer', drawer.root);
+        break;
+      }
+      case 'info': {
+        const view = readRunInfo();
+        if (!view) break;
+        runInfo.open(view, button);
+        openTab = 'info';
+        break;
+      }
+      case 'settings':
+        settingsSheet.overlay.open(button);
+        openTab = 'settings';
+        break;
+    }
+    refreshNav();
   });
 
   // "Show tutorial again": the flags go back to a first launch and the screen
@@ -365,7 +418,16 @@ export function mountApp(root: HTMLElement): void {
     if (name) showTutorialFor(name);
     if (drawer.isOpen()) marks.showFor('drawer', drawer.root);
   });
-  root.replaceChildren(world.root, shell);
+  settingsSheet.onReplayTutorial(() => replayTutorial.click());
+  /*
+   * The frame and the sidebar, side by side from 1024px. On a phone the
+   * sidebar is hidden and the frame is the viewport.
+   */
+  const layout = el('div', 'layout');
+  layout.append(shell, sidebar.root);
+  root.replaceChildren(world.root, layout);
+  sidebar.update(null, []);
+  refreshNav();
 
   /*
    * **The exposure labels. Milestone M6.1, R7.** One pass whenever anything in
@@ -922,6 +984,13 @@ export function mountApp(root: HTMLElement): void {
     };
 
     /*
+     * Every decision this run makes, as the Run Progress feed. **Stage
+     * 5.0/1.** Wrapped around the replay on a resume, so the feed sees the
+     * logged questions too; it answers nothing itself.
+     */
+    const feed = createDecisionFeed(resume ? replayRunPolicy(resume, policy) : policy);
+
+    /*
      * The party the map screen is currently showing.
      *
      * Held here rather than read back out of `playRun`, because the party
@@ -1002,12 +1071,28 @@ export function mountApp(root: HTMLElement): void {
         holding: itemLayoutOf(party, pendingPlan),
         relics: decidedRelics ?? state.relics,
         tuning: state.tuning,
+        // The Bag tab's readout, as run state holds it. Stage 5.0/1.
+        bag: { loose: state.backpack, capacity: backpackCapacity(partyCapacity(state), state.tuning), tms: state.tms },
       };
     };
 
     // The map overlay's window onto this run. A read of the same `live`
     // reference, with nothing derived — see the declaration above.
     readMap = () => live;
+    readRunInfo = () => (live ? { state: live, entries: feed.entries() } : null);
+    /*
+     * The Team and Bag tabs' writable destination: the party screen, from the
+     * two surfaces whose Manage buttons already lead there. Everywhere else
+     * the tab opens the read-only drawer. Stage 5.0/1, the guard.
+     */
+    openPartyRoute = (bag) => {
+      const name = router.current();
+      if (!live || (name !== 'map' && name !== 'pre-gym')) return false;
+      atTeachBoundary = false;
+      showParty(name);
+      if (bag) partyScreen.root.querySelector('.backpack')?.scrollIntoView?.({ block: 'start' });
+      return true;
+    };
 
     /*
      * The last battle result shown, held for the capture render that follows it.
@@ -1387,6 +1472,8 @@ export function mountApp(root: HTMLElement): void {
         seed: state.seed,
       });
       mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
+      sidebar.update(state, feed.entries());
+      refreshNav();
     };
 
     /*
@@ -1472,6 +1559,8 @@ export function mountApp(root: HTMLElement): void {
         onProjection,
         // The first decision of a fresh run replaces the save the button pointed at.
         onDecision: (log: RunLog) => {
+          feed.record(log);
+          sidebar.update(live, feed.entries());
           saveRunLog(log);
           loggedDecisions = log.decisions.length;
           // A fresh run's starter: nothing can be pending yet, and a draft left
@@ -1480,9 +1569,14 @@ export function mountApp(root: HTMLElement): void {
           seedBar.setResumable(false);
         },
       };
-      const result: RunResult = resume
-        ? await resumeRun(resume, policy, DEFAULT_TUNING, options)
-        : await playRun(seed, policy, DEFAULT_TUNING, options);
+      /*
+       * The decision feed wraps the replay rather than the live policy, so a
+       * resumed run's logged questions pass through it with their real offers
+       * and the feed rebuilds itself. This is `resumeRun` spelled out with the
+       * wrapper in the middle: the same replay, the same live handover, the
+       * same answers. `ui/decision-feed.ts`.
+       */
+      const result: RunResult = await playRun(resume?.seed ?? seed, feed.policy, DEFAULT_TUNING, options);
 
       releaseBattle();
       // Leave the map showing the run as it finished, behind the summary.

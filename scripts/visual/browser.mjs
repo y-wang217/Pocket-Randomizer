@@ -624,26 +624,13 @@ export async function playUntil(page, predicate, maxSteps = 600, { timeoutMs = M
  * skipped unless a test asks for it (`openApp(..., { tutorial: true })`), and
  * the tutorial's own browser test is the one that asks.
  */
-export const TUTORIAL_SKIPPED_SETTINGS = JSON.stringify({ density: 'detailed', tutorial: { skipped: true, seen: [] } });
-
-/** The three density modes, in the order the settings store lists them. Density modes patch. */
-export const DENSITIES = ['detailed', 'simple', 'pocket'];
-
-/**
- * Both move bar layouts. `grid` is the stored default, so it is what every
- * entry recorded before the four-column patch describes.
- */
-export const MOVE_BARS = ['grid', 'columns'];
+export const TUTORIAL_SKIPPED_SETTINGS = JSON.stringify({ tutorial: { skipped: true, seen: [] } });
 
 /**
  * Seed a context's storage so the app's first launch is a returning one,
- * tutorial-wise, in the density mode asked for.
- *
- * The mode goes in through the store rather than through a hook on the page,
- * so the bot measures exactly what a stored preference renders: the app reads
- * it at startup and writes the root attribute itself.
+ * tutorial-wise. It took a density mode until Stage 5.0/1 retired the modes.
  */
-export async function skipTutorialIn(context, density = 'detailed') {
+export async function skipTutorialIn(context) {
   await context.addInitScript(
     (settings) => {
       try {
@@ -659,12 +646,12 @@ export async function skipTutorialIn(context, density = 'detailed') {
      * name here is older than the panel and is kept because every caller in the
      * suite uses it.
      */
-    notFirstLaunch({ density }),
+    notFirstLaunch(),
   );
 }
 
 export async function openApp(browser, url, seed, viewport = PHONE, contextOptions = {}) {
-  const { tutorial = false, density = 'detailed', ...rest } = contextOptions;
+  const { tutorial = false, ...rest } = contextOptions;
   /*
    * The engine's own context shape, then the caller's overrides. **The iOS
    * patch.** On Chromium this is the bare viewport it always was; on WebKit it
@@ -672,7 +659,7 @@ export async function openApp(browser, url, seed, viewport = PHONE, contextOptio
    * and 3x density come along without any test asking for them.
    */
   const context = await browser.newContext({ ...contextFor(viewport, browser.browserType().name()), ...rest });
-  if (!tutorial) await skipTutorialIn(context, density);
+  if (!tutorial) await skipTutorialIn(context);
   const page = await context.newPage();
   const problems = [];
   page.on('console', (msg) => {
@@ -720,50 +707,19 @@ async function measureScreen(page, name, decisionSelector) {
  * nodes, and a battle with four move buttons. Same seed, same clicks, so the
  * only variable between two builds is the stylesheet.
  *
- * **In all three density modes since the density patch.** The top-level `map`
- * and `battle` are Detailed, unchanged in shape so every reader of
- * `heights.json` before the patch reads the same numbers; `modes.simple` and
- * `modes.pocket` are the same two screens under the other two stored
- * preferences, each on a fresh context.
+ * One face since Stage 5.0/1. The density patch measured all three modes
+ * (`modes.simple`, `modes.pocket`, and the four-column `layouts` M2.2
+ * deleted); with the modes retired there is one measurement.
  */
 export async function measureGuardedScreens(url, browser, seed = 'SMOKE24') {
-  const result = { seed, viewport: { ...PHONE }, modes: {}, layouts: {} };
-  const problems = [];
-  for (const density of DENSITIES) {
-    const measured = await measureGuardedScreensIn(url, browser, seed, density, 'grid');
-    problems.push(...measured.problems);
-    if (density === 'detailed') {
-      result.map = measured.map;
-      result.battle = measured.battle;
-    } else {
-      result.modes[density] = { map: measured.map, battle: measured.battle };
-    }
-  }
-  /*
-   * The second move bar layout, in all three densities. **The four-column
-   * patch.**
-   *
-   * A sibling axis rather than a replacement, and the shape is deliberate: the
-   * `map`/`battle`/`modes` entries above are the stored default, so every
-   * number recorded before this patch keeps its meaning and its history. A
-   * layout that is one tap away in the drawer is a layout a player will be
-   * looking at, and an instrument that could not see it would gate half the
-   * game.
-   */
-  for (const layout of MOVE_BARS.filter((name) => name !== 'grid')) {
-    result.layouts[layout] = {};
-    for (const density of DENSITIES) {
-      const measured = await measureGuardedScreensIn(url, browser, seed, density, layout);
-      problems.push(...measured.problems);
-      result.layouts[layout][density] = { map: measured.map, battle: measured.battle };
-    }
-  }
-  if (problems.length) result.problems = problems;
+  const measured = await measureGuardedScreensIn(url, browser, seed);
+  const result = { seed, viewport: { ...PHONE }, map: measured.map, battle: measured.battle };
+  if (measured.problems.length) result.problems = measured.problems;
   return result;
 }
 
-async function measureGuardedScreensIn(url, browser, seed, density) {
-  const { page, context, problems } = await openApp(browser, url, seed, PHONE, { density });
+async function measureGuardedScreensIn(url, browser, seed) {
+  const { page, context, problems } = await openApp(browser, url, seed, PHONE);
   const result = { problems };
 
   await playUntil(page, (screen) => screen === 'map');

@@ -1,6 +1,22 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 14, Sept 25, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 15, Sept 30, 2026.
+
+**Rev 15** carries five amendments, ruled 2026-09-30 by the author on rows
+D50 and D52 to D55, filed by Stage 5.0's spike before any code
+([`../spec/gymrun-stage5.0-rulings-d50-d55.md`](../spec/gymrun-stage5.0-rulings-d50-d55.md)).
+**D50**: R6's density ruling is retired with the validation cycle it waited
+on, ruled done by the author; there is one face, the Pocket face, and no
+setting. Section 9's R6 row and its closing note are retired with it.
+**D52**: no change. Inspect stays the long press, and a prompt's "tap to
+inspect" means it. **D53**: a new rule in section 5, the *Shell nav*: the
+five tabs open screens, and a mid-run *Run Info* screen exists for the fourth
+to open. **D54**: section 2 gains a thirteenth family, **currency**, one mark,
+and section 4 gains a *Shell nav* row at 5; the map node card goes 2 to 1.
+Section 10.3's stale "tenth" becomes "a new". **D55**: R11 gains one
+carve-out, the *decision feed*: the player's own decisions, replayed from the
+run log, which is not the battle log and may be rendered at rest in the Run
+Info screen and the desktop sidebar.
 
 **Rev 14** carries three amendments, ruled 2026-09-25 on rows D47 to D49,
 filed with the Stage 4.11 plan before it wrote any code and ruled after its
@@ -208,8 +224,8 @@ Amended 2026-09-25 (the docked sheet patch). The rule read *"Release closes"* an
 
 **R6. The default face is the compact face.** What a card shows at rest is the compact encoding in section 3. The full version is what inspect opens, not what a setting enables.
 Forbids: shipping two card faces; a setting that adds words to a card at rest.
-Ruling on density modes (Detailed, Simple, Pocket): the card face this document specifies is the Pocket face. Pocket becomes the default. Simple and Detailed stay for one validation cycle and are retired if the disconfirmer in section 9 does not fire. Density modes may change spacing, stacking and whether a secondary fact sits behind a tap. They never change the encoding of a fact.
-Amended 2026-09-19 (D11). **A validation cycle is two rounds of the section 10 playtest protocol**, three testers each, at least one with no Pokemon knowledge. It is the same two rounds milestone M7.1 runs, and the glossary carries the term.
+**One face, no density setting** (2026-09-30, D50). The card face this document specifies is the Pocket face, and it is the only face: Simple and Detailed are retired and the setting is deleted, not hidden. Whether a secondary fact sits behind a tap is ruled per surface, in section 4 and section 5, never by a setting. No retirement removes a fact: anything Simple or Detailed showed at rest is on the face or one long press away.
+Amended 2026-09-30 (D50). This rule read: *"Simple and Detailed stay for one validation cycle and are retired if the disconfirmer in section 9 does not fire"*, with a validation cycle defined (2026-09-19, D11) as two rounds of the section 10 protocol, three testers each. The author ruled the cycle done on a full playthrough of their own and the outside tester's QA passes of 2026-09-29 and 2026-09-30, with the disconfirmer not observed. That is fewer testers than D11's definition, and [`playtest-log.md`](playtest-log.md) records it as it was. Section 9's *"numbers on stats"* fallback stays available if a later tester asks for all numbers always visible.
 
 **R7. The first exposure carries the label, the tenth does not.** The first time a glyph family appears for this player, a small label renders beside it for that screen. The label returns once more on the third exposure, then never. Exposure count persists across runs in the settings store, beside the tutorial flags.
 Forbids: permanent labels on glyphs; shipping a glyph family that never gets a label.
@@ -229,6 +245,7 @@ Enforce: the recipient and teach screens mount the party stat component unchange
 
 **R11. The log is never rendered at rest.** The battle log lives in the log sheet, reachable by a pull, kept for bug reports and determinism. The battle screen shows the turn header, the panels, the flags and nothing written.
 Forbids: a scrolling log on the battle screen; a text line for turn order.
+**The decision feed is not the log** (2026-09-30, D55). The feed is the player's own decisions, every kind the run log records (starter, locale, node, move or switch, reward, shop, event, capture, items, lead, party edit, evolution), replayed from the run log in play order and continuing as the run goes. It is what the shell calls *Run Progress*. It is an input history, not an outcome history: it says what the player chose, never what the sim did, so it carries no damage, no flag and no turn order. It may be rendered at rest in the Run Info screen and in the desktop sidebar, and nowhere inside the game frame. Reading it consumes no RNG and moves no version axis.
 
 **R12. If a concept cannot be encoded without a sentence, restructure the concept.** Applies to the coverage line, the decline copy, the item effect line, and any future readout.
 Forbids: adding a sentence to a card because the concept was hard to draw.
@@ -238,7 +255,9 @@ Enforce: the amendment process. A proposed sentence at rest is an amendment, not
 
 ## 2. Canonical vocabulary
 
-Twelve glyph families (2026-09-25, D47; eleven under D46 the same day, ten under D37, 2026-09-22). Adding a thirteenth is an amendment.
+Thirteen glyph families (2026-09-30, D54; twelve under D47, 2026-09-25; eleven under D46 the same day, ten under D37, 2026-09-22). Adding a fourteenth is an amendment.
+
+**A control's icon is not a glyph** (2026-09-30, D54). The shell nav's five tab icons sit beside their words, are `aria-hidden`, and name a place to go rather than an attribute, so they are outside this roster and carry no exposure label.
 
 | Family | Glyphs | Colour |
 |---|---|---|
@@ -254,6 +273,7 @@ Twelve glyph families (2026-09-25, D47; eleven under D46 the same day, ten under
 | Capability | One glyph per capability, plus a band chevron filled to the run's reach — none, latent, known (2026-09-22, D37) | Neutral |
 | Node | One glyph per node kind: a head (trainer), a bush (wild), a tent (rest), a badge (gym), a bag (shop), a question mark (event). On the map node card at 24, on the battle screen header at 16 (2026-09-25, D46) | Neutral |
 | Field | Nine glyphs for the state of the board: rain, sun, sand, snow, strong winds, and the four terrains. Heavy rain and Extreme sun wear the rain and sun marks and differ on inspect. At 16 in a fixed slot on the battle screen header, dimmed while an ability suppresses the weather. The world behind the stage carries the same state as a wash and a terrain tint, colour secondary to the glyph (2026-09-25, D47) | Neutral glyph; the wash and tint are global tokens mixed into the locale's own three |
+| Currency | One mark, beside a bare number wherever a coin amount appears: the map node's payout, the shop price, the wallet (2026-09-30, D54) | Neutral |
 
 Font: Pixelify Sans, blanket, per the 4.7.1 decision. If the numeral font jitters on HP and PP counters, `--font-numeral` falls back to the mono stack, one line, and this table is annotated.
 
@@ -286,6 +306,7 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Capability requirement (map node) | Capability glyph plus band chevron (none, latent, known) | None | Capability name, what satisfies it |
 | Tier (map node) | Tier pips, reward-tier pips | None | Tier definition |
 | Field state (weather, terrain) | Field glyph at 16 on the battle screen header; the world's wash and terrain tint behind the stage. Turns remaining are never shown (2026-09-25, D47) | None: the locale's own world, no glyph | Name and effect line, from `fieldCopy`; under suppression, which ability holds it off |
+| Coin amount (payout, price, wallet) | Currency glyph beside the bare number (2026-09-30, D54) | Never hidden | The word *coins*, and what the amount buys or pays |
 | Node kind (map node, battle header) | Kind glyph. A gym's leader name beside it, a proper noun, is the identity and not the kind (2026-09-25, D46) | Never hidden | The kind's hint, from `KIND_HINTS` |
 | Archetype | Not rendered where the stat bars already draw it (4.8.0.3) | Absent | Not on inspect either; it is a derived label and can lie under randomization |
 
@@ -318,8 +339,10 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Pre-gym screen | 4 | Gym leader name, type chip, "Choose lead" |
 | Confirm overlay (replace) | 6 | "Replace Tackle with Fire Punch?" |
 | Confirm overlay (decline) | 6 | "Forfeit this reward?", and the band's two controls (2026-09-21, D22) |
-| Map node card | 2 | The payout's unit, AI tier; the kind is the node glyph (2026-09-25, D46; was 3 under D37, 2026-09-22) |
+| Map node card | 1 | AI tier. The payout's unit is the currency glyph (2026-09-30, D54; was 2 under D46, 2026-09-25; 3 under D37, 2026-09-22); the kind is the node glyph |
 | Shop stock card | 8 | **None** — one component with the reward card since M5.1, plus a bare price number (2026-09-22, D29 and D36) |
+| Shell nav | 5 | Map, Team, Bag, Run Info, Settings. One word per tab; the icons are controls, not glyphs (2026-09-30, D54) |
+| Run Info screen and desktop sidebar | Unbudgeted | Read-only readouts, like the archive: the decision feed (R11's carve-out) and the run's position. Never a decision surface (2026-09-30, D53 and D55) |
 | Summary and graveyard | Unbudgeted | Archive surfaces; complete outcome in the first screenful |
 
 The event screen is the only decision surface where prose is load-bearing. Everything else reaches zero sentences.
@@ -426,6 +449,8 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Battle screen header | Node glyph at 16, opponent, AI tier, field glyph at 16 in a fixed slot after the tier (2026-09-25, D46 and D47; the kind was a word under D28, 2026-09-21) | Battle |
 | World | The locale's three layers and drift, and during a battle the field state as a weather wash and a terrain tint, global tokens mixed into the locale's own (2026-09-25, D47) | Every screen, mounted once by `app.ts`; the field state on the battle screen only |
 | Reward card | The item or berry sprite in a fixed slot, a relic's name, the boosted type chip, the move card on a move kind, and the shop's price number (2026-09-22, D29 and D36) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |
+| Shell nav | Five tabs, each a word and a control icon: Map, Team, Bag, Run Info, Settings. **A tab opens a screen, not an overlay** (2026-09-30, D53). Opened while a decision is pending elsewhere, the screen is a readout: it never advances run state, never submits, never consumes RNG, and closing it returns to the pending decision, which is the §12 standing rule's three properties carried from the drawer to the screen. Map from anywhere but the map is the chain without its picker, so there is still exactly one path by which a node completes | The shell, every viewport. Replaces the drawer triggers |
+| Run Info screen | The decision feed, newest first, and the run's position: gym rail, locale, seed (2026-09-30, D53 and D55) | The Run Info tab. The desktop sidebar mounts the same feed |
 | Map node card | Node glyph at 24 with the leader's name on a gym, then beneath it the tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29; the glyph exists and the pips sit beneath it since 2026-09-25, D46) | The map screen and the map drawer |
 | Locale card | Locale name, four type chips, the palette swatch (2026-09-22, D29) | The locale screen |
 | Confirm band | The question, an optional line, the content being traded, and exactly two controls: the one that commits and the way out (2026-09-22, D29) | `ui/band.ts`, mounted by the four screens that confirm. No screen builds its own |
@@ -525,17 +550,17 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | Coverage rows read as gain and loss | A tester cannot say which row is added | Add the two words |
 | R5, long press never submits | Any accidental submission during inspect in playtest | Inspect moves to two-finger tap |
 | R5, the docked sheet reads as dismissable (2026-09-25) | A tester holds, releases, and is stuck with the sheet up, or taps a move to close it and is surprised that nothing was chosen | The scrim dims, so the sheet reads as modal; a second failure returns a visible "tap anywhere to close" line under the text budget |
-| R6, Pocket default and retiring Simple/Detailed loses nothing | A tester asks for all numbers always visible | A single "numbers on stats" setting returns, not a global mode |
+| R6, one face loses nothing (Simple and Detailed retired 2026-09-30, D50) | A tester asks for all numbers always visible | A single "numbers on stats" setting returns, not a global mode |
 | Event screen holds at 59 words (2026-09-22, D33; was 40) | Rejigged events with four reward tiers need more than two lines to state requirement and choice | Requirement moves to the map node glyph; prompt shrinks |
 | Six-word hints carry the shape of a risk (2026-09-22, D33) | A tester cannot say which of two options is the variable one, or presses a button expecting no cost and is charged | The hints go back up, and the row rises with them rather than the hints being dropped |
 | Move chips suffice for the discard decision | Testers expand every chip to a full card before choosing | Chips gain PP at rest, still no words |
-| Twelve glyph families is the right size (2026-09-25, D47; eleven under D46, ten under D37, 2026-09-22) | Testers confuse any two glyphs after labels fade | One of the pair becomes a word permanently |
+| Thirteen glyph families is the right size (2026-09-30, D54; twelve under D47, 2026-09-25; eleven under D46, ten under D37, 2026-09-22) | Testers confuse any two glyphs after labels fade | One of the pair becomes a word permanently |
 | Reward-tier pips read as a range, not a rating (2026-09-22, D33) | A tester reads more filled pips as a recommendation, or cannot say which options can pay the same thing | The tier letters return beside the pips, and the row rises by four |
 | The field factor on the button reads as a fact, not a hint (2026-09-25, D49) | A tester says the button is telling them what to pick, or picks a field-boosted move into an immunity and says the number sent them | The multiplier returns to the plain type factor and the field's part of it moves to inspect |
 | R7, three exposures is the right count | Inspect rate on a family has not fallen by run three | Count becomes a tuning number per family |
 | A confirm's two controls belong inside its budget (2026-09-21, D22) | A confirm overlay reaches 6 with copy that reads as padded, or a third control is ever needed on one | The controls are excluded from the count and every confirm budget drops by two, rather than the ceiling rising again |
 
-**Retiring Simple and Detailed is open** (recorded 2026-09-23, milestone M6.3). Pocket is the default for new installs since M6.3, and an existing store keeps the mode it was showing. The R6 row above decides retirement after the validation cycle M7.1 runs, and M6.4 carries out whichever way it falls.
+**Retiring Simple and Detailed is closed** (2026-09-30, D50). It was open from M6.3, waiting on the validation cycle M7.1 would run; the author ruled the cycle done, R6 was amended, and Stage 5.0/1 deletes the setting. The R6 row above stays as the bet against the one face.
 
 The "three exposures" figure is a design guess with no study behind it. Everything else in this table has a precedent or a finding named in the research brief.
 
@@ -545,7 +570,7 @@ The "three exposures" figure is a design guess with no study behind it. Everythi
 
 1. A rule changes only when its disconfirmer in section 9 has been observed in a playtest and recorded in `docs/design/playtest-log.md` with the date, the tester count and the observation.
 2. The amendment is a PR to this file, with the register row updated and the rule's revision date added.
-3. A milestone that finds it needs a sentence at rest, a second mechanism, a tenth glyph family or a third move-card call site stops and files an amendment before building.
+3. A milestone that finds it needs a sentence at rest, a second mechanism, a new glyph family or a third move-card call site stops and files an amendment before building.
 4. A patch prompt never overrides this document by saying so. If a prompt and this document conflict on presentation, the prompt is wrong until amended here.
 
 ---
@@ -561,4 +586,5 @@ The "three exposures" figure is a design guess with no study behind it. Everythi
 - **Chip**: a small fixed-shape element carrying one fact (type chip, status chip, move chip).
 - **Pip**: one filled or empty dot in a strip (band, tier).
 - **Census**: the measured word count at rest per surface (section 4).
-- **Validation cycle**: two rounds of the section 10 playtest protocol, three testers each, at least one with no Pokemon knowledge. What R6 waits for before Simple and Detailed are retired, and what milestone M7.1 runs.
+- **Validation cycle**: two rounds of the section 10 playtest protocol, three testers each, at least one with no Pokemon knowledge. What R6 waited for before Simple and Detailed were retired (ruled done 2026-09-30, D50), and what milestone M7.1 runs.
+- **Decision feed**: the player's own decisions, replayed from the run log in play order; what the shell calls *Run Progress*. Not the battle log: R11's carve-out (2026-09-30, D55).

@@ -250,7 +250,7 @@ export function createPreGymScreen(): PreGymScreen {
            * `text-transform: uppercase`, and with the member card *inside* the
            * control that reaches every label on it — the stat block's
            * `Hit Points` came out `HIT POINTS` and
-           * `test/visual-density.test.ts` said so. `screens/item-target.ts`
+           * the density test (now `test/visual-one-face.test.ts`) said so. `screens/item-target.ts`
            * documents the same trap for the opposite reason, where `.button`
            * would have taken a card's shape away by source order.
            *

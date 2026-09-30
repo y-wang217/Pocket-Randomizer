@@ -15,4 +15,4 @@ export declare const SEEN_EVERY_INTRO: number;
 export declare const EXPOSED_FAMILIES: readonly string[];
 
 /** The stored settings a returning player has, as a JSON string. */
-export declare function notFirstLaunch(options?: { density?: string; }): string;
+export declare function notFirstLaunch(): string;

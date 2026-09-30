@@ -79,6 +79,21 @@ export interface Overlay {
   open(opener?: HTMLElement | null): void;
   close(): void;
   isOpen(): boolean;
+  /**
+   * Hear every close, by any path: the control, the scrim, Escape or a caller.
+   * **Stage 5.0/1**, so the shell nav can clear the tab a screen was opened by.
+   */
+  onClose(listener: () => void): void;
+}
+
+/**
+ * Present an overlay as a screen of the frame: under the nav, the frame's
+ * full width, no scrim. **Stage 5.0/1**, the shell nav's tab screens (bible
+ * section 5, Shell nav). Still this overlay underneath, so the close
+ * control, Escape and focus return are unchanged.
+ */
+export function presentAsScreen(root: HTMLElement): void {
+  root.classList.add('overlay--screen');
 }
 
 export function createOverlay(spec: { block: string; label: string; title: string }): Overlay {
@@ -118,6 +133,7 @@ export function createOverlay(spec: { block: string; label: string; title: strin
    * costs you your place every time.
    */
   let opener: HTMLElement | null = null;
+  const closeListeners: (() => void)[] = [];
 
   const view: Overlay = {
     root,
@@ -133,6 +149,7 @@ export function createOverlay(spec: { block: string; label: string; title: strin
     },
 
     close() {
+      const wasOpen = !root.hidden;
       root.hidden = true;
       // Guarded on the method, because jsdom gives every element `focus` but a
       // detached opener is still a real possibility: a trigger whose screen was
@@ -141,11 +158,16 @@ export function createOverlay(spec: { block: string; label: string; title: strin
       // reference either way keeps a stale node from being held past its use.
       if (opener?.isConnected) opener.focus();
       opener = null;
+      if (wasOpen) for (const listener of closeListeners) listener();
     },
 
     // Read off the DOM rather than a mirrored flag. The flag version could
     // disagree with what the player sees; this one cannot.
     isOpen: () => !root.hidden,
+
+    onClose(listener) {
+      closeListeners.push(listener);
+    },
   };
 
   close.addEventListener('click', () => view.close());

@@ -86,7 +86,7 @@ Stage prompts and patch prompts are disposable.
   decision.
 - **No fact that changes a decision is removed. It is re-encoded.** A redesign
   that drops a decision-relevant fact has failed even if it hits every text
-  budget. No density mode removes a fact.
+  budget.
 - Post-resolution flag words are truths read off the protocol. Pre-selection
   markers are forecasts. They are different systems and neither derives from the
   other.
@@ -124,7 +124,7 @@ disconfirmer, so it lives there and not here.
 - **A stage or patch that touches a player-facing surface reads the design bible
   before it writes code, and its report says which of the bible's rules it
   touched.** Work that finds it needs a sentence at rest, a second explanation
-  mechanism, a tenth glyph family or a third move-card call site **stops and
+  mechanism, a new glyph family or a third move-card call site **stops and
   files an amendment before building**.
 - Blacklist and override table entries start near empty, are populated only from
   simulator evidence, and each carries a comment saying why. "It feels strong"

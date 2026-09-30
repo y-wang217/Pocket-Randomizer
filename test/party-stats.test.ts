@@ -26,7 +26,7 @@ import { STAT_ORDER, statInfo } from '../src/data/statInfo';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 import { memberCardContents } from '../src/ui/member-card';
 import { statBlock } from '../src/ui/stat-block';
-import { resetSettings, setDensity } from '../src/ui/settings';
+import { resetSettings } from '../src/ui/settings';
 
 function started(): RunState {
   return chooseStarter(createRun('PARTY-STATS', DEFAULT_TUNING), 0);
@@ -126,19 +126,15 @@ describe('the six stat rows on a member card', () => {
   });
 
   /*
-   * Density is asserted here only as far as the component settles it: the
-   * bar's width is computed in every mode, because the component writes it
-   * before deciding what to show. Which is *visible* is the stylesheet's, and
-   * `test/visual-density.test.ts` owns it in a browser.
+   * This asserted the bar width was computed identically in Detailed and
+   * Simple. Stage 5.0/1 (`docs/spec/gymrun-stage5.0-visual-redesign.md`)
+   * retired the modes, so what is left to hold is that every row declares a
+   * width.
    */
-  it('computes the bar width in both modes, since the mode decides display and not data', () => {
+  it('computes a bar width on every row', () => {
     const member = distinctMember();
-    setDensity('detailed');
-    const detailed = rowsOf(member).map((row) => row.declared);
-    setDensity('simple');
-    const simple = rowsOf(member).map((row) => row.declared);
-    expect(detailed).toEqual(simple);
-    expect(detailed.every((declared) => declared.endsWith('%'))).toBe(true);
+    const declared = rowsOf(member).map((row) => row.declared);
+    expect(declared.every((width) => width.endsWith('%'))).toBe(true);
   });
 });
 

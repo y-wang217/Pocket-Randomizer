@@ -459,7 +459,7 @@ is M6.0, M6.2, M6.3, M6.1, and the table below is in it.
 | M6.2 Coach marks re-anchored | **done** | — (guard deleted; nine marks rewritten; `test/visual-tutorial-anchors.test.ts` runs in Pocket, 29 of 29. [`../generation.md` §74](../generation.md)) |
 | M6.3 Pocket default | **done** | — (fresh store Pocket, existing stores kept; retirement recorded open in section 9. [`../generation.md` §75](../generation.md)) |
 | M6.1 Exposure labels | **done** | — (ten families, labels on exposures 1 and 3; D41 built with its family walk; starter recorded at [`../visual/m6.1-starter-first-run.png`](../visual/m6.1-starter-first-run.png). [`../generation.md` §76](../generation.md)) |
-| M6.4 Retire Simple and Detailed | open | — (D11 ruled: two rounds) |
+| M6.4 Retire Simple and Detailed | **superseded** 2026-09-30 | D50: the author ruled the validation cycle done; Stage 5.0/1 deletes the setting |
 
 **Patch 4.10.1, between Tier 6 and Tier 7 (2026-09-25).** Not one of the
 twenty-four items: a lead-designer prompt, filed at

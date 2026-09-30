@@ -38,7 +38,7 @@
  *
  * Simple shows the type list. Detailed adds `hits 3 of 4, unanswered` per type.
  * Presentation only — the mode is a root attribute the stylesheet reads, and
- * `partyThreats` has no idea it exists. `test/density.test.ts` greps
+ * `partyThreats` has no idea it exists. `test/one-face.test.ts` greps
  * `src/core/` for any mention of it, so the split is enforced rather than
  * intended.
  */

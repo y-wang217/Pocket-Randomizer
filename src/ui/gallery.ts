@@ -48,6 +48,8 @@ import { gymForSegment } from '../data/gyms';
 import { DEFAULT_TUNING } from '../data/tuning';
 import { createDrawer } from './drawer';
 import { createMapDrawer } from './map-drawer';
+import { createNav } from './nav';
+import { presentAsScreen } from './overlay';
 import { anyShop, finishedResult, incomingMove, lateState, openingState, relicOffer, relicShop, targetedReward, wordiestEvent } from './gallery-fixtures';
 import { GALLERY_SURFACES, type GallerySurface } from './gallery-surfaces';
 import { labelExposures } from './exposure-labels';
@@ -64,15 +66,14 @@ import { createMoveReplaceScreen } from './screens/move-replace';
 import { createPartyScreen } from './screens/party';
 import { createPreGymScreen } from './screens/pre-gym';
 import { createResultScreen } from './screens/result';
-import { createRouter, DRAWER_SURFACES, type ScreenName } from './screens/router';
+import { createRouter, type ScreenName } from './screens/router';
 import { createRunMap } from './screens/run-map';
 import { createShopScreen } from './screens/shop';
 import { createStarterSelect } from './screens/starter-select';
 import { createSummary } from './screens/summary';
 import { createSeedBar } from './seed-bar';
-import { DENSITIES, fillExposure, getDensity, initSettings, onSettingsChange, setDensity, type Density } from './settings';
+import { fillExposure, initSettings } from './settings';
 import { createStamps } from './stamps';
-import { applyDensity } from './theme/density';
 import { applyLocale } from './theme/locale';
 import { applyMotion } from './theme/motion';
 import { createTooltips } from './tooltips';
@@ -86,24 +87,13 @@ function isSurface(value: string): value is GallerySurface {
 /** A count past R7's third exposure, so no family's label is due. */
 const EXHAUSTED_EXPOSURE = 4;
 
-function isDensity(value: string | null): value is Density {
-  return value !== null && (DENSITIES as readonly string[]).includes(value);
-}
-
 async function main(): Promise<void> {
   const params = new URLSearchParams(globalThis.location.hash.replace(/^#/, ''));
   const seed = params.get('seed') ?? 'S49B-1';
   const requested = params.get('screen') ?? 'summary';
   const surface: GallerySurface = isSurface(requested) ? requested : 'summary';
 
-  /*
-   * The mode, from the store and then from the URL. The same holder and the
-   * same root attribute the app uses, so nothing here is a second path: a
-   * `density=` parameter is exactly a stored preference for this one page.
-   */
   initSettings();
-  const density = params.get('density');
-  if (isDensity(density)) setDensity(density);
   /*
    * The exposure state, **D44**. Every family past R7's third exposure unless
    * the URL says `exposure=fresh`, because section 4 budgets the steady state
@@ -123,8 +113,6 @@ async function main(): Promise<void> {
    * that instrument and keep measuring what they measured.
    */
   const loaded = params.get('fixture') === 'loaded';
-  applyDensity(getDensity());
-  onSettingsChange((settings) => applyDensity(settings.density));
   applyMotion(document.documentElement);
 
   const root = document.querySelector<HTMLElement>('#app');
@@ -169,19 +157,24 @@ async function main(): Promise<void> {
   const seedBar = createSeedBar();
   const stamps = createStamps();
   const world = createWorldScene();
-  const drawerBar = el('div', 'shell__drawer-bar');
-  // Map then Party, the order the app mounts them in — the bar is right
-  // aligned, so the last child is the one against the edge.
-  drawerBar.append(mapDrawer.trigger(), drawer.trigger());
+  /*
+   * The shell nav, as the app mounts it (Stage 5.0/1), with the tab screens
+   * restyled the same way. Its tabs are drawn and do nothing here: the
+   * gallery stages a surface, and a tab opens a different one.
+   */
+  const nav = createNav();
+  for (const layer of [drawer.root, mapDrawer.root]) presentAsScreen(layer);
   const replayTutorial = document.createElement('button');
-  if (loaded) shell.append(createHeader(replayTutorial, seedBar.toggle), seedBar.root, drawerBar, router.root, drawer.root, mapDrawer.root, stamps.root);
+  if (loaded) shell.append(nav.root, createHeader(replayTutorial, seedBar.toggle), seedBar.root, router.root, drawer.root, mapDrawer.root, stamps.root);
   else shell.append(router.root, drawer.root, mapDrawer.root, stamps.root);
-  root.replaceChildren(world.root, shell);
+  const layout = el('div', 'layout');
+  layout.append(shell);
+  root.replaceChildren(world.root, layout);
   createTooltips(shell);
 
   const show = (name: ScreenName): void => {
     router.show(name);
-    drawerBar.hidden = !DRAWER_SURFACES.includes(name);
+    nav.setActive(name === 'map' ? 'map' : name === 'party' ? 'team' : null);
   };
   const setPhase = (phase: 'setup' | 'running'): void => {
     shell.dataset['phase'] = phase;

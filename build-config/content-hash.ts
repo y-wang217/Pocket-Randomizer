@@ -161,10 +161,6 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
     why: "how long a battle beat lingers and the chip legibility floors; read by ui/theme/motion.ts and the visual tests only, and a number parked for a playtest must be movable when the playtest arrives without refusing every shared seed",
   },
   {
-    path: 'src/data/densityTuning.ts',
-    why: 'the three density modes\' chrome scales and the phone Pocket is measured on; read by ui/theme/density.ts only, and a display scale must not move the hash it sits beside',
-  },
-  {
     path: 'src/data/statStages.ts',
     why: "the stage-to-multiplier ladders the battle panel prints; read by ui/chip.ts and ui/tooltips.ts only, and the engine's own copy of these numbers is core/battle/stats.ts BOOST_TABLE, so a display table must not move the hash",
   },

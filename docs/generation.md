@@ -1396,6 +1396,12 @@ which is where 4.5.1 put it, so there is exactly one write path for party state.
 A drawer that could reassign would need its own carve-out from the first rule
 above, and that is a v2 decision with its own playtest.
 
+**Amended 2026-09-30 (D53, §87).** The rule stands; the mechanism changes. The
+5.0 shell's nav tabs open **screens**, not the overlay, and the three properties
+above move with them: a screen opened by a tab while a decision is pending
+elsewhere is a readout, and closing it returns to the decision. The party
+screen's write path is unchanged and is only writable between nodes, as today.
+
 
 ## 12b. Deviation: the 4.7 phone regression patch stopped at step 2
 
@@ -2053,12 +2059,12 @@ Each is a place the built work departs from the prompt's words. The prompt is
 not edited; the argument for each is in
 [`visual/reports/patch-density-modes.md`](visual/reports/patch-density-modes.md).
 
-1. **The numbers live in `src/data/densityTuning.ts`, not `data/tuning.ts`.**
+1. **The numbers live in src/data/densityTuning.ts (deleted at 5.0/1), not `data/tuning.ts`.**
    The prompt puts every number the patch introduces in `tuning.ts`. That
    file is inside `contentHash` (it is imported under `core/`), so a padding
    scale in it would move every seed on a tuning pass, which the prompt also
    forbids. The scales sit in their own `data/` table, excluded from the hash
-   with a reason in `build-config/content-hash.ts`, and `test/density.test.ts`
+   with a reason in `build-config/content-hash.ts`, and `test/one-face.test.ts` (was density.test.ts)
    holds that nothing under `core/` reaches it. A density pass is still a
    table edit.
 2. **Fixtures are constructed, not walked.** Ruling 3 asks for the worst case
@@ -2066,7 +2072,7 @@ not edited; the argument for each is in
    each worst case from the seed's own draws (a six-member party with six
    held items, a full backpack, every relic, eight gyms cleared with a full
    graveyard, a 24-turn battle) and the gallery renders it through the app's
-   own screens. The seeded run is untouched: `test/density.test.ts` replays
+   own screens. The seeded run is untouched: `test/one-face.test.ts` (was density.test.ts) replays
    SMOKE24 in all three modes and compares the run log byte for byte.
 3. **The stat line on a pick card keeps abbreviations in Detailed.** The
    definition gives Detailed full labels. On the starter and capture cards the
@@ -2114,8 +2120,8 @@ not edited; the argument for each is in
     (`test/visual-tutorial-anchors.test.ts`, named `visual-tutorial-guard` until M6.2) is what makes a future fold that
     hides an anchor fail loudly.
 12. **The existing two-valued suites were rewritten, not deleted**, each with
-    a comment naming this patch: `test/density.test.ts` (renamed from
-    4.7.2's verbosity suite), `test/visual-density.test.ts`,
+    a comment naming this patch: `test/one-face.test.ts` (was density.test.ts) (renamed from
+    4.7.2's verbosity suite), `test/visual-one-face.test.ts` (was visual-density.test.ts),
     `test/visual-stat-bars.test.ts`, `test/party-stats.test.ts`,
     `test/threat-readout.test.ts`, `test/party-drawer.test.ts`,
     `test/pre-gym-confirm.test.ts`, `test/visual-phone-seed-bar.test.ts`.
@@ -5106,7 +5112,7 @@ four drawn ones, two of them carrying a card, a segment-0 shop measured 864.
 Pocket hides the cards, in CSS (`:root[data-density="pocket"] .shop__item >
 .move--card`). Not by a branch in the screen: a screen that reasoned about
 density in JS would not re-render when the mode is switched live, and
-`test/density.test.ts` greps for exactly that. Detailed and Simple keep the
+`test/one-face.test.ts` (was density.test.ts) greps for exactly that. Detailed and Simple keep the
 cards and scroll, which they always did.
 
 The lesson is the ordinary one and it is worth the line: **the gate found this,
@@ -8227,7 +8233,7 @@ Measuring more than the item asks is the safe direction against a ceiling, and
 M7.2 reruns this same script, so the "before" and "after" columns agree by
 construction. **The item's figure of fourteen is stale rather than wrong**: the
 twelve router screens are still twelve, `ROUTER_SCREEN_COUNT` still says so, and
-`test/density.test.ts` still holds it.
+`test/one-face.test.ts` (was density.test.ts) still holds it.
 
 One further deviation inside the same item. The census reports an **`app shell`**
 component — the header, drawer bar, seed bar and stamps — and subtracts it in
@@ -8514,7 +8520,7 @@ justified the mode is better served by the grid at double the width.
 
 **Deleted:** the `move-bar` theme module, the `moveBar` setting and its accessors,
 the drawer's picker and its copy, the `notFirstLaunch` and `openApp` options,
-179 lines of stylesheet, and five patterns from `test/density.test.ts`'s
+179 lines of stylesheet, and five patterns from `test/one-face.test.ts` (was density.test.ts)'s
 forbidden list. Those patterns guarded `core/` against seeing a presentation
 axis; the axis no longer exists, so a pattern for it could never match, and a
 guard that cannot fail is not a guard. The rule it enforced is unchanged for
@@ -10620,7 +10626,7 @@ flag never followed.
 
    **The first cut of this was wider and two tests said so, correctly.** It
    dropped the `transient` exemption outright, on the argument that a click is
-   a deliberate act and a hover panel is not. `test/visual-density.test.ts`
+   a deliberate act and a hover panel is not. `test/visual-one-face.test.ts` (was visual-density.test.ts)
    went red on both of its Pocket cases — *"Pocket folds every member card
    together"* and *"keeps the threat counts ... behind a tap in Pocket"* —
    because each drives a desktop mouse, and `.click()` on a chip opens the
@@ -10679,7 +10685,7 @@ panel's contents are the same rows `renderMoveRows` has printed since M1.2.
 Two things in it were shaped by this defect before anyone had named it, and
 neither is edited now.
 
-`test/visual-density.test.ts` asserts two Pocket facts by clicking a chip and
+`test/visual-one-face.test.ts` (was visual-density.test.ts) asserts two Pocket facts by clicking a chip and
 reading the panel. **That is a desktop path and no phone has it** — the tap
 those cases stand in for opens nothing, before this patch or after it. The
 cases are about the *density* rule, the panel is the instrument, and rewriting
@@ -10820,7 +10826,7 @@ they have been shown. A store that exists but names no mode (written before
 the density patch, with neither `density` nor `verbosity`) was also being
 shown Detailed. `loadSettings` now tells that store apart from a first launch
 and keeps it on Detailed. Only an empty store, or an unreadable one, gets
-Pocket. `test/pocket-default.test.ts` holds all five cases through
+Pocket. test/pocket-default.test.ts (deleted at 5.0/1) holds all five cases through
 `localStorage`.
 
 **The picker order is unchanged**, Detailed first. It lists most words to
@@ -11582,3 +11588,102 @@ description drops "Stage 1:".
 QA-003, QA-004 and QA-005 were built in section 84 and the tester did not
 revisit them. The report's next checks 4 and 5 (a single-click retest; shop, rest and
 full-party passes) are theirs to run on the next deploy.
+
+## 87. Stage 5.0: the author's rulings on D50 and D52 to D55, and what 5.0 now builds that its prompt did not say
+
+**2026-09-30.** [`spec/gymrun-stage5.0-rulings-d50-d55.md`](spec/gymrun-stage5.0-rulings-d50-d55.md),
+answering the 5.0/0 report. Bible Rev 15. No version axis moves: nothing here
+draws, reshapes the log or touches a table.
+
+Deviations from [`spec/gymrun-stage5.0-visual-redesign.md`](spec/gymrun-stage5.0-visual-redesign.md),
+recorded here rather than edited into the prompt:
+
+1. **Density goes in 5.0/1** (D51). The prompt's ruling 2 says Stage 2; every
+   other line says Stage 1, and the 5.0/0 inventory shows the deletion is shell
+   and CSS work, not battle work.
+2. **R6 retired on the author's ruling** (D50). The validation cycle is ruled
+   done on the author's playthrough and the two QA passes, fewer testers than
+   D11's definition. The one face is the Pocket face. The 5.0/0 report's trap
+   stands: unconditional CSS today is *Detailed*, so the deletion is promoting
+   the Pocket rules, not removing the attribute. M6.4 is superseded.
+3. **"Tap to inspect" means the long press** (D52). No change to R5.
+4. **Tabs open screens** (D53). The prompt said the tabs *"open the existing
+   party, backpack, summary and settings surfaces"*; the ruling makes them
+   screens rather than overlays, and §12 above is amended to carry its three
+   properties to them. **The read-only-while-pending guard is the register's
+   reading of the ruling**, needed to keep CLAUDE.md's single path to a node
+   completion and ruling 4's *"no Bag"* in battle; it is flagged to the author.
+5. **A mid-run Run Info screen is built** (D53). The prompt pointed the Run
+   Info tab at the summary, which is the end-of-run archive with Rematch and the
+   seed copy. The new screen is read-only: the decision feed and the run's
+   position.
+6. **Run Progress is the decision feed, and Recent Events is not built
+   separately** (D55). The prompt's ruling 3 put both in the desktop sidebar
+   only. The ruling makes Run Progress *"a continuation of recent decisions
+   made"*, every decision the run log records (`RunDecision` in `core/types.ts`:
+   starter, locale, node, battle choice, reward, shop, event, acquisition,
+   items, lead, party edit, evolve), replayed in play order. It is a new
+   feature and a pure read of the log, resolved against the seed's offers by the
+   existing replay (`replayRunPolicy` in `core/run.ts`), so it draws
+   nothing and needs no version bump. It reaches the phone through the Run Info
+   tab, where the prompt had it desktop-only. R11 gains the carve-out: inputs,
+   not outcomes, and never inside the game frame.
+7. **A thirteenth glyph family, `currency`** (D54), where the prompt listed a
+   currency icon as class C art with no family. The map node card goes to a
+   budget of 1. D39 closes. The tab icons are ruled controls, not glyphs.
+
+### What 5.0/1 built, and where it differs from the prompt
+
+**2026-09-30**, the rest of §87, written with the stage's report
+([`visual/reports/5.0-stage1.md`](visual/reports/5.0-stage1.md)).
+
+8. **The corner stamps are a status strip.** They were fixed to the viewport's
+   corners behind the screens, and the screens' own boxes took no taps so the
+   seed stamp could be reached through them (patch 4.8.0.3). The frame now
+   scrolls inside `.screens`, which has to take a swipe on the gap between two
+   cards, so the stamps moved into an in-flow strip at the foot of the frame
+   and the pass-through rule was deleted. Same four stamps, same seed copy.
+9. **The header row stays**, under the nav: the title, the tutorial replay and
+   the seed toggle. The prompt's shell shows a wordmark and tabs only. The
+   header carries the seed bar's toggle and the replay, which have no other
+   home on a phone, so it is kept for 5.0/1; the tutorial replay is also on
+   the Settings screen.
+10. **The frame is a size container.** Every `@media (max-width: …)` rule
+    became `@container frame (…)`, so the narrow layout follows the frame, not
+    the viewport, and a desktop gets the phone layout in its frame. The wide
+    layouts those rules used to override are unreachable now (the frame is at
+    most 480px) and are left in place for 5.0/2 to 5.0/4 to delete screen by
+    screen, since each of those stages rebuilds one of them.
+11. **The two-form markup is still rendered.** `prose()`'s long and short
+    spans, the stat block's word labels and a chip's word form existed for the
+    density switch. The one face shows the short, glyph-first form, and the
+    stylesheet hides the rest. Deleting the markup, and collapsing the `Prose`
+    tables to one string, is a copy change that moves `docs/copy.md`; it is
+    carried as an open item rather than folded into a stage whose checkpoint
+    is "layouts inside the screens are unchanged".
+12. **The stage carries the placeholder battle backdrop, and the field with
+    it.** The frame is opaque, so the world no longer shows behind the
+    battle. The stage draws the plan's placeholder (a flat locale tint, sky
+    and ground) and the Stage 4.11 weather wash and terrain tint are drawn on
+    it too, from the same global tokens. The world still draws behind the
+    frame on a desktop, and its parallax follows the frame's scroller.
+13. **The Bag tab's readout shows the backpack as run state holds it**, without
+    an unspent item plan folded in. The party screen, where a plan is
+    composed, shows the folded view, as it always has.
+14. **The HP boxes are solid windows.** V5 made them a translucent scrim with a
+    backdrop blur over the world; the plan forbids `backdrop-filter`.
+15. **Chip labels mix 40% of their hue, not 60%**, because the neutral they mix
+    toward is now dark ink on a light card. At 60% the map's type chips read
+    3.86:1 and the battle panel's 4.20:1.
+16. **Tests changed because they asserted a retired design**, each with a
+    comment naming the plan: the panel's blur (`visual-motion`), the panel as
+    a borderless scrim (`visual-v5`), the stamps as fixed (`visual-v2`), the
+    world's parallax on window scroll (`visual-v3`), the seed bar's desktop
+    layout (`visual-phone-seed-bar`), the move meta row's 20px (a Detailed
+    chip; `visual-v5`), and the drawer's controls (`party-drawer`). Four had a
+    latent bug the new frame exposed: `visual-field` sampled a hidden title at
+    (0, 0), `visual-v3` and `visual-chips` read coordinates against the
+    window, and `stamps.mjs` did not know `.layout`.
+17. **Not run here: the WebKit suite and a real iPhone.** This sandbox has
+    Chromium only. The plan asks for both before review of 5.0/2; for 5.0/1
+    they are the reviewer's.

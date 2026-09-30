@@ -24,7 +24,7 @@
  * forms — `test/boundaries.test.ts` reads both.
  */
 import type { Prose } from '../dom';
-import type { Density, BattleSpeed } from '../settings';
+import type { BattleSpeed } from '../settings';
 
 export const STARTER_COPY = {
   blurb: {
@@ -140,20 +140,38 @@ export const TARGET_EFFECT = {
 };
 
 /**
- * The three modes as the drawer's picker names them: a name and one line
- * saying what the mode does. Facts about the layout — what is on screen,
- * what a screen costs — and never which one suits whom. One form, because
- * a control that changes its own words with the mode it sets is a control
- * the player cannot read while using it; one line each, because the drawer
- * is under the Pocket gate too and three wrapped lines put its sheet over.
+ * The shell nav's five words. **Stage 5.0/1**, section 4's Shell nav row at
+ * 5: one word per tab, and nothing else at rest.
  */
-export const DENSITY_HEADING = 'Density';
-export const DENSITY_COPY: Readonly<Record<Density, { name: string; description: string }>> = {
-  detailed: { name: 'Detailed', description: 'Full labels and full prose.' },
-  simple: { name: 'Simple', description: 'Short labels and fewer words.' },
-  pocket: { name: 'Pocket', description: 'Fits every screen without scrolling.' },
-};
+export const NAV_COPY = {
+  label: 'Run',
+  tabs: { map: 'Map', team: 'Team', bag: 'Bag', info: 'Run Info', settings: 'Settings' },
+} as const;
 
+/** The screens the Run Info and Settings tabs open. Stage 5.0/1. */
+export const RUN_INFO_COPY = {
+  title: 'Run info',
+  label: 'Run info',
+  seed: 'Seed',
+  build: 'Build',
+  progress: 'Run progress',
+} as const;
+
+/** The desktop sidebar. Stage 5.0/1. */
+export const SIDEBAR_COPY = {
+  label: 'Run at a glance',
+  wordmark: 'GYMRUN',
+  whereTitle: 'Where',
+  team: 'Team',
+  where: (locale: string | null, segment: number, gyms: number, leader: string): string =>
+    `${locale ? `${locale} · ` : ''}Gym ${segment + 1} of ${gyms} · ${leader}`,
+} as const;
+
+export const SETTINGS_COPY = {
+  title: 'Settings',
+  label: 'Settings',
+  tutorial: 'Show the tutorial again',
+} as const;
 
 export const BATTLE_SPEED_HEADING = 'Battle speed';
 /*
@@ -173,6 +191,9 @@ export const DRAWER_COPY = {
   inBattle: { long: 'Your side, as the fight has left it.', short: 'Your side, mid-fight.' },
   note: { long: 'Read only. Items are assigned on the party screen.', short: 'Read only.' },
 } as const satisfies Record<string, Prose>;
+
+/** The drawer's backpack heading, for the Bag tab. Stage 5.0/1. */
+export const DRAWER_BAG_HEADING = 'Bag';
 
 export const REWARD_COPY = {
   itemNote: { long: 'Goes to your backpack. Assign it on the party screen.', short: 'To your backpack.' },

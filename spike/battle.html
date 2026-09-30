@@ -1,0 +1,176 @@
+<!doctype html>
+<!--
+  Stage 5.0/0 spike: the battle screen. Throwaway, static, not wired into the
+  app. Real gen5 front and back sprites from the Showdown CDN, one placeholder
+  backdrop (flat locale tint), CSS borders, HP boxes, the 2x2 move grid.
+  Every number on it is illustrative.
+
+  ?locale=<id>  picks the placeholder tint.  ?missing=1  breaks both sprite
+  URLs to show the fallback box at the correct size.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spike: battle</title>
+<link rel="stylesheet" href="spike.css">
+<style>
+  .stage {
+    position: relative; flex: none; height: calc(170 * var(--art-px)); overflow: hidden;
+    background: linear-gradient(var(--sky) 0 52%, var(--ground) 52% 100%); /* two flat bands, no blend */
+    border-bottom: 3px solid var(--border);
+  }
+  .stage__tag { position: absolute; right: 6px; top: 2px; font-size: 9px; color: var(--ink-soft); opacity: .8; }
+  .platform { position: absolute; border-radius: 50%; background: color-mix(in srgb, var(--ground) 70%, #2a3a1a); border: 2px solid color-mix(in srgb, var(--ground) 55%, #1b2610); }
+  .platform--foe { width: 176px; height: 36px; right: 10px; top: 164px; }
+  .platform--own { width: 200px; height: 40px; left: -20px; bottom: 6px; }
+  .actor { position: absolute; }
+  .actor--foe { right: 2px; top: 4px; }
+  .actor--own { left: -6px; bottom: -44px; }
+
+  .hpbox { position: absolute; padding: 6px 9px 7px; width: 186px; display: grid; gap: 3px; }
+  .hpbox--foe { left: 8px; top: 10px; }
+  .hpbox--own { right: 8px; bottom: 10px; width: 196px; }
+  .hpbox__row { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; font-weight: 700; }
+  .hpbox__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hpbox__row small { font-weight: 400; }
+  .hpbox__foot { display: flex; justify-content: space-between; align-items: center; gap: 4px; font-size: 11px; min-height: 14px; }
+  .chip { font-size: 9px; font-weight: 700; padding: 0 3px; border: 1px solid var(--border); border-radius: 2px; background: var(--panel-alt); }
+  .chip--status { background: #e7a13b; color: #fff; }
+  .stages { display: inline-flex; gap: 3px; }
+  .gender { color: var(--selected); }
+
+  .below { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 8px; }
+  .beat { padding: 7px 12px; min-height: 42px; display: flex; align-items: center; gap: 8px; }
+  .flag { font-size: 10px; font-weight: 700; padding: 1px 4px; border: 2px solid var(--border); border-radius: 2px; background: var(--highlight); }
+
+  .moves { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .move { display: grid; gap: 6px; padding: 8px 8px 8px 11px; min-height: 76px; }
+  .move::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--t); border-radius: 1px 0 0 1px; }
+  .move__top { display: flex; justify-content: space-between; align-items: center; gap: 4px; font-weight: 700; font-size: 14px; }
+  .move__bottom { display: flex; align-items: center; gap: 4px; font-size: 11px; }
+  .move__pp { margin-left: auto; font-variant-numeric: tabular-nums; }
+  .eff { font-size: 10px; font-weight: 800; padding: 0 3px; border-radius: 2px; border: 2px solid var(--border); }
+  .eff--up { background: var(--hp-green); color: #fff; }
+  .eff--down { background: #fff; color: var(--ink-soft); border-style: dashed; }
+  .cat { font-size: 9px; font-weight: 700; padding: 0 3px; border: 1px solid var(--border); border-radius: 2px; }
+
+  .secondary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .secondary .btn { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; }
+  .fill { flex: 1; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <main class="frame" id="frame">
+    <nav class="nav" aria-label="Run">
+      <button class="nav__tab nav__tab--on"><span class="ph" style="--ph:20px">M</span>Map</button>
+      <button class="nav__tab"><span class="ph" style="--ph:20px">T</span>Team</button>
+      <button class="nav__tab"><span class="ph" style="--ph:20px">B</span>Bag</button>
+      <button class="nav__tab"><span class="ph" style="--ph:20px">R</span>Run Info</button>
+      <button class="nav__tab"><span class="ph" style="--ph:20px">S</span>Settings</button>
+    </nav>
+    <div class="titlebar">Wild fight <small>Summit</small><span class="coins"><span class="ph" style="--ph:14px">¢</span>212</span></div>
+
+    <section class="stage" id="stage">
+      <div class="platform platform--foe"></div>
+      <div class="platform platform--own"></div>
+      <div class="actor actor--foe" id="foe"></div>
+      <div class="actor actor--own" id="own"></div>
+
+      <div class="hpbox hpbox--foe window">
+        <div class="hpbox__row"><span class="hpbox__name">Aerodactyl <span class="gender">♂</span></span><small>Lv 21</small></div>
+        <div class="hpbar hpbar--label"><b>HP</b><div class="hpbar" style="--f:46%;--hp:var(--hp-yellow)"><span></span></div></div>
+        <div class="hpbox__foot"><span class="stages"><span class="chip">Atk +1</span></span><span class="chip chip--status">PAR</span></div>
+      </div>
+
+      <div class="hpbox hpbox--own window">
+        <div class="hpbox__row"><span class="hpbox__name">Magneton</span><small>Lv 20</small></div>
+        <div class="hpbar hpbar--label"><b>HP</b><div class="hpbar" style="--f:81%;--hp:var(--hp-green)"><span></span></div></div>
+        <div class="hpbox__foot"><span class="stages"><span class="chip">Spe −1</span></span><b style="font-variant-numeric:tabular-nums">48 / 59</b></div>
+      </div>
+      <span class="stage__tag">placeholder backdrop: summit tint</span>
+    </section>
+
+    <div class="below">
+      <div class="beat window"><span class="flag">SUPER</span> Thunderbolt hit Aerodactyl.</div>
+
+      <div class="moves" role="group" aria-label="Moves">
+        <button class="btn move" style="--t:var(--type-electric)">
+          <span class="move__top">Thunderbolt <span class="eff eff--up" title="Super effective against Aerodactyl">×2</span></span>
+          <span class="move__bottom"><span class="type" style="--t:var(--type-electric)">Elec</span><span class="cat">SPC</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="move__pp">PP 12/15</span></span>
+        </button>
+        <button class="btn move" style="--t:var(--type-steel)">
+          <span class="move__top">Flash Cannon <span class="eff eff--down" title="Not very effective">×½</span></span>
+          <span class="move__bottom"><span class="type" style="--t:var(--type-steel)">Stee</span><span class="cat">SPC</span><span class="pips"><i class="on"></i><i class="on"></i><i></i></span><span class="move__pp">PP 9/10</span></span>
+        </button>
+        <button class="btn move" style="--t:var(--type-electric)">
+          <span class="move__top">Thunder Wave</span>
+          <span class="move__bottom"><span class="type" style="--t:var(--type-electric)">Elec</span><span class="cat">STA</span><span class="move__pp">PP 18/20</span></span>
+        </button>
+        <button class="btn move" style="--t:var(--type-normal)" disabled>
+          <span class="move__top">Tri Attack</span>
+          <span class="move__bottom"><span class="type" style="--t:var(--type-normal)">Norm</span><span class="cat">SPC</span><span class="pips"><i class="on"></i><i class="on"></i><i></i></span><span class="move__pp">PP 0/10</span></span>
+        </button>
+      </div>
+
+      <div class="secondary">
+        <button class="btn"><span class="ph" style="--ph:20px">⇄</span>Switch</button>
+        <button class="btn"><span class="ph" style="--ph:20px">i</span>Info</button>
+      </div>
+      <div class="fill"></div>
+    </div>
+  </main>
+
+  <aside class="sidebar" aria-label="Run">
+    <div class="window wordmark"><span class="ph" style="--ph:28px">W</span>GYMRUN</div>
+    <div class="window">
+      <h3>Run progress</h3>
+      <div style="margin-bottom:6px">Summit · Gym 3 of 8</div>
+      <div class="progress"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+    <div class="window">
+      <h3>Current team</h3>
+      <div class="slots" id="slots"></div>
+    </div>
+    <div class="window" style="flex:1;min-height:0;overflow:hidden">
+      <h3>Recent events</h3>
+      <ul class="events">
+        <li><span class="ph" style="--ph:16px">R</span>Rested at a camp</li>
+        <li><span class="ph" style="--ph:16px">C</span>Caught Magneton</li>
+        <li><span class="ph" style="--ph:16px">T</span>Beat a trainer</li>
+        <li><span class="ph" style="--ph:16px">$</span>Bought Sitrus Berry</li>
+        <li><span class="ph" style="--ph:16px">L</span>Entered Summit</li>
+        <li><span class="ph" style="--ph:16px">W</span>Wild Aerodactyl</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+<script>
+  const q = new URLSearchParams(location.search);
+  document.getElementById('stage').classList.add(`locale--${q.get('locale') || 'summit'}`);
+  const missing = q.get('missing') === '1';
+  const CDN = 'https://play.pokemonshowdown.com/sprites/';
+  function sprite(host, id, dir) {
+    const img = new Image();
+    img.className = 'sprite';
+    img.alt = id;
+    img.src = missing ? `${CDN}${dir}/__missing__.png` : `${CDN}${dir}/${id}.png`;
+    // Fallback: a box of the sprite's exact size, never a broken image.
+    img.onerror = () => {
+      const box = document.createElement('div');
+      box.className = 'sprite sprite--missing';
+      box.textContent = id;
+      host.replaceChildren(box);
+    };
+    host.append(img);
+  }
+  sprite(document.getElementById('foe'), 'aerodactyl', 'gen5');
+  sprite(document.getElementById('own'), 'magneton', 'gen5-back');
+</script>
+<script type="module">
+  import { renderSlots } from './sidebar.js';
+  renderSlots(document.getElementById('slots'), ['magneton', 'sandslash', 'swablu'], 2);
+</script>
+</body>
+</html>

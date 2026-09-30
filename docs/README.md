@@ -66,6 +66,8 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
+**In flight: Stage 5.0, the visual redesign ([`spec/gymrun-stage5.0-visual-redesign.md`](spec/gymrun-stage5.0-visual-redesign.md)). 5.0/0, the spike and audit, is done on `claude/hopeful-shannon-kch3gw` and stopped for review.** The report is [`visual/reports/5.0-stage0-spike.md`](visual/reports/5.0-stage0-spike.md). It filed D50 to D76 in the discrepancy register. The author ruled D50 and D52 to D55 the same day ([`spec/gymrun-stage5.0-rulings-d50-d55.md`](spec/gymrun-stage5.0-rulings-d50-d55.md)); the bible is at **Rev 15** (one face and no density setting, tabs open screens, a mid-run Run Info screen, a `currency` family, and Run Progress as a decision feed replayed from the run log), recorded in [`generation.md` §87](generation.md). **5.0/1 is built and stopped for review**: one face with the density setting deleted, the shell nav with its read-only guard, the decision feed, Run Info and Settings screens, the desktop sidebar, the light palette and the asset manifest. Report [`visual/reports/5.0-stage1.md`](visual/reports/5.0-stage1.md), record [`generation.md` §87](generation.md). **5.0/2 (battle) waits on rulings D56 to D60.**
+
 **In flight: the 4.10 presentation milestones, Tier 6 merged as [#68](https://github.com/y-wang217/Pocket-Randomizer/pull/68); patch 4.10.1 built on `claude/map-icons-conversion-plan-tvab5v`; Tier 7 next.**
 Patch 4.10.1 makes the map's node kinds marks — a head, a bush, a tent, a
 badge, a bag, a question mark — as an eleventh glyph family, ruled under D46
@@ -1518,7 +1520,7 @@ One line each. The analysis lives where the pointer goes, not here.
    exemptions" — and the shop came out at 864. So Pocket hides the shelf's move
    cards, in CSS rather than by a branch in the screen, because a screen that
    reasoned about density in JS would not re-render when the mode is switched
-   live and `test/density.test.ts` greps for that mistake. The name, the
+   live and `test/one-face.test.ts` (was density.test.ts) greps for that mistake. The name, the
    category and the price are on the row in every mode.
 
    If a later pass wants the card back in Pocket, the lever is a disclosure
@@ -1529,7 +1531,7 @@ One line each. The analysis lives where the pointer goes, not here.
    guarded Detailed heights unchanged to the pixel. On merge the register
    row flips to `built`. What it leaves: the member card's HP line is on
    the bar's tap in Pocket (a rule the prompt did not write; `generation.md`
-   12m item 4), and `data/densityTuning.ts` sits outside `contentHash` by
+   12m item 4), and data/densityTuning.ts (deleted at 5.0/1) sits outside `contentHash` by
    a reasoned exclusion rather than inside `tuning.ts` (item 1).
    [`visual/reports/patch-density-modes.md`](visual/reports/patch-density-modes.md).
 

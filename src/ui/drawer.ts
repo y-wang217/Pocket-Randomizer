@@ -53,22 +53,9 @@ import type { Tuning } from '../data/tuning';
 import { el } from './scene';
 import { setProse } from './dom';
 import { createOverlay } from './overlay';
-import {
-  BATTLE_SPEED_COPY,
-  BATTLE_SPEED_HEADING,
-  DENSITY_COPY,
-  DENSITY_HEADING,
-  DRAWER_COPY,
-} from './copy/screens';
-import {
-  BATTLE_SPEEDS,
-  DENSITIES,
-  getBattleSpeed,
-  getDensity,
-  onSettingsChange,
-  setBattleSpeed,
-  setDensity,
-} from './settings';
+import { DRAWER_BAG_HEADING, DRAWER_COPY } from './copy/screens';
+import { itemById } from '../data/items';
+import { renderSlots } from './slots';
 import { memberCardContents } from './member-card';
 
 export interface DrawerView {
@@ -77,6 +64,12 @@ export interface DrawerView {
   holding: readonly (ItemId | null)[];
   /** The run's relics. See the layout note in `render`. */
   relics: readonly RelicId[];
+  /**
+   * The backpack's loose items and the TMs carried, for the Bag tab's
+   * readout. **Stage 5.0/1.** Read-only here like everything else: the party
+   * screen is still the one place an item moves.
+   */
+  bag?: { loose: readonly ItemId[]; capacity: number; tms: readonly string[] };
   tuning: Tuning;
   /**
    * Whether this is the in-battle drawer.
@@ -103,115 +96,12 @@ export interface Drawer {
   open(view: DrawerView, opener?: HTMLElement | null): void;
   close(): void;
   isOpen(): boolean;
-}
-
-/**
- * The mode picker. **Density modes patch, step 7.**
- *
- * In the drawer because the drawer is the one surface reachable from every
- * screen of a run, and a reading preference belongs where the player is
- * reading: the mode changes under the open drawer as it changes under the
- * screen behind it. Three options, each named and each with one line saying
- * what it does (`ui/copy/screens.ts`, `DENSITY_COPY`); the pressed one is
- * the store's value, repainted on every settings change so a mode set by
- * any other path — the migration, a reset — reads true here.
- *
- * Writes the setting and nothing else. Run state is not in reach of this
- * function, and `test/party-drawer.test.ts` presses every control on the
- * drawer to hold that. The root attribute is not written here either: the
- * app hears the store and writes the root (`ui/app.ts`, `mountApp`).
- */
-function createDensityPicker(): HTMLElement {
-  return createPicker({
-    heading: DENSITY_HEADING,
-    block: 'density',
-    attribute: 'density',
-    options: DENSITIES.map((mode) => ({ value: mode, ...DENSITY_COPY[mode] })),
-    read: getDensity,
-    write: setDensity,
-  });
+  /** Bring the backpack into view, for the Bag tab. Stage 5.0/1. */
+  showBag(): void;
+  onClose(listener: () => void): void;
 }
 
 
-/**
- * The battle speed picker. **The battle animation run, Branch 1.**
- *
- * Last of the three, on the same shape, and narrowest again: density is how
- * much space every fact on every screen costs, the move bar is the shape of one
- * bar on one screen, and this is how long one screen's beats last. A player
- * reads the general setting first.
- *
- * It is a control rather than a second guess at one number. Release C's 500ms
- * was the prompt's default and its comment said it was waiting on a playtest;
- * the playtest said the beats were too fast to see. `data/displayTuning.ts`
- * answers that with 900, and this answers the fact that "too fast" is a
- * judgement rather than a measurement.
- *
- * Writes the setting and nothing else, like both neighbours. The root property
- * is written by the shell's own subscription in `app.ts`, which re-applies
- * `applyMotion` when this moves.
- */
-function createBattleSpeedPicker(): HTMLElement {
-  return createPicker({
-    heading: BATTLE_SPEED_HEADING,
-    block: 'battle-speed',
-    attribute: 'battleSpeed',
-    options: BATTLE_SPEEDS.map((speed) => ({ value: speed, ...BATTLE_SPEED_COPY[speed] })),
-    read: getBattleSpeed,
-    write: setBattleSpeed,
-  });
-}
-
-/**
- * One picker, three settings. **Extracted when the second one arrived**, rather
- * than copied — two hand-written pickers is two places for the pressed state,
- * the repaint subscription or the aria wiring to drift, and the drift would be
- * invisible until a screen reader user met the one that was forgotten.
- *
- * `block` is the class prefix and `attribute` the dataset key the choices
- * carry. **Both stay per-picker on purpose.** The first build shared
- * `density__choice` between them, and `test/density-picker.test.ts` — which
- * queries that class and reads `dataset.density` off what it finds — started
- * seeing five buttons and two nulls. A suite that names one picker must keep
- * finding one picker.
- */
-function createPicker<T extends string>(spec: {
-  heading: string;
-  block: string;
-  attribute: string;
-  options: readonly { value: T; name: string; description: string }[];
-  read: () => T;
-  write: (value: T) => void;
-}): HTMLElement {
-  const root = el('div', `picker ${spec.block}`);
-  const heading = el('h3', 'drawer__section');
-  heading.textContent = spec.heading;
-  const list = el('div', `picker__options ${spec.block}__options`);
-  const choices = spec.options.map((option) => {
-    const row = el('div', `picker__option ${spec.block}__option`);
-    const choice = document.createElement('button');
-    choice.type = 'button';
-    choice.className = `button button--small picker__choice ${spec.block}__choice`;
-    choice.dataset[spec.attribute] = option.value;
-    choice.textContent = option.name;
-    choice.addEventListener('click', () => spec.write(option.value));
-    const description = el('span', `picker__desc ${spec.block}__desc`);
-    description.textContent = option.description;
-    row.append(choice, description);
-    list.append(row);
-    return choice;
-  });
-  const paint = (): void => {
-    const current = spec.read();
-    for (const choice of choices) {
-      choice.setAttribute('aria-pressed', String(choice.dataset[spec.attribute] === current));
-    }
-  };
-  onSettingsChange(paint);
-  paint();
-  root.append(heading, list);
-  return root;
-}
 
 export function createDrawer(): Drawer {
   /*
@@ -241,17 +131,19 @@ export function createDrawer(): Drawer {
   const relics = el('div', 'drawer__relics');
   relics.dataset['tutorial'] = 'drawer-relics';
 
+  /*
+   * The backpack and the TMs, read-only. **Stage 5.0/1, the Bag tab.** The
+   * same hotbar the party screen draws (`ui/slots.ts`), so the readout and
+   * the write path cannot disagree about what a slot looks like. The battle
+   * speed picker that sat below it moved to the Settings screen.
+   */
+  const bag = el('div', 'drawer__bag');
+  bag.dataset['drawerSection'] = 'bag';
+
   const note = el('p', 'drawer__note');
   setProse(note, DRAWER_COPY.note);
 
-  overlay.body.append(
-    blurb,
-    members,
-    relics,
-    note,
-    createDensityPicker(),
-    createBattleSpeedPicker(),
-  );
+  overlay.body.append(blurb, members, relics, bag, note);
 
   return {
     root: overlay.root,
@@ -312,11 +204,36 @@ export function createDrawer(): Drawer {
         relics.append(heading, list);
       }
 
+      bag.replaceChildren();
+      if (view.bag) {
+        const heading = el('h3', 'drawer__section');
+        heading.textContent = DRAWER_BAG_HEADING;
+        const slots = renderSlots(
+          'backpack',
+          view.bag.loose.map((id) => ({ label: itemById(id)?.name ?? id, item: id, tip: `item:${id}` })),
+          view.bag.capacity,
+        );
+        bag.append(heading, slots);
+        if (view.bag.tms.length > 0) {
+          const tms = el('ul', 'drawer__tms');
+          for (const move of view.bag.tms) {
+            const row = el('li', 'drawer__tm');
+            row.textContent = move;
+            tms.append(row);
+          }
+          bag.append(tms);
+        }
+      }
+
       // Last, so the content is in place before the shell takes focus.
       overlay.open(opener);
     },
 
     close: () => overlay.close(),
     isOpen: () => overlay.isOpen(),
+    showBag() {
+      if (typeof bag.scrollIntoView === 'function') bag.scrollIntoView({ block: 'start' });
+    },
+    onClose: (listener) => overlay.onClose(listener),
   };
 }

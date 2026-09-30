@@ -22,8 +22,15 @@ import { DEFAULT_DISPLAY_TUNING } from '../src/data/displayTuning';
 import { openHarness, type Harness } from './visual/harness';
 
 const WEATHERS = ['rain', 'sun', 'sand', 'snow', 'wind'] as const;
-const TEXT = ['.screen__title', '.panel__name'] as const;
-const FAINT = '.battle__detail-text';
+/*
+ * Scoped to the battle screen since Stage 5.0/1. Unscoped, `.screen__title`
+ * found the first title in the document, on a hidden screen, whose empty box
+ * sampled the pixel at (0, 0): the dark world until 5.0/1, the dark nav
+ * after it. The reading was an accident of what sat in the corner.
+ */
+const BATTLE = '.screen[data-screen="battle"]';
+const TEXT = [`${BATTLE} .screen__title`, `${BATTLE} .panel__name`] as const;
+const FAINT = `${BATTLE} .battle__detail-text`;
 
 let harness: Harness;
 
@@ -43,7 +50,7 @@ async function open(
   const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 1, ...options });
   await context.route(/play\.pokemonshowdown\.com/, (route) => route.abort());
   const page = await context.newPage();
-  await page.goto(`${harness.url}/gallery.html#seed=V5-LOADED-1&screen=battle&density=pocket&fixture=loaded&exposure=exhausted${query}`, { waitUntil: 'load' });
+  await page.goto(`${harness.url}/gallery.html#seed=V5-LOADED-1&screen=battle&fixture=loaded&exposure=exhausted${query}`, { waitUntil: 'load' });
   await page.waitForSelector('html[data-gallery-ready="true"]', { timeout: 60_000 });
   await page.evaluate(() => globalThis.document.fonts.ready);
   await page.waitForTimeout(250);

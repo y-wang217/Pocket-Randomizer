@@ -4,104 +4,18 @@
     "width": 390,
     "height": 844
   },
-  "modes": {
-    "simple": {
-      "map": {
-        "screenHeight": 696.69,
-        "scrollHeight": 861,
-        "decisionCount": 2,
-        "decisionTop": 515.78,
-        "decisionBottom": 578.5
-      },
-      "battle": {
-        "screenHeight": 572.25,
-        "scrollHeight": 844,
-        "decisionCount": 4,
-        "decisionTop": 440.06,
-        "decisionBottom": 670.31
-      }
-    },
-    "pocket": {
-      "map": {
-        "screenHeight": 514.22,
-        "scrollHeight": 844,
-        "decisionCount": 2,
-        "decisionTop": 288.53,
-        "decisionBottom": 347.25
-      },
-      "battle": {
-        "screenHeight": 563.41,
-        "scrollHeight": 844,
-        "decisionCount": 4,
-        "decisionTop": 351.78,
-        "decisionBottom": 580.69
-      }
-    }
-  },
-  "layouts": {
-    "columns": {
-      "detailed": {
-        "map": {
-          "screenHeight": 744.75,
-          "scrollHeight": 939,
-          "decisionCount": 2,
-          "decisionTop": 560.34,
-          "decisionBottom": 627.06
-        },
-        "battle": {
-          "screenHeight": 587.88,
-          "scrollHeight": 844,
-          "decisionCount": 4,
-          "decisionTop": 464.06,
-          "decisionBottom": 702.44
-        }
-      },
-      "simple": {
-        "map": {
-          "screenHeight": 696.69,
-          "scrollHeight": 861,
-          "decisionCount": 2,
-          "decisionTop": 515.78,
-          "decisionBottom": 578.5
-        },
-        "battle": {
-          "screenHeight": 572.25,
-          "scrollHeight": 844,
-          "decisionCount": 4,
-          "decisionTop": 440.06,
-          "decisionBottom": 670.31
-        }
-      },
-      "pocket": {
-        "map": {
-          "screenHeight": 514.22,
-          "scrollHeight": 844,
-          "decisionCount": 2,
-          "decisionTop": 288.53,
-          "decisionBottom": 347.25
-        },
-        "battle": {
-          "screenHeight": 563.41,
-          "scrollHeight": 844,
-          "decisionCount": 4,
-          "decisionTop": 351.78,
-          "decisionBottom": 580.69
-        }
-      }
-    }
-  },
   "map": {
-    "screenHeight": 744.75,
-    "scrollHeight": 939,
+    "screenHeight": 514.22,
+    "scrollHeight": 844,
     "decisionCount": 2,
-    "decisionTop": 560.34,
-    "decisionBottom": 627.06
+    "decisionTop": 330.53,
+    "decisionBottom": 389.25
   },
   "battle": {
-    "screenHeight": 587.88,
+    "screenHeight": 563.41,
     "scrollHeight": 844,
     "decisionCount": 4,
-    "decisionTop": 464.06,
-    "decisionBottom": 702.44
+    "decisionTop": 393.78,
+    "decisionBottom": 622.69
   }
 }

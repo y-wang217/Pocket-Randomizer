@@ -382,22 +382,26 @@ describe(`the stage actually moves on ${engine}`, () => {
    * `backdrop-filter` under either spelling must get an opaque panel instead,
    * or the HP numbers are read against a lunging Pokemon.
    */
-  it('backs the panels with something, whichever spelling the engine has', async () => {
+  /*
+   * This asserted the panel's backdrop blur on an engine that has it. Stage
+   * 5.0/1 (`docs/spec/gymrun-stage5.0-visual-redesign.md`) makes the panel a
+   * solid window and forbids `backdrop-filter`, so what holds now is the half
+   * that mattered: the panel is opaque over moving sprites on every engine,
+   * with no blur doing the work.
+   */
+  it('backs the panels with a solid window, on every engine', async () => {
     const panel = await page.evaluate(() => {
       const found = document.querySelector('.stage .panel');
       if (!found) throw new Error('no floating panel on the stage');
       const cs = getComputedStyle(found);
       return {
-        supported: CSS.supports('backdrop-filter', 'blur(2px)') || CSS.supports('-webkit-backdrop-filter', 'blur(2px)'),
         filter: `${cs.backdropFilter ?? ''}${cs.getPropertyValue('-webkit-backdrop-filter')}`,
         background: cs.backgroundColor,
       };
     });
 
-    if (panel.supported) expect(panel.filter, 'the panel declared a backdrop and got none').toMatch(/blur/);
-    // Either way the panel has a ground. `transparent` here would be the
-    // unreadable case: translucent scrim, no blur, moving sprites behind it.
-    expect(panel.background).not.toBe('rgba(0, 0, 0, 0)');
+    expect(panel.filter.replace(/none/g, '')).toBe('');
+    expect(panel.background).toMatch(/^rgb\(/);
   });
 });
 
