@@ -137,7 +137,7 @@ describe('an inline width is a width that paints', () => {
       // The party screen is where the bug that prompted this test lived, and
       // the run never routes through it on its own.
       if (screen === 'map' && !openedParty) {
-        await page.locator(`${visible('map')} .party__header .button`).click();
+        await page.locator('[data-nav="team"]').click();
         await page.waitForTimeout(50);
         openedParty = true;
         continue;

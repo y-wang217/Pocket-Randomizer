@@ -52,7 +52,7 @@ async function partyScreen(): Promise<{ page: Page; close: () => Promise<void> }
   for (let step = 0; step < 600; step++) {
     const screen = await openScreen(page);
     if (screen === 'map') {
-      await page.locator(`${visible('map')} .party__header .button`).click();
+      await page.locator('[data-nav="team"]').click();
       await page.waitForTimeout(200);
       return { page, close: () => context.close() };
     }
@@ -179,7 +179,7 @@ describe('the one face', () => {
       let reached = false;
       for (let step = 0; step < 900; step++) {
         if ((await openScreen(page)) === 'map') {
-          await page.locator(`${visible('map')} .party__header .button`).click();
+          await page.locator('[data-nav="team"]').click();
           await page.waitForTimeout(200);
           if ((await paintedCount(page, '.threats__item')) > 0) {
             reached = true;

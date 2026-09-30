@@ -12,7 +12,7 @@
  * corners are the two places a collision would be permanent. Prints one line
  * per screen and a verdict per stamp.
  */
-import { launch, openApp, openScreen, playUntil, serve, stepOnce, visible } from './browser.mjs';
+import { launch, openApp, openScreen, playUntil, serve, stepOnce } from './browser.mjs';
 
 export async function stampCollisions(page) {
   return page.evaluate(() => {
@@ -66,7 +66,7 @@ if (process.argv[1] && /stamps\.mjs$/.test(process.argv[1])) {
         continue;
       }
       if (screen === 'map' && !opened) {
-        await page.locator(`${visible('map')} .party__header .button`).click();
+        await page.locator('[data-nav="team"]').click();
         await page.waitForTimeout(50);
         opened = true;
         continue;

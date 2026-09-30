@@ -18,7 +18,11 @@ D75**: no change. Class C art for the node and capability families enters
 through `glyphNode`, so section 5's *Exposure label* row holds; the capability
 chevron keeps its three states; a node's place on the graph is its option
 index against the backdrop's slot grid, with no hash, so CLAUDE.md's
-randomness section needs no note.
+randomness section needs no note. **The map carries no team**, ruled the same
+day mid-5.0/4 ([`../spec/gymrun-stage5.0-rulings-map-without-team.md`](../spec/gymrun-stage5.0-rulings-map-without-team.md)):
+section 5's *Party row* loses its map rail call site. The team is the Team
+tab's, which from the map opens the writable party screen; the wallet stays
+on the map, as the currency mark in the heading.
 
 
 **Rev 16** carries one amendment and four rulings that keep the text, ruled
@@ -478,7 +482,7 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Move chip | Name, type chip, category glyph, BP | Replacement and teach lists |
 | Stat block | Six rows of glyph, bar, number | Party drawer, recipient, capture, pre-gym |
 | Pokemon panel | Name, level, gender, HP bar and number, status chips, volatile chips, ability name, stat stage ladder, item sprite, priority chevron (2026-09-19, D6; volatiles and ability 2026-09-21, D19) | Battle |
-| Party row | Species, level, gender, HP bar and number, status chips, ability name, item sprite, the stat block, four move cards | Drawer, party screen, pre-gym, map rail, teach target, **capture card** (call sites corrected 2026-09-21; ability, gender and the block, D19 and M3.2; **cards not chips**, D21a re-ruled 2026-09-21; capture added 2026-09-22, D29, and M5.4 is the item that makes it true) |
+| Party row | Species, level, gender, HP bar and number, status chips, ability name, item sprite, the stat block, four move cards | Drawer, party screen, pre-gym, teach target, **capture card** (call sites corrected 2026-09-21; ability, gender and the block, D19 and M3.2; **cards not chips**, D21a re-ruled 2026-09-21; capture added 2026-09-22, D29, and M5.4 is the item that makes it true; the map rail call site removed with the map's party HUD, 2026-09-30) |
 | Type chip | Glyph in colour | Everywhere a type appears |
 | Inspect layer | The full explanation of whatever was long-pressed | One mechanism, mounted at the shell |
 | Flag strip | One flag per hit by R9's precedence, plus one non-hit kind per side (2026-09-21, D23) | Battle |

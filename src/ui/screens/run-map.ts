@@ -18,12 +18,15 @@
  * between a choice and a coin flip: taking a fight now is a different decision
  * when you can see a rest two steps ahead.
  *
- * **The party panel is always on screen.** HP and PP are the resources a run
- * spends, and a rest node is only a real option if the cost of skipping it is
- * visible at the moment you skip it. From Stage 4 it is a *party* panel rather
- * than one Pokemon: every member, the lead marked, held items shown, and a way
- * into the party screen — because the lead decides who walks into the node you
- * are about to choose, which makes it a decision that belongs next to the map.
+ * **The party panel was always on screen, from Stage 4 to 5.0/4.** HP and PP
+ * are the resources a run spends, and the argument was that a rest node is only
+ * a real option if the cost of skipping it is visible when you skip it. The
+ * author took the team off the map in 5.0/4
+ * (`docs/spec/gymrun-stage5.0-rulings-map-without-team.md`) to give the whole
+ * segment the room: the team is one tap away on the Team tab, which from the
+ * map opens the writable party screen the Manage button opened, and beside the
+ * frame on a desktop. **The wallet stays**, in the heading, because a shop's
+ * price on the next step is only a decision with the coins in view.
  *
  * **Stage 3: every offered fight shows its tier and what it pays, before you
  * commit.** This is the most important pixel in the game. A tier that the
@@ -41,29 +44,23 @@
  */
 import type { NodeSpec, Segment } from '../../core/encounters';
 import type { LocaleId } from '../../data/locales';
-import { heldItem } from '../../core/items';
-import { FAINTED, hpState } from '../../core/hpCopy';
-import { hpFraction } from '../../core/party';
 import type { NodeVisit, RunState } from '../../core/run';
-import { gymsCleared, localeOf, partyCapacity, stepsOf } from '../../core/run';
+import { gymsCleared, localeOf, stepsOf } from '../../core/run';
 import { localeById } from '../../data/locales';
 import { resolveCapability, type CapabilityContext } from '../../core/capabilities';
 // The two label tables the event screen prints too, from one file (4.8.0.2).
 import { BAND_LABELS, CAPABILITY_LABELS, RARITY_LABELS } from '../../data/eventCopy';
 import { nodePayout } from '../../core/economy';
-import type { PokemonState } from '../../core/types';
 import { GYMS, gymForSegment } from '../../data/gyms';
 import { GLYPH_LABELS } from '../../data/glyphLabels';
 import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
-import { createBar } from '../bar';
 import { prose, type Prose } from '../dom';
 import { KIND_HINTS } from '../copy/screens';
 import { applyBackdrop } from '../assets/manifest';
-import { capabilityBandChevron, capabilityGlyph, currencyAmount, neutralChip, nodeKindGlyph, statusChip, tierPips } from '../chip';
+import { capabilityBandChevron, capabilityGlyph, currencyAmount, nodeKindGlyph, tierPips } from '../chip';
 import { slotX } from '../map-layout';
 import { trainerImg } from '../sprites';
-import { hpTip } from '../member-card';
-import { el, levelAria, levelText } from '../scene';
+import { el } from '../scene';
 import { typeChip } from './starter-select';
 
 /**
@@ -86,17 +83,12 @@ const gymLeaderName = (segment: number): string => gymForSegment(segment).leader
 
 export interface RunMap {
   root: HTMLElement;
-  /** Redraw from state. `onChoose` fires with the index of a current option. */
   /**
-   * Draw the map. `onChoose` picks a node; `onManage` opens the party screen.
-   *
-   * Two callbacks rather than one because they are different *kinds* of thing:
-   * a node pick is a run decision that `playRun` is waiting on, and managing the
-   * party is not a decision at all — it edits state between them. Collapsing
-   * them into one handler would hide that difference from the one file that has
-   * to keep it straight.
+   * Draw the map. `onChoose` picks a node, with the index of a current option.
+   * The party screen is the Team tab's since 5.0/4, so the map no longer takes
+   * a second callback for it.
    */
-  render(state: RunState, onChoose: (index: number) => void, onManage: () => void): void;
+  render(state: RunState, onChoose: (index: number) => void): void;
 }
 
 /**
@@ -134,39 +126,21 @@ export function createRunMap(): RunMap {
 
   // The segment, as a graph on the locale's map backdrop. Stage 5.0/4.
   const graph = createMapGraph();
-  const party = el('div', 'party');
+  // The wallet, on the heading's first line: the one resource the map still shows.
+  const wallet = el('div', 'map__wallet');
 
-  /*
-   * Collapsed, and in a grid area of its own **below the chain**.
-   *
-   * The first version put it inside the party block, on the reasoning that the
-   * party block comes after `chain` in the DOM and therefore could not push the
-   * node cards down. `npm run smoke` measured that reasoning and it was wrong:
-   * at 390x844 the map's grid reorders to `rail heading party chain`, so on the
-   * one viewport Item F cares about the party block is *above* the cards.
-   * Opening the readout moved the decision point from y=683 to y=741 — still on
-   * screen, and still 58px of the thing the phone pass spent a stage
-   * reclaiming.
-   *
-   * So it gets an area, and the area is last on a phone and under the party
-   * column on a desktop. Now no open state can reach the cards at all, which is
-   * a stronger guarantee than shipping it closed and hoping.
-   *
-   * It is created once and moved rather than rebuilt, so a player who opens it
-   * finds it still open after the map redraws — which it does on every node,
-   * every rest and every flip of the Detail toggle.
-   */
-
-  root.append(rail, heading, graph.root, party);
+  root.append(rail, heading, graph.root);
 
   return {
     root,
-    render(state, onChoose, onManage) {
+    render(state, onChoose) {
       const segment = state.segments[state.currentSegment];
       if (!segment) return;
 
       rail.replaceChildren(...renderRail(state));
-      heading.replaceChildren(...renderHeading(state, segment));
+      // The heading is shared with the map overlay and Run Info; the wallet is
+      // this screen's own, appended after it.
+      heading.replaceChildren(...renderHeading(state, segment), wallet);
 
       /*
        * **No watermark since Stage 5.0/4.** The locale's name, ghosted behind
@@ -176,31 +150,9 @@ export function createRunMap(): RunMap {
        */
       graph.render(state, segment, onChoose);
       scrollToCurrentStep(graph.root);
-      // Coins live next to the party, with the other resources a run spends.
-      // A shop node saying "from 55" is only a decision if this is on screen.
-      /*
-       * The party HUD, which is now a *party* rather than one Pokemon.
-       *
-       * The button to open the party screen lives here rather than in a menu,
-       * because reordering is how the battle lead is set and the lead only
-       * matters at the moment you are choosing which node to walk into. Putting
-       * it anywhere else would make it a setting instead of a decision.
-       */
-      /*
-       * **The members go in their own grid. Stage 4.8, items 1 and 3.**
-       *
-       * Item 1 took the roster from three to six, and six of these cards stacked
-       * was 697px of a 844px phone — the party HUD alone pushed the one row the
-       * player can act on off the bottom of the screen. A wrapper to grid against
-       * is the smaller half of the fix; the card itself is the larger, below.
-       */
-      const members = el('div', 'party__members');
-      members.replaceChildren(...state.party.map((member, index) => renderMember(member, index)));
-      party.replaceChildren(
-        renderWallet(state),
-        renderPartyHeader(state.party.length, state, onManage),
-        members,
-      );
+      // Coins, as the currency mark and a number (D54). A shop node saying
+      // "from 55" is only a decision if this is on screen.
+      wallet.replaceChildren(currencyAmount(state.currency, 'wallet'));
     },
   };
 }
@@ -716,116 +668,4 @@ function layoutEdges(root: HTMLElement, edges: SVGSVGElement): void {
     line.setAttribute('x2', to.x.toFixed(1));
     line.setAttribute('y2', to.y.toFixed(1));
   }
-}
-
-function renderWallet(state: RunState): HTMLElement {
-  const card = el('div', 'party__wallet');
-  const label = el('span', 'party__wallet-label');
-  label.textContent = 'Coins';
-  const value = el('span', 'party__wallet-value');
-  value.textContent = String(state.currency);
-  card.append(label, value);
-  return card;
-}
-
-/**
- * The party's own heading, with the way into the party screen.
- *
- * **Reads the run's live slots. Stage 4.8, item 1.** A constant here would show
- * `3 / 3` to a player who has just been granted a fourth slot.
- *
- * The *next* unlock is not stated here yet, deliberately: item 1 asks for "Party
- * slots: 4. Next slot at Gym 6." on the map or the result screen, and that is a
- * new sentence on a screen rather than a call site reading the right number. The
- * patch's own order of work puts all UI in step 7, so `nextSlotUnlock` ships in
- * `data/partyTuning.ts` with its tests and nothing renders it until then.
- */
-function renderPartyHeader(size: number, state: RunState, onManage: () => void): HTMLElement {
-  const row = el('div', 'party__header');
-  const label = el('span', 'party__wallet-label');
-  label.textContent = `Party ${size} / ${partyCapacity(state)}`;
-  const manage = document.createElement('button');
-  manage.type = 'button';
-  manage.className = 'button button--small';
-  manage.textContent = 'Manage';
-  manage.addEventListener('click', () => onManage());
-  row.append(label, manage);
-  return row;
-}
-
-/**
- * One party member, as the **map** shows them.
- *
- * **Stage 4.8, items 1 and 3: this card lost its moveset and its ability.**
- *
- * It carried four move rows with PP and the ability name, which at three members
- * was a 291px panel and at item 1's six was 697px — more than three quarters of a
- * 390x844 phone, above the chain, pushing the current step's cards off the bottom
- * of the screen. That is the `xfail` item 3's UI checkpoint had to close, and no
- * amount of work on the chain below could have closed it while the HUD above was
- * growing with the roster.
- *
- * What stays is what a *routing* screen owes the player: who is in the party, who
- * leads, how hurt they are, what they are holding, what is wrong with them. PP and
- * abilities are a different question — "can this Pokemon still fight" rather than
- * "which road do I take" — and both are one tap away in the party drawer, which is
- * reachable from this screen and every other, and on the party screen itself.
- *
- * The alternative was keeping the detail and scrolling the map, which trades a
- * decision the player can see for one they have to go looking for.
- */
-function renderMember(member: PokemonState, index: number): HTMLElement {
-  const card = el('div', 'party__member');
-  // The lead is marked on the map, not only on the party screen: it is the
-  // Pokemon that walks into whichever node you are about to pick.
-  if (index === 0) card.classList.add('party__member--lead');
-  if (member.fainted) card.classList.add('party__member--fainted');
-
-  const header = el('div', 'panel__header');
-  const name = el('span', 'panel__name');
-  name.textContent = member.spec.species;
-  const level = el('span', 'panel__level');
-  level.textContent = levelText(member.spec.level);
-  level.setAttribute('aria-label', levelAria(member.spec.level));
-  header.append(name, level);
-
-  /*
-   * The `Lead` chip stays on this rail, and M3.2 took it off and put it back.
-   *
-   * On a party card the chip is the slot number said twice — `isLead` is
-   * `index === 0` and the card draws `slotNumber` — so R3 deletes it there.
-   * **This rail draws no slot number**, so the chip is the only channel and
-   * deleting it needs a replacement rather than nothing.
-   *
-   * Adding the number was that replacement and it cost a line: the rail's
-   * header wrapped from two to three at 390 wide, which moved the map's
-   * `decisionTop` 23.5px down the screen and failed the height baseline on
-   * every guarded mode. A decision point pushed down the phone is a worse
-   * trade than one word on one card, so the word stays.
-   *
-   * The rail is a sixth hand-rolled party row, which is the section 5 defect
-   * D20 is about; folding it into the component would give it the slot number
-   * for free. That is M5.2's, which owns this screen.
-   */
-  if (index === 0) header.append(neutralChip('Lead', 'lead'));
-
-
-  const bar = createBar();
-  bar.set(hpFraction(member));
-  const track = bar.root;
-
-  const meta = el('div', 'panel__meta');
-  const hp = el('span', 'panel__hp-text');
-  hp.textContent = member.fainted ? FAINTED : hpState(member.hp, member.maxHp);
-  if (member.fainted) hp.dataset['fainted'] = 'true';
-  hpTip(track, hp.textContent);
-  meta.append(hp);
-  // What they are holding, because Stage 4 lets the player choose who holds
-  // what and a targeting decision you cannot audit is one you cannot learn from.
-  const item = heldItem(member);
-  if (item) meta.append(neutralChip(item.name, 'item'));
-  if (member.status) meta.append(statusChip(member.status));
-
-  card.append(header, track, meta);
-  return card;
 }

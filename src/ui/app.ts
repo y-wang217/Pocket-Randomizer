@@ -1318,14 +1318,14 @@ export function mountApp(root: HTMLElement): void {
             holdPlan(null);
             editParty?.({ kind: 'reorder', from, to });
             showParty(partyReturn);
-            mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
+            mapScreen.render(state, (index) => nodePick.submit(index));
           },
           onRelease: (slot) => {
             holdPlan(null);
             // The item goes to the bag, in `core/run.ts`'s editor.
             editParty?.({ kind: 'release', slot });
             showParty(partyReturn);
-            mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
+            mapScreen.render(state, (index) => nodePick.submit(index));
           },
           onPlan: (plan) => {
             holdPlan(plan);
@@ -1471,7 +1471,7 @@ export function mountApp(root: HTMLElement): void {
         segments: state.segments.length,
         seed: state.seed,
       });
-      mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
+      mapScreen.render(state, (index) => nodePick.submit(index));
       sidebar.update(state, feed.entries());
       refreshNav();
     };
@@ -1580,7 +1580,7 @@ export function mountApp(root: HTMLElement): void {
 
       releaseBattle();
       // Leave the map showing the run as it finished, behind the summary.
-      mapScreen.render(result.state, () => undefined, () => undefined);
+      mapScreen.render(result.state, () => undefined);
       summaryScreen.render(result);
       // The summary is locale neutral, and its stamps say so too.
       applyLocale(null);

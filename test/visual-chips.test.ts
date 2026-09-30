@@ -487,7 +487,7 @@ async function sweep(): Promise<ChipSample[]> {
     // archetype is" was true for four stages and is the kind of thing a reader
     // will otherwise re-derive from a stale memory.
     if (screen === 'map' && !openedParty) {
-      await page.locator(`${visible('map')} .party__header .button`).click();
+      await page.locator('[data-nav="team"]').click();
       await page.waitForTimeout(50);
       openedParty = true;
       continue;

@@ -73,7 +73,8 @@ describe('the Teach control is offered only where the teach is spent', () => {
 
   it('disarms it on every route that is a player looking rather than a boundary', () => {
     /*
-     * The map's Manage button and the pre-gym screen's. Not the re-entries —
+     * The Team tab from the map (the map's Manage button until 5.0/4) and the
+     * pre-gym screen's Manage button. Not the re-entries —
      * `back()` after a teach, a reorder, a release — which re-render the same
      * screen without leaving the boundary and must leave the flag alone.
      */
@@ -82,8 +83,16 @@ describe('the Teach control is offered only where the teach is spent', () => {
       'atTeachBoundary = false',
     );
 
-    const mapRoutes = APP.match(/\(\) => \{ atTeachBoundary = false; showParty\('map'\); \}/g) ?? [];
-    expect(mapRoutes.length, "the map's Manage button does not disarm the boundary").toBeGreaterThan(0);
+    /*
+     * **The map's route is the Team tab since Stage 5.0/4**, which took the
+     * party HUD and its Manage button off the map
+     * (`docs/spec/gymrun-stage5.0-rulings-map-without-team.md`). The tab
+     * reaches the writable party screen through `openPartyRoute`, and that is
+     * where the boundary has to be disarmed now.
+     */
+    const tabRoute = /openPartyRoute = \(bag\) => \{[\s\S]*?\n {4}\};/.exec(APP)?.[0] ?? '';
+    expect(tabRoute, 'the Team tab no longer reaches the party screen through openPartyRoute').toContain("showParty(name)");
+    expect(tabRoute, "the Team tab's route to the party screen does not disarm the boundary").toContain('atTeachBoundary = false');
   });
 });
 

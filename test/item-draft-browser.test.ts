@@ -76,7 +76,9 @@ describe('the unspent item plan across a reload', () => {
   // does not before its first loss.
   it('keeps an item moved to the bag from the map, after a reload', async () => {
     const { page, context, problems } = await openApp(harness.browser, harness.url, 'SMK49-2');
-    const manage = page.locator(`${visible('map')} button`, { hasText: 'Manage' }).first();
+    // The Team tab, which from the map opens the writable party screen (5.0/4:
+    // the map's Manage button went with its party HUD).
+    const manage = page.locator('[data-nav="team"]');
     const toBag = page.locator(`${visible('party')} button`, { hasText: 'To bag' }).first();
 
     // Walk until a member is holding something, looking from the map.

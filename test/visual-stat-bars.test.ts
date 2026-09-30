@@ -90,7 +90,7 @@ describe('the party screen stat bars', () => {
     for (let step = 0; step < 600; step++) {
       const screen = await openScreen(page);
       if (screen === 'map') {
-        await page.locator(`${visible('map')} .party__header .button`).click();
+        await page.locator('[data-nav="team"]').click();
         await page.waitForTimeout(200);
         break;
       }

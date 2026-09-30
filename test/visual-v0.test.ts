@@ -179,7 +179,7 @@ describe('one accent', () => {
         }
       }
       if (screen === 'map' && !opened) {
-        await page.locator(`${visible('map')} .party__header .button`).click();
+        await page.locator('[data-nav="team"]').click();
         await page.waitForTimeout(30);
         opened = true;
         continue;

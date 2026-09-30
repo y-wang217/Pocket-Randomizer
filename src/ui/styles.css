@@ -1670,19 +1670,11 @@ body {
 .relics__text,
 .relics__item .badge--capability { display: none; }
 
-/* The map's HUD in Pocket: the wallet and the party line share a row, the
-   members go two-up so a long name has a line to itself. */
-.screen--map .party { flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
-.screen--map .party__wallet { padding: var(--space-h) var(--space-1h); }
-.screen--map .party__header { flex: 1; }
-.screen--map .party__members { flex-basis: 100%; }
+/* The map's heading in Pocket. (The map's party HUD rules that stood here
+   went with the HUD in 5.0/4.) */
 .map__heading { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-2); }
 .map__region { flex-basis: 100%; }
-.screen--map .party__wallet-value { font-size: var(--fs-base); }
 .party__members { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-1); }
-.screen--map .party__member .panel__header { margin-bottom: var(--space-h); }
-.screen--map .party__member .panel__meta { margin-top: var(--space-h); min-height: 0; }
-.screen--map .party__member .hp { height: 4px; }
 
 
 /* The card's stat block: six rows, two columns, same rows as a pick card's six
@@ -7077,26 +7069,39 @@ button,
    per step) stop at its edge rather than being deleted from under the other
    screens that still read `.node__gate`. */
 
-/* The screen fills the frame, and the graph takes what the chrome leaves. */
+/* The screen fills the frame, and the graph takes what the chrome leaves.
+   No party since 5.0/4 (`docs/spec/gymrun-stage5.0-rulings-map-without-team.md`):
+   the rail, the heading with the wallet beside it, then the graph. */
 .screen--map {
   min-height: 100%;
-  grid-template-rows: auto auto auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "rail" "heading" "chain";
+  grid-template-rows: auto auto minmax(0, 1fr);
   row-gap: var(--space-2);
 }
 @container frame (max-width: 760px) {
-  .screen--map { grid-template-areas: "rail" "heading" "party" "chain"; }
+  .screen--map { grid-template-areas: "rail" "heading" "chain"; }
 }
-
-/* The chrome above the graph, tightened by spacing alone: every fact the
-   heading and the party cards carried is still on them. */
-.screen--map .map__heading { row-gap: 0; }
+.screen--map .map__heading { row-gap: 0; align-items: center; }
 .screen--map .map__region { margin: 0; }
-.screen--map .party__member { padding: var(--space-1) var(--space-2); }
-.screen--map .party__member .panel__header { margin-bottom: var(--space-1); }
-/* The meta line only when it shows something. The HP words are hidden at rest
-   (the bar is the readout and the words are its tap), so a member holding
-   nothing, with no status, carried an empty line: 16px a card. */
-.screen--map .party__member .panel__meta:not(:has(.chip, [data-fainted])) { display: none; }
+/* The title and the wallet share the first line; every other line of the
+   heading takes a line of its own beneath them. */
+.screen--map .map__heading > :not(.screen__title):not(.map__wallet) { order: 2; flex-basis: 100%; }
+
+/* The wallet: the currency mark and the run's coins, at the right end of the
+   heading's first line, as a figure. */
+.map__wallet {
+  order: 1;
+  margin-left: auto;
+  padding: var(--space-h) var(--space-1h);
+  background: var(--bg-raised);
+  border: var(--rule-heavy) solid var(--border-heavy);
+  border-radius: var(--radius-chip);
+  font-family: var(--font-numeral);
+  font-size: var(--fs-base);
+  font-weight: 700;
+}
+.map__wallet .chip--currency { display: inline-flex; align-items: center; gap: var(--space-1); }
 
 .map-graph {
   grid-area: chain;
@@ -7211,6 +7216,7 @@ button,
   background: var(--bg-raised);
   border: var(--rule-heavy) solid var(--border-heavy);
 }
+.map-graph .node--compact .node__mark { width: 36px; height: 36px; }
 .map-graph .node__label { gap: 0; }
 /* The mark alone inside the disc: the chip's own box is the disc. */
 .map-graph .node__kind { padding: 0; background: none; border: 0; }
@@ -7250,6 +7256,8 @@ button,
 /* The detail line, on the step being chosen from only. A size smaller than
    the name so a shop's shelf fits three lines in a third of the frame. */
 .map-graph .node__detail { max-width: 108px; font-size: var(--fs-xs); line-height: 1.25; }
+.map-graph .chip--currency,
+.map__wallet .chip--currency { padding: 0; background: none; border: 0; }
 .map-graph .chip--currency { display: inline-flex; align-items: center; gap: var(--space-h); vertical-align: middle; }
 .map-graph .chip--currency svg { width: 12px; height: 12px; }
 

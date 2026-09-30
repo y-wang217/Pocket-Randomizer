@@ -217,7 +217,7 @@ async function main(): Promise<void> {
       // The map's worst case is deep in the run since 5.0/4 (`deepMapState`);
       // the party drawer's is the opening map's widest party, as before.
       const state = surface === 'drawer' ? openingState(seed) : deepMapState(seed);
-      mapScreen.render(state, noop, noop);
+      mapScreen.render(state, noop);
       applyLocale(localeOf(state));
       stamp(state);
       show('map');
