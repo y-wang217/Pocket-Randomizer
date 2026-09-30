@@ -54,7 +54,7 @@ which blocks everything.
 | D36 | M5.1 | Section 3 puts the effect line on inspect; section 4 and M5.1 put it on the card | **2026-09-22**, option 1, built |
 | D37 | M5.2 | M5.2 needs two glyphs: section 2 carries neither, and section 3 already promised one of them | **2026-09-22**, option 1, built |
 | D38 | M5.4's second clause | The capture card cannot mount the party row and stay above the fold | **open** |
-| D39 | M5.6 (filed), then M6.1 or M7.2 | `Costs` is a field label at rest, and no family encodes a price | **open** |
+| D39 | M5.6 (filed), then M6.1 or M7.2 | `Costs` is a field label at rest, and no family encodes a price | **2026-09-30**, closed by D54: option 3 taken, the `currency` family |
 | D40 | M6.1's done-when | The classroom does not carry the families section 7 says it does: starter select draws its own move rows | **2026-09-23**, option 3: new item M6.0 |
 | D41 | M6.1 | Three of ten families never pass through the glyph, and the canon says the glyph renders the label | **2026-09-23**, option 1 plus option 3's test, built |
 | D42 | M6.1 | R2 and R3 outrank R7, and both forbid what R7 requires | **2026-09-23**, option 1 |
@@ -65,12 +65,12 @@ which blocks everything.
 | D47 | Stage 4.11 Tiers 1 to 3 | Weather and terrain are a board state with no encoding row, no glyph family and no step in the turn grammar; the stage needs a twelfth family, `field`, nine marks after the Tier 0 census | **2026-09-25**, option 1, the plan's defaults taken with the census's ninth mark; **built** (Tiers 1 to 3) |
 | D48 | Stage 4.11 Tier 4 | A pulse on the ability name when it fires is feedback by section 6's own pattern, and C1's *no conditional emphasis* should say so | **2026-09-25**, option 1; **built** (Tier 4) |
 | D49 | Stage 4.11 (declines a scope) | A *boosted under this weather* marker on the move button is a forecast C1's exception does not cover; recommended declined | **2026-09-25**, **option 2, against the recommendation**: C1's exception extended; **built** (Tier 2b) |
-| D50 | 5.0/1 | Ruling 2 retires Simple and Detailed before the validation cycle R6 and M6.4 wait for | **open** |
+| D50 | 5.0/1 | Ruling 2 retires Simple and Detailed before the validation cycle R6 and M6.4 wait for | **2026-09-30**, the cycle ruled done by the author: R6 amended, one face, the setting deleted in 5.0/1 |
 | D51 | 5.0/1, 5.0/2 | The plan deletes density in Stage 2 by its ruling and in Stage 1 everywhere else | **open** |
-| D52 | 5.0/1 to 5.0/4 | "Inspect on tap" against R5's long press, and a tap on a reward card that must also select | **open** |
-| D53 | 5.0/1 | The nav tabs open routes where §12's standing rule built overlays; Team and Bag are one screen; no mid-run Run Info exists | **open** |
-| D54 | 5.0/1, 5.0/3, 5.0/4 | The shell's nav words, nav icons and currency icon have no budget row and no family | **open** |
-| D55 | 5.0/1, 5.0/3 | The desktop sidebar: Recent Events is a log at rest, Run Progress has no phone route, the team is a new call site | **open** |
+| D52 | 5.0/1 to 5.0/4 | "Inspect on tap" against R5's long press, and a tap on a reward card that must also select | **2026-09-30**, option 1: inspect stays the long press |
+| D53 | 5.0/1 | The nav tabs open routes where §12's standing rule built overlays; Team and Bag are one screen; no mid-run Run Info exists | **2026-09-30**, tabs open screens, read-only while a decision is pending; a mid-run Run Info screen is built |
+| D54 | 5.0/1, 5.0/3, 5.0/4 | The shell's nav words, nav icons and currency icon have no budget row and no family | **2026-09-30**, option 1: a Shell nav row at 5 and a thirteenth family, `currency`; closes D39 |
+| D55 | 5.0/1, 5.0/3 | The desktop sidebar: Recent Events is a log at rest, Run Progress has no phone route, the team is a new call site | **2026-09-30**, Run Progress is the decision feed, replayed from the run log; R11 carve-out |
 | D56 | 5.0/2 | Stage 2's HP box drops facts the Pokemon panel carries, the foe's HP number among them | **open** |
 | D57 | 5.0/2 | Stage 2's move button list omits the name, base power, accuracy, priority and the fact strip | **open** |
 | D58 | 5.0/2 | The battle header, the turn header and the flags have no place in Stage 2's layout | **open** |
@@ -4453,3 +4453,24 @@ the face that section 9's family-size hypothesis now describes"* (lines
    evidence from a face that is about to change.
 
 **Recommendation: 1.**
+
+---
+
+## Rulings, 2026-09-30, opening 5.0/1
+
+The author answered the 5.0/0 report on the five rows it named as blocking
+5.0/1, filed verbatim as
+[`../spec/gymrun-stage5.0-rulings-d50-d55.md`](../spec/gymrun-stage5.0-rulings-d50-d55.md).
+The bible goes to Rev 15.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D50 | **The validation cycle is ruled done.** The author's full playthrough and the outside tester's two QA passes, with R6's disconfirmer not observed. Fewer testers than D11's definition; the playtest log says so. Option 1 in effect: R6 amended, one face, the setting deleted outright in 5.0/1. M6.4 closes as superseded. | Bible R6, sections 9 and 11. `playtest-log.md`. `../generation.md` §87 |
+| D52 | **Option 1.** *"yes, long press to inspect."* Every "tap to inspect" in the plan means the long press; tap selects. | No bible change. `../generation.md` §87 |
+| D53 | **Tabs open screens**, and a **mid-run Run Info screen** is built. The bible says so in section 5. To keep CLAUDE.md's single path and §12's three properties, a screen opened while a decision is pending elsewhere is a readout (no advance, no submit, no RNG) and closing it returns to the decision; Map from anywhere but the map has no picker. **That guard is this register's reading, not the author's words, and is flagged to the author.** | Bible sections 4 and 5. `../generation.md` §12 and §87 |
+| D54 | **Option 1.** *"no problem. big visual update is what makes changes like this."* A Shell nav row at 5; tab icons are controls, not glyphs; a thirteenth family, `currency`; the map node card goes 2 to 1. D39's option 3 is taken and D39 closes with it. Section 10.3's stale "tenth" corrected. | Bible sections 2, 3, 4, 9, 10 |
+| D55 | **Run Progress is the decision feed**: every decision the run log records, replayed in play order and continuing as the run goes. A new feature built on the existing replay; it replaces the plan's separate Recent Events. R11 gains the carve-out: the feed is inputs, not outcomes, and may sit at rest in the Run Info screen and the desktop sidebar, never inside the game frame. The phone reaches it through the Run Info tab. | Bible R11, sections 4, 5 and 11. `../generation.md` §87 |
+
+**Still open after these five:** D51 and D56 to D76. D51 closes with 5.0/1
+itself (density goes in 5.0/1, as every line but ruling 2 says). The rest
+block the stage they name.

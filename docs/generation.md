@@ -1396,6 +1396,12 @@ which is where 4.5.1 put it, so there is exactly one write path for party state.
 A drawer that could reassign would need its own carve-out from the first rule
 above, and that is a v2 decision with its own playtest.
 
+**Amended 2026-09-30 (D53, §87).** The rule stands; the mechanism changes. The
+5.0 shell's nav tabs open **screens**, not the overlay, and the three properties
+above move with them: a screen opened by a tab while a decision is pending
+elsewhere is a readout, and closing it returns to the decision. The party
+screen's write path is unchanged and is only writable between nodes, as today.
+
 
 ## 12b. Deviation: the 4.7 phone regression patch stopped at step 2
 
@@ -11582,3 +11588,46 @@ description drops "Stage 1:".
 QA-003, QA-004 and QA-005 were built in section 84 and the tester did not
 revisit them. The report's next checks 4 and 5 (a single-click retest; shop, rest and
 full-party passes) are theirs to run on the next deploy.
+
+## 87. Stage 5.0: the author's rulings on D50 and D52 to D55, and what 5.0 now builds that its prompt did not say
+
+**2026-09-30.** [`spec/gymrun-stage5.0-rulings-d50-d55.md`](spec/gymrun-stage5.0-rulings-d50-d55.md),
+answering the 5.0/0 report. Bible Rev 15. No version axis moves: nothing here
+draws, reshapes the log or touches a table.
+
+Deviations from [`spec/gymrun-stage5.0-visual-redesign.md`](spec/gymrun-stage5.0-visual-redesign.md),
+recorded here rather than edited into the prompt:
+
+1. **Density goes in 5.0/1** (D51). The prompt's ruling 2 says Stage 2; every
+   other line says Stage 1, and the 5.0/0 inventory shows the deletion is shell
+   and CSS work, not battle work.
+2. **R6 retired on the author's ruling** (D50). The validation cycle is ruled
+   done on the author's playthrough and the two QA passes, fewer testers than
+   D11's definition. The one face is the Pocket face. The 5.0/0 report's trap
+   stands: unconditional CSS today is *Detailed*, so the deletion is promoting
+   the Pocket rules, not removing the attribute. M6.4 is superseded.
+3. **"Tap to inspect" means the long press** (D52). No change to R5.
+4. **Tabs open screens** (D53). The prompt said the tabs *"open the existing
+   party, backpack, summary and settings surfaces"*; the ruling makes them
+   screens rather than overlays, and §12 above is amended to carry its three
+   properties to them. **The read-only-while-pending guard is the register's
+   reading of the ruling**, needed to keep CLAUDE.md's single path to a node
+   completion and ruling 4's *"no Bag"* in battle; it is flagged to the author.
+5. **A mid-run Run Info screen is built** (D53). The prompt pointed the Run
+   Info tab at the summary, which is the end-of-run archive with Rematch and the
+   seed copy. The new screen is read-only: the decision feed and the run's
+   position.
+6. **Run Progress is the decision feed, and Recent Events is not built
+   separately** (D55). The prompt's ruling 3 put both in the desktop sidebar
+   only. The ruling makes Run Progress *"a continuation of recent decisions
+   made"*, every decision the run log records (`RunDecision` in `core/types.ts`:
+   starter, locale, node, battle choice, reward, shop, event, acquisition,
+   items, lead, party edit, evolve), replayed in play order. It is a new
+   feature and a pure read of the log, resolved against the seed's offers by the
+   existing replay (`replayRunPolicy` in `core/run.ts`), so it draws
+   nothing and needs no version bump. It reaches the phone through the Run Info
+   tab, where the prompt had it desktop-only. R11 gains the carve-out: inputs,
+   not outcomes, and never inside the game frame.
+7. **A thirteenth glyph family, `currency`** (D54), where the prompt listed a
+   currency icon as class C art with no family. The map node card goes to a
+   budget of 1. D39 closes. The tab icons are ruled controls, not glyphs.
