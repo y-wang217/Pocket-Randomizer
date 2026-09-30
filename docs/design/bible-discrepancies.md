@@ -4507,3 +4507,25 @@ The bible goes to Rev 16.
   class C mark but the backdrop.
 
 The rest block 5.0/3 to 5.0/5.
+
+---
+
+## Rulings, 2026-09-30, opening 5.0/3
+
+The author took every recommendation on the seven rows blocking 5.0/3, filed
+verbatim as
+[`../spec/gymrun-stage5.0-rulings-d65-d71.md`](../spec/gymrun-stage5.0-rulings-d65-d71.md).
+The bible goes to Rev 17.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D65 | **Option 1.** The capability glyph sits at rest on a relic card, the map node's glyph without its chevron. | Bible sections 3 and 5. `../generation.md` §89 |
+| D66 | **Option 1.** R2 stands. The face is the mark; the name and the effect line are on the long press, the relic's name included now that the manifest carries a relic icon (D36's deviation retired). Coins and restore cards get section 4 rows at 0: `+N` beside the currency glyph, `+N%` beside a bar. | Bible sections 2, 3, 4 and 5. `../generation.md` §89 |
+| D67 | **Option 1.** A move kind mounts the move card. Three across where they fit, stacked where they do not. | Bible section 5's Reward card row says so. `../generation.md` §89 |
+| D68 | **Option 1.** The reward screen is the result screen's card section. No new route. | No bible change |
+| D69 | **Option 1.** No resting cursor; tap selects and opens the band, the band's commit claims, its cancel returns to the cards. Section 5's Confirm band row gains the result screen and the shop; section 4 gains a claim and buy row at 6. The selection is UI state and never reaches the log. | Bible sections 4 and 5. `../generation.md` §89 |
+| D70 | **Option 1.** The coverage line is D5's two sign rows; the capture card stays outside the reward card. D38 stays open. | No bible change |
+| D71 | **Option 1.** No disc on a TM card. | Bible section 5's Reward card row. `../generation.md` §89 |
+
+**Still open after these seven:** D61, D63, D64, D72 and D75, all 5.0/4's or
+5.0/5's, and D38.

@@ -11798,3 +11798,39 @@ delivered all nine paintings inside this stage to judge the asset pipeline
     `new URL(file, import.meta.url)` called the library's arrow function and the
     gallery never became ready. Naming the global makes Rollup rename the
     library's variable in every bundle.
+
+## 89. Stage 5.0: the author's rulings on D65 to D71, and what 5.0/3 builds that its prompt did not say
+
+**2026-09-30.** [`spec/gymrun-stage5.0-rulings-d65-d71.md`](spec/gymrun-stage5.0-rulings-d65-d71.md),
+the author taking every recommendation on the seven rows blocking 5.0/3.
+Bible Rev 17. No version axis moves: nothing here draws, reshapes the log or
+touches a hashed table.
+
+Deviations from [`spec/gymrun-stage5.0-visual-redesign.md`](spec/gymrun-stage5.0-visual-redesign.md),
+Stage 3, recorded here rather than edited into the prompt:
+
+1. **No name and no effect line on the card** (D66). The prompt's card is
+   *"icon, name, quantity if any, band pips for moves, one short effect
+   line"*. R2 stands: the face is the mark, and the name and the line are on
+   the long press. The relic's icon comes from the asset manifest, so D36's
+   deviation (the relic name as its encoding) is retired and the name joins
+   the rest on inspect. "Quantity if any" is the coins and restore cards'
+   `+N` and `+N%`, each beside a mark.
+2. **Move kinds carry the move card, not band pips alone** (D67). Three cards
+   sit in a row where they fit and stack where they do not.
+3. **No resting cursor, and the band claims** (D69). The prompt's *"selection
+   cursor on the picked card, confirm to claim"* is built as: a tap puts the
+   selected state on the card and opens `ui/band.ts` with that card as the
+   content; the band's commit claims; its cancel clears the selection and
+   returns to the three cards. The selection is UI state only. The run policy
+   is answered once, on the commit, so the log records the same one reward
+   decision it always has, and "claims exactly once across a reload" is the
+   replay's existing guarantee.
+4. **The capability glyph is on the relic card** (D65), where section 3 had
+   put it on inspect.
+5. **No reward screen** (D68). The cards stay a section of the result screen.
+6. **The capture card is not the one card** (D70), and keeps D5's sign rows.
+7. **No TM disc** (D71). The plan's class A *"TM discs by type"* is not drawn
+   on a card.
+8. **The order question is moot.** 5.0/2 merged as #78 before the rulings
+   were filed, so 5.0/3 builds on it in the plan's order.
