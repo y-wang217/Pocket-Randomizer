@@ -63,6 +63,19 @@ describe('the vertical budget', () => {
     expect(measured.map.decisionBottom, 'map: last offered node card').toBeLessThanOrEqual(740);
     expect(measured.battle.decisionBottom, 'battle: fourth move button').toBeLessThanOrEqual(740);
   }, 180_000);
+
+  /*
+   * **And neither screen scrolls inside the frame.** Stage 5.0/2, the plan's
+   * test 2 (`docs/spec/gymrun-stage5.0-visual-redesign.md`): every decision
+   * surface fits 390x844 with no scroll. Since 5.0/1 the page cannot scroll at
+   * all, so the question is asked of the frame's scroller, which the
+   * instrument now reads.
+   */
+  it('scrolls neither guarded screen inside the frame at 390x844', async () => {
+    const measured = await measureGuardedScreens(harness.url, harness.browser);
+    expect(measured.map.scrollHeight, 'map: frame scroller').toBeLessThanOrEqual(measured.map.clientHeight);
+    expect(measured.battle.scrollHeight, 'battle: frame scroller').toBeLessThanOrEqual(measured.battle.clientHeight);
+  }, 180_000);
 });
 
 /** The computed properties the plan names for sibling cards. */

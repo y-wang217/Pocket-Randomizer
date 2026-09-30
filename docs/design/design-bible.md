@@ -1,6 +1,23 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 15, Sept 30, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 16, Sept 30, 2026.
+
+**Rev 16** carries one amendment and four rulings that keep the text, ruled
+2026-09-30 by the author on rows D56 to D60, filed by Stage 5.0's spike
+against 5.0/2, the battle screen
+([`../spec/gymrun-stage5.0-rulings-d56-d60.md`](../spec/gymrun-stage5.0-rulings-d56-d60.md)).
+**D56, D57, D58, D59**: no change. The battle screen's HP box is the Pokemon
+panel restyled, with every fact it carries, both HP numbers and the ability
+name among them; the move button is the full move card, restyled; the header
+row stays above the stage, and section 6's turn header, never built before,
+is built in it and named in section 4's header row; D26's glyph handle and
+pull stay the log's only way in. **D60**: section 5's *World* row loses the field state and gains a
+sibling, the *Scene backdrop*. The World is the locale's layers behind the
+game frame, unchanged. The backdrop is the scene inside the frame: the battle
+stage's and the map's painted art, from the asset manifest. The weather wash
+and terrain tint move from the World to the battle backdrop, and sections 2,
+3, 4 and 6 say *backdrop* where they said *world*. Two layers with two jobs,
+not one component twice.
 
 **Rev 15** carries five amendments, ruled 2026-09-30 by the author on rows
 D50 and D52 to D55, filed by Stage 5.0's spike before any code
@@ -272,7 +289,7 @@ Thirteen glyph families (2026-09-30, D54; twelve under D47, 2026-09-25; eleven u
 | Stat | Six stat glyphs. Stage as multiplier plus ladder bar (shipped in 4.8.0.3), nonzero only | Neutral |
 | Capability | One glyph per capability, plus a band chevron filled to the run's reach — none, latent, known (2026-09-22, D37) | Neutral |
 | Node | One glyph per node kind: a head (trainer), a bush (wild), a tent (rest), a badge (gym), a bag (shop), a question mark (event). On the map node card at 24, on the battle screen header at 16 (2026-09-25, D46) | Neutral |
-| Field | Nine glyphs for the state of the board: rain, sun, sand, snow, strong winds, and the four terrains. Heavy rain and Extreme sun wear the rain and sun marks and differ on inspect. At 16 in a fixed slot on the battle screen header, dimmed while an ability suppresses the weather. The world behind the stage carries the same state as a wash and a terrain tint, colour secondary to the glyph (2026-09-25, D47) | Neutral glyph; the wash and tint are global tokens mixed into the locale's own three |
+| Field | Nine glyphs for the state of the board: rain, sun, sand, snow, strong winds, and the four terrains. Heavy rain and Extreme sun wear the rain and sun marks and differ on inspect. At 16 in a fixed slot on the battle screen header, dimmed while an ability suppresses the weather. The battle backdrop behind the stage carries the same state as a wash and a terrain tint, colour secondary to the glyph (2026-09-25, D47; on the backdrop, not the world, 2026-09-30, D60) | Neutral glyph; the wash and tint are global tokens mixed into the backdrop's own |
 | Currency | One mark, beside a bare number wherever a coin amount appears: the map node's payout, the shop price, the wallet (2026-09-30, D54) | Neutral |
 
 Font: Pixelify Sans, blanket, per the 4.7.1 decision. If the numeral font jitters on HP and PP counters, `--font-numeral` falls back to the mono stack, one line, and this table is annotated.
@@ -305,7 +322,7 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Coverage change (capture card) | Two rows of type chips, plus row and minus row, signs only. The signs are permanent, not an exposure label: coverage is not a glyph family (2026-09-19, D5) | Empty row renders nothing | The full before and after sets |
 | Capability requirement (map node) | Capability glyph plus band chevron (none, latent, known) | None | Capability name, what satisfies it |
 | Tier (map node) | Tier pips, reward-tier pips | None | Tier definition |
-| Field state (weather, terrain) | Field glyph at 16 on the battle screen header; the world's wash and terrain tint behind the stage. Turns remaining are never shown (2026-09-25, D47) | None: the locale's own world, no glyph | Name and effect line, from `fieldCopy`; under suppression, which ability holds it off |
+| Field state (weather, terrain) | Field glyph at 16 on the battle screen header; the battle backdrop's wash and terrain tint behind the stage. Turns remaining are never shown (2026-09-25, D47; 2026-09-30, D60) | None: the locale's own backdrop, no glyph | Name and effect line, from `fieldCopy`; under suppression, which ability holds it off |
 | Coin amount (payout, price, wallet) | Currency glyph beside the bare number (2026-09-30, D54) | Never hidden | The word *coins*, and what the amount buys or pays |
 | Node kind (map node, battle header) | Kind glyph. A gym's leader name beside it, a proper noun, is the identity and not the kind (2026-09-25, D46) | Never hidden | The kind's hint, from `KIND_HINTS` |
 | Archetype | Not rendered where the stat bars already draw it (4.8.0.3) | Absent | Not on inspect either; it is a derived label and can lie under randomization |
@@ -328,8 +345,8 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Party row and party drawer | 0 plus the ability name | Species name, nickname, ability name (2026-09-21, D19) |
 | Pokemon battle panel | 0 plus the ability name | Name, nickname, ability name (2026-09-21, D19) |
 | Flag strip (battle) | 1 flag per hit, plus 1 non-hit kind per side | The one flag R9 allows, and the second channel (2026-09-21, D23 and D24) |
-| Battle screen header | 3 | Opponent, AI tier; the kind is the node glyph (2026-09-25, D46; was 4 under D28, 2026-09-21). The field glyph is a glyph and costs nothing (2026-09-25, D47) |
-| World behind the stage | 0 | None. The field state is a wash and a tint, never a word (2026-09-25, D47) |
+| Battle screen header | 3 | Opponent, AI tier, and section 6's turn header, `Turn` and its number (2026-09-30, D58); the kind is the node glyph (2026-09-25, D46; was 4 under D28, 2026-09-21). The field glyph is a glyph and costs nothing (2026-09-25, D47) |
+| Backdrop behind the stage | 0 | None. The field state is a wash and a tint, never a word (2026-09-25, D47; the backdrop, not the world, 2026-09-30, D60) |
 | Result screen | 6 | Outcome word, "+N", continue |
 | Capture card | 0 | Follows the recipient card |
 | Event screen | 59 | Hook 12, four labels 4, four hints 6 — 52 — plus the Toll's price 5 and the control 2. The requirement, the band and the reward tier are glyphs (2026-09-22, D33) |
@@ -446,8 +463,9 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Type chip | Glyph in colour | Everywhere a type appears |
 | Inspect layer | The full explanation of whatever was long-pressed | One mechanism, mounted at the shell |
 | Flag strip | One flag per hit by R9's precedence, plus one non-hit kind per side (2026-09-21, D23) | Battle |
-| Battle screen header | Node glyph at 16, opponent, AI tier, field glyph at 16 in a fixed slot after the tier (2026-09-25, D46 and D47; the kind was a word under D28, 2026-09-21) | Battle |
-| World | The locale's three layers and drift, and during a battle the field state as a weather wash and a terrain tint, global tokens mixed into the locale's own (2026-09-25, D47) | Every screen, mounted once by `app.ts`; the field state on the battle screen only |
+| Battle screen header | Node glyph at 16, opponent, AI tier, field glyph at 16 in a fixed slot after the tier, and the turn header at the row's end (2026-09-25, D46 and D47; the kind was a word under D28, 2026-09-21; the turn, 2026-09-30, D58) | Battle |
+| World | The locale's three layers and drift, behind the game frame (2026-09-25, D47; the field state moved to the scene backdrop, 2026-09-30, D60) | Every screen, mounted once by `app.ts`, outside the frame |
+| Scene backdrop | The game screen's painted scene inside the frame, from the asset manifest: the locale's battle backdrop, or the gym's, behind the battle stage; the locale's map backdrop behind the map. During a battle, the field state as a weather wash and a terrain tint over it, global tokens mixed into the backdrop's own. A missing file is the manifest's placeholder at the correct size (2026-09-30, D60) | The battle stage and the map, inside the frame. Never outside it: that is the World's |
 | Reward card | The item or berry sprite in a fixed slot, a relic's name, the boosted type chip, the move card on a move kind, and the shop's price number (2026-09-22, D29 and D36) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |
 | Shell nav | Five tabs, each a word and a control icon: Map, Team, Bag, Run Info, Settings. **A tab opens a screen, not an overlay** (2026-09-30, D53). Opened while a decision is pending elsewhere, the screen is a readout: it never advances run state, never submits, never consumes RNG, and closing it returns to the pending decision, which is the §12 standing rule's three properties carried from the drawer to the screen. Map from anywhere but the map is the chain without its picker, so there is still exactly one path by which a node completes | The shell, every viewport. Replaces the drawer triggers |
 | Run Info screen | The decision feed, newest first, and the run's position: gym rail, locale, seed (2026-09-30, D53 and D55) | The Run Info tab. The desktop sidebar mounts the same feed |
@@ -494,7 +512,7 @@ In resolution order, on a 390x844 phone. Timings are the numbers already in `dat
 1. Turn header replaces itself in place. "Turn 4". No scroll.
 2. First actor jiggles. If a bracket decided the order, the priority chevron flashes on that panel. Same-bracket turns are unmarked, matching the log rule.
 3. An ability fires: the ability name pulses on its panel, one keyframe for every ability, never weighted, never coloured. Intimidate and Drizzle are drawn identically. An ability that announces itself through an activation line is the same event (2026-09-25, D48).
-4. A field effect begins: the world takes the weather's wash or the terrain's tint and the field glyph appears on the header. When it ends, both leave. No words. The event flag and the sweep on the causing actor are the *event*; the wash and the glyph are the *state*, the same split as the status chip and the *Burned* flag (2026-09-25, D47).
+4. A field effect begins: the battle backdrop takes the weather's wash or the terrain's tint and the field glyph appears on the header. When it ends, both leave. No words. The event flag and the sweep on the causing actor are the *event*; the wash and the glyph are the *state*, the same split as the status chip and the *Burned* flag (2026-09-25, D47; the backdrop, not the world, 2026-09-30, D60).
 5. Hit lands. HP drops as a chunk with the fading shadow. A damage number rises. One flag by R9 precedence.
 6. Status chip appears on the panel the moment it is inflicted. Nothing written.
 7. Berry fires: sprite pops, flag names it, sprite disappears.

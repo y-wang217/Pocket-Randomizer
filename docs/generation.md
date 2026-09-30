@@ -11687,3 +11687,114 @@ recorded here rather than edited into the prompt:
 17. **Not run here: the WebKit suite and a real iPhone.** This sandbox has
     Chromium only. The plan asks for both before review of 5.0/2; for 5.0/1
     they are the reviewer's.
+
+## 88. Stage 5.0: the author's rulings on D56 to D60, and what 5.0/2 builds that its prompt did not say
+
+**2026-09-30.** [`spec/gymrun-stage5.0-rulings-d56-d60.md`](spec/gymrun-stage5.0-rulings-d56-d60.md),
+answering the 5.0/1 report. Bible Rev 16. No version axis moves: nothing here
+draws, reshapes the log or touches a table.
+
+Deviations from Stage 2 of
+[`spec/gymrun-stage5.0-visual-redesign.md`](spec/gymrun-stage5.0-visual-redesign.md),
+recorded here rather than edited into the prompt:
+
+1. **The HP boxes carry everything the Pokemon panel carries (D56).** The
+   prompt's list (*"name, gender, level, HP bar, HP number for the player
+   side, status, and non-zero stat stages"*) was a sketch. The box is the
+   panel restyled into the reference's shape, and it keeps both HP numbers,
+   the volatile chips, the ability name, the item sprite, the priority
+   chevron, the type chips, the foe's roster marks and the long press to the
+   six base stats. The author named the ability as very important.
+2. **The move button is the full move card, restyled (D57).** Not the
+   prompt's five facts: name, base power, accuracy, priority and the fact
+   strip stay, and the effectiveness marker keeps the field's factor (D49).
+3. **The header row stays above the stage (D58)**, the same component, with
+   the turn header in it. The flag strip keeps each flag on its target's
+   side.
+4. **There is no Info button (D59).** D26's glyph handle and pull stay the
+   log's way in. The secondary row under the grid is Switch alone, and a
+   forced switch opens the bench by itself.
+5. **The painted backdrops do not replace the World (D60).** The prompt was
+   silent on the World and the weather; the author ruled neither of the
+   register's options as written. The World is the locale's layers behind
+   the game frame and does not change. The painted backdrops are the game
+   screen's scene inside the frame: the battle backdrop behind the stage, the
+   map backdrop behind the map. The weather wash and terrain tint sit on the
+   battle backdrop, which is where 5.0/1 already drew them (§87 item 12), so
+   5.0/2 builds nothing new for it. Bible section 5 narrows *World* and adds
+   *Scene backdrop*.
+6. **D62 is carried on the battle screen by items 1 and 2.** The type chip on
+   the panel and the move card stays a glyph, not a genre word badge like the
+   5.0/0 spike's. The row stays open for 5.0/3 and 5.0/4.
+7. **Carried from 5.0/1 into 5.0/2:** the heights instrument reads the
+   frame's scroller, not the document's, and the WebKit suite and a real
+   iPhone before review.
+
+**Built, 2026-09-30, on `claude/wizardly-wright-cum8e0`**, after the author
+confirmed D60's reading and ruled D62 option 1 everywhere
+([`spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md`](spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md)).
+Report: [`visual/reports/5.0-stage2.md`](visual/reports/5.0-stage2.md). No version
+axis moves and `contentHash` holds; nothing under `core/` or `data/` changed.
+
+8. **The stage names its backdrop through the manifest.** `applyBackdrop`
+   (`ui/assets/manifest.ts`) sets `data-backdrop` to `battle-backdrop:gym` at
+   a gym and `battle-backdrop:<locale>` elsewhere, read off `data-locale`; a
+   board with no locale names none. A resolved file is a background over the
+   placeholder tint, so a missing or broken file shows the placeholder at the
+   stage's own size. The gym's placeholder is a tint of its own
+   (`--gym-sky`, `--gym-ground`), because the locale palettes are three tokens
+   each by test. The terrain tint now mixes into whichever ground the backdrop
+   has.
+9. **The stage is 272px, not 260**, and wears the window border. The header
+   row gave back what the band took: the battle screen measures 564px against
+   563 before, and the fourth move button ends at y=651 against the 740 line.
+10. **The bench's heading became the Switch button's label.** The three
+    wordings (`Switch`, `Switch — blocked this turn`, `Choose who comes in`)
+    are the heading's, so the census does not move and no word is printed
+    twice. The button is hidden with the bench on a party of one, as the empty
+    bench always was.
+11. **The move button's name wraps rather than truncating**, and the PP moved
+    to the identity line's right edge to give the name the whole top line. A
+    first cut put PP beside the name and cut `Temper Flare` to `Temper Fla…`,
+    which is a fact half removed.
+12. **The turn header is built** (section 6 step 1, R11, D58): `Turn 4` at the
+    header row's far end, replacing itself in place, taken from the turn
+    number on the screen's one reading of the batch. No build had drawn it
+    before. It is one word under section 4's header budget of 3, since the
+    counting rule excludes the opponent's name and the number, and the census
+    records it (battle 19 to 20 words).
+13. **The heights instrument reads the frame's scroller** (§87 item 17's carry).
+    `heights.json` gains `clientHeight`, and `visual-v0` asserts the plan's
+    test 2 for the map and the battle: neither scrolls inside the frame at
+    390x844.
+14. **The battle's share of the dead wide layout is gone.** The phone block's
+    `.move { min-height: 44px }` and `.moves` gap applied at every frame width,
+    since the frame is never wider than 480px; the first is folded into
+    `.move`, the second was already the base value. The orphaned comments for
+    the deleted type watermark went with them.
+
+**The battle backdrops, brought forward from 5.0/5, 2026-09-30.** The author
+delivered all nine paintings inside this stage to judge the asset pipeline
+([`spec/gymrun-stage5.0-battle-backdrops.md`](spec/gymrun-stage5.0-battle-backdrops.md)).
+
+15. **The battle backdrop's native size is 224x136, not the spike's 216x170**,
+    the author's call on the recommendation. The stage is 272px tall, so 136
+    rows at 2 CSS px fill it; 224 columns cover the widest frame (444px). A
+    drawing is drawn at whole art pixels, anchored bottom-centre, never
+    stretched: phones show the middle 177 columns, the desktop frame 197.
+16. **The paintings are converted, not dropped in.** They arrive at 1536x1024
+    in a pixel-art look, not on a grid. `scripts/visual/backdrops.py` crops to
+    224:136 by trimming sky (the horizon lands near 37%, where the opponent's
+    platform stands), area-averages down, and quantises to 48 colours with no
+    dither. It needs Pillow, which nothing in the build or the suite imports.
+    The nine files total 147,633 bytes; one is fetched per fight, never at
+    first load.
+17. **On a drawing, the placeholder's ground steps aside** and its layer carries
+    only a terrain's tint from 40% down; the platforms become translucent
+    shadows, because the locale tint read as a purple disc on sand.
+18. **`assetUrl` names the global `URL`**, which is a bundling fix and not a
+    style: `@pkmn/img` declares a module-level `var URL`, and in the gallery
+    bundle, where nothing else named the global, Vite's injected
+    `new URL(file, import.meta.url)` called the library's arrow function and the
+    gallery never became ready. Naming the global makes Rollup rename the
+    library's variable in every bundle.

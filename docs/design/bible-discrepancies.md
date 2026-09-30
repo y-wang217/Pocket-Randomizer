@@ -71,13 +71,13 @@ which blocks everything.
 | D53 | 5.0/1 | The nav tabs open routes where §12's standing rule built overlays; Team and Bag are one screen; no mid-run Run Info exists | **2026-09-30**, tabs open screens, read-only while a decision is pending; a mid-run Run Info screen is built |
 | D54 | 5.0/1, 5.0/3, 5.0/4 | The shell's nav words, nav icons and currency icon have no budget row and no family | **2026-09-30**, option 1: a Shell nav row at 5 and a thirteenth family, `currency`; closes D39 |
 | D55 | 5.0/1, 5.0/3 | The desktop sidebar: Recent Events is a log at rest, Run Progress has no phone route, the team is a new call site | **2026-09-30**, Run Progress is the decision feed, replayed from the run log; R11 carve-out |
-| D56 | 5.0/2 | Stage 2's HP box drops facts the Pokemon panel carries, the foe's HP number among them | **open** |
-| D57 | 5.0/2 | Stage 2's move button list omits the name, base power, accuracy, priority and the fact strip | **open** |
-| D58 | 5.0/2 | The battle header, the turn header and the flags have no place in Stage 2's layout | **open** |
-| D59 | 5.0/2 | The log behind "Info" reverses D26, and "Info" is a word and possibly a help button | **open** |
-| D60 | 5.0/2, 5.0/4, 5.0/5 | Painted backdrops replace the World component, and the plan does not say where the weather goes | **open** |
+| D56 | 5.0/2 | Stage 2's HP box drops facts the Pokemon panel carries, the foe's HP number among them | **2026-09-30**, option 1: the panel restyled, every fact kept |
+| D57 | 5.0/2 | Stage 2's move button list omits the name, base power, accuracy, priority and the fact strip | **2026-09-30**, option 1: the full move card, restyled |
+| D58 | 5.0/2 | The battle header, the turn header and the flags have no place in Stage 2's layout | **2026-09-30**, option 1: the header row above the stage |
+| D59 | 5.0/2 | The log behind "Info" reverses D26, and "Info" is a word and possibly a help button | **2026-09-30**, option 1: D26 stands, no Info button |
+| D60 | 5.0/2, 5.0/4, 5.0/5 | Painted backdrops replace the World component, and the plan does not say where the weather goes | **2026-09-30**, neither option: the World stays behind the frame, the backdrop is the scene inside it, the wash on the battle backdrop |
 | D61 | 5.0/1's manifest, 5.0/4, 5.0/5 | Class C node and capability art redraws two section 2 families outside the glyph renderer | **open** |
-| D62 | 5.0/1 to 5.0/4 | Class B marks drawn in CSS must stay section 2's shapes and pass through the glyph renderer | **open** |
+| D62 | 5.0/1 to 5.0/4 | Class B marks drawn in CSS must stay section 2's shapes and pass through the glyph renderer | **2026-09-30**, option 1 everywhere: a type is the icon chip, never a word badge |
 | D63 | 5.0/4 | The node on the graph drops the payout, the AI tier and the reward-tier pips | **open** |
 | D64 | 5.0/4 | "Held or not-held" collapses the capability's three bands to two | **open** |
 | D65 | 5.0/3 | Capability glyphs on relic cards put at rest what section 3 puts on inspect | **open** |
@@ -4476,3 +4476,34 @@ itself (density goes in 5.0/1, as every line but ruling 2 says). The rest
 block the stage they name.
 
 D73, D74 and D76 were ruled as recommended the same day, in the same file. D51 closes with 5.0/1.
+
+---
+
+## Rulings, 2026-09-30, opening 5.0/2
+
+The author answered the 5.0/1 report on the five rows it named as blocking
+5.0/2, filed verbatim as
+[`../spec/gymrun-stage5.0-rulings-d56-d60.md`](../spec/gymrun-stage5.0-rulings-d56-d60.md).
+The bible goes to Rev 16.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D56 | **Option 1.** *"ability is v important. we keep it all like today."* The HP box is the Pokemon panel restyled. Every fact stays: both HP numbers, status and volatile chips, the ability name, the item sprite, the priority chevron, type chips, the foe's roster marks, and the long press to the six base stats. | No bible change. `../generation.md` §88 |
+| D57 | **Option 1.** *"keep the full move card, restyled."* The button mounts `renderMove` with every fact on it. | No bible change. `../generation.md` §88 |
+| D58 | **Option 1.** The header row, turn header included, stays above the stage; flags keep to their target's side. | No bible change. `../generation.md` §88 |
+| D59 | **Option 1.** D26 stands: the glyph handle and the pull. The secondary row is Switch alone; a forced switch opens itself. | No bible change. `../generation.md` §88 |
+| D60 | **Neither option as written.** *"the backdrop should stay as is, the battle and the map are in the 'game screen' which sits in a container, and the original backdrop stays as is."* The World stays the locale's layers behind the frame. The painted backdrops are the game screen's own, inside the frame. Two layers with two jobs, which answers the *"exists twice"* concern option 2 raised. The wash and tint sit on the battle backdrop, as 5.0/1 built them. Stage 5's contrast check covers every battle backdrop under every field state, as option 1 said. | Bible section 5 (*World* narrowed, *Scene backdrop* added), and sections 2, 3, 4 and 6's field lines. `../generation.md` §88 |
+
+**Still open after these five:** D61 to D72 and D75. Two touch 5.0/2:
+
+- **D62** (type badges as glyph chips or genre words). D56 and D57 keep the
+  panel and the move card as they are today, restyled, which carries option 1
+  on the battle screen. **Ruled the same day, option 1 everywhere**
+  ([`../spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md`](../spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md)):
+  *"use an icon/chip"*. The reward cards and the locale card mount the type
+  chip too.
+- **D61** (class C node art through the glyph renderer). The header's node
+  glyph stays the existing SVG mark until 5.0/5 brings art; 5.0/2 draws no
+  class C mark but the backdrop.
+
+The rest block 5.0/3 to 5.0/5.

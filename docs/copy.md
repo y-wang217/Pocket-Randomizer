@@ -1141,9 +1141,9 @@ Found by grep, not by import: a string assigned straight to `textContent`, `titl
 | `src/ui/seed-bar.ts` line 102 | Start run |  |
 | `src/ui/seed-bar.ts` line 112 | New seed |  |
 | `src/ui/seed-bar.ts` line 117 | Resume saved run |  |
-| `src/ui/scene.ts` line 1168 | Moves first at this Speed |  |
-| `src/ui/scene.ts` line 2288 | BP |  |
-| `src/ui/scene.ts` line 2307 | PP |  |
+| `src/ui/scene.ts` line 1240 | Moves first at this Speed |  |
+| `src/ui/scene.ts` line 2363 | BP |  |
+| `src/ui/scene.ts` line 2382 | PP |  |
 | `src/ui/drawer.ts` line 163 | Party |  |
 | `src/ui/drawer.ts` line 191 | Relics |  |
 | `src/ui/header.ts` line 22 | GYMRUN |  |

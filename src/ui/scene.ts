@@ -219,6 +219,15 @@ export type OutroKind = 'recall' | 'caught' | 'defeat';
 export interface Scene {
   root: HTMLElement;
   /**
+   * The stage band, exposed for two things the screen owns and the scene does
+   * not. **Stage 5.0/2.** The screen hangs the flag strip directly under it,
+   * where the outcome sits against the two Pokemon it happened to (D58), and
+   * points its scene backdrop at the fight's locale or gym (D60). Neither is a
+   * fact the scene can know: the strip is the screen's one reading of the
+   * protocol, and the locale is the run's.
+   */
+  stage: HTMLElement;
+  /**
    * Redraw from a view. `onChoose` fires with the choice the player made.
    *
    * A `Choice`, not a move slot. Stage 4 is where the two kinds of answer stop
@@ -322,12 +331,58 @@ export function createScene(): Scene {
   const me = createSidePanel('me');
   const foeActor = createActor('foe', 'p2');
   const meActor = createActor('me', 'p1');
-  stage.append(foeActor.root, meActor.root, foe.root, me.root);
+  /*
+   * The platforms. **Stage 5.0/2.** One CSS ellipse under each sprite, the
+   * plan's class B: no file, no art. Siblings of the actors rather than their
+   * children, because every beat moves the actor and the ground a Pokemon
+   * stands on does not lunge with it. Decorative, so hidden from a reader.
+   */
+  const platforms = (['foe', 'me'] as const).map((kind) => {
+    const platform = el('span', `stage__platform stage__platform--${kind}`);
+    platform.setAttribute('aria-hidden', 'true');
+    return platform;
+  });
+  stage.append(...platforms, foeActor.root, meActor.root, foe.root, me.root);
 
   const moves = el('div', 'moves');
   const bench = el('div', 'bench');
+  /*
+   * **The secondary row: Switch, alone. Stage 5.0/2, D59.**
+   *
+   * The bench was at rest under the grid; it is one tap away now, behind
+   * this button, which ruling 2 of the plan allows and D59 ruled: the row
+   * carries Switch and nothing else, and the log keeps D26's handle on the
+   * strip. The button's label is what the bench's heading said (a switch, a
+   * blocked one, or a forced one), so the words on the screen are the same
+   * words and the heading is gone rather than printed twice.
+   *
+   * The pane is presentation and nothing more: it never submits, never
+   * advances, never draws. A forced switch opens it by itself, because the
+   * moves are not the question then; any choice closes it, because the next
+   * decision starts on the moves.
+   */
+  const actions = el('div', 'scene__actions');
+  const switchButton = document.createElement('button');
+  switchButton.type = 'button';
+  switchButton.className = 'button scene__switch';
+  switchButton.hidden = true;
+  switchButton.setAttribute('aria-pressed', 'false');
+  actions.append(switchButton);
+  actions.hidden = true;
 
-  root.append(stage, moves, bench);
+  root.append(stage, moves, bench, actions);
+
+  let benchOpen = false;
+  const showPane = (): void => {
+    const open = benchOpen && bench.childElementCount > 0;
+    root.dataset['pane'] = open ? 'bench' : 'moves';
+    switchButton.setAttribute('aria-pressed', String(open));
+  };
+  showPane();
+  switchButton.addEventListener('click', () => {
+    benchOpen = !benchOpen;
+    showPane();
+  });
 
   /*
    * Any transition must be skippable by tapping. Nothing here blocks input in
@@ -403,6 +458,7 @@ export function createScene(): Scene {
 
   return {
     root,
+    stage,
     outro(kind) {
       // A second outro on one screen is not a thing that happens, but if it
       // did, the first must not be left parked forever.
@@ -450,6 +506,10 @@ export function createScene(): Scene {
     reset() {
       moves.replaceChildren();
       clearBench(bench);
+      benchOpen = false;
+      switchButton.hidden = true;
+      actions.hidden = true;
+      showPane();
     },
     update(view, onChoose, turns, marks, fired = []) {
       /*
@@ -503,8 +563,20 @@ export function createScene(): Scene {
       // The opposing side's count, on the opposing panel and nowhere else.
       renderRoster(foe.roster, view.opponentLeft);
       root.dataset['faster'] = view.fasterSide;
-      renderMoves(moves, view, onChoose);
-      renderBench(bench, view, onChoose);
+      // Any choice closes the bench: the next decision opens on the moves.
+      const choose = (choice: Choice): void => {
+        benchOpen = false;
+        showPane();
+        onChoose(choice);
+      };
+      renderMoves(moves, view, choose);
+      renderBench(bench, view, choose);
+      if (view.forceSwitch) benchOpen = true;
+      switchButton.hidden = bench.childElementCount === 0;
+      actions.hidden = switchButton.hidden;
+      switchButton.textContent = benchLabel(view);
+      switchButton.dataset['forced'] = view.forceSwitch ? 'true' : 'false';
+      showPane();
       /*
        * The chevron, on the panel a bracket put first. **M4.2, section 6 step
        * 2, discrepancy D6.**
@@ -1707,14 +1779,17 @@ function renderBench(
     return;
   }
 
-  const heading = el('div', 'bench__heading');
-  heading.textContent = view.forceSwitch
-    ? 'Choose who comes in'
-    : view.trapped
-      ? 'Switch — blocked this turn'
-      : 'Switch';
-  container.replaceChildren(heading, ...bench.map((member) => renderBenchMember(member, view, onChoose)));
+  container.replaceChildren(...bench.map((member) => renderBenchMember(member, view, onChoose)));
   container.dataset['forced'] = view.forceSwitch ? 'true' : 'false';
+}
+
+/**
+ * What the Switch button says. **Stage 5.0/2.** The bench's heading until
+ * D59 moved the bench behind the button, and the same three answers: a switch,
+ * one this turn will not allow, or the one the fight is waiting on.
+ */
+function benchLabel(view: BattleUiView): string {
+  return view.forceSwitch ? 'Choose who comes in' : view.trapped ? 'Switch — blocked this turn' : 'Switch';
 }
 
 function renderBenchMember(
