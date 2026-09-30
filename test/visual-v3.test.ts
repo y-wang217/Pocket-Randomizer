@@ -107,15 +107,14 @@ describe('the world', () => {
   }, 300_000);
 
   it('moves its layers at 0.2, 0.5 and 1 of scroll, and holds still under reduced motion with no drift', async () => {
-    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
-    await playUntil(page, (screen) => screen === 'map');
     /*
-     * **The party screen, since Stage 5.0/1**: the map fits the frame now,
-     * so it has nothing to scroll. The party screen is still in the region,
-     * so the world is still the region's, and it is the tallest screen.
+     * **A short viewport, since Stage 5.0/1.** The map fits a 390x844 frame
+     * now and has nothing to scroll, and so does a party of one. At 480 tall
+     * the map scrolls inside the frame, which is the scroll the parallax
+     * reads.
      */
-    await page.locator('[data-nav="team"]').click();
-    await page.waitForTimeout(200);
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24', { width: 390, height: 480 });
+    await playUntil(page, (screen) => screen === 'map');
     /*
      * **Scroll as far as the map allows, rather than to a fixed 200.**
      *
