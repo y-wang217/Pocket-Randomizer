@@ -78,7 +78,7 @@ import { createDrawer, type DrawerView } from './drawer';
 import { createMapDrawer } from './map-drawer';
 import { gymForSegment } from '../data/gyms';
 import { itemLayoutOf, partyWithPlan } from './party-layout';
-import { clearRunLog, loadRunLog, saveRunLog } from './storage';
+import { clearItemDraft, clearRunLog, loadItemDraft, loadRunLog, saveItemDraft, saveRunLog } from './storage';
 import { applyMotion } from './theme/motion';
 import { applyDensity } from './theme/density';
 
@@ -805,7 +805,7 @@ export function mountApp(root: HTMLElement): void {
           showParty(partyReturn === 'pre-gym' ? 'pre-gym' : 'map');
           const composed = await itemPlanPick.wait();
           atTeachBoundary = false;
-          pendingPlan = null;
+          holdPlan(null);
           return reconcileItemPlan(
             state,
             composed,
@@ -814,7 +814,7 @@ export function mountApp(root: HTMLElement): void {
           );
         }
         const plan = pendingPlan;
-        pendingPlan = null;
+        holdPlan(null);
         if (!plan) return defaultItemPlan(state, teachableNow(state));
         /*
          * **Brought forward before it is answered with, and this is the fix
@@ -910,7 +910,7 @@ export function mountApp(root: HTMLElement): void {
                * `accept` appends and touches no existing slot, so it keeps the
                * plan. `decline` changes nothing at all.
                */
-              if (decision.kind === 'release') pendingPlan = null;
+              if (decision.kind === 'release') holdPlan(null);
               acquirePick.submit(decision);
             },
           });
@@ -1030,7 +1030,27 @@ export function mountApp(root: HTMLElement): void {
      * reference plan — which is also what happens on the very first boundary,
      * before the screen has ever been shown.
      */
-    let pendingPlan: ItemPlan | null = null;
+    let pendingPlan: ItemPlan | null = resume ? loadItemDraft(resume) : null;
+
+    /*
+     * How many decisions the log holds, for the draft's stamp. Kept by
+     * `onDecision`, which a replay fires for every entry it re-records.
+     */
+    let loggedDecisions = resume?.decisions.length ?? 0;
+
+    /*
+     * **Every write to `pendingPlan` goes through here. The second QA pass,
+     * QA-008 and QA-009.** A teach or a move to the bag was held only in this
+     * variable until the boundary that spends it, so a reload dropped it and
+     * the run came back as the log had it. The draft now goes to storage
+     * beside the log on every change and comes back on resume; see
+     * `ui/storage.ts` `loadItemDraft` for when it does not.
+     */
+    const holdPlan = (plan: ItemPlan | null): void => {
+      pendingPlan = plan;
+      if (plan) saveItemDraft({ seed, decisions: loggedDecisions, plan });
+      else clearItemDraft();
+    };
 
     /*
      * The party a decision has already settled on, while `live` is still behind.
@@ -1210,20 +1230,20 @@ export function mountApp(root: HTMLElement): void {
            * the arrangement that is actually true.
            */
           onReorder: (from, to) => {
-            pendingPlan = null;
+            holdPlan(null);
             editParty?.({ kind: 'reorder', from, to });
             showParty(partyReturn);
             mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
           },
           onRelease: (slot) => {
-            pendingPlan = null;
+            holdPlan(null);
             // The item goes to the bag, in `core/run.ts`'s editor.
             editParty?.({ kind: 'release', slot });
             showParty(partyReturn);
             mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
           },
           onPlan: (plan) => {
-            pendingPlan = plan;
+            holdPlan(plan);
           },
           /*
            * Spending a TM: the same two screens, reached from here instead of
@@ -1453,6 +1473,10 @@ export function mountApp(root: HTMLElement): void {
         // The first decision of a fresh run replaces the save the button pointed at.
         onDecision: (log: RunLog) => {
           saveRunLog(log);
+          loggedDecisions = log.decisions.length;
+          // A fresh run's starter: nothing can be pending yet, and a draft left
+          // by the save it replaces must not come back into this one.
+          if (!resume && log.decisions.length === 1) clearItemDraft();
           seedBar.setResumable(false);
         },
       };
@@ -1479,6 +1503,7 @@ export function mountApp(root: HTMLElement): void {
       setPhase('setup');
       // The run is over: a saved log now would resume into a finished run.
       clearRunLog();
+      clearItemDraft();
     } catch (error) {
       /*
        * An abandoned decision, which happens when the player starts a
@@ -1520,6 +1545,7 @@ export function mountApp(root: HTMLElement): void {
        * nothing but reproduce the failure.
        */
       clearRunLog();
+      clearItemDraft();
       seedBar.setResumable(false);
       seedBar.warn(SEED_COPY.runFailed);
       setPhase('setup');

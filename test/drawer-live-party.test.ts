@@ -179,7 +179,8 @@ describe('the drawer reads the party the run has been told about', () => {
       policyEntry('chooseAcquisition'),
       'a releasing capture carries the plan across the slots it shifted',
     ).toContain("decision.kind === 'release'");
-    expect(policyEntry('chooseAcquisition')).toContain('pendingPlan = null');
+    // Through `holdPlan` since the second QA pass, so the saved draft goes too.
+    expect(policyEntry('chooseAcquisition')).toContain('holdPlan(null)');
   });
 });
 

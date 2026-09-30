@@ -1528,8 +1528,14 @@ export interface RunPolicy {
    * Returning a number for an offer that is null is a caller error and is
    * ignored; returning null for an offer that exists falls back to card 0,
    * because there is no skip.
+   *
+   * **`undefined` means this policy did not review this battle**, and the card
+   * is asked through `chooseReward` in its usual place, as for a policy with no
+   * hook. The replay policy is the one that answers it: a resumed run whose log
+   * still holds this node's answers replays them in logged order and shows no
+   * screen. The second QA pass, QA-006.
    */
-  reviewBattle?: (review: BattleReview, state: RunState) => Promise<number | null>;
+  reviewBattle?: (review: BattleReview, state: RunState) => Promise<number | null | undefined>;
   /**
    * Which shelf slots to buy. An array, because a shop visit is one decision.
    *
@@ -1997,7 +2003,7 @@ export async function playRun(
       );
       // Null for a node with no offer is the expected answer and records
       // nothing. A number there would be an answer to a question nobody asked.
-      if (reviewOffer) reviewedIndex = picked ?? 0;
+      if (reviewOffer && picked !== undefined) reviewedIndex = picked ?? 0;
 
       /*
        * **The card is taken, so a relic is the player's.** Second projection
@@ -2858,12 +2864,15 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
    * before the live tail is asked.
    */
   let editor: ((edit: PartyEdit) => void) | null = null;
-  const next = (kind: RunDecision['kind']): RunDecision | null => {
+  const applyEdits = (): void => {
     for (let pending = log.decisions[cursor]; pending?.kind === 'party'; pending = log.decisions[cursor]) {
       if (!editor) throw new Error(`RunLog holds a party edit at ${cursor} and the run bound no editor`);
       cursor++;
       editor(pending.edit);
     }
+  };
+  const next = (kind: RunDecision['kind']): RunDecision | null => {
+    applyEdits();
     const decision = log.decisions[cursor];
     if (!decision) return null;
     if (decision.kind !== kind) {
@@ -2877,12 +2886,33 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
     throw new Error(`RunLog ran out at decision ${cursor}, but the run wanted a ${kind}`);
   };
 
+  /*
+   * **The result screen, on the live tail only. The second QA pass, QA-006.**
+   *
+   * A replay answers the card through `chooseReward`, which the log holds after
+   * the node's capture. With no review here, a run resumed on a fight's result
+   * asked the live player the capture first and the cards after it, the
+   * reverse of the order they were asked in, and never showed the result. So
+   * where the log has nothing left, the live player gets the result screen as
+   * they would have; where it still holds this node's answers, `undefined`
+   * says nothing was reviewed and they replay in logged order. Absent without
+   * a live policy, so a pure replay is untouched.
+   */
+  const liveReview = live?.reviewBattle;
+  const reviewBattle: RunPolicy['reviewBattle'] = liveReview
+    ? async (review, state) => {
+        applyEdits();
+        return cursor < log.decisions.length ? undefined : liveReview(review, state);
+      }
+    : undefined;
+
   return {
     remaining: () => Math.max(0, log.decisions.length - cursor),
     bindPartyEditor: (edit) => {
       editor = edit;
       live?.bindPartyEditor?.(edit);
     },
+    ...(reviewBattle ? { reviewBattle } : {}),
     chooseStarter: async (options) => {
       const decision = next('starter');
       if (!decision) return live ? live.chooseStarter(options) : exhausted('starter');
