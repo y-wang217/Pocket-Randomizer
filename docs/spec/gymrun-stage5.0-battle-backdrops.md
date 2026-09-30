@@ -24,7 +24,17 @@ the naming the message states. The originals are kept as they arrived:
 | [`assets/stage5.0-battle-backdrop-cave.webp`](assets/stage5.0-battle-backdrop-cave.webp) | a crystal cave with an underground lake | cave |
 | [`assets/stage5.0-battle-backdrop-marsh.webp`](assets/stage5.0-battle-backdrop-marsh.webp) | a misty wetland with cattails | marsh |
 
-Summit, city, forest and badlands did not arrive and stay placeholders.
+A third message followed with the other four, as four attachments and no text:
+
+| File | Depicts | Region |
+|---|---|---|
+| [`assets/stage5.0-battle-backdrop-badlands.webp`](assets/stage5.0-battle-backdrop-badlands.webp) | red mesas, an arch and lava falls | badlands |
+| [`assets/stage5.0-battle-backdrop-city.webp`](assets/stage5.0-battle-backdrop-city.webp) | a paved plaza before a domed city and a bridge | city |
+| [`assets/stage5.0-battle-backdrop-summit.webp`](assets/stage5.0-battle-backdrop-summit.webp) | a snowfield under peaks above the clouds | summit |
+| [`assets/stage5.0-battle-backdrop-forest.webp`](assets/stage5.0-battle-backdrop-forest.webp) | a clearing before a cliff waterfall | forest |
+
+All nine are 1536x1024 RGB: a painted pixel-art look, not art at a native
+grid. They reach the game through a conversion step (`scripts/visual/backdrops.py`).
 
 ---
 
@@ -33,3 +43,5 @@ Summit, city, forest and badlands did not arrive and stay placeholders.
 > are you ready for the battle background assets? if so, i'd rather include them in this so i can see if our asset generation needs tweaking
 
 > try 224x136. here are the battle bgs, named for the region they represent
+
+> *(four further attachments, no text)*
