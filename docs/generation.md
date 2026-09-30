@@ -11523,3 +11523,62 @@ over a save (New seed, Start, a linked seed), and the first decision of that
 run hides it again, because that decision is what overwrites the save. Checked
 in Chromium: hidden with no save, hidden after an automatic resume, shown
 after New seed over a save, hidden after that run's starter pick.
+
+## 86. The second QA pass: an unspent item plan survives a reload, and a resumed fight shows its result first
+
+**2026-09-30.** [`spec/gymrun-patch-qa-persistence-pass.md`](spec/gymrun-patch-qa-persistence-pass.md).
+No version axis moves: the log is not reshaped, no draw changes, no table is
+touched.
+
+### QA-008 and QA-009: the draft plan is saved beside the log
+
+One cause for both. A TM taught on the party screen and an item moved to the
+bag are parts of an `ItemPlan`, which is one logged decision per boundary by
+design (`RunPolicy.chooseItemPlan`: the fidgeting is free and unlogged). The
+plan was held in `app.ts`'s `pendingPlan` until the boundary that spends it —
+the Done at a teach boundary, or the next node from the map — so a reload in
+between replayed a log that did not hold it: Snore back, the TM in the bag,
+the Sharp Beak back in hand. Both are unrelated to double clicks.
+
+**The report asks for each edit to be persisted atomically; this keeps the
+plan a draft and persists the draft instead.** Logging every edit would reverse
+the one-entry-per-boundary rule and move `RUN_LOG_VERSION` for no player-visible
+difference: the draft is what the screen shows and what the boundary spends.
+Every write to `pendingPlan` now goes through `holdPlan`, which writes
+`gymrun.itemDraft` (`ui/storage.ts`) stamped with the seed and the log length.
+A resume restores it unless the seed differs or the log has since recorded an
+`items` entry, a party edit or a release for a capture, the three things that
+spend or invalidate a plan. It is cleared on a fresh run's starter and
+wherever the save is cleared. `reconcileItemPlan` still runs before it is
+answered with, as for any plan.
+
+`test/storage.test.ts` holds the stamp rules. `test/item-draft-browser.test.ts`
+holds both reports in Chromium through a real reload: a teach at the boundary
+that paid it (SMOKE24), and To bag from the map's Manage (SMK49-2, whose walk
+puts an item in hand before a loss). Both fail without the `app.ts` change.
+
+### QA-006: the replay hands the result screen to the live player
+
+The replay policy had no `reviewBattle`. A run saved between a fight's last
+choice and its card therefore skipped the result screen on resume and asked
+the capture before the cards, because a replay asks the card through
+`chooseReward`, which comes after the capture. The replay now implements
+`reviewBattle` when the live policy does: at the end of the log it delegates,
+so the live player gets the result screen and the order of the first time;
+where the log still holds the node's answers it returns `undefined`, a new
+value on the hook meaning "not reviewed here", and `playRun` asks the card
+through `chooseReward` in logged order. A pure replay has no live policy and
+is untouched. `test/resume-review-order.test.ts` resumes from every save
+point around a card and asserts the first question and the final log; it
+fails on the old policy with the tester's order.
+
+### QA-007: the browser title
+
+`GYMRUN — Stage 1` in `index.html` since Stage 1. Now `GYMRUN`, and the meta
+description drops "Stage 1:".
+
+### Not rechecked
+
+QA-003, QA-004 and QA-005 were built in section 84 and the tester did not
+revisit them. The report's next checks 4 and 5 (a single-click retest; shop, rest and
+full-party passes) are theirs to run on the next deploy.
