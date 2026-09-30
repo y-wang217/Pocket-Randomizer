@@ -11729,3 +11729,46 @@ recorded here rather than edited into the prompt:
 7. **Carried from 5.0/1 into 5.0/2:** the heights instrument reads the
    frame's scroller, not the document's, and the WebKit suite and a real
    iPhone before review.
+
+**Built, 2026-09-30, on `claude/wizardly-wright-cum8e0`**, after the author
+confirmed D60's reading and ruled D62 option 1 everywhere
+([`spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md`](spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md)).
+Report: [`visual/reports/5.0-stage2.md`](visual/reports/5.0-stage2.md). No version
+axis moves and `contentHash` holds; nothing under `core/` or `data/` changed.
+
+8. **The stage names its backdrop through the manifest.** `applyBackdrop`
+   (`ui/assets/manifest.ts`) sets `data-backdrop` to `battle-backdrop:gym` at
+   a gym and `battle-backdrop:<locale>` elsewhere, read off `data-locale`; a
+   board with no locale names none. A resolved file is a background over the
+   placeholder tint, so a missing or broken file shows the placeholder at the
+   stage's own size. The gym's placeholder is a tint of its own
+   (`--gym-sky`, `--gym-ground`), because the locale palettes are three tokens
+   each by test. The terrain tint now mixes into whichever ground the backdrop
+   has.
+9. **The stage is 272px, not 260**, and wears the window border. The header
+   row gave back what the band took: the battle screen measures 564px against
+   563 before, and the fourth move button ends at y=651 against the 740 line.
+10. **The bench's heading became the Switch button's label.** The three
+    wordings (`Switch`, `Switch — blocked this turn`, `Choose who comes in`)
+    are the heading's, so the census does not move and no word is printed
+    twice. The button is hidden with the bench on a party of one, as the empty
+    bench always was.
+11. **The move button's name wraps rather than truncating**, and the PP moved
+    to the identity line's right edge to give the name the whole top line. A
+    first cut put PP beside the name and cut `Temper Flare` to `Temper Fla…`,
+    which is a fact half removed.
+12. **The turn header is built** (section 6 step 1, R11, D58): `Turn 4` at the
+    header row's far end, replacing itself in place, taken from the turn
+    number on the screen's one reading of the batch. No build had drawn it
+    before. It is one word under section 4's header budget of 3, since the
+    counting rule excludes the opponent's name and the number, and the census
+    records it (battle 19 to 20 words).
+13. **The heights instrument reads the frame's scroller** (§87 item 17's carry).
+    `heights.json` gains `clientHeight`, and `visual-v0` asserts the plan's
+    test 2 for the map and the battle: neither scrolls inside the frame at
+    390x844.
+14. **The battle's share of the dead wide layout is gone.** The phone block's
+    `.move { min-height: 44px }` and `.moves` gap applied at every frame width,
+    since the frame is never wider than 480px; the first is folded into
+    `.move`, the second was already the base value. The orphaned comments for
+    the deleted type watermark went with them.
