@@ -92,6 +92,7 @@ which blocks everything.
 | D74 | every 5.0 stage | The plan carries no census gate, and the standing gate names three density modes | **2026-09-30**, option 1: census per stage |
 | D75 | 5.0/4 | Node positions from a hash of the node id, against "all randomness comes from core/rng.ts" | **2026-09-30**, option 1: a slot by option index, no hash |
 | D76 | 5.0/0, 5.0/1 | 5.0 lands on top of an open Tier 7: which face M7.1 tests, and which items it redoes | **2026-09-30**, option 1: 5.0 before M7.1 |
+| D77 | 5.0/4's census, then 5.0/3 or M7.2 | The map node card's current step prints an untiered node's hint and a shop's shelf in words: 7 against a budget of 1 | **open** |
 
 ## Rulings, 2026-09-19
 
@@ -3537,6 +3538,7 @@ owns, and close on a one-line ruling that the component is mounted unchanged.
 | D74 | every stage | The census leg per stage |
 | D75 | 5.0/4 | None under option 1; a CLAUDE.md note under option 2 |
 | D76 | 5.0/0, 5.0/1 | An order for M7.1 against 5.0 |
+| D77 | 5.0/4's census | Section 5's detail line, or two section 4 words |
 
 ---
 
@@ -4451,6 +4453,44 @@ the face that section 9's family-size hypothesis now describes"* (lines
    after 5.0/5.
 2. **M7.1 first, on the current face, then 5.0.** R6 is decided properly, on
    evidence from a face that is about to change.
+
+**Recommendation: 1.**
+
+---
+
+## D77. The map node card prints an untiered node's hint and a shop's shelf in words
+
+**Filed 2026-09-30, in 5.0/4, by its census. Blocks nothing in 5.0/4; needs a
+ruling before the map node card can read done.**
+
+The census's worst instance for the map node card is **7** against section 4's
+budget of **1** (*"AI tier. The payout's unit is the currency glyph"*): a shop
+on the step being chosen from reads `Items, healing, moves. · 7 on the shelf,
+from 72`. A rest reads `Full restore.` (2) and an event `Something happens.`
+(2). A fight reads 1, the AI tier, since 5.0/4 drew the currency mark.
+
+- **It predates 5.0/4.** The same words were on the current-step card since
+  M5.2 kept the kind hint on untiered nodes (*"it has no pips to read the fact
+  off, and M5.2 does not name it"*) and since the shelf line was written. The
+  census never saw them because the map fixture was a segment-one map with no
+  shop, rest or event on its current step. 5.0/4 moved the fixture to the
+  map's worst case (`deepMapState`) and the words were there.
+- **Section 3 already puts the hint on inspect.** Its *Node kind* row: at
+  rest, the kind glyph; on inspect, *"the kind's hint, from `KIND_HINTS`"*. The
+  `node:` tip on the mark carries it today.
+- **The shelf line is two facts**: how many items and the cheapest price. The
+  price is decision-relevant (can the run afford anything?), and a bare
+  currency amount on a shop would read as a payout.
+
+**Options.**
+
+1. **The hint leaves the face; the shelf becomes a count and a price with the
+   currency mark** (`7 · from ¢72` reduced to marks: a bag count and the
+   currency amount), the words on the mark's press. Section 4 holds at 1; the
+   shelf's re-encoding needs one line in section 3.
+2. **Section 4 names the shelf as surviving words**, and the hint leaves the
+   face. The row goes 1 to 5.
+3. **Leave both**, and the row's figure moves to 7.
 
 **Recommendation: 1.**
 
