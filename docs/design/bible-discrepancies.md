@@ -77,7 +77,7 @@ which blocks everything.
 | D59 | 5.0/2 | The log behind "Info" reverses D26, and "Info" is a word and possibly a help button | **2026-09-30**, option 1: D26 stands, no Info button |
 | D60 | 5.0/2, 5.0/4, 5.0/5 | Painted backdrops replace the World component, and the plan does not say where the weather goes | **2026-09-30**, neither option: the World stays behind the frame, the backdrop is the scene inside it, the wash on the battle backdrop |
 | D61 | 5.0/1's manifest, 5.0/4, 5.0/5 | Class C node and capability art redraws two section 2 families outside the glyph renderer | **open** |
-| D62 | 5.0/1 to 5.0/4 | Class B marks drawn in CSS must stay section 2's shapes and pass through the glyph renderer | **open** |
+| D62 | 5.0/1 to 5.0/4 | Class B marks drawn in CSS must stay section 2's shapes and pass through the glyph renderer | **2026-09-30**, option 1 everywhere: a type is the icon chip, never a word badge |
 | D63 | 5.0/4 | The node on the graph drops the payout, the AI tier and the reward-tier pips | **open** |
 | D64 | 5.0/4 | "Held or not-held" collapses the capability's three bands to two | **open** |
 | D65 | 5.0/3 | Capability glyphs on relic cards put at rest what section 3 puts on inspect | **open** |
@@ -4498,8 +4498,10 @@ The bible goes to Rev 16.
 
 - **D62** (type badges as glyph chips or genre words). D56 and D57 keep the
   panel and the move card as they are today, restyled, which carries option 1
-  on the battle screen: the type chip stays a glyph, never a word. The row
-  stays open for the reward cards and the locale card.
+  on the battle screen. **Ruled the same day, option 1 everywhere**
+  ([`../spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md`](../spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md)):
+  *"use an icon/chip"*. The reward cards and the locale card mount the type
+  chip too.
 - **D61** (class C node art through the glyph renderer). The header's node
   glyph stays the existing SVG mark until 5.0/5 brings art; 5.0/2 draws no
   class C mark but the backdrop.
