@@ -3833,7 +3833,9 @@ body {
   word-break: break-all;
 }
 
-.button--small { padding: calc(var(--space-1) * var(--tap-scale)) calc(var(--space-2h) * var(--tap-scale)); font-size: var(--fs-sm); }
+/* A hairline less padding each way than before Stage 5.0/1, for the heavier
+   border `.button` took, so the outer size holds. */
+.button--small { padding: calc(var(--space-1) * var(--tap-scale) - var(--hairline)) calc(var(--space-2h) * var(--tap-scale) - var(--hairline)); font-size: var(--fs-sm); }
 
 .summary__progress {
   display: flex;
@@ -6848,7 +6850,7 @@ button,
   font-size: var(--fs-xs);
   font-weight: 700;
 }
-.asset__art { width: 100%; height: 100%; image-rendering: pixelated; }
+.asset--art { background-size: 100% 100%; image-rendering: pixelated; }
 .sidebar__wordmark .asset--placeholder { display: none; }
 
 /*

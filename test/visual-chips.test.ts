@@ -282,11 +282,20 @@ function keepFailureShots(under: string[]): string {
 /** Every rendered chip on the screen currently open, measured. */
 async function chipsOn(page: Page, scratch: Page, screen: string, label = screen): Promise<ChipSample[]> {
   await imagesSettled(page);
+  /*
+   * **One viewport at a time, since Stage 5.0/1.** The frame holds the
+   * viewport's height and the screens scroll inside `.screens`, so a
+   * full-page screenshot is one viewport and a chip below the fold is not in
+   * it. The sweep scrolls the frame a viewport at a time and samples the
+   * chips wholly inside the scroller's visible box at each stop.
+   */
   const measure = () => page.evaluate((sel) => {
     const root = globalThis.document.querySelector(sel);
     if (!root) return [];
+    const view = globalThis.document.querySelector('.screens')?.getBoundingClientRect() ?? { top: 0, bottom: globalThis.innerHeight };
     return [...root.querySelectorAll('.chip')].flatMap((node) => {
       const rect = node.getBoundingClientRect();
+      if (rect.top < view.top || rect.bottom > view.bottom) return [];
       const style = globalThis.getComputedStyle(node);
       // Present but not rendered — inside a closed overlay, or on a turn that
       // did not produce one. Skipping it is right; skipping it *silently* is
@@ -347,10 +356,10 @@ async function chipsOn(page: Page, scratch: Page, screen: string, label = screen
         text,
         fontSize: Number.parseFloat(style.fontSize),
         color: style.color,
-        // Page coordinates, to index into a full-page screenshot.
+        // Viewport coordinates, to index into this stop's screenshot.
         box: {
-          x: rect.left + globalThis.scrollX,
-          y: rect.top + globalThis.scrollY,
+          x: rect.left,
+          y: rect.top,
           width: rect.width,
           height: rect.height,
         },
@@ -376,20 +385,34 @@ async function chipsOn(page: Page, scratch: Page, screen: string, label = screen
    * glyph, so the fix is not a wait but an agreement: the instrument measures
    * the layout it photographed, or it measures again.
    */
-  let found = await measure();
-  if (found.length === 0) return [];
-  let png = await page.screenshot({ fullPage: true });
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const again = await measure();
-    if (JSON.stringify(again.map((chip) => chip.box)) === JSON.stringify(found.map((chip) => chip.box))) break;
-    found = again;
-    png = await page.screenshot({ fullPage: true });
-  }
-  shots.set(label, png);
   // Device pixels per CSS pixel, asked of the page rather than assumed. 1 on
   // the Chromium leg, 3 on the WebKit one's iPhone descriptor.
   const dpr = await page.evaluate(() => globalThis.devicePixelRatio);
-  const backgrounds = await sampleBoxes(scratch, png, found.map((chip) => chip.box), dpr);
+  const stops = await page.evaluate(() => {
+    const frame = globalThis.document.querySelector<HTMLElement>('.screens');
+    if (!frame) return [0];
+    const out: number[] = [];
+    for (let top = 0; top < frame.scrollHeight - frame.clientHeight + frame.clientHeight; top += frame.clientHeight) out.push(top);
+    return out.length ? out : [0];
+  });
+  const all: { found: Awaited<ReturnType<typeof measure>>; backgrounds: Awaited<ReturnType<typeof sampleBoxes>> }[] = [];
+  for (const [stop, top] of stops.entries()) {
+    await page.evaluate((y) => globalThis.document.querySelector('.screens')?.scrollTo(0, y), top);
+    let found = await measure();
+    if (found.length === 0) continue;
+    let png = await page.screenshot();
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const again = await measure();
+      if (JSON.stringify(again.map((chip) => chip.box)) === JSON.stringify(found.map((chip) => chip.box))) break;
+      found = again;
+      png = await page.screenshot();
+    }
+    if (stop === 0) shots.set(label, png);
+    all.push({ found, backgrounds: await sampleBoxes(scratch, png, found.map((chip) => chip.box), dpr) });
+  }
+  await page.evaluate(() => globalThis.document.querySelector('.screens')?.scrollTo(0, 0));
+  const found = all.flatMap((stop) => stop.found);
+  const backgrounds = all.flatMap((stop) => stop.backgrounds);
 
   const out: ChipSample[] = [];
   for (const [index, chip] of found.entries()) {

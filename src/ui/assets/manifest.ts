@@ -170,11 +170,10 @@ export function assetIcon(key: AssetKey): HTMLElement {
   icon.style.setProperty('--asset-w', String(asset.native.width));
   icon.style.setProperty('--asset-h', String(asset.native.height));
   if (url) {
-    const img = document.createElement('img');
-    img.src = url;
-    img.alt = '';
-    img.className = 'asset__art';
-    icon.append(img);
+    // A background, not an `<img>`: sprites are `ui/sprites.ts`'s alone, and
+    // this is decoration the caller names (`test/sprites.test.ts`).
+    icon.classList.add('asset--art');
+    icon.style.backgroundImage = `url(${url})`;
   } else {
     icon.classList.add('asset--placeholder');
     icon.textContent = asset.kind === 'placeholder' ? asset.letter : '';

@@ -70,11 +70,14 @@ describe('the world', () => {
           for (const control of globalThis.document.querySelectorAll<HTMLElement>(`${sel} button, ${sel} [role=button], ${sel} input`)) {
             if (control.offsetParent === null) continue;
             const box = control.getBoundingClientRect();
-            if (box.width === 0 || box.bottom < 0 || box.top > globalThis.innerHeight) continue;
+            // The frame's scroller clips since Stage 5.0/1, so "on screen" is
+            // inside it, not inside the window.
+            const view = globalThis.document.querySelector('.screens')!.getBoundingClientRect();
+            if (box.width === 0 || box.bottom < view.top || box.top > view.bottom) continue;
             // A point inside the visible part of the box: a tall control's
             // centre can sit below the fold, where nothing is hit-testable.
-            const top = Math.max(box.top, 0);
-            const bottom = Math.min(box.bottom, globalThis.innerHeight);
+            const top = Math.max(box.top, view.top);
+            const bottom = Math.min(box.bottom, view.bottom);
             const hit = globalThis.document.elementFromPoint(box.left + box.width / 2, (top + bottom) / 2);
             if (!hit || !control.contains(hit)) out.push(`${control.tagName}.${control.className.split(' ')[0]} "${control.textContent?.trim().slice(0, 20)}" hit ${hit?.className}`);
           }
@@ -107,6 +110,13 @@ describe('the world', () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
     await playUntil(page, (screen) => screen === 'map');
     /*
+     * **The party screen, since Stage 5.0/1**: the map fits the frame now,
+     * so it has nothing to scroll. The party screen is still in the region,
+     * so the world is still the region's, and it is the tallest screen.
+     */
+    await page.locator('[data-nav="team"]').click();
+    await page.waitForTimeout(200);
+    /*
      * **Scroll as far as the map allows, rather than to a fixed 200.**
      *
      * This read `scrollTo(0, 200)` and then asserted `scrollY > 100`, which
@@ -121,9 +131,11 @@ describe('the world', () => {
      * That is the thing the 100 was standing in for, and it does not have to
      * be re-tuned the next time a surface loses a line.
      */
+    // The frame's scroller since Stage 5.0/1: the page itself no longer scrolls.
     const room = await page.evaluate(() => {
-      const max = globalThis.document.documentElement.scrollHeight - globalThis.innerHeight;
-      globalThis.scrollTo(0, max);
+      const frame = globalThis.document.querySelector<HTMLElement>('.screens')!;
+      const max = frame.scrollHeight - frame.clientHeight;
+      frame.scrollTo(0, max);
       return max;
     });
     expect(room, 'the map no longer scrolls enough to measure a parallax ratio').toBeGreaterThan(40);
@@ -152,7 +164,7 @@ describe('the world', () => {
       { timeout: 10_000 },
     );
     const { y, transforms } = await page.evaluate(() => ({
-      y: globalThis.scrollY,
+      y: globalThis.document.querySelector<HTMLElement>('.screens')!.scrollTop,
       transforms: ['far', 'mid', 'near'].map((layer) => globalThis.getComputedStyle(globalThis.document.querySelector(`.world__layer--${layer}`)!).transform),
     }));
     expect(y).toBeGreaterThan(40);

@@ -49,6 +49,7 @@ import { DEFAULT_TUNING } from '../data/tuning';
 import { createDrawer } from './drawer';
 import { createMapDrawer } from './map-drawer';
 import { createNav } from './nav';
+import { presentAsScreen } from './overlay';
 import { anyShop, finishedResult, incomingMove, lateState, openingState, relicOffer, relicShop, targetedReward, wordiestEvent } from './gallery-fixtures';
 import { GALLERY_SURFACES, type GallerySurface } from './gallery-surfaces';
 import { labelExposures } from './exposure-labels';
@@ -162,7 +163,7 @@ async function main(): Promise<void> {
    * gallery stages a surface, and a tab opens a different one.
    */
   const nav = createNav();
-  for (const layer of [drawer.root, mapDrawer.root]) layer.classList.add('overlay--screen');
+  for (const layer of [drawer.root, mapDrawer.root]) presentAsScreen(layer);
   const replayTutorial = document.createElement('button');
   if (loaded) shell.append(nav.root, createHeader(replayTutorial, seedBar.toggle), seedBar.root, router.root, drawer.root, mapDrawer.root, stamps.root);
   else shell.append(router.root, drawer.root, mapDrawer.root, stamps.root);

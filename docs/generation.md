@@ -11631,3 +11631,59 @@ recorded here rather than edited into the prompt:
 7. **A thirteenth glyph family, `currency`** (D54), where the prompt listed a
    currency icon as class C art with no family. The map node card goes to a
    budget of 1. D39 closes. The tab icons are ruled controls, not glyphs.
+
+### What 5.0/1 built, and where it differs from the prompt
+
+**2026-09-30**, the rest of §87, written with the stage's report
+([`visual/reports/5.0-stage1.md`](visual/reports/5.0-stage1.md)).
+
+8. **The corner stamps are a status strip.** They were fixed to the viewport's
+   corners behind the screens, and the screens' own boxes took no taps so the
+   seed stamp could be reached through them (patch 4.8.0.3). The frame now
+   scrolls inside `.screens`, which has to take a swipe on the gap between two
+   cards, so the stamps moved into an in-flow strip at the foot of the frame
+   and the pass-through rule was deleted. Same four stamps, same seed copy.
+9. **The header row stays**, under the nav: the title, the tutorial replay and
+   the seed toggle. The prompt's shell shows a wordmark and tabs only. The
+   header carries the seed bar's toggle and the replay, which have no other
+   home on a phone, so it is kept for 5.0/1; the tutorial replay is also on
+   the Settings screen.
+10. **The frame is a size container.** Every `@media (max-width: …)` rule
+    became `@container frame (…)`, so the narrow layout follows the frame, not
+    the viewport, and a desktop gets the phone layout in its frame. The wide
+    layouts those rules used to override are unreachable now (the frame is at
+    most 480px) and are left in place for 5.0/2 to 5.0/4 to delete screen by
+    screen, since each of those stages rebuilds one of them.
+11. **The two-form markup is still rendered.** `prose()`'s long and short
+    spans, the stat block's word labels and a chip's word form existed for the
+    density switch. The one face shows the short, glyph-first form, and the
+    stylesheet hides the rest. Deleting the markup, and collapsing the `Prose`
+    tables to one string, is a copy change that moves `docs/copy.md`; it is
+    carried as an open item rather than folded into a stage whose checkpoint
+    is "layouts inside the screens are unchanged".
+12. **The stage carries the placeholder battle backdrop, and the field with
+    it.** The frame is opaque, so the world no longer shows behind the
+    battle. The stage draws the plan's placeholder (a flat locale tint, sky
+    and ground) and the Stage 4.11 weather wash and terrain tint are drawn on
+    it too, from the same global tokens. The world still draws behind the
+    frame on a desktop, and its parallax follows the frame's scroller.
+13. **The Bag tab's readout shows the backpack as run state holds it**, without
+    an unspent item plan folded in. The party screen, where a plan is
+    composed, shows the folded view, as it always has.
+14. **The HP boxes are solid windows.** V5 made them a translucent scrim with a
+    backdrop blur over the world; the plan forbids `backdrop-filter`.
+15. **Chip labels mix 40% of their hue, not 60%**, because the neutral they mix
+    toward is now dark ink on a light card. At 60% the map's type chips read
+    3.86:1 and the battle panel's 4.20:1.
+16. **Tests changed because they asserted a retired design**, each with a
+    comment naming the plan: the panel's blur (`visual-motion`), the panel as
+    a borderless scrim (`visual-v5`), the stamps as fixed (`visual-v2`), the
+    world's parallax on window scroll (`visual-v3`), the seed bar's desktop
+    layout (`visual-phone-seed-bar`), the move meta row's 20px (a Detailed
+    chip; `visual-v5`), and the drawer's controls (`party-drawer`). Four had a
+    latent bug the new frame exposed: `visual-field` sampled a hidden title at
+    (0, 0), `visual-v3` and `visual-chips` read coordinates against the
+    window, and `stamps.mjs` did not know `.layout`.
+17. **Not run here: the WebKit suite and a real iPhone.** This sandbox has
+    Chromium only. The plan asks for both before review of 5.0/2; for 5.0/1
+    they are the reviewer's.

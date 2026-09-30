@@ -192,10 +192,12 @@ describe('the move explanation, across every surface it reaches', () => {
         continue;
       }
 
-      // The drawer, from the shell-level trigger, once.
-      if (screen === 'map' && !openedDrawer) {
+      // The drawer, once. From a fight since Stage 5.0/1: the Team tab opens
+      // the drawer over a pending decision, and on the map it opens the
+      // writable party screen instead, as the map's Manage button does.
+      if (screen === 'battle' && !openedDrawer) {
         openedDrawer = true;
-        await page.locator('.drawer__trigger').first().click();
+        await page.locator('[data-nav="team"]').click();
         await page.waitForTimeout(200);
         await probe('drawer', '.drawer');
         await page.keyboard.press('Escape');

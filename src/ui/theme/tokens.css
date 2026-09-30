@@ -239,10 +239,16 @@
    * a Dragon chip still reads as Dragon at a glance and its *text* is what
    * moved toward the cream. Measured per chip surface in
    * `test/visual-chips.test.ts`.
+   *
+   * **And 60% to 40% at Stage 5.0/1**, when the palette turned light and the
+   * neutral the label mixes toward became dark ink. The pull that lifted the
+   * dark hues off a dark card now has to hold the light hues on a light one:
+   * at 60% the map's type chips read 3.86 and the battle panel's 4.20 on
+   * every locale (`test/visual-v1.test.ts`).
    */
   --chip-fill: 16%;
   --chip-line: 55%;
-  --chip-text: 60%;
+  --chip-text: 40%;
 
   /* ---------- faces ---------- */
   --font-mono-stack: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;

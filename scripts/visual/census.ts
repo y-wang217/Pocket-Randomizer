@@ -285,7 +285,7 @@ export const COMPONENTS: readonly { id: string; selector: string; why: string; b
   },
   {
     id: 'app shell',
-    selector: '.header, .shell__drawer-bar, .seedbar, .stamps',
+    selector: '.nav, .header, .seedbar, .stamps',
     why: 'The header, drawer bar, seed bar and stamps are mounted once and render on every surface. Section 4 budgets surfaces, not the chrome around them, so this is broken out to be subtracted rather than silently charged to all sixteen.',
   },
 ];

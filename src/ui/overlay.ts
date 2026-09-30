@@ -86,6 +86,16 @@ export interface Overlay {
   onClose(listener: () => void): void;
 }
 
+/**
+ * Present an overlay as a screen of the frame: under the nav, the frame's
+ * full width, no scrim. **Stage 5.0/1**, the shell nav's tab screens (bible
+ * section 5, Shell nav). Still this overlay underneath, so the close
+ * control, Escape and focus return are unchanged.
+ */
+export function presentAsScreen(root: HTMLElement): void {
+  root.classList.add('overlay--screen');
+}
+
 export function createOverlay(spec: { block: string; label: string; title: string }): Overlay {
   const root = el('div', `overlay ${spec.block}`);
   root.hidden = true;

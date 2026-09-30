@@ -76,6 +76,7 @@ import type { GymDefinition } from '../data/gyms';
 import type { RelicId } from '../data/relics';
 import { createDrawer, type DrawerView } from './drawer';
 import { createMapDrawer } from './map-drawer';
+import { presentAsScreen } from './overlay';
 import type { NavTab } from './assets/manifest';
 import { createDecisionFeed } from './decision-feed';
 import { createNav } from './nav';
@@ -234,9 +235,7 @@ export function mountApp(root: HTMLElement): void {
   const nav = createNav();
   const runInfo = createRunInfo();
   const settingsSheet = createSettingsSheet();
-  for (const layer of [drawer.root, mapDrawer.root, runInfo.overlay.root, settingsSheet.overlay.root]) {
-    layer.classList.add('overlay--screen');
-  }
+  for (const layer of [drawer.root, mapDrawer.root, runInfo.overlay.root, settingsSheet.overlay.root]) presentAsScreen(layer);
   const sidebar = createSidebar();
 
   const replayTutorial = document.createElement('button');

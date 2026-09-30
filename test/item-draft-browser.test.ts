@@ -96,6 +96,11 @@ describe('the unspent item plan across a reload', () => {
     }
     expect(holding, 'no member ever held an item').toBe(true);
 
+    // The one face folds every member card (Stage 5.0/1; it ran in Detailed,
+    // unfolded, until then). Open the holder's card to reach its control.
+    const holder = page.locator(`${visible('party')} .party__member`, { has: page.locator('button', { hasText: 'To bag' }) }).first();
+    await holder.locator('.party__member-toggle').click();
+    await settle(page);
     await toBag.click();
     await settle(page);
     const before = await partyText(page);

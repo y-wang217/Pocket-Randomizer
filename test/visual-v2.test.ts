@@ -107,11 +107,18 @@ describe('the band', () => {
 });
 
 describe('the corner stamps', () => {
-  it('are fixed, out of flow, and clear of painted content on every screen', async () => {
+  /*
+   * "Fixed, out of flow" until Stage 5.0/1, when the frame took the page's
+   * height and the stamps became a strip at its foot, in flow and clear of
+   * the screens by construction. The collision sweep below is unchanged.
+   */
+  it('sit in the strip at the foot of the frame, clear of painted content on every screen', async () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
-    const positions = await page.evaluate(() => [...globalThis.document.querySelectorAll('.stamp')].map((s) => globalThis.getComputedStyle(s).position));
-    expect(positions.length).toBe(4);
-    expect(new Set(positions)).toEqual(new Set(['fixed']));
+    const placed = await page.evaluate(() =>
+      [...globalThis.document.querySelectorAll('.stamp')].map((stamp) => stamp.parentElement?.classList.contains('stamps') && stamp.parentElement.parentElement?.classList.contains('shell')),
+    );
+    expect(placed.length).toBe(4);
+    expect(new Set(placed)).toEqual(new Set([true]));
 
     const seen = new Set<string>();
     const collisions: string[] = [];

@@ -1171,8 +1171,9 @@ if (await phone.locator(visible('battle')).count()) {
       statPanels: [...globalThis.document.querySelectorAll('.panel[data-tip^="stats:"]')].filter(
         (panel) => (panel.dataset.detail ?? '').split('\n').filter(Boolean).length === 6,
       ).length,
-      // Part 1: the drawer trigger, in the same place on every surface.
-      drawerTrigger: globalThis.document.querySelectorAll('[data-drawer-trigger]').length,
+      // Part 1: the party is reachable from a battle. The Team tab since Stage
+      // 5.0/1, where the drawer trigger was.
+      drawerTrigger: [...globalThis.document.querySelectorAll('[data-nav="team"]')].filter((tab) => !tab.disabled).length,
       scrollWidth: globalThis.document.documentElement.scrollWidth,
       innerWidth: globalThis.window.innerWidth,
     };
@@ -1216,7 +1217,7 @@ if (await phone.locator(visible('battle')).count()) {
     `${battle.statPanels} stat panels, ${battle.archetypes} labels`,
   );
   phoneCheck('the party drawer is reachable in a battle', battle.drawerTrigger === 1,
-    `${battle.drawerTrigger} triggers`);
+    `${battle.drawerTrigger} enabled Team tabs`);
 
   await phone.screenshot({ path: 'stats/phone-battle.png' });
 } else {
