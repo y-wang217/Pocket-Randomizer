@@ -2803,9 +2803,9 @@ export function createWorldScene(follow: HTMLElement | null = document.documentE
   /*
    * **The frame's scroll, since Stage 5.0/1.** The page itself no longer
    * scrolls: the frame holds a viewport's height and its screens scroll
-   * inside `.screens`. A scroll event does not bubble, so the listener
-   * captures on the document and reads the frame's scroller, falling back to
-   * the window for a page that has no frame.
+   * inside `.screens`. An element's scroll event does not bubble, so a
+   * second listener captures on the document; the first, on the window, is
+   * the page's own scroll. Both read the larger of the two positions.
    */
   const scrolled = (): number => {
     const frame = globalThis.document?.querySelector?.('.screens');
@@ -2818,6 +2818,7 @@ export function createWorldScene(follow: HTMLElement | null = document.documentE
     mid.style.transform = `translate3d(0, ${-y * PARALLAX.mid}px, 0)`;
     near.style.transform = `translate3d(0, ${-y * PARALLAX.near}px, 0)`;
   };
+  globalThis.addEventListener('scroll', onScroll, { passive: true });
   globalThis.document?.addEventListener('scroll', onScroll, { passive: true, capture: true });
 
   const readAttribute = (): LocaleId | null => (follow?.getAttribute('data-locale') as LocaleId | null) || null;
@@ -2867,6 +2868,7 @@ export function createWorldScene(follow: HTMLElement | null = document.documentE
     },
     destroy() {
       observer?.disconnect();
+      globalThis.removeEventListener('scroll', onScroll);
       globalThis.document?.removeEventListener('scroll', onScroll, { capture: true });
       root.remove();
     },
