@@ -190,9 +190,11 @@ body {
 }
 
 .button {
-  padding: calc((var(--space-1h) + var(--hairline)) * var(--tap-scale)) calc(var(--space-3h) * var(--tap-scale));
-  background: var(--bg-sunken);
-  border: var(--hairline) solid var(--border-strong);
+  /* A window button, Stage 5.0/1: the heavy dark border, and a hairline less
+     padding so the outer size is what it was. */
+  padding: calc(var(--space-1h) * var(--tap-scale)) calc(var(--space-3h) * var(--tap-scale) - var(--hairline));
+  background: var(--bg-raised);
+  border: var(--rule-heavy) solid var(--border-heavy);
   border-radius: var(--radius-card);
   color: var(--text);
   font: inherit;
@@ -200,16 +202,19 @@ body {
   cursor: pointer;
 }
 
-.button:hover:not(:disabled) { border-color: var(--emphasis); }
+.button:hover:not(:disabled) { border-color: var(--selected); }
+/* The four states, Stage 5.0/1: rest above, pressed, selected, disabled. */
+.button:active:not(:disabled) { background: var(--bg-sunken); }
+.button[aria-pressed='true'] { border-color: var(--selected); background: color-mix(in srgb, var(--highlight) 30%, var(--bg-raised)); }
 
 /* Disabled rather than hidden, everywhere: a control that disappears from one
    row and not another reads as a bug, and the greyed-out version is what tells
    the player the action exists at all. */
-.button:disabled { opacity: 0.35; cursor: not-allowed; }
+.button:disabled { opacity: 0.6; color: var(--disabled); border-color: var(--disabled); cursor: not-allowed; }
 
 .primary-action {
   background: var(--accent);
-  border-color: var(--accent);
+  border-color: var(--border-heavy);
   color: var(--accent-ink);
   font-weight: 700;
 }
@@ -4086,9 +4091,11 @@ body {
   width: 100%;
   padding: var(--space-5) var(--space-4);
   text-align: center;
-  background: color-mix(in srgb, var(--locale-deep) 88%, transparent);
-  border-top: var(--hairline) solid color-mix(in srgb, var(--locale-glow) 55%, transparent);
-  border-bottom: var(--hairline) solid color-mix(in srgb, var(--locale-glow) 55%, transparent);
+  /* A window, Stage 5.0/1: the band sat in the locale's dark tint over a
+     dark frame, and on the light frame that is dark text on dark. */
+  background: var(--bg-raised);
+  border-top: var(--rule-heavy) solid var(--border-heavy);
+  border-bottom: var(--rule-heavy) solid var(--border-heavy);
 }
 
 .confirm-band__title { margin: 0 0 var(--space-1h); font-size: var(--fs-3xl); }
@@ -5891,9 +5898,11 @@ button,
   width: 100%;
   padding: var(--space-3) var(--space-4);
   text-align: center;
-  background: color-mix(in srgb, var(--locale-deep) 88%, transparent);
-  border-top: var(--hairline) solid color-mix(in srgb, var(--locale-glow) 55%, transparent);
-  border-bottom: var(--hairline) solid color-mix(in srgb, var(--locale-glow) 55%, transparent);
+  /* A window, Stage 5.0/1: the band sat in the locale's dark tint over a
+     dark frame, and on the light frame that is dark text on dark. */
+  background: var(--bg-raised);
+  border-top: var(--rule-heavy) solid var(--border-heavy);
+  border-bottom: var(--rule-heavy) solid var(--border-heavy);
 }
 
 /* The summary card loses its box: it is the page now, not a card on it. */
@@ -5952,7 +5961,8 @@ button,
   gap: var(--space-1);
   min-height: 40px;
   padding: var(--space-1h) var(--space-h);
-  background: linear-gradient(to bottom, var(--locale-mid), var(--locale-deep));
+  /* Flat since Stage 5.0/1: no gradients inside the frame. */
+  background: var(--locale-mid);
   border-top: var(--space-h) solid var(--locale-glow);
   border-radius: var(--radius-chip);
 }

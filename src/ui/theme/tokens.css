@@ -91,8 +91,8 @@
   --bg: var(--base-deep);
   --bg-raised: var(--base-surface);
   --bg-sunken: color-mix(in srgb, var(--base-deep) 88%, var(--cream));
-  --border: color-mix(in srgb, var(--cream) 28%, var(--base-surface));
-  --border-strong: color-mix(in srgb, var(--cream) 55%, var(--base-surface));
+  --border: color-mix(in srgb, var(--cream) 40%, var(--base-surface));
+  --border-strong: color-mix(in srgb, var(--cream) 65%, var(--base-surface));
 
   --text: var(--cream);
   --text-dim: var(--cream-dim);

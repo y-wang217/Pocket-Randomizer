@@ -102,7 +102,13 @@ import {
   EVOLUTION_LINE,
   EVOLUTION_CHOICE,
   carryingLine,
+  NAV_COPY,
+  RUN_INFO_COPY,
+  SETTINGS_COPY,
+  SIDEBAR_COPY,
+  DRAWER_BAG_HEADING,
 } from '../src/ui/copy/screens';
+import { FEED_COPY } from '../src/ui/copy/feed';
 import { OUTCOME_WORDS, TIER_ROWS } from '../src/ui/copy/summary';
 import * as hpCopy from '../src/core/hpCopy';
 import { THREAT_TITLE, THREAT_EXPLAINER, NO_THREATS } from '../src/core/typeMatchup';
@@ -506,10 +512,65 @@ section({
 });
 
 section({
-  title: 'Settings',
-  where: 'The three pickers in the drawer.',
+  title: 'Shell nav',
+  where: 'The five tabs at the top of the frame, on every screen. Stage 5.0/1.',
   source: 'src/ui/copy/screens.ts',
   rows: [
+    { key: 'label', text: NAV_COPY.label },
+    ...Object.entries(NAV_COPY.tabs).map(([key, text]) => ({ key: `tab · ${key}`, text })),
+    { key: 'drawer · bag heading', text: DRAWER_BAG_HEADING },
+  ],
+});
+
+section({
+  title: 'Run info and the sidebar',
+  where: 'The Run Info tab\'s screen, and the desktop sidebar beside the frame. Stage 5.0/1.',
+  source: 'src/ui/copy/screens.ts',
+  rows: [
+    ...Object.entries(RUN_INFO_COPY).map(([key, text]) => ({ key: `run info · ${key}`, text })),
+    { key: 'sidebar · label', text: SIDEBAR_COPY.label },
+    { key: 'sidebar · where', text: SIDEBAR_COPY.whereTitle },
+    { key: 'sidebar · team', text: SIDEBAR_COPY.team },
+    { key: 'sidebar · where line', text: SIDEBAR_COPY.where('Cave', 0, 8, 'Garnet') },
+  ],
+});
+
+section({
+  title: 'Run progress',
+  where: 'The decision feed: one line per logged decision, on the Run Info screen and in the desktop sidebar. Stage 5.0/1, bible R11 (D55). Shown with sample names.',
+  source: 'src/ui/copy/feed.ts',
+  rows: [
+    { key: 'heading', text: FEED_COPY.heading },
+    { key: 'empty', text: FEED_COPY.empty },
+    { key: 'starter', text: FEED_COPY.starter('Bulbasaur') },
+    { key: 'locale', text: FEED_COPY.locale('Cave') },
+    { key: 'node', text: FEED_COPY.node('trainer', 'hard') },
+    { key: 'move', text: FEED_COPY.move('Tackle') },
+    { key: 'switch', text: FEED_COPY.switchTo('Pidgey') },
+    { key: 'reward', text: FEED_COPY.reward('TM: Surf') },
+    { key: 'shop', text: FEED_COPY.shop(['Sitrus Berry']) },
+    { key: 'shop · nothing', text: FEED_COPY.shop([]) },
+    { key: 'event', text: FEED_COPY.event('Take what is loose') },
+    { key: 'caught', text: FEED_COPY.caught('Pidgey') },
+    { key: 'declined', text: FEED_COPY.declined('Pidgey') },
+    { key: 'caught, releasing', text: FEED_COPY.caughtReleasing('Pidgey', 'Rattata') },
+    { key: 'items', text: FEED_COPY.items([FEED_COPY.held('Leftovers', 'Pidgey'), FEED_COPY.taught('Surf', 'Lapras')]) },
+    { key: 'items · nothing', text: FEED_COPY.items([]) },
+    { key: 'lead', text: FEED_COPY.lead('Pidgey') },
+    { key: 'released', text: FEED_COPY.released('Rattata') },
+    { key: 'reordered', text: FEED_COPY.reordered('Pidgey', 0) },
+    { key: 'evolved', text: FEED_COPY.evolved('Pidgey', 'Pidgeotto') },
+    { key: 'segment', text: FEED_COPY.segment(0, 'Garnet') },
+  ],
+});
+
+section({
+  title: 'Settings',
+  where: 'The Settings tab\'s screen (the drawer\'s pickers until Stage 5.0/1).',
+  source: 'src/ui/copy/screens.ts',
+  rows: [
+    { key: 'title', text: SETTINGS_COPY.title },
+    { key: 'tutorial', text: SETTINGS_COPY.tutorial },
     { key: `heading · ${BATTLE_SPEED_HEADING}`, text: BATTLE_SPEED_HEADING },
     ...Object.entries(BATTLE_SPEED_COPY).flatMap(([key, value]) => [
       { key: `battleSpeed.${key} · name`, text: value.name },
