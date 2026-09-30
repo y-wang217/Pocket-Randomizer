@@ -66,6 +66,8 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
+**In flight: Stage 5.0, the visual redesign ([`spec/gymrun-stage5.0-visual-redesign.md`](spec/gymrun-stage5.0-visual-redesign.md)). 5.0/0, the spike and audit, is done on `claude/hopeful-shannon-kch3gw` and stopped for review.** The report is [`visual/reports/5.0-stage0-spike.md`](visual/reports/5.0-stage0-spike.md). It filed D50 to D76 in the discrepancy register. **5.0/1 is blocked** until a bible PR amends R6 (density retirement, D50) and rules D52 to D55 (inspect on tap, nav tabs, the nav family, the sidebar). Nothing under `src/` changed.
+
 **In flight: the 4.10 presentation milestones, Tier 6 merged as [#68](https://github.com/y-wang217/Pocket-Randomizer/pull/68); patch 4.10.1 built on `claude/map-icons-conversion-plan-tvab5v`; Tier 7 next.**
 Patch 4.10.1 makes the map's node kinds marks — a head, a bush, a tent, a
 badge, a bag, a question mark — as an eleventh glyph family, ruled under D46
