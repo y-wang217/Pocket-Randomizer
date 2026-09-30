@@ -431,6 +431,8 @@ async function stepOnceUnparked(page, expected) {
         // of them — an empty span is not clickable, which is a second way to
         // stall on the same screen.
         await card.click({ position: { x: 8, y: 8 } });
+        // A tap selects; the claim band's commit takes it (Stage 5.0/3, D69).
+        await page.locator('.confirm-band .primary-action').click();
         return screen;
       }
       const capture = page.locator(`${visible('result')} .result__capture`);

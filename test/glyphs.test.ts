@@ -73,8 +73,10 @@ describe('the glyph sheet', () => {
    * fails here, which is what makes the stop-and-file a gate rather than a
    * hope.
    */
-  it('fills all twelve families of section 2, and no thirteenth', () => {
-    expect(GLYPH_FAMILIES).toHaveLength(12);
+  // Thirteen since Stage 5.0/3: `currency`, ruled under D54 (Rev 15) and
+  // first drawn for the shop price and the coins card (D66, Rev 17).
+  it('fills all thirteen families of section 2, and no fourteenth', () => {
+    expect(GLYPH_FAMILIES).toHaveLength(13);
     for (const family of GLYPH_FAMILIES) expect(glyphsOf(family), family).not.toHaveLength(0);
     const drawn = new Set(GLYPHS.map((glyph) => glyph.family));
     expect([...drawn].sort()).toEqual([...GLYPH_FAMILIES].sort());

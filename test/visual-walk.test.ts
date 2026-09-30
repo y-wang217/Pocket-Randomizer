@@ -172,7 +172,8 @@ describe('stepOnce', () => {
     const page = fakePage(world) as unknown as Parameters<typeof stepOnce>[0];
 
     expect(await stepOnce(page, 'result')).toBe('result');
-    expect(world.clicks.length, 'it took the reward').toBe(1);
+    // Two since Stage 5.0/3 (D69): the card selects, the band's commit takes it.
+    expect(world.clicks.length, 'it took the reward').toBe(2);
   });
 
   it('acts on nothing when the screen is not the one the caller decided about', async () => {

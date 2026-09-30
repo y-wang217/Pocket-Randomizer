@@ -522,3 +522,20 @@ export function flagChip(kind: string, text: string, options: ChipOptions = {}):
 export function neutralChip(text: string, modifier: string, options: ChipOptions = {}): HTMLElement {
   return build('neutral', `badge badge--${modifier}`, text, options);
 }
+
+/**
+ * A coin amount: the currency glyph beside a bare number. **Section 2's
+ * currency family, ruled under D54, first drawn in Stage 5.0/3.** The shop's
+ * price and the coins card; the wallet and the map node's payout follow as
+ * their stages reach them. Not a chip: the mark qualifies the number beside
+ * it, and the number is the fact.
+ */
+export function coinAmount(amount: string, className = ''): HTMLElement {
+  const node = el('span', `coin-amount${className ? ` ${className}` : ''}`);
+  const mark = glyphNode('currency-coin');
+  if (mark) node.append(mark);
+  const value = el('span', 'coin-amount__value');
+  value.textContent = amount;
+  node.append(value);
+  return node;
+}

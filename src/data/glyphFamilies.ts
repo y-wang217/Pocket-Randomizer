@@ -70,6 +70,12 @@ export const GLYPH_FAMILIES = [
   'node',
   /** The state of the board: weather and terrain. Stage 4.11, D47. */
   'field',
+  /**
+   * A coin amount: the payout, the price, the wallet, a coins card. One mark.
+   * Ruled 2026-09-30 under D54, first drawn by Stage 5.0/3 for the shop price
+   * and the coins card (D66).
+   */
+  'currency',
 ] as const;
 
 export type GlyphFamily = (typeof GLYPH_FAMILIES)[number];
