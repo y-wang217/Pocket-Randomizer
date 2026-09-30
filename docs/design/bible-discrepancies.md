@@ -76,10 +76,10 @@ which blocks everything.
 | D58 | 5.0/2 | The battle header, the turn header and the flags have no place in Stage 2's layout | **2026-09-30**, option 1: the header row above the stage |
 | D59 | 5.0/2 | The log behind "Info" reverses D26, and "Info" is a word and possibly a help button | **2026-09-30**, option 1: D26 stands, no Info button |
 | D60 | 5.0/2, 5.0/4, 5.0/5 | Painted backdrops replace the World component, and the plan does not say where the weather goes | **2026-09-30**, neither option: the World stays behind the frame, the backdrop is the scene inside it, the wash on the battle backdrop |
-| D61 | 5.0/1's manifest, 5.0/4, 5.0/5 | Class C node and capability art redraws two section 2 families outside the glyph renderer | **open** |
+| D61 | 5.0/1's manifest, 5.0/4, 5.0/5 | Class C node and capability art redraws two section 2 families outside the glyph renderer | **2026-09-30**, option 1: art through `glyphNode` at 8px native; trainer sprites for the player marker only |
 | D62 | 5.0/1 to 5.0/4 | Class B marks drawn in CSS must stay section 2's shapes and pass through the glyph renderer | **2026-09-30**, option 1 everywhere: a type is the icon chip, never a word badge |
-| D63 | 5.0/4 | The node on the graph drops the payout, the AI tier and the reward-tier pips | **open** |
-| D64 | 5.0/4 | "Held or not-held" collapses the capability's three bands to two | **open** |
+| D63 | 5.0/4 | The node on the graph drops the payout, the AI tier and the reward-tier pips | **2026-09-30**, neither option: the step being chosen from carries the whole card, other rows the mark, tier and capability; the rest on long press |
+| D64 | 5.0/4 | "Held or not-held" collapses the capability's three bands to two | **2026-09-30**, option 1: the chevron keeps three states |
 | D65 | 5.0/3 | Capability glyphs on relic cards put at rest what section 3 puts on inspect | **open** |
 | D66 | 5.0/3 | Stage 3's card face carries the name and an effect line, which section 3 and D36 put on inspect | **open** |
 | D67 | 5.0/3 | Stage 3's card gives a move kind "band pips" where section 5 gives it the move card | **open** |
@@ -87,10 +87,10 @@ which blocks everything.
 | D69 | 5.0/3 | The selection cursor and confirm-to-claim: a resting cursor is emphasis, and a claim confirm is a confirm band the canon does not list | **open** |
 | D70 | 5.0/3 | The capture card in the one card component, and "the coverage line" | **open** |
 | D71 | 5.0/3, 5.0/5 | TM discs coloured by type draw the type twice on a TM card | **open** |
-| D72 | 5.0/4 | The locale card's gym identity repeats one segment fact on every card | **open** |
+| D72 | 5.0/4 | The locale card's gym identity repeats one segment fact on every card | **2026-09-30**, option 1: the gym in the rail once; a backdrop crop replaces the swatch |
 | D73 | 5.0/1's tests | Test 2's fit gate has no exemption, and D45 gave starter select one | **2026-09-30**, option 1: the existing gate, D45 exemption inherited |
 | D74 | every 5.0 stage | The plan carries no census gate, and the standing gate names three density modes | **2026-09-30**, option 1: census per stage |
-| D75 | 5.0/4 | Node positions from a hash of the node id, against "all randomness comes from core/rng.ts" | **open** |
+| D75 | 5.0/4 | Node positions from a hash of the node id, against "all randomness comes from core/rng.ts" | **2026-09-30**, option 1: a slot by option index, no hash |
 | D76 | 5.0/0, 5.0/1 | 5.0 lands on top of an open Tier 7: which face M7.1 tests, and which items it redoes | **2026-09-30**, option 1: 5.0 before M7.1 |
 
 ## Rulings, 2026-09-19
@@ -4507,3 +4507,28 @@ The bible goes to Rev 16.
   class C mark but the backdrop.
 
 The rest block 5.0/3 to 5.0/5.
+
+---
+
+## Rulings, 2026-09-30, opening 5.0/4
+
+The session listed what had to be decided before 5.0/4, with a recommendation
+for each, and the author answered *"go with your recommendations for all
+items"*, filed verbatim as
+[`../spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md`](../spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md).
+The bible goes to Rev 17.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D61 | **Option 1.** Class C node and capability art enters the sheet as glyph entries drawn by `glyphNode`, native 8px, the six named marks kept, M1.1's colour-blind check re-run before 5.0/5 mounts it. Trainer sprites are the player marker only. 5.0/4 draws today's SVG marks. | No bible change. `../generation.md` §89 |
+| D63 | **Neither option as written.** 5.0/0 measured that option 1 does not fit: one spare line under a node at 390x844, none at the desktop's pitch. The step being chosen from carries the whole card, detail line included; every other row carries the mark, the tier pips and the capability glyph with its chevron, and the rest is on the mark's long press. Below the pitch those need, the other rows keep the mark alone. Every node inspects; only the step being chosen from commits. | Bible section 5, *Map node card*; section 9 gains the bet. `../generation.md` §89 |
+| D64 | **Option 1.** The chevron keeps none, latent and known. "Held" is `known`. | No bible change |
+| D72 | **Option 1.** The gym stays in the rail, once. The crop replaces the swatch; the type badges are type chips (D62). | Bible section 5, *Locale card*. `../generation.md` §89 |
+| D75 | **Option 1.** A node's place is its option index within the step against the backdrop's slot grid. No hash, no CLAUDE.md note. | No bible change. `../generation.md` §89 |
+
+Three more items were ruled in the same answer and have no row: the map
+backdrops ship as placeholders; the pitch floor above; the commit stays one tap
+with no confirm. 5.0/4 runs before 5.0/3.
+
+**Still open after these five:** D51, which closes with 5.0/1's merge, and D65
+to D71, which block 5.0/3.

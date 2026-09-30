@@ -1,6 +1,25 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 16, Sept 30, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 17, Sept 30, 2026.
+
+**Rev 17** carries two amendments and three rulings that keep the text, ruled
+2026-09-30 by the author on rows D61, D63, D64, D72 and D75, filed by Stage
+5.0's spike against 5.0/4, the map
+([`../spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md`](../spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md)).
+**D63, neither option as written**: section 5's *Map node card* row says
+which facts a node on the map screen's graph carries at rest. The step the
+player is choosing from carries the whole card; every other row carries the
+mark, the tier pips and the capability glyph with its chevron, and the rest
+is on the mark's long press. Only the step being chosen from is a decision,
+which is the reading that keeps C2 whole. Section 9 carries the bet.
+**D72**: section 5's *Locale card* row trades the palette swatch for a crop of
+the locale's map backdrop; the gym stays in the rail, once. **D61, D64,
+D75**: no change. Class C art for the node and capability families enters
+through `glyphNode`, so section 5's *Exposure label* row holds; the capability
+chevron keeps its three states; a node's place on the graph is its option
+index against the backdrop's slot grid, with no hash, so CLAUDE.md's
+randomness section needs no note.
+
 
 **Rev 16** carries one amendment and four rulings that keep the text, ruled
 2026-09-30 by the author on rows D56 to D60, filed by Stage 5.0's spike
@@ -350,13 +369,13 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Result screen | 6 | Outcome word, "+N", continue |
 | Capture card | 0 | Follows the recipient card |
 | Event screen | 59 | Hook 12, four labels 4, four hints 6 — 52 — plus the Toll's price 5 and the control 2. The requirement, the band and the reward tier are glyphs (2026-09-22, D33) |
-| Locale card | 0 | Locale name plus four type chips |
+| Locale card | Locale name, four type chips, and a crop of the locale's map backdrop where the palette swatch stood. The segment's gym is not on the card: it is shown once, in the screen's rail, because the gym belongs to the segment and not to the locale (2026-09-22, D29; the crop and the gym, 2026-09-30, D72) | The locale screen |
 | Locale screen | 4 | The instruction (2026-09-22, D32) |
 | Starter card | 0 plus the ability name | Species name, ability name. The moves are move cards and the stats are the stat block (2026-09-23, D40) |
 | Pre-gym screen | 4 | Gym leader name, type chip, "Choose lead" |
 | Confirm overlay (replace) | 6 | "Replace Tackle with Fire Punch?" |
 | Confirm overlay (decline) | 6 | "Forfeit this reward?", and the band's two controls (2026-09-21, D22) |
-| Map node card | 1 | AI tier. The payout's unit is the currency glyph (2026-09-30, D54; was 2 under D46, 2026-09-25; 3 under D37, 2026-09-22); the kind is the node glyph |
+| Map node card | Node glyph at 24 with the leader's name on a gym, then beneath it the tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29; the glyph exists and the pips sit beneath it since 2026-09-25, D46). **On the map screen's graph, the step being chosen from carries the whole card, its detail line included** (payout as the currency glyph and a number, AI tier, a shop's shelf). **Every other row carries the node glyph (and a gym's leader), the tier pips and the capability glyph with its chevron, and nothing else at rest**; the rest of the card is on the node glyph's long press. Where the frame is too short for even that, those rows keep the glyph alone, with the rest on the same press. A node's place on the graph is its option index within its step against the scene backdrop's slot grid, never a hash or a draw (2026-09-30, D63 and D75) | The map screen and the map drawer |
 | Shop stock card | 8 | **None** — one component with the reward card since M5.1, plus a bare price number (2026-09-22, D29 and D36) |
 | Shell nav | 5 | Map, Team, Bag, Run Info, Settings. One word per tab; the icons are controls, not glyphs (2026-09-30, D54) |
 | Run Info screen and desktop sidebar | Unbudgeted | Read-only readouts, like the archive: the decision feed (R11's carve-out) and the run's position. Never a decision surface (2026-09-30, D53 and D55) |
@@ -570,6 +589,7 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | R5, the docked sheet reads as dismissable (2026-09-25) | A tester holds, releases, and is stuck with the sheet up, or taps a move to close it and is surprised that nothing was chosen | The scrim dims, so the sheet reads as modal; a second failure returns a visible "tap anywhere to close" line under the text budget |
 | R6, one face loses nothing (Simple and Detailed retired 2026-09-30, D50) | A tester asks for all numbers always visible | A single "numbers on stats" setting returns, not a global mode |
 | Event screen holds at 59 words (2026-09-22, D33; was 40) | Rejigged events with four reward tiers need more than two lines to state requirement and choice | Requirement moves to the map node glyph; prompt shrinks |
+| The map's later rows lose nothing (2026-09-30, D63) | A tester routes toward a node two or more steps ahead and is surprised by what it paid or how its opponent played, or long-presses more than half the later nodes before every pick | The detail line returns to every row that fits it, and the map drops a row of chrome to make the room |
 | Six-word hints carry the shape of a risk (2026-09-22, D33) | A tester cannot say which of two options is the variable one, or presses a button expecting no cost and is charged | The hints go back up, and the row rises with them rather than the hints being dropped |
 | Move chips suffice for the discard decision | Testers expand every chip to a full card before choosing | Chips gain PP at rest, still no words |
 | Thirteen glyph families is the right size (2026-09-30, D54; twelve under D47, 2026-09-25; eleven under D46, ten under D37, 2026-09-22) | Testers confuse any two glyphs after labels fade | One of the pair becomes a word permanently |
