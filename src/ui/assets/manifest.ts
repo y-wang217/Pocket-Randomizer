@@ -8,8 +8,10 @@
  * manifest edit and a file drop, with no code change."*
  *
  * So a caller asks for a key and gets an element, and never knows whether it
- * is a placeholder. Every entry below is a placeholder today; the art source
- * is undecided (`docs/spec/gymrun-stage5.0-visual-redesign.md`, "Open").
+ * is a placeholder. **The nine battle backdrops are art since 5.0/2**
+ * (`docs/spec/gymrun-stage5.0-battle-backdrops.md`), converted from the
+ * author's paintings by `scripts/visual/backdrops.py`; every other entry is a
+ * placeholder.
  *
  * ## Where the art lives, and why there
  *
@@ -22,7 +24,10 @@
  * All of it is pixel art at a fixed native size, drawn at whole multiples of
  * one art pixel (`--art-px`, 2 CSS px) with `image-rendering: pixelated`. The
  * sizes are the 5.0/0 spike's
- * (`docs/visual/reports/5.0-stage0-spike.md`, section 2).
+ * (`docs/visual/reports/5.0-stage0-spike.md`, section 2), except the battle
+ * backdrop: 224x136 since 5.0/2, the stage's own 272px height and the widest
+ * frame's width at 2 CSS px an art pixel, where the spike's 216x170 was sized
+ * for a 340px stage.
  *
  * ## What is not here
  *
@@ -60,7 +65,7 @@ export type Asset = Placeholder | ArtFile;
 
 export const NATIVE = {
   mapBackdrop: { width: 216, height: 432 },
-  battleBackdrop: { width: 216, height: 170 },
+  battleBackdrop: { width: 224, height: 136 },
   node: { width: 16, height: 16 },
   capability: { width: 8, height: 8 },
   relic: { width: 16, height: 16 },
@@ -103,6 +108,13 @@ const relicLetters = (name: string): string =>
 
 const placeholder = (letter: string, native: NativeSize): Placeholder => ({ kind: 'placeholder', letter, native });
 
+/** A battle backdrop's drawing. One file per locale and one for every gym. */
+const battleBackdrop = (id: LocaleId | 'gym'): ArtFile => ({
+  kind: 'file',
+  file: `backdrops/battle/${id}.png`,
+  native: NATIVE.battleBackdrop,
+});
+
 export type AssetKey =
   | `map-backdrop:${LocaleId}`
   | `battle-backdrop:${LocaleId | 'gym'}`
@@ -117,9 +129,9 @@ function build(): ReadonlyMap<AssetKey, Asset> {
   const entries: [AssetKey, Asset][] = [];
   for (const locale of LOCALES) {
     entries.push([`map-backdrop:${locale.id}`, placeholder(locale.name[0] ?? '', NATIVE.mapBackdrop)]);
-    entries.push([`battle-backdrop:${locale.id}`, placeholder(locale.name[0] ?? '', NATIVE.battleBackdrop)]);
+    entries.push([`battle-backdrop:${locale.id}`, battleBackdrop(locale.id)]);
   }
-  entries.push(['battle-backdrop:gym', placeholder('G', NATIVE.battleBackdrop)]);
+  entries.push(['battle-backdrop:gym', battleBackdrop('gym')]);
   for (const [kind, letter] of Object.entries(NODE_LETTERS) as [NodeKind, string][]) {
     entries.push([`node:${kind}`, placeholder(letter, NATIVE.node)]);
   }
@@ -152,7 +164,19 @@ export function assetFor(key: AssetKey): Asset {
 const FILES = import.meta.glob('./**/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 
 export function assetUrl(asset: ArtFile): string | null {
-  return FILES[`./${asset.file}`] ?? null;
+  const href = FILES[`./${asset.file}`];
+  /*
+   * Absolute, through the global `URL`. **Stage 5.0/2, and the reason is the
+   * bundle, not the value.** The glob compiles to `new URL(file,
+   * import.meta.url)`, injected after Rollup has already renamed clashing
+   * top-level names. `@pkmn/img` declares a module-level `var URL`, and in a
+   * bundle where nothing else names the global, Rollup leaves that `var` alone
+   * and the injected `new URL` calls it: the gallery built this way threw
+   * "URL is not a constructor" and never became ready. Naming the global here
+   * is what makes Rollup rename the library's `URL` in every bundle that has
+   * art, whichever other modules it happens to include.
+   */
+  return href === undefined ? null : new URL(href, document.baseURI).href;
 }
 
 /**
@@ -202,11 +226,15 @@ export function applyBackdrop(target: HTMLElement, key: AssetKey | null): void {
   const url = asset?.kind === 'file' ? assetUrl(asset) : null;
   if (key && asset) target.dataset['backdrop'] = key;
   else delete target.dataset['backdrop'];
-  if (url) {
+  if (url && asset) {
     target.dataset['art'] = 'file';
     target.style.setProperty('--backdrop-image', `url(${url})`);
+    // The drawing's native size, so the stylesheet draws it at whole art
+    // pixels rather than stretching it to the element.
+    target.style.setProperty('--backdrop-w', String(asset.native.width));
+    target.style.setProperty('--backdrop-h', String(asset.native.height));
   } else {
     target.dataset['art'] = 'placeholder';
-    target.style.removeProperty('--backdrop-image');
+    for (const property of ['--backdrop-image', '--backdrop-w', '--backdrop-h']) target.style.removeProperty(property);
   }
 }

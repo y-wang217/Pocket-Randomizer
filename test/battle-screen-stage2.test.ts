@@ -202,11 +202,15 @@ describe('the screen (D58, D60)', () => {
 
     screen.attach(sessionOf(PARTY, 'S2-LOCALE'), nodeOf('wild'), REVEAL, () => {});
     expect(stage().dataset['backdrop']).toBe('battle-backdrop:marsh');
-    // Every backdrop is a placeholder until the art pass.
-    expect(stage().dataset['art']).toBe('placeholder');
+    // The drawing, drawn at its native size in whole art pixels.
+    expect(stage().dataset['art']).toBe('file');
+    expect(stage().style.getPropertyValue('--backdrop-w')).toBe('224');
+    expect(stage().style.getPropertyValue('--backdrop-h')).toBe('136');
+    expect(stage().style.getPropertyValue('--backdrop-image')).toMatch(/marsh/);
 
     screen.attach(sessionOf(PARTY, 'S2-GYM'), nodeOf('gym'), REVEAL, () => {}, 0);
     expect(stage().dataset['backdrop']).toBe('battle-backdrop:gym');
+    expect(stage().style.getPropertyValue('--backdrop-image')).toMatch(/gym/);
   });
 
   it('names no backdrop when the run has no locale, and keeps the placeholder', () => {

@@ -313,7 +313,10 @@ body {
    */
   --stage-sky-base: var(--locale-mid);
   --stage-ground-base: var(--locale-glow);
-  background: var(--backdrop-image, none) center / cover no-repeat, var(--stage-sky, var(--stage-sky-base));
+  /* A drawing sits at whole art pixels (`--art-px` each), anchored to the
+     stage's bottom edge and centred: a narrow frame trims the sides and the
+     2px the window border takes comes off the sky, never the ground. */
+  background: var(--backdrop-image, none) center bottom / calc(var(--backdrop-w, 0) * var(--art-px)) calc(var(--backdrop-h, 0) * var(--art-px)) no-repeat, var(--stage-sky, var(--stage-sky-base));
   image-rendering: pixelated;
   border: var(--rule-heavy) solid var(--border-heavy);
   border-radius: var(--radius-card);
@@ -331,18 +334,20 @@ body {
   pointer-events: none;
 }
 .stage::before { inset: 55% 0 0 0; background: var(--stage-ground, var(--stage-ground-base)); }
-/* A drawing carries its own ground; the placeholder's steps aside for it. */
-.stage[data-art='file']::before { display: none; }
+/* A drawing carries its own ground, so the placeholder's steps aside for it
+   and the layer carries only a terrain's tint, over the drawing's ground from
+   its horizon down. Transparent when no terrain is set (R4). */
+.stage[data-art='file']::before { inset: 40% 0 0 0; background: var(--stage-terrain, transparent); }
 .stage::after { inset: 0; background: var(--stage-wash, transparent); }
 :root[data-weather='rain'] .stage { --stage-wash: color-mix(in srgb, var(--weather-rain) calc(var(--weather-wash) * 100%), transparent); }
 :root[data-weather='sun'] .stage { --stage-wash: color-mix(in srgb, var(--weather-sun) calc(var(--weather-wash) * 100%), transparent); }
 :root[data-weather='sand'] .stage { --stage-wash: color-mix(in srgb, var(--weather-sand) calc(var(--weather-wash) * 100%), transparent); }
 :root[data-weather='snow'] .stage { --stage-wash: color-mix(in srgb, var(--weather-snow) calc(var(--weather-wash) * 100%), transparent); }
 :root[data-weather='wind'] .stage { --stage-wash: color-mix(in srgb, var(--weather-wind) calc(var(--weather-wash) * 100%), transparent); }
-:root[data-terrain='electric'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-electric) 32%, var(--stage-ground-base)); }
-:root[data-terrain='grassy'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-grassy) 32%, var(--stage-ground-base)); }
-:root[data-terrain='misty'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-misty) 32%, var(--stage-ground-base)); }
-:root[data-terrain='psychic'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-psychic) 32%, var(--stage-ground-base)); }
+:root[data-terrain='electric'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-electric) 32%, var(--stage-ground-base)); --stage-terrain: color-mix(in srgb, var(--terrain-electric) 32%, transparent); }
+:root[data-terrain='grassy'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-grassy) 32%, var(--stage-ground-base)); --stage-terrain: color-mix(in srgb, var(--terrain-grassy) 32%, transparent); }
+:root[data-terrain='misty'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-misty) 32%, var(--stage-ground-base)); --stage-terrain: color-mix(in srgb, var(--terrain-misty) 32%, transparent); }
+:root[data-terrain='psychic'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-psychic) 32%, var(--stage-ground-base)); --stage-terrain: color-mix(in srgb, var(--terrain-psychic) 32%, transparent); }
 
 /* The platforms. **Stage 5.0/2**, class B: a CSS ellipse under each sprite,
    the ground's own colour darkened, never a file. Fixed to the sprite's box so
@@ -357,6 +362,14 @@ body {
   background: color-mix(in srgb, var(--border-heavy) 22%, var(--stage-ground, var(--stage-ground-base)));
   border: var(--rule-heavy) solid color-mix(in srgb, var(--border-heavy) 40%, var(--stage-ground, var(--stage-ground-base)));
   pointer-events: none;
+}
+/* On a drawing the platform is a shadow on the drawing's own ground: the
+   locale's tint belongs to the placeholder, and on painted art it read as a
+   purple disc on sand. Translucent ink, so every backdrop's ground shows
+   through in its own colour. */
+.stage[data-art='file'] .stage__platform {
+  background: color-mix(in srgb, var(--border-heavy) 40%, transparent);
+  border-color: color-mix(in srgb, var(--border-heavy) 60%, transparent);
 }
 .stage__platform--foe {
   top: calc(var(--sprite-size) * 0.78);
