@@ -7140,7 +7140,10 @@ button,
   --map-row-step: minmax(var(--map-row-step-min), 1fr);
   --map-row-current: minmax(var(--map-row-current-min), 1.8fr);
   --map-row-gym: minmax(var(--map-row-gym-min), 1.2fr);
-  --map-row-entrance: minmax(var(--map-row-entrance-min), 0.45fr);
+  /* A full step's weight when there is room, so the first step, a decision
+     at the foot of the frame, ends above the thumb line (740 at 390x844) with
+     room to spare; its floor is small, so the worst case pays nothing. */
+  --map-row-entrance: minmax(var(--map-row-entrance-min), 1fr);
   position: absolute;
   inset: 0;
   z-index: 1;
