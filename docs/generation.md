@@ -11772,3 +11772,29 @@ axis moves and `contentHash` holds; nothing under `core/` or `data/` changed.
     since the frame is never wider than 480px; the first is folded into
     `.move`, the second was already the base value. The orphaned comments for
     the deleted type watermark went with them.
+
+**The battle backdrops, brought forward from 5.0/5, 2026-09-30.** The author
+delivered all nine paintings inside this stage to judge the asset pipeline
+([`spec/gymrun-stage5.0-battle-backdrops.md`](spec/gymrun-stage5.0-battle-backdrops.md)).
+
+15. **The battle backdrop's native size is 224x136, not the spike's 216x170**,
+    the author's call on the recommendation. The stage is 272px tall, so 136
+    rows at 2 CSS px fill it; 224 columns cover the widest frame (444px). A
+    drawing is drawn at whole art pixels, anchored bottom-centre, never
+    stretched: phones show the middle 177 columns, the desktop frame 197.
+16. **The paintings are converted, not dropped in.** They arrive at 1536x1024
+    in a pixel-art look, not on a grid. `scripts/visual/backdrops.py` crops to
+    224:136 by trimming sky (the horizon lands near 37%, where the opponent's
+    platform stands), area-averages down, and quantises to 48 colours with no
+    dither. It needs Pillow, which nothing in the build or the suite imports.
+    The nine files total 147,633 bytes; one is fetched per fight, never at
+    first load.
+17. **On a drawing, the placeholder's ground steps aside** and its layer carries
+    only a terrain's tint from 40% down; the platforms become translucent
+    shadows, because the locale tint read as a purple disc on sand.
+18. **`assetUrl` names the global `URL`**, which is a bundling fix and not a
+    style: `@pkmn/img` declares a module-level `var URL`, and in the gallery
+    bundle, where nothing else named the global, Vite's injected
+    `new URL(file, import.meta.url)` called the library's arrow function and the
+    gallery never became ready. Naming the global makes Rollup rename the
+    library's variable in every bundle.
