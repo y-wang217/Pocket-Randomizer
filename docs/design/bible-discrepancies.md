@@ -88,10 +88,10 @@ which blocks everything.
 | D70 | 5.0/3 | The capture card in the one card component, and "the coverage line" | **open** |
 | D71 | 5.0/3, 5.0/5 | TM discs coloured by type draw the type twice on a TM card | **open** |
 | D72 | 5.0/4 | The locale card's gym identity repeats one segment fact on every card | **open** |
-| D73 | 5.0/1's tests | Test 2's fit gate has no exemption, and D45 gave starter select one | **open** |
-| D74 | every 5.0 stage | The plan carries no census gate, and the standing gate names three density modes | **open** |
+| D73 | 5.0/1's tests | Test 2's fit gate has no exemption, and D45 gave starter select one | **2026-09-30**, option 1: the existing gate, D45 exemption inherited |
+| D74 | every 5.0 stage | The plan carries no census gate, and the standing gate names three density modes | **2026-09-30**, option 1: census per stage |
 | D75 | 5.0/4 | Node positions from a hash of the node id, against "all randomness comes from core/rng.ts" | **open** |
-| D76 | 5.0/0, 5.0/1 | 5.0 lands on top of an open Tier 7: which face M7.1 tests, and which items it redoes | **open** |
+| D76 | 5.0/0, 5.0/1 | 5.0 lands on top of an open Tier 7: which face M7.1 tests, and which items it redoes | **2026-09-30**, option 1: 5.0 before M7.1 |
 
 ## Rulings, 2026-09-19
 
@@ -4467,10 +4467,12 @@ The bible goes to Rev 15.
 |---|---|---|
 | D50 | **The validation cycle is ruled done.** The author's full playthrough and the outside tester's two QA passes, with R6's disconfirmer not observed. Fewer testers than D11's definition; the playtest log says so. Option 1 in effect: R6 amended, one face, the setting deleted outright in 5.0/1. M6.4 closes as superseded. | Bible R6, sections 9 and 11. `playtest-log.md`. `../generation.md` §87 |
 | D52 | **Option 1.** *"yes, long press to inspect."* Every "tap to inspect" in the plan means the long press; tap selects. | No bible change. `../generation.md` §87 |
-| D53 | **Tabs open screens**, and a **mid-run Run Info screen** is built. The bible says so in section 5. To keep CLAUDE.md's single path and §12's three properties, a screen opened while a decision is pending elsewhere is a readout (no advance, no submit, no RNG) and closing it returns to the decision; Map from anywhere but the map has no picker. **That guard is this register's reading, not the author's words, and is flagged to the author.** | Bible sections 4 and 5. `../generation.md` §12 and §87 |
+| D53 | **Tabs open screens**, and a **mid-run Run Info screen** is built. The bible says so in section 5. To keep CLAUDE.md's single path and §12's three properties, a screen opened while a decision is pending elsewhere is a readout (no advance, no submit, no RNG) and closing it returns to the decision; Map from anywhere but the map has no picker. **The guard was this register's reading and the author confirmed it the same day** ([`../spec/gymrun-stage5.0-rulings-guard-and-stage1.md`](../spec/gymrun-stage5.0-rulings-guard-and-stage1.md)). | Bible sections 4 and 5. `../generation.md` §12 and §87 |
 | D54 | **Option 1.** *"no problem. big visual update is what makes changes like this."* A Shell nav row at 5; tab icons are controls, not glyphs; a thirteenth family, `currency`; the map node card goes 2 to 1. D39's option 3 is taken and D39 closes with it. Section 10.3's stale "tenth" corrected. | Bible sections 2, 3, 4, 9, 10 |
 | D55 | **Run Progress is the decision feed**: every decision the run log records, replayed in play order and continuing as the run goes. A new feature built on the existing replay; it replaces the plan's separate Recent Events. R11 gains the carve-out: the feed is inputs, not outcomes, and may sit at rest in the Run Info screen and the desktop sidebar, never inside the game frame. The phone reaches it through the Run Info tab. | Bible R11, sections 4, 5 and 11. `../generation.md` §87 |
 
 **Still open after these five:** D51 and D56 to D76. D51 closes with 5.0/1
 itself (density goes in 5.0/1, as every line but ruling 2 says). The rest
 block the stage they name.
+
+D73, D74 and D76 were ruled as recommended the same day, in the same file. D51 closes with 5.0/1.
