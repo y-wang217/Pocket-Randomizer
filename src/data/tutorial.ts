@@ -126,7 +126,7 @@ export const TUTORIAL: Readonly<Record<TutorialScreen, readonly TutorialMark[]>>
       title: 'The current step',
       text:
         'Each step offers two or three options, and exactly one is taken. ' +
-        'Steps above are done; steps below are still to come.',
+        'Steps below are done; steps above are still to come, up to the gym.',
     },
     {
       id: 'tier',

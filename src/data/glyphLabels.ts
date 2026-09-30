@@ -79,6 +79,8 @@ export const GLYPH_LABELS: Readonly<Record<string, string>> = {
   'field-grassy': 'Grassy',
   'field-misty': 'Misty',
   'field-psychic': 'Psychic',
+  // The currency family, one mark. Stage 5.0/4, D54.
+  currency: 'Coins',
 
   'capability-cut': 'Cut',
   'capability-surf': 'Surf',

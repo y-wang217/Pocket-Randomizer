@@ -42,6 +42,8 @@ export type ChipVariant =
   | 'capability'
   | 'capability-band'
   | 'node'
+  /** A coin amount: the currency mark and a bare number. Stage 5.0/4, D54. */
+  | 'currency'
   | 'category'
   | 'effect'
   | 'flag'
@@ -375,6 +377,28 @@ export function capabilityBandChevron(band: string, label: string): HTMLElement 
       node.append(mark);
     }
   }
+  return node;
+}
+
+/**
+ * A coin amount: the currency mark beside a bare number. **Stage 5.0/4, D54.**
+ *
+ * Section 2's thirteenth family and section 3's *Coin amount* row: the mark
+ * is the unit, so the word `coins` leaves the face and waits on inspect,
+ * where the `currency:` tip names it and says what the amount is. `context`
+ * picks that line (`payout` for what a node pays); the number rides on
+ * `data-value`, the way a stat label carries its value, because it is a fact
+ * about this render and not a lookup.
+ */
+export function currencyAmount(amount: number, context: 'payout' | 'wallet'): HTMLElement {
+  const node = build('currency', 'coins', '', { tip: `currency:${context}` });
+  node.dataset['value'] = String(amount);
+  const mark = glyphNode('currency', { label: 'Coins', size: 16 });
+  if (mark) node.append(mark);
+  const value = el('span', 'coins__value');
+  value.textContent = String(amount);
+  node.append(value);
+  node.setAttribute('aria-label', `${amount} coins`);
   return node;
 }
 

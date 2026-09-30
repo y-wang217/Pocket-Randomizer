@@ -258,6 +258,15 @@ export const KIND_HINTS = {
   event: { long: 'Something happens. You choose what to do about it.', short: 'Something happens.' },
 } as const satisfies Record<string, Prose>;
 
+/**
+ * What a coin amount is, behind the currency mark. **Stage 5.0/4, D54.**
+ * Section 3's *Coin amount* inspect column; the number comes from the mark.
+ */
+export const CURRENCY_COPY = {
+  payout: 'What this fight pays when it is won.',
+  wallet: 'What the run is carrying.',
+} as const;
+
 export const CAPTURE_FULL: Prose = {
   long: ' Your party is full — someone has to go.',
   short: ' Party full, one goes.',

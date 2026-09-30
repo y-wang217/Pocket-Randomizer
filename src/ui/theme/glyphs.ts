@@ -312,6 +312,15 @@ export const GLYPHS: readonly Glyph[] = [
   { id: 'field-grassy', family: 'field', label: labelOf('field-grassy'), art: path('M6.5 18.5c-.8-4.6.2-9.4 2-13.5.9 3.8 1 8.5.4 13.5zm5.2 0c-1-5.2-.2-10.6 2.3-15.5.5 4.7 0 10.4-.6 15.5zm4.9 0c-.6-3.8.3-7.8 1.9-11.2.6 3.2.5 7.4-.2 11.2zM2 20.5h20v2H2z') },
   { id: 'field-misty', family: 'field', label: labelOf('field-misty'), art: path('M4 5.5h12v2.4H4zm4 4.6h14v2.4H8zM2 14.7h13v2.4H2zM2 20.5h20v2H2z') },
   { id: 'field-psychic', family: 'field', label: labelOf('field-psychic'), art: path('M12 5.5c4.6 0 8.2 3 9.7 6-1.5 3-5.1 6-9.7 6s-8.2-3-9.7-6c1.5-3 5.1-6 9.7-6zm0 2.4a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 0 0 0-7.2zm0 1.8a1.8 1.8 0 1 1 0 3.6 1.8 1.8 0 0 1 0-3.6zM2 20.5h20v2H2z') },
+  /*
+   * **Currency: a coin with a slot cut through it. Stage 5.0/4, D54.**
+   *
+   * One mark in its family, so nothing inside the family to confuse it with.
+   * Against the others it is the only full disc with a single vertical hole:
+   * the band pip is a smaller filled disc and the Psychic field's eye is a
+   * ring, both without the cut.
+   */
+  { id: 'currency', family: 'currency', label: labelOf('currency'), art: path('M12 2.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 0 1 0-19zm-1.5 4.8v9.4h3V7.3z', 'evenodd') },
 ];
 
 /** The glyphs of one family, in sheet order. */

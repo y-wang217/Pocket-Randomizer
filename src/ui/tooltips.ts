@@ -74,7 +74,7 @@ import {
 import { statusInfo, STATUS_PERSISTENCE_NOTE } from '../data/statusInfo';
 import { TIER_INFO } from '../data/tierInfo';
 import { GLYPH_LABELS } from '../data/glyphLabels';
-import { KIND_HINTS } from './copy/screens';
+import { CURRENCY_COPY, KIND_HINTS } from './copy/screens';
 import { FIELD_SUPPRESSED, fieldEffect, fieldName } from '../data/fieldCopy';
 import { capabilityTypes, type Capability } from '../data/capabilities';
 import { OUTCOME_TIERS, type OutcomeTier } from '../data/eventPools';
@@ -111,6 +111,8 @@ type TipKind =
    */
   | 'flag'
   | 'node'
+  /** A coin amount beside the currency mark. Stage 5.0/4, D54. */
+  | 'currency'
   /** The field glyph on the battle header: weather or terrain. Stage 4.11 Tier 2, D47. */
   | 'field'
   /**
@@ -273,6 +275,7 @@ const KINDS = [
    */
   'flag',
   'node',
+  'currency',
   'field',
   'archetype',
   'stats',
@@ -836,7 +839,9 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
     case 'tier':
       return renderTier(id);
     case 'node':
-      return renderNodeKind(id);
+      return renderNodeKind(id, trigger?.dataset['detail']);
+    case 'currency':
+      return renderCurrency(id, trigger?.dataset['value']);
     case 'field':
       return renderField(id, trigger?.dataset['suppressed'] === 'true');
     case 'capability-band':
@@ -968,11 +973,35 @@ function renderTier(id: string): HTMLElement | null {
  * *What an option is* paraphrased. The title is the glyph's own word, so the
  * panel and the exposure label cannot disagree on what to call the mark.
  */
-function renderNodeKind(id: string): HTMLElement | null {
+function renderNodeKind(id: string, detail?: string): HTMLElement | null {
   const hint = KIND_HINTS[id as keyof typeof KIND_HINTS];
   if (!hint) return null;
   const body = panel(GLYPH_LABELS[`node-${id}`] ?? id);
   body.append(line(hint.long, 'tip__text'));
+  /*
+   * **The rest of the node card, for a row that does not carry it. Stage
+   * 5.0/4, D63.** Only the step being chosen from shows the detail line at
+   * rest; every other node's mark carries the same line on `data-detail`,
+   * composed by the map from the functions that compose the face (the
+   * payout, the AI tier, a shop's shelf), so the press shows what the card
+   * would have and nothing the card would not.
+   */
+  if (detail) body.append(line(detail, 'tip__text'));
+  return body;
+}
+
+/**
+ * A coin amount, behind the currency mark. **Stage 5.0/4, D54.**
+ *
+ * Section 3's *Coin amount* row: the inspect column is *"the word coins, and
+ * what the amount buys or pays"*. The number is on the trigger, the line is
+ * `CURRENCY_COPY`'s.
+ */
+function renderCurrency(id: string, value?: string): HTMLElement | null {
+  const context = CURRENCY_COPY[id as keyof typeof CURRENCY_COPY];
+  if (!context || value === undefined) return null;
+  const body = panel(`${value} coins`);
+  body.append(line(context, 'tip__text'));
   return body;
 }
 

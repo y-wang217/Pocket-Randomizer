@@ -70,6 +70,14 @@ export const GLYPH_FAMILIES = [
   'node',
   /** The state of the board: weather and terrain. Stage 4.11, D47. */
   'field',
+  /**
+   * **The thirteenth, ruled 2026-09-30 under D54 and drawn by Stage 5.0/4.**
+   *
+   * One mark beside a bare number wherever a coin amount appears. Rev 15
+   * added the row and nothing drew it until the map node card, whose budget
+   * went 2 to 1 on the strength of it: the payout's unit word is this mark.
+   */
+  'currency',
 ] as const;
 
 export type GlyphFamily = (typeof GLYPH_FAMILIES)[number];

@@ -7059,3 +7059,283 @@ button,
 .scene__switch[data-forced='true'] { color: var(--emphasis); }
 .scene[data-pane='moves'] > .bench { display: none; }
 .scene[data-pane='bench'] > .moves { display: none; }
+
+/* ---------- 5.0/4: the map ----------
+   Stage 4 of the visual redesign (`docs/spec/gymrun-stage5.0-visual-redesign.md`),
+   under the rulings on D61, D63, D64, D72 and D75
+   (`docs/spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md`) and bible Rev 17.
+
+   The segment as a graph on the locale's map backdrop: one grid row per step,
+   bottom up, nodes placed by option index (`ui/map-layout.ts`), edges in an
+   SVG under them. The step being chosen from carries the whole node card;
+   every other row carries the mark, the tier pips and the capability glyph,
+   and the mark alone where the row is too short (the pitch floor, below).
+
+   Scoped to `.map-graph` so the old chain rules above (card per node, a column
+   per step) stop at its edge rather than being deleted from under the other
+   screens that still read `.node__gate`. */
+
+/* The screen fills the frame, and the graph takes what the chrome leaves. */
+.screen--map {
+  min-height: 100%;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  row-gap: var(--space-2);
+}
+@container frame (max-width: 760px) {
+  .screen--map { grid-template-areas: "rail" "heading" "party" "chain"; }
+}
+
+/* The chrome above the graph, tightened by spacing alone: every fact the
+   heading and the party cards carried is still on them. */
+.screen--map .map__heading { row-gap: 0; }
+.screen--map .map__region { margin: 0; }
+.screen--map .party__member { padding: var(--space-1) var(--space-2); }
+.screen--map .party__member .panel__header { margin-bottom: var(--space-1); }
+/* The meta line only when it shows something. The HP words are hidden at rest
+   (the bar is the readout and the words are its tap), so a member holding
+   nothing, with no status, carried an empty line: 16px a card. */
+.screen--map .party__member .panel__meta:not(:has(.chip, [data-fainted])) { display: none; }
+
+.map-graph {
+  grid-area: chain;
+  align-self: stretch;
+  position: relative;
+  display: block;
+  /* Its floor is the sum of its rows' floors, stated rather than measured:
+     a grid of weighted rows sized to its content grows every row to the
+     largest floor-to-weight ratio, which is space the chrome above needed.
+     `--map-steps` is the number of step rows that are not the one being
+     chosen from, set by `run-map.ts`. */
+  min-height: calc(
+    var(--map-steps, 4) * var(--map-row-step-min) + var(--map-row-current-min) + var(--map-row-gym-min)
+      + var(--map-row-entrance-min) + 2 * var(--space-1) + 2 * var(--rule-heavy)
+  );
+  isolation: isolate;
+  border: var(--rule-heavy) solid var(--border-heavy);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  /* The scene backdrop (D60): the locale's map drawing when the manifest has
+     one, anchored to the foot where the entrance is and drawn at whole art
+     pixels; under it, always, the placeholder's flat locale tint, so a missing
+     file shows the placeholder at the graph's own size. */
+  background:
+    var(--backdrop-image, none) center bottom / calc(var(--backdrop-w, 0) * var(--art-px)) calc(var(--backdrop-h, 0) * var(--art-px)) no-repeat,
+    color-mix(in srgb, var(--locale-glow) 38%, var(--bg-raised));
+  image-rendering: pixelated;
+}
+
+/* The rows. Tracks are set inline per row from four tokens: the step being
+   chosen from gets a floor the whole card fits in, the gym room for its
+   leader's name, every other step a floor its mark fits in. Past the floors
+   the space is shared out by weight. */
+.map-graph {
+  --map-row-step-min: 30px;
+  --map-row-current-min: 96px;
+  --map-row-gym-min: 62px;
+  --map-row-entrance-min: 16px;
+}
+.map-graph__rows {
+  --map-row-step: minmax(var(--map-row-step-min), 1fr);
+  --map-row-current: minmax(var(--map-row-current-min), 1.8fr);
+  --map-row-gym: minmax(var(--map-row-gym-min), 1.2fr);
+  --map-row-entrance: minmax(var(--map-row-entrance-min), 0.45fr);
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  margin: 0;
+  padding: var(--space-1) 0;
+  gap: 0;
+  list-style: none;
+}
+
+/* A row is its own size container, so the pitch floor is decided per row by
+   the row's own height, with no script and no table of row counts. */
+.map-graph .step {
+  position: relative;
+  display: block;
+  min-height: 0;
+  container: map-row / size;
+}
+.map-graph .step__nodes {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.map-graph .step__marker {
+  position: absolute;
+  left: var(--space-1);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  font-size: var(--fs-xs);
+  border-color: var(--border-heavy);
+}
+.map-graph .step:not(.step--current) .step__marker { background: var(--bg-raised); }
+
+/* A node: a disc with the kind's mark in it, the facts beneath. */
+.map-graph .node {
+  position: absolute;
+  left: var(--x, 50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-h);
+  /* Its own width, not the room left between its left edge and the frame's:
+     an absolute box shrink-wraps to that, which squeezed a right-hand node's
+     detail to half its width. */
+  width: max-content;
+  min-width: 52px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  color: var(--text);
+  text-align: center;
+  opacity: 1;
+}
+.map-graph .node__mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-raised);
+  border: var(--rule-heavy) solid var(--border-heavy);
+}
+.map-graph .node__label { gap: 0; }
+/* The mark alone inside the disc: the chip's own box is the disc. */
+.map-graph .node__kind { padding: 0; background: none; border: 0; }
+.map-graph .node--gym .node__mark { border-radius: var(--radius-card); }
+
+.map-graph .node__facts {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--hairline) var(--space-1);
+  background: var(--bg-raised);
+  border: var(--hairline) solid var(--border-heavy);
+  border-radius: var(--radius-chip);
+  line-height: 0;
+}
+.map-graph .node__gate {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: var(--space-h);
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.map-graph .node__name,
+.map-graph .node__detail {
+  padding: 0 var(--space-1);
+  background: var(--bg-raised);
+  border: var(--hairline) solid var(--border-heavy);
+  border-radius: var(--radius-chip);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+}
+.map-graph .node__name { font-weight: 700; white-space: nowrap; }
+/* The detail line, on the step being chosen from only. A size smaller than
+   the name so a shop's shelf fits three lines in a third of the frame. */
+.map-graph .node__detail { max-width: 108px; font-size: var(--fs-xs); line-height: 1.25; }
+.map-graph .chip--currency { display: inline-flex; align-items: center; gap: var(--space-h); vertical-align: middle; }
+.map-graph .chip--currency svg { width: 12px; height: 12px; }
+
+/* The step being chosen from: the only buttons on the map. */
+.map-graph .node--current { cursor: pointer; }
+.map-graph .node--current .node__mark {
+  background: color-mix(in srgb, var(--highlight) 28%, var(--bg-raised));
+  border-color: var(--selected);
+  box-shadow: 0 0 0 var(--rule-heavy) var(--bg-raised);
+}
+.map-graph .node--current:hover { transform: translate(-50%, calc(-50% - 1px)); }
+.map-graph .node--current:hover .node__mark { border-color: var(--emphasis); }
+.map-graph .node--current:focus-visible { outline: none; }
+.map-graph .node--current:focus-visible .node__mark { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
+
+/* Walked steps, dimmed by fill rather than by opacity, so the path beneath
+   stays beneath and the marks still clear the contrast floor. The node taken
+   is solid; the ones passed over are dashed. */
+.map-graph .node--done .node__mark {
+  background: color-mix(in srgb, var(--bg-raised) 55%, var(--locale-glow));
+  border-color: color-mix(in srgb, var(--border-heavy) 65%, var(--locale-glow));
+  color: var(--text-dim);
+}
+.map-graph .node--passed .node__mark { border-style: dashed; }
+.map-graph .node--passed .node__facts { opacity: 0.7; }
+
+/* The pitch floor (D63). A row shorter than a mark and its facts keeps the
+   mark alone; the facts are on the mark's press, with the rest of the card. */
+@container map-row (max-height: 58px) {
+  .map-graph .node--compact .node__facts { display: none; }
+}
+/* And a row shorter than the disc draws a smaller disc round the same mark
+   at the same 24: the mark never shrinks, only the ring around it. */
+@container map-row (max-height: 42px) {
+  .map-graph .node--compact .node__mark { width: 28px; height: 28px; border-width: var(--hairline); }
+  .map-graph .step__marker { width: 16px; height: 16px; }
+}
+
+/* The edges: travelled solid, the next choices dashed, later steps none. */
+.map-graph__edges {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+.map-graph__edge {
+  stroke: var(--border-heavy);
+  stroke-width: 4;
+  stroke-linecap: round;
+  fill: none;
+}
+.map-graph__edge--next { stroke-dasharray: 2 9; }
+
+/* The entrance, and the trainer standing beside the node last walked to. */
+.map-graph__entrance {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28px;
+  height: 12px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--border-heavy) 45%, transparent);
+  transform: translate(-50%, -50%);
+}
+.map-graph__player {
+  position: absolute;
+  z-index: 2;
+  left: calc(var(--x, 50%) + var(--space-8) + var(--space-1));
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  transform: translate(-50%, -60%);
+  pointer-events: none;
+}
+.map-graph__player .sprite--trainer {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  object-position: 50% 12%;
+  image-rendering: pixelated;
+}
+/* A trainer sprite that did not load keeps its box as a placeholder. */
+.map-graph__player .sprite--trainer[data-missing] { visibility: hidden; }
+.map-graph__player:has(.sprite--trainer[data-missing]) {
+  border-radius: 50%;
+  background: var(--selected);
+  border: var(--rule-heavy) solid var(--border-heavy);
+  width: 20px;
+  height: 28px;
+}
+

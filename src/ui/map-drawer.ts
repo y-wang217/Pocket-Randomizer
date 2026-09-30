@@ -22,7 +22,7 @@
  * `CLAUDE.md` bars verdicts, rankings, and effectiveness against content the
  * player has not reached. This file satisfies that without making a single new
  * judgement call, because it does not render anything: it calls `renderRail`,
- * `renderHeading` and `renderChain` out of `ui/screens/run-map.ts`, which are
+ * `renderHeading` and the map graph (`createMapGraph`) out of `ui/screens/run-map.ts`, which are
  * the map screen's own functions.
  *
  * A second implementation would have been a second place for the reveal rules
@@ -32,7 +32,7 @@
  *
  * ## It is a readout, not a second path to a decision
  *
- * `renderChain` is called **with no `onChoose`**. That is not a stylistic
+ * The graph is rendered **with no `onChoose`**. That is not a stylistic
  * choice — `renderNode` attaches a click handler only when one is passed, and
  * renders a div rather than a button when one is not, so every node in here is
  * structurally unpressable. `CLAUDE.md`'s Rewards rule says every node
@@ -67,7 +67,7 @@
 import type { RunState } from '../core/run';
 import { createOverlay } from './overlay';
 import { el } from './dom';
-import { renderChain, renderHeading, renderRail } from './screens/run-map';
+import { createMapGraph, renderHeading, renderRail } from './screens/run-map';
 
 export interface MapDrawer {
   /** The overlay itself, mounted once at the app root and toggled. */
@@ -94,12 +94,13 @@ export function createMapDrawer(): MapDrawer {
 
   const rail = el('ol', 'rail map-drawer__rail');
   const heading = el('div', 'map__heading map-drawer__heading');
-  const chain = el('ol', 'chain map-drawer__chain');
+  const graph = createMapGraph();
+  graph.root.classList.add('map-drawer__chain');
 
   // The same three class names the map screen uses, so the stylesheet's rail,
   // heading and chain rules apply here without a second set of metrics. The
   // `map-drawer__` half is the hook for the few places the overlay differs.
-  overlay.body.append(rail, heading, chain);
+  overlay.body.append(rail, heading, graph.root);
 
   return {
     root: overlay.root,
@@ -141,7 +142,7 @@ export function createMapDrawer(): MapDrawer {
       rail.replaceChildren(...renderRail(state));
       heading.replaceChildren(...renderHeading(state, segment));
       // No `onChoose`. See the header: this is what makes it a readout.
-      chain.replaceChildren(...renderChain(state, segment));
+      graph.render(state, segment);
 
       overlay.open(opener);
     },

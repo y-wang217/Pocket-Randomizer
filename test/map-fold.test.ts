@@ -18,7 +18,8 @@
  *
  *   - Taken steps collapse to one line, so walking a segment no longer pushes the
  *     current step down. The chain above the decision is one row, whatever the
- *     length.
+ *     length. **Until Stage 5.0/4**, which draws the whole segment as a graph of
+ *     marks on one screen; the second case below says how that bounds it.
  *   - The map's party cards dropped their move lists and went to two columns, so a
  *     roster that doubled costs one extra grid row instead of three stacked cards.
  *
@@ -119,29 +120,43 @@ describe('the offered node cards stay above the fold', () => {
     expect(problems).toEqual([]);
   }, 600_000);
 
-  it('collapses the steps already taken to one row, whatever the segment length', async () => {
-    /*
-     * **The property that makes the fix hold at any length.** If taken steps
-     * rendered one row each, this count would climb with every node resolved and the
-     * current step would march down the page — which is exactly how the `xfail` got
-     * there. One row, or none before the first node.
-     */
+  /*
+   * **Rewritten for Stage 5.0/4** (`docs/spec/gymrun-stage5.0-visual-redesign.md`,
+   * Stage 4: *"the whole segment visible at once on a phone"*). This asserted
+   * that taken steps collapsed to one summary row, which was 4.8's way of
+   * keeping the current step from marching down the page. The graph draws
+   * every step as a row of marks instead, bottom up, and bounds the decision's
+   * position the other way: the whole segment is one screen, so nothing above
+   * or below it can push it off. The property is the same one, asserted as the
+   * design now states it: one row per step, the gym and the entrance, and the
+   * current row on screen, at every map the run reaches.
+   */
+  it('draws every step of the segment as one row, whatever the segment length', async () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMK49-2');
 
     let sawSome = false;
     for (let step = 0; step < 200; step++) {
       if ((await openScreen(page)) === 'map') {
-        const map = await readMap(page);
-        if (map) {
-          expect(map.takenRows, 'more than one summary row for the past').toBeLessThanOrEqual(1);
-          if (map.takenRows === 1) sawSome = true;
+        const graph = await page.evaluate(() => {
+          const map = document.querySelector('.screen[data-screen="map"]:not([hidden]) .map-graph');
+          return map
+            ? {
+                steps: Number(map.getAttribute('data-steps')),
+                rows: map.querySelectorAll('.map-graph__rows > .step').length,
+                done: map.querySelectorAll('.map-graph__rows > .step--done:not(.step--gym)').length,
+              }
+            : null;
+        });
+        if (graph) {
+          expect(graph.rows, 'one row per step, plus the gym and the entrance').toBe(graph.steps + 2);
+          if (graph.done > 0) sawSome = true;
         }
       }
       if ((await openScreen(page)) === 'summary') break;
       await stepOnce(page);
     }
 
-    expect(sawSome, 'the run never took a step, so the collapse was not exercised').toBe(true);
+    expect(sawSome, 'the run never took a step, so the walked rows were not exercised').toBe(true);
     await context.close();
   }, 600_000);
 
