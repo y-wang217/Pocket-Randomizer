@@ -48,6 +48,7 @@ import { gymForSegment } from '../data/gyms';
 import { DEFAULT_TUNING } from '../data/tuning';
 import { createDrawer } from './drawer';
 import { createMapDrawer } from './map-drawer';
+import { createNav } from './nav';
 import { anyShop, finishedResult, incomingMove, lateState, openingState, relicOffer, relicShop, targetedReward, wordiestEvent } from './gallery-fixtures';
 import { GALLERY_SURFACES, type GallerySurface } from './gallery-surfaces';
 import { labelExposures } from './exposure-labels';
@@ -64,7 +65,7 @@ import { createMoveReplaceScreen } from './screens/move-replace';
 import { createPartyScreen } from './screens/party';
 import { createPreGymScreen } from './screens/pre-gym';
 import { createResultScreen } from './screens/result';
-import { createRouter, DRAWER_SURFACES, type ScreenName } from './screens/router';
+import { createRouter, type ScreenName } from './screens/router';
 import { createRunMap } from './screens/run-map';
 import { createShopScreen } from './screens/shop';
 import { createStarterSelect } from './screens/starter-select';
@@ -155,19 +156,24 @@ async function main(): Promise<void> {
   const seedBar = createSeedBar();
   const stamps = createStamps();
   const world = createWorldScene();
-  const drawerBar = el('div', 'shell__drawer-bar');
-  // Map then Party, the order the app mounts them in — the bar is right
-  // aligned, so the last child is the one against the edge.
-  drawerBar.append(mapDrawer.trigger(), drawer.trigger());
+  /*
+   * The shell nav, as the app mounts it (Stage 5.0/1), with the tab screens
+   * restyled the same way. Its tabs are drawn and do nothing here: the
+   * gallery stages a surface, and a tab opens a different one.
+   */
+  const nav = createNav();
+  for (const layer of [drawer.root, mapDrawer.root]) layer.classList.add('overlay--screen');
   const replayTutorial = document.createElement('button');
-  if (loaded) shell.append(createHeader(replayTutorial, seedBar.toggle), seedBar.root, drawerBar, router.root, drawer.root, mapDrawer.root, stamps.root);
+  if (loaded) shell.append(nav.root, createHeader(replayTutorial, seedBar.toggle), seedBar.root, router.root, drawer.root, mapDrawer.root, stamps.root);
   else shell.append(router.root, drawer.root, mapDrawer.root, stamps.root);
-  root.replaceChildren(world.root, shell);
+  const layout = el('div', 'layout');
+  layout.append(shell);
+  root.replaceChildren(world.root, layout);
   createTooltips(shell);
 
   const show = (name: ScreenName): void => {
     router.show(name);
-    drawerBar.hidden = !DRAWER_SURFACES.includes(name);
+    nav.setActive(name === 'map' ? 'map' : name === 'party' ? 'team' : null);
   };
   const setPhase = (phase: 'setup' | 'running'): void => {
     shell.dataset['phase'] = phase;

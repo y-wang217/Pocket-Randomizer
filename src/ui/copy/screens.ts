@@ -139,6 +139,40 @@ export const TARGET_EFFECT = {
   }),
 };
 
+/**
+ * The shell nav's five words. **Stage 5.0/1**, section 4's Shell nav row at
+ * 5: one word per tab, and nothing else at rest.
+ */
+export const NAV_COPY = {
+  label: 'Run',
+  tabs: { map: 'Map', team: 'Team', bag: 'Bag', info: 'Run Info', settings: 'Settings' },
+} as const;
+
+/** The screens the Run Info and Settings tabs open. Stage 5.0/1. */
+export const RUN_INFO_COPY = {
+  title: 'Run info',
+  label: 'Run info',
+  seed: 'Seed',
+  build: 'Build',
+  progress: 'Run progress',
+} as const;
+
+/** The desktop sidebar. Stage 5.0/1. */
+export const SIDEBAR_COPY = {
+  label: 'Run at a glance',
+  wordmark: 'GYMRUN',
+  whereTitle: 'Where',
+  team: 'Team',
+  where: (locale: string | null, segment: number, gyms: number, leader: string): string =>
+    `${locale ? `${locale} · ` : ''}Gym ${segment + 1} of ${gyms} · ${leader}`,
+} as const;
+
+export const SETTINGS_COPY = {
+  title: 'Settings',
+  label: 'Settings',
+  tutorial: 'Show the tutorial again',
+} as const;
+
 export const BATTLE_SPEED_HEADING = 'Battle speed';
 /*
  * Three speeds, each named for what the turn does rather than for a number.
@@ -157,6 +191,9 @@ export const DRAWER_COPY = {
   inBattle: { long: 'Your side, as the fight has left it.', short: 'Your side, mid-fight.' },
   note: { long: 'Read only. Items are assigned on the party screen.', short: 'Read only.' },
 } as const satisfies Record<string, Prose>;
+
+/** The drawer's backpack heading, for the Bag tab. Stage 5.0/1. */
+export const DRAWER_BAG_HEADING = 'Bag';
 
 export const REWARD_COPY = {
   itemNote: { long: 'Goes to your backpack. Assign it on the party screen.', short: 'To your backpack.' },

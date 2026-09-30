@@ -47,13 +47,26 @@ body {
   /* Above the world (V3), which sits at the root's z-index 0. */
   position: relative;
   z-index: 1;
-  max-width: 1040px;
+  /*
+   * **The frame. Stage 5.0/1.** A portrait column, phone first: the viewport
+   * on a phone, the same column beside a sidebar on a desktop. It is a size
+   * container, so every rule written for a narrow screen asks the frame
+   * rather than the viewport (`@container frame`), and a 1366-wide desktop
+   * gets the phone layout inside its frame instead of the wide one.
+   *
+   * One screen's height and no more: the nav stays put and the screens
+   * scroll inside `.screens`, so the page itself never scrolls.
+   */
+  container: frame / inline-size;
+  width: 100%;
+  max-width: var(--frame-max);
+  height: 100dvh;
   margin: 0 auto;
-  /* Top and bottom scale with the mode; the side gutter is a thumb's clearance and does not. */
-  padding: calc(var(--space-6) * var(--chrome-gap)) var(--space-4) calc(var(--space-12) * var(--chrome-gap));
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-3) * var(--chrome-gap));
+  overflow: hidden;
+  background: var(--frame-fill);
 }
 
 /* ---------- header ---------- */
@@ -271,7 +284,41 @@ body {
 .stage {
   position: relative;
   height: var(--stage-height);
+  /*
+   * **The placeholder battle backdrop. Stage 5.0/1.** The stage stood on the
+   * world until the frame went opaque; it now carries its own, the plan's
+   * placeholder for a battle backdrop: a flat locale tint, sky above and
+   * ground below, from the locale's own three tokens. Real art replaces it
+   * through the asset manifest (`battle-backdrop:<locale>`).
+   *
+   * The field goes with it. The weather wash and the terrain tint were drawn
+   * on the world (Stage 4.11, D47); with the world behind an opaque frame
+   * they are drawn here too, from the same global tokens, so the board's
+   * weather is still on the board.
+   */
+  isolation: isolate;
+  background: var(--stage-sky, var(--locale-mid));
+  border-radius: var(--radius-card);
+  overflow: hidden;
 }
+.stage::before,
+.stage::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+}
+.stage::before { inset: 55% 0 0 0; background: var(--stage-ground, var(--locale-glow)); }
+.stage::after { inset: 0; background: var(--stage-wash, transparent); }
+:root[data-weather='rain'] .stage { --stage-wash: color-mix(in srgb, var(--weather-rain) calc(var(--weather-wash) * 100%), transparent); }
+:root[data-weather='sun'] .stage { --stage-wash: color-mix(in srgb, var(--weather-sun) calc(var(--weather-wash) * 100%), transparent); }
+:root[data-weather='sand'] .stage { --stage-wash: color-mix(in srgb, var(--weather-sand) calc(var(--weather-wash) * 100%), transparent); }
+:root[data-weather='snow'] .stage { --stage-wash: color-mix(in srgb, var(--weather-snow) calc(var(--weather-wash) * 100%), transparent); }
+:root[data-weather='wind'] .stage { --stage-wash: color-mix(in srgb, var(--weather-wind) calc(var(--weather-wash) * 100%), transparent); }
+:root[data-terrain='electric'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-electric) 32%, var(--locale-glow)); }
+:root[data-terrain='grassy'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-grassy) 32%, var(--locale-glow)); }
+:root[data-terrain='misty'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-misty) 32%, var(--locale-glow)); }
+:root[data-terrain='psychic'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-psychic) 32%, var(--locale-glow)); }
 
 .stage__actor {
   position: absolute;
@@ -333,10 +380,10 @@ body {
      Order is deliberate: the prefixed form first so an engine that understands
      both takes the standard one, which is the cascade's own rule for a vendor
      prefix and not a preference expressed here. */
-  -webkit-backdrop-filter: blur(var(--panel-blur));
-  backdrop-filter: blur(var(--panel-blur));
-  border: 0;
-  border-left: 0;
+  /* Stage 5.0/1: a solid window, the plan's GBA HP box. The blur and the
+     translucent scrim above were V5's, over the world; the frame is opaque
+     now and the plan forbids `backdrop-filter`. */
+  border: var(--rule-heavy) solid var(--border-heavy);
   border-radius: var(--radius-card);
 }
 
@@ -356,9 +403,6 @@ body {
    `@supports not` rather than a feature test in JavaScript, so it answers
    itself on the engine rather than at startup, and so a page that never runs
    `ui/` at all still renders a legible panel. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .stage .panel { background: var(--panel-scrim-solid); }
-}
 
 /* Each panel runs from its own edge of the band to where the sprite opposite
    it begins, rather than to a percentage. The sprite's width is the constraint,
@@ -1402,18 +1446,9 @@ body {
 .party--compare .party__actions { margin-top: 0; }
 .party--compare .hp { margin-top: var(--space-h); }
 
-/* The chrome in Pocket: one row. The title, the control row and the drawer
-   trigger share the shell's first line — the shell becomes a two-column grid
-   with the header in the first column and the drawer bar in the second, and
-   everything below spans both. The screens are `display: contents`, so each
-   screen is a grid item of its own. */
-.shell {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-}
-.shell > .seedbar,
-.screens > .screen { grid-column: 1 / -1; }
+/* The chrome in Pocket was one row: the shell a two-column grid, the header
+   in the first column and the drawer bar in the second. Stage 5.0/1 put the
+   nav above the header and made the shell a column, so the grid is gone. */
 .header {
   display: flex;
   flex-wrap: wrap;
@@ -1421,7 +1456,7 @@ body {
   column-gap: var(--space-2);
 }
 .header__controls { margin: 0 0 0 auto; }
-.shell__drawer-bar { padding: 0; }
+
 
 /* The member card's head in Pocket: one line of identity — slot, name,
    level, types, the lead mark — and one line of state: HP, status, the held
@@ -1589,8 +1624,6 @@ body {
 .screen--map .party__member .panel__meta { margin-top: var(--space-h); min-height: 0; }
 .screen--map .party__member .hp { height: 4px; }
 
-/* The shell's foot in Pocket: the stamps are texture, and the fold is the budget. */
-.shell { padding-bottom: var(--space-4); }
 
 /* The card's stat block: six rows, two columns, same rows as a pick card's six
    across so the two read as the same object seen in two places. **Renamed from
@@ -2741,7 +2774,16 @@ body {
  * One screen visible at a time. All four stay mounted, so the battle log's
  * scroll position and the HP bar's transition survive a switch.
  */
-.screens { display: contents; }
+.screens {
+  /* The frame's one scroller. Stage 5.0/1: `display: contents` until the
+     frame took the page's height. */
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: calc(var(--space-3) * var(--chrome-gap)) var(--space-4) calc(var(--space-6) * var(--chrome-gap));
+}
 
 .screen {
   display: flex;
@@ -3038,7 +3080,7 @@ body {
 .locale__blurb { color: var(--text-dim); font-size: var(--fs-md); }
 
 /* 44px of touch target on a phone, like every other primary control. */
-@media (max-width: 760px) {
+@container frame (max-width: 760px) {
   .locale { min-height: 88px; }
 }
 
@@ -3073,7 +3115,7 @@ body {
 .party { grid-area: party; }
 .threats--map { grid-area: threats; }
 
-@media (max-width: 760px) {
+@container frame (max-width: 760px) {
   .screen--map {
     grid-template-columns: minmax(0, 1fr);
     /*
@@ -3148,7 +3190,7 @@ body {
 /* Below this the leaders' names and types stop fitting side by side, so the
    rail becomes a scrolling strip of numbers and types — still a progression,
    just a narrower one. */
-@media (max-width: 700px) {
+@container frame (max-width: 700px) {
   .rail__gym { flex: 0 0 auto; }
 }
 
@@ -4123,7 +4165,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
  * and they only apply once a run is under way: during setup the seed box *is*
  * the screen, and hiding it would leave a phone player with nothing to press.
  */
-@media (max-width: 760px) {
+@container frame (max-width: 760px) {
   /* The title shrinks and the stage blurb goes. It is a description of the
      build for someone reading over your shoulder, not something a player in a
      fight needs on screen. */
@@ -5243,40 +5285,12 @@ button,
 .screens { isolation: isolate; }
 
 /*
- * **The screens' own boxes take no taps; what is drawn in them does.**
- * Patch 4.8.0.3, carried item B, option (a). The other half of the rule at
- * `.stamp`, and it has to be here rather than there because `pointer-events`
- * is inherited: turning it off on a container turns it off on everything
- * inside, so the things that should still take a tap are named back in.
- *
- * `.screens` and `.screen` are pure layout — a router slot and a flex column.
- * Neither has behaviour of its own, and neither should intercept a tap aimed
- * at the corner stamp behind it. A screen's *children* are the cards, panels
- * and buttons the player is actually pointing at, and they take taps normally,
- * inheriting down to every control inside them.
- *
- * **Everything else the shell holds is real, and is named back on as a
- * class of thing rather than one by one.** The first cut listed the header,
- * the seed bar, the drawer and its trigger; it missed the coach-mark layer,
- * which `app.ts` also appends to the shell, and the tutorial went transparent
- * — clicks fell through the coach onto the starter card behind it. An
- * enumerated list of siblings is a list that goes stale the next time
- * something is mounted on the shell, so the rule is the negation instead:
- * every child of the shell takes taps except the router's slot.
- *
- * `.stamps` is `display: contents` and generates no box, but it is still a
- * child for inheritance, so the stamps inside it come back on with it.
- *
- * What this buys is that the priority is now structural. Content over chrome
- * where they overlap, chrome everywhere else, whatever the layout does next.
+ * **The screens' own boxes took no taps from patch 4.8.0.3 to Stage 5.0/1**,
+ * so a tap could reach the corner stamps fixed behind them. The stamps are a
+ * strip at the foot of the frame now and overlap nothing, and `.screens` is
+ * the frame's scroller, which has to take a swipe on the space between two
+ * cards. So the boxes take taps again.
  */
-.shell,
-.screens,
-.screen { pointer-events: none; }
-
-.shell > *:not(.screens),
-.screen > * { pointer-events: auto; }
-
 /* And the seed stamp is still the one stamp that answers a tap at all. The
    three others were decoration before this rule and stay decoration. */
 .stamp:not(.stamp--seed) { pointer-events: none; }
@@ -5390,7 +5404,17 @@ button,
  * No pointer events, except the seed, which is the one stamp that does
  * something when tapped.
  */
-.stamps { display: contents; }
+.stamps {
+  /* A status strip at the foot of the frame. Stage 5.0/1: fixed to the
+     viewport's corners until the frame had corners of its own. */
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-h) var(--space-3) calc(var(--space-h) + env(safe-area-inset-bottom, var(--space-0)));
+  border-top: var(--hairline) solid var(--border);
+}
 
 /*
  * **The stamp sits behind the screens and the screens let taps through.**
@@ -5413,8 +5437,9 @@ button,
  * the stamp rather than swallowing it.
  */
 .stamp {
-  position: fixed;
-  z-index: -1;
+  /* Relative, not static: every button's hit slop is an `::after` placed
+     against its nearest positioned box, and a static stamp's was the frame. */
+  position: relative;
   margin: 0;
   padding: 0;
   border: 0;
@@ -5431,10 +5456,6 @@ button,
 
 .stamp[hidden] { display: none; }
 
-.stamp--tl { top: calc(var(--space-1h) + env(safe-area-inset-top, var(--space-0))); left: calc(var(--space-1h) + env(safe-area-inset-left, var(--space-0))); }
-.stamp--tr { top: calc(var(--space-1h) + env(safe-area-inset-top, var(--space-0))); right: calc(var(--space-1h) + env(safe-area-inset-right, var(--space-0))); }
-.stamp--bl { bottom: calc(var(--space-1h) + env(safe-area-inset-bottom, var(--space-0))); left: calc(var(--space-1h) + env(safe-area-inset-left, var(--space-0))); }
-.stamp--br { bottom: calc(var(--space-1h) + env(safe-area-inset-bottom, var(--space-0))); right: calc(var(--space-1h) + env(safe-area-inset-right, var(--space-0))); }
 
 /* The seed: copy on tap, and it says so for a moment. */
 .stamp--seed {
@@ -6338,7 +6359,7 @@ button,
 
 /* Full width on a phone, where it is the only control on the panel and a
    narrow button in a wide sheet is a target the thumb has to aim at. */
-@media (max-width: 480px) {
+@container frame (max-width: 480px) {
   .intro__actions { justify-content: stretch; }
   .intro__dismiss { flex: 1; }
 }
@@ -6718,7 +6739,7 @@ button,
 .locale__party-member--fainted { opacity: 0.55; }
 .locale__party-name { font-weight: 600; }
 
-@media (max-width: 420px) {
+@container frame (max-width: 420px) {
   /*
    * **The `.drawer__sheet { max-height: 90vh }` that lived here is gone.**
    *
@@ -6760,3 +6781,153 @@ button,
 .evolve__options { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: calc(var(--space-2) * var(--chrome-gap)); }
 .evolve__option { display: grid; justify-items: start; gap: var(--space-1); }
 .evolve__option .sprite { width: 64px; height: 64px; }
+
+/* ---------- the 5.0 shell: nav, tab screens, layout, sidebar ----------
+   Stage 5.0/1. The frame itself is `.shell`, above. */
+
+/* The header and the seed bar take the gutter the shell used to give them. */
+.shell > .header { padding: var(--space-1) var(--space-4) 0; }
+.shell > .seedbar { margin: var(--space-1) var(--space-4) 0; }
+
+.nav {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  flex: none;
+  min-height: var(--nav-h);
+  background: var(--nav-fill);
+  border-bottom: var(--rule-heavy) solid var(--border-heavy);
+}
+
+.nav__tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-h);
+  min-height: var(--nav-h);
+  padding: var(--space-h) var(--space-1);
+  border: 0;
+  border-right: var(--hairline) solid var(--nav-rule);
+  background: transparent;
+  color: var(--nav-ink);
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-label);
+  cursor: pointer;
+}
+.nav__tab:last-child { border-right: 0; }
+.nav__tab[aria-current='page'] { background: var(--frame-fill); color: var(--text); }
+.nav__tab:disabled { color: var(--nav-disabled); cursor: default; }
+.nav__tab:focus-visible { outline: var(--space-h) solid var(--selected); outline-offset: calc(-1 * var(--space-h)); }
+.nav__word { white-space: nowrap; }
+
+/* A class C asset, or its placeholder: a lettered chip at the art's native
+   size in art pixels. `ui/assets/manifest.ts`. */
+.asset {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: calc(var(--asset-w) * var(--art-px));
+  height: calc(var(--asset-h) * var(--art-px));
+  line-height: 1;
+}
+.asset--placeholder {
+  border: var(--hairline) solid currentColor;
+  border-radius: var(--radius-chip);
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+.asset__art { width: 100%; height: 100%; image-rendering: pixelated; }
+.sidebar__wordmark .asset--placeholder { display: none; }
+
+/*
+ * **A tab screen fills the frame under the nav.** The party drawer, the map
+ * overlay, Run Info and Settings are overlays underneath (`ui/overlay.ts`:
+ * the close control, Escape, focus return) and screens to look at: no scrim,
+ * no floating sheet, the frame's full width. The decision underneath never
+ * unmounts, which is the guard (bible section 5, Shell nav).
+ */
+.overlay.overlay--screen[hidden] { display: none; }
+.overlay.overlay--screen {
+  position: absolute;
+  inset: var(--nav-h) 0 0 0;
+  z-index: 30;
+  padding: 0;
+  display: block;
+}
+.overlay--screen > .overlay__scrim { display: none; }
+.overlay--screen > .overlay__sheet {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--frame-fill);
+  padding: calc(var(--space-3) * var(--chrome-pad)) var(--space-4) calc(var(--space-6) * var(--chrome-pad));
+}
+.overlay--screen .overlay__header { background: var(--frame-fill); }
+
+/* The frame and the sidebar. One column on a phone; side by side from 1024. */
+.layout { position: relative; z-index: 1; }
+.sidebar { display: none; }
+
+@media (min-width: 1024px) {
+  .layout {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    gap: var(--space-3);
+    height: 100dvh;
+    padding: var(--space-3);
+  }
+  .layout > .shell {
+    width: var(--frame-w);
+    height: 100%;
+    margin: 0;
+    border: var(--rule-heavy) solid var(--border-heavy);
+    border-radius: var(--radius-card);
+  }
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    width: var(--sidebar-w);
+    min-height: 0;
+  }
+}
+
+.sidebar__panel {
+  padding: var(--space-2h) var(--space-3);
+  background: var(--frame-fill);
+  border: var(--rule-heavy) solid var(--border-heavy);
+  border-radius: var(--radius-card);
+}
+.sidebar__wordmark { display: flex; align-items: center; gap: var(--space-2); }
+.sidebar__wordmark-text { font-family: var(--font-display); font-size: var(--fs-4xl); font-weight: 700; letter-spacing: var(--tracking-title); }
+.sidebar__title { margin: 0 0 var(--space-1h); font-size: var(--fs-md); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--text-dim); }
+.sidebar__line { margin: 0 0 var(--space-1h); font-size: var(--fs-md); }
+.sidebar__pips { display: flex; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
+.sidebar__pip { width: var(--pip-size); height: var(--pip-size); border: var(--rule-heavy) solid var(--border-heavy); border-radius: 50%; }
+.sidebar__pip[data-phase='done'] { background: var(--border-heavy); }
+.sidebar__pip[data-phase='current'] { background: var(--selected); }
+.sidebar__progress { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+
+/* The decision feed, on the Run Info screen and in the sidebar. */
+.feed { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-h); font-size: var(--fs-md); }
+.feed__segment { margin-top: var(--space-1h); font-size: var(--fs-xs); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--text-dim); }
+.feed__segment:first-child { margin-top: 0; }
+.feed__entry { padding-left: var(--space-2); border-left: var(--rule-heavy) solid var(--border); }
+.feed__entry[data-kind='battle'] { color: var(--text-dim); }
+.feed__empty { color: var(--text-dim); }
+
+.run-info__facts { display: grid; grid-template-columns: auto 1fr; gap: var(--space-h) var(--space-2); margin: 0; font-size: var(--fs-md); }
+.run-info__term { color: var(--text-dim); }
+.run-info__value { margin: 0; overflow-wrap: anywhere; }
+
+.drawer__tms { margin: var(--space-1) 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-1); font-size: var(--fs-sm); }
+.drawer__tm { padding: var(--space-h) var(--space-1h); border: var(--hairline) solid var(--border); border-radius: var(--radius-chip); }
+
+.settings-sheet__replay { align-self: flex-start; }

@@ -178,10 +178,9 @@ describe('the drawer itself', () => {
      * itself is the inspect trigger now, which is not a `<button>` and so does
      * not appear here.
      */
-    // Detailed, Pocket and Simple left with the density picker at Stage 5.0/1.
-    expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual([
-      '+', 'Close', 'Even', 'Patient', 'Swift',
-    ]);
+    // Detailed, Pocket and Simple left with the density picker at Stage 5.0/1,
+    // and the three speeds moved to the Settings screen the same stage.
+    expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual(['+', 'Close']);
 
     /*
      * **The card is not a `<button>`, so the sweep above cannot see it, and

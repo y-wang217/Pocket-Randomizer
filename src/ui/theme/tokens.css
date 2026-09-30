@@ -72,24 +72,55 @@
  */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  /* ---------- base: four values ---------- */
-  --base-deep: #0b0f17;
-  --base-surface: #151c27;
-  --cream: #efe6d2;
-  --cream-dim: #a79f90;
+  /* ---------- base: four values ----------
+     **Stage 5.0/1 turned the palette over.** The four were a near-black, a
+     dark panel and two creams from V0 to 4.11; the 5.0 redesign is a light
+     GBA-era face (the reference image, `docs/design/v5-reference.png`), so
+     the frame is a pale blue, the cards are cream, and the text is the dark
+     ink the creams used to be the opposite of. The names are V0's and are
+     kept, so every derived token below still reads as what it is for: `deep`
+     is the frame, `surface` the card, `cream` the ink. */
+  --base-deep: #e4ecf6;
+  --base-surface: #fbfaf3;
+  --cream: #1d2530;
+  --cream-dim: #4a5566;
 
   /* ---------- derived surfaces and text ---------- */
   --bg: var(--base-deep);
   --bg-raised: var(--base-surface);
-  --bg-sunken: color-mix(in srgb, var(--base-deep) 82%, #000);
-  --border: color-mix(in srgb, var(--cream) 9%, var(--base-surface));
-  --border-strong: color-mix(in srgb, var(--cream) 20%, var(--base-surface));
+  --bg-sunken: color-mix(in srgb, var(--base-deep) 88%, var(--cream));
+  --border: color-mix(in srgb, var(--cream) 28%, var(--base-surface));
+  --border-strong: color-mix(in srgb, var(--cream) 55%, var(--base-surface));
 
   --text: var(--cream);
   --text-dim: var(--cream-dim);
-  --text-faint: color-mix(in srgb, var(--cream-dim) 68%, var(--base-surface));
+  --text-faint: color-mix(in srgb, var(--cream-dim) 78%, var(--base-surface));
+
+  /* ---------- the 5.0 window tokens ----------
+     The plan's one set: panel fill, dark border, highlight, selected,
+     disabled, and the three HP colours below. Low radius, no gradients, no
+     shadows, no backdrop-filter anywhere in the frame. */
+  --frame-fill: var(--bg);
+  --border-heavy: #263649;
+  --rule-heavy: 2px;
+  --highlight: #f4c83f;
+  --selected: #2f6fd6;
+  --disabled: #9aa2ad;
+  --nav-fill: var(--border-heavy);
+  --nav-ink: #dce5f1;
+  --nav-rule: color-mix(in srgb, var(--nav-ink) 18%, var(--nav-fill));
+  --nav-disabled: color-mix(in srgb, var(--nav-ink) 38%, var(--nav-fill));
+  /* The frame's geometry: phone first, and the same column on a desktop. */
+  --nav-h: 48px;
+  --frame-max: 480px;
+  --frame-w: 430px;
+  --sidebar-w: 300px;
+  --pip-size: 12px;
+  /* One art pixel. Class C art is drawn at whole multiples of it
+     (`ui/assets/manifest.ts`). */
+  --art-px: 2px;
 
   /* The heavier neutral that took over every job the accent used to do. */
   --emphasis: var(--cream);
@@ -114,12 +145,12 @@
   --drift-period: 32s;
 
   /* The overlay dim and the one drop shadow, mixed from the deep base. */
-  --dim: color-mix(in srgb, var(--base-deep) 78%, transparent);
-  --shadow: color-mix(in srgb, #000 55%, transparent);
+  --dim: color-mix(in srgb, var(--cream) 55%, transparent);
+  --shadow: color-mix(in srgb, var(--cream) 0%, transparent);
 
   /* ---------- the one accent ---------- */
-  --accent: #ff2d95;
-  --accent-ink: #14060d;
+  --accent: var(--highlight);
+  --accent-ink: var(--cream);
 
   /* ---------- readouts: resources and outcomes, not chrome ---------- */
   --hp-high: #3fb950;
@@ -285,14 +316,14 @@
      world tints it exactly as much as it tints everything else, and identical
      on both sides, because a panel drawn heavier than the one opposite would
      be the visual-weight rule broken on the one screen that matters most. */
-  --panel-scrim: color-mix(in srgb, var(--bg) 72%, transparent);
+  /* Solid since Stage 5.0/1: a GBA HP box, not a scrim over the world. */
+  --panel-scrim: var(--bg-raised);
   /* The same scrim with the transparency taken out, for an engine that has no
      `backdrop-filter` under either name. **The iOS animations patch.**
      `styles.css` reaches for it from one `@supports not` block and nowhere
      else. It is `--bg` rather than a new colour on purpose: the fallback must
      be the panel at full opacity, not a different panel. */
   --panel-scrim-solid: var(--bg);
-  --panel-blur: 2px;
 
   /* ---------- the chrome scale ----------
      Three unitless multipliers the stylesheet applies to the chrome: card
@@ -339,7 +370,8 @@
      doing the whole job of saying which layer is on top. */
   --overlay-width: 34rem;
   --overlay-width-wide: 44rem;
-  --overlay-shadow: 0 var(--space-2) var(--space-5) color-mix(in srgb, var(--base-deep) 55%, transparent);
+  /* No drop shadows in the 5.0 face (Stage 5.0/1): windows are drawn with borders. */
+  --overlay-shadow: none;
 
   /* ---------- motion ----------
      V0 left this at 0 and named the stage that would fill it in. Release C is

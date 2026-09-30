@@ -85,6 +85,8 @@ export interface MapDrawer {
   open(state: RunState, opener?: HTMLElement | null): void;
   close(): void;
   isOpen(): boolean;
+  /** Hear every close. Stage 5.0/1, for the shell nav. */
+  onClose(listener: () => void): void;
 }
 
 export function createMapDrawer(): MapDrawer {
@@ -146,5 +148,6 @@ export function createMapDrawer(): MapDrawer {
 
     close: () => overlay.close(),
     isOpen: () => overlay.isOpen(),
+    onClose: (listener) => overlay.onClose(listener),
   };
 }
