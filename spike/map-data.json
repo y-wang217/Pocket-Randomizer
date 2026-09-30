@@ -1,0 +1,605 @@
+[
+ {
+  "seed": "SPIKE-0001",
+  "segment": 0,
+  "locale": "summit",
+  "localeName": "Summit",
+  "leader": "Garnet",
+  "gymType": "Rock",
+  "gymTeamSize": 2,
+  "steps": [
+   [
+    {
+     "id": "s0-summit-0-0",
+     "kind": "wild",
+     "tier": "normal",
+     "requires": null
+    },
+    {
+     "id": "s0-summit-0-1",
+     "kind": "wild",
+     "tier": "hard",
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s0-summit-1-0",
+     "kind": "wild",
+     "tier": "normal",
+     "requires": null
+    },
+    {
+     "id": "s0-summit-1-1",
+     "kind": "trainer",
+     "tier": "hard",
+     "requires": null
+    },
+    {
+     "id": "s0-summit-1-2",
+     "kind": "event",
+     "tier": null,
+     "requires": "strength"
+    }
+   ],
+   [
+    {
+     "id": "s0-summit-2-0",
+     "kind": "wild",
+     "tier": "normal",
+     "requires": null
+    },
+    {
+     "id": "s0-summit-2-1",
+     "kind": "shop",
+     "tier": null,
+     "requires": null
+    },
+    {
+     "id": "s0-summit-2-2",
+     "kind": "rest",
+     "tier": null,
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s0-summit-3-0",
+     "kind": "event",
+     "tier": null,
+     "requires": "fly"
+    },
+    {
+     "id": "s0-summit-3-1",
+     "kind": "trainer",
+     "tier": "normal",
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s0-summit-4-0",
+     "kind": "wild",
+     "tier": "hard",
+     "requires": null
+    },
+    {
+     "id": "s0-summit-4-1",
+     "kind": "event",
+     "tier": null,
+     "requires": "rockSmash"
+    }
+   ]
+  ],
+  "gym": {
+   "id": "s0-gym",
+   "kind": "gym",
+   "tier": null,
+   "requires": null
+  }
+ },
+ {
+  "seed": "SPIKE-0002",
+  "segment": 2,
+  "locale": "summit",
+  "localeName": "Summit",
+  "leader": "Volta",
+  "gymType": "Electric",
+  "gymTeamSize": 3,
+  "steps": [
+   [
+    {
+     "id": "s2-summit-0-0",
+     "kind": "trainer",
+     "tier": "normal",
+     "requires": null
+    },
+    {
+     "id": "s2-summit-0-1",
+     "kind": "wild",
+     "tier": "hard",
+     "requires": null
+    },
+    {
+     "id": "s2-summit-0-2",
+     "kind": "event",
+     "tier": null,
+     "requires": "rockSmash"
+    }
+   ],
+   [
+    {
+     "id": "s2-summit-1-0",
+     "kind": "trainer",
+     "tier": "hard",
+     "requires": null
+    },
+    {
+     "id": "s2-summit-1-1",
+     "kind": "shop",
+     "tier": null,
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s2-summit-2-0",
+     "kind": "wild",
+     "tier": "hard",
+     "requires": null
+    },
+    {
+     "id": "s2-summit-2-1",
+     "kind": "rest",
+     "tier": null,
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s2-summit-3-0",
+     "kind": "wild",
+     "tier": "normal",
+     "requires": null
+    },
+    {
+     "id": "s2-summit-3-1",
+     "kind": "wild",
+     "tier": "hard",
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s2-summit-4-0",
+     "kind": "event",
+     "tier": null,
+     "requires": "fly"
+    },
+    {
+     "id": "s2-summit-4-1",
+     "kind": "rest",
+     "tier": null,
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s2-summit-5-0",
+     "kind": "shop",
+     "tier": null,
+     "requires": null
+    },
+    {
+     "id": "s2-summit-5-1",
+     "kind": "wild",
+     "tier": "normal",
+     "requires": null
+    },
+    {
+     "id": "s2-summit-5-2",
+     "kind": "event",
+     "tier": null,
+     "requires": "strength"
+    }
+   ]
+  ],
+  "gym": {
+   "id": "s2-gym",
+   "kind": "gym",
+   "tier": null,
+   "requires": null
+  }
+ },
+ {
+  "seed": "SPIKE-0003",
+  "segment": 4,
+  "locale": "badlands",
+  "localeName": "Badlands",
+  "leader": "Cinder",
+  "gymType": "Fire",
+  "gymTeamSize": 4,
+  "steps": [
+   [
+    {
+     "id": "s4-badlands-0-0",
+     "kind": "wild",
+     "tier": "hard",
+     "requires": null
+    },
+    {
+     "id": "s4-badlands-0-1",
+     "kind": "shop",
+     "tier": null,
+     "requires": null
+    },
+    {
+     "id": "s4-badlands-0-2",
+     "kind": "trainer",
+     "tier": "normal",
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s4-badlands-1-0",
+     "kind": "shop",
+     "tier": null,
+     "requires": null
+    },
+    {
+     "id": "s4-badlands-1-1",
+     "kind": "rest",
+     "tier": null,
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s4-badlands-2-0",
+     "kind": "wild",
+     "tier": "normal",
+     "requires": null
+    },
+    {
+     "id": "s4-badlands-2-1",
+     "kind": "wild",
+     "tier": "elite",
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s4-badlands-3-0",
+     "kind": "wild",
+     "tier": "hard",
+     "requires": null
+    },
+    {
+     "id": "s4-badlands-3-1",
+     "kind": "event",
+     "tier": null,
+     "requires": "waterfall"
+    },
+    {
+     "id": "s4-badlands-3-2",
+     "kind": "rest",
+     "tier": null,
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s4-badlands-4-0",
+     "kind": "event",
+     "tier": null,
+     "requires": "rockSmash"
+    },
+    {
+     "id": "s4-badlands-4-1",
+     "kind": "rest",
+     "tier": null,
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s4-badlands-5-0",
+     "kind": "wild",
+     "tier": "normal",
+     "requires": null
+    },
+    {
+     "id": "s4-badlands-5-1",
+     "kind": "trainer",
+     "tier": "hard",
+     "requires": null
+    },
+    {
+     "id": "s4-badlands-5-2",
+     "kind": "event",
+     "tier": null,
+     "requires": "fly"
+    }
+   ]
+  ],
+  "gym": {
+   "id": "s4-gym",
+   "kind": "gym",
+   "tier": null,
+   "requires": null
+  }
+ },
+ {
+  "seed": "SPIKE-0004",
+  "segment": 6,
+  "locale": "marsh",
+  "localeName": "Marsh",
+  "leader": "Vesper",
+  "gymType": "Ghost",
+  "gymTeamSize": 5,
+  "steps": [
+   [
+    {
+     "id": "s6-marsh-0-0",
+     "kind": "wild",
+     "tier": "hard",
+     "requires": null
+    },
+    {
+     "id": "s6-marsh-0-1",
+     "kind": "wild",
+     "tier": "normal",
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s6-marsh-1-0",
+     "kind": "event",
+     "tier": null,
+     "requires": "dive"
+    },
+    {
+     "id": "s6-marsh-1-1",
+     "kind": "trainer",
+     "tier": "hard",
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s6-marsh-2-0",
+     "kind": "wild",
+     "tier": "hard",
+     "requires": null
+    },
+    {
+     "id": "s6-marsh-2-1",
+     "kind": "trainer",
+     "tier": "normal",
+     "requires": null
+    },
+    {
+     "id": "s6-marsh-2-2",
+     "kind": "rest",
+     "tier": null,
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s6-marsh-3-0",
+     "kind": "wild",
+     "tier": "elite",
+     "requires": null
+    },
+    {
+     "id": "s6-marsh-3-1",
+     "kind": "rest",
+     "tier": null,
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s6-marsh-4-0",
+     "kind": "event",
+     "tier": null,
+     "requires": "surf"
+    },
+    {
+     "id": "s6-marsh-4-1",
+     "kind": "trainer",
+     "tier": "normal",
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s6-marsh-5-0",
+     "kind": "event",
+     "tier": null,
+     "requires": "dive"
+    },
+    {
+     "id": "s6-marsh-5-1",
+     "kind": "wild",
+     "tier": "elite",
+     "requires": null
+    },
+    {
+     "id": "s6-marsh-5-2",
+     "kind": "rest",
+     "tier": null,
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s6-marsh-6-0",
+     "kind": "event",
+     "tier": null,
+     "requires": "dive"
+    },
+    {
+     "id": "s6-marsh-6-1",
+     "kind": "wild",
+     "tier": "hard",
+     "requires": null
+    },
+    {
+     "id": "s6-marsh-6-2",
+     "kind": "trainer",
+     "tier": "normal",
+     "requires": null
+    }
+   ]
+  ],
+  "gym": {
+   "id": "s6-gym",
+   "kind": "gym",
+   "tier": null,
+   "requires": null
+  }
+ },
+ {
+  "seed": "SPIKE-0005",
+  "segment": 7,
+  "locale": "city",
+  "localeName": "City",
+  "leader": "Draven",
+  "gymType": "Dragon",
+  "gymTeamSize": 6,
+  "steps": [
+   [
+    {
+     "id": "s7-city-0-0",
+     "kind": "wild",
+     "tier": "normal",
+     "requires": null
+    },
+    {
+     "id": "s7-city-0-1",
+     "kind": "event",
+     "tier": null,
+     "requires": "flash"
+    },
+    {
+     "id": "s7-city-0-2",
+     "kind": "shop",
+     "tier": null,
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s7-city-1-0",
+     "kind": "event",
+     "tier": null,
+     "requires": "fly"
+    },
+    {
+     "id": "s7-city-1-1",
+     "kind": "wild",
+     "tier": "normal",
+     "requires": null
+    },
+    {
+     "id": "s7-city-1-2",
+     "kind": "rest",
+     "tier": null,
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s7-city-2-0",
+     "kind": "wild",
+     "tier": "normal",
+     "requires": null
+    },
+    {
+     "id": "s7-city-2-1",
+     "kind": "wild",
+     "tier": "hard",
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s7-city-3-0",
+     "kind": "event",
+     "tier": null,
+     "requires": "waterfall"
+    },
+    {
+     "id": "s7-city-3-1",
+     "kind": "trainer",
+     "tier": "normal",
+     "requires": null
+    },
+    {
+     "id": "s7-city-3-2",
+     "kind": "rest",
+     "tier": null,
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s7-city-4-0",
+     "kind": "trainer",
+     "tier": "normal",
+     "requires": null
+    },
+    {
+     "id": "s7-city-4-1",
+     "kind": "wild",
+     "tier": "hard",
+     "requires": null
+    },
+    {
+     "id": "s7-city-4-2",
+     "kind": "event",
+     "tier": null,
+     "requires": "fly"
+    }
+   ],
+   [
+    {
+     "id": "s7-city-5-0",
+     "kind": "wild",
+     "tier": "hard",
+     "requires": null
+    },
+    {
+     "id": "s7-city-5-1",
+     "kind": "trainer",
+     "tier": "normal",
+     "requires": null
+    }
+   ],
+   [
+    {
+     "id": "s7-city-6-0",
+     "kind": "trainer",
+     "tier": "hard",
+     "requires": null
+    },
+    {
+     "id": "s7-city-6-1",
+     "kind": "wild",
+     "tier": "normal",
+     "requires": null
+    }
+   ]
+  ],
+  "gym": {
+   "id": "s7-gym",
+   "kind": "gym",
+   "tier": null,
+   "requires": null
+  }
+ }
+]
