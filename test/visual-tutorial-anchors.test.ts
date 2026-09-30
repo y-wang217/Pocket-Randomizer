@@ -54,7 +54,7 @@ describe.each(SURFACES)('%s in Pocket on a first launch', (surface, screen) => {
     const context = await harness.browser.newContext({ viewport: PHONE });
     await context.route(/play\.pokemonshowdown\.com/, (route) => route.abort());
     const page = await context.newPage();
-    await page.goto(`${harness.url}/gallery.html#seed=S49B-1&screen=${surface}&density=pocket&fixture=loaded&tutorial=fresh`, {
+    await page.goto(`${harness.url}/gallery.html#seed=S49B-1&screen=${surface}&fixture=loaded&tutorial=fresh`, {
       waitUntil: 'load',
     });
     await page.waitForSelector('html[data-gallery-ready="true"]', { timeout: 60_000 });
@@ -68,19 +68,17 @@ describe.each(SURFACES)('%s in Pocket on a first launch', (surface, screen) => {
       const coach = globalThis.document.querySelector<HTMLElement>('.coach');
       const progress = coach?.querySelector('.coach__progress')?.textContent ?? '';
       const shown = coach && !coach.hidden ? Number(progress.match(/of (\d+)/)?.[1] ?? 0) : 0;
-      return { onPage, shown, mode: globalThis.document.documentElement.getAttribute('data-density') };
+      return { onPage, shown };
     }, anchors);
 
     expect(reading.onPage, `${surface}: the fixture carries no anchor for ${screen}`).toBeGreaterThan(0);
     expect(reading.shown, `${surface}: marks on the page and marks shown differ — one was dropped without a trace`).toBe(reading.onPage);
-    expect(reading.mode, 'Pocket while the marks are up: no guard forces Detailed').toBe('pocket');
 
     for (let i = 0; i < reading.shown; i++) {
       await page.locator('.coach .coach__next').click();
       await page.waitForTimeout(60);
     }
     expect(await page.evaluate(() => globalThis.document.querySelector<HTMLElement>('.coach')?.hidden)).toBe(true);
-    expect(await page.evaluate(() => globalThis.document.documentElement.getAttribute('data-density')), 'still Pocket once the marks are done').toBe('pocket');
     await context.close();
   }, 180_000);
 });

@@ -68,14 +68,12 @@ const PAST_EVERY_LABEL = 1_000;
 /**
  * The store, as the string `localStorage.setItem` takes.
  *
- * `density` is the caller's, because a visual context sets
- * the mode it is measuring; the two first-run surfaces are not optional and
- * take no argument — a caller that wanted the marks would not be calling
- * this.
+ * It took a density mode until Stage 5.0/1 retired the modes. The two
+ * first-run surfaces are not optional and take no argument: a caller that
+ * wanted the marks would not be calling this.
  */
-export function notFirstLaunch({ density = 'detailed' } = {}) {
+export function notFirstLaunch() {
   return JSON.stringify({
-    density,
     tutorial: { skipped: true, seen: [] },
     intro: { seenVersion: SEEN_EVERY_INTRO },
     exposure: { counts: Object.fromEntries(EXPOSED_FAMILIES.map((family) => [family, PAST_EVERY_LABEL])) },

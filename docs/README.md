@@ -1520,7 +1520,7 @@ One line each. The analysis lives where the pointer goes, not here.
    exemptions" — and the shop came out at 864. So Pocket hides the shelf's move
    cards, in CSS rather than by a branch in the screen, because a screen that
    reasoned about density in JS would not re-render when the mode is switched
-   live and `test/density.test.ts` greps for that mistake. The name, the
+   live and `test/one-face.test.ts` (was density.test.ts) greps for that mistake. The name, the
    category and the price are on the row in every mode.
 
    If a later pass wants the card back in Pocket, the lever is a disclosure
@@ -1531,7 +1531,7 @@ One line each. The analysis lives where the pointer goes, not here.
    guarded Detailed heights unchanged to the pixel. On merge the register
    row flips to `built`. What it leaves: the member card's HP line is on
    the bar's tap in Pocket (a rule the prompt did not write; `generation.md`
-   12m item 4), and `data/densityTuning.ts` sits outside `contentHash` by
+   12m item 4), and data/densityTuning.ts (deleted at 5.0/1) sits outside `contentHash` by
    a reasoned exclusion rather than inside `tuning.ts` (item 1).
    [`visual/reports/patch-density-modes.md`](visual/reports/patch-density-modes.md).
 

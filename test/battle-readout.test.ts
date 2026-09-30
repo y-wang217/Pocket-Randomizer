@@ -433,10 +433,11 @@ describe('one tooltip layer, and Pocket keeps every fact within one tap', () => 
     host.remove();
   });
 
-  it('swaps the chips for the marker in Pocket rather than hiding both', () => {
+  // Pocket's two rules, unconditional since Stage 5.0/1 retired the modes.
+  it('swaps the chips for the marker rather than hiding both', () => {
     const css = readFileSync(join(process.cwd(), 'src/ui/styles.css'), 'utf8');
-    expect(css).toContain(':root[data-density="pocket"] .panel__stages .badge--stage { display: none; }');
-    expect(css).toContain(':root[data-density="pocket"] .panel__stages .badge--stages { display: inline-flex; }');
+    expect(css).toContain('.panel__stages .badge--stage { display: none; }');
+    expect(css).toContain('.panel__stages .badge--stages { display: inline-flex; }');
   });
 });
 

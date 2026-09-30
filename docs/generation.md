@@ -2059,12 +2059,12 @@ Each is a place the built work departs from the prompt's words. The prompt is
 not edited; the argument for each is in
 [`visual/reports/patch-density-modes.md`](visual/reports/patch-density-modes.md).
 
-1. **The numbers live in `src/data/densityTuning.ts`, not `data/tuning.ts`.**
+1. **The numbers live in src/data/densityTuning.ts (deleted at 5.0/1), not `data/tuning.ts`.**
    The prompt puts every number the patch introduces in `tuning.ts`. That
    file is inside `contentHash` (it is imported under `core/`), so a padding
    scale in it would move every seed on a tuning pass, which the prompt also
    forbids. The scales sit in their own `data/` table, excluded from the hash
-   with a reason in `build-config/content-hash.ts`, and `test/density.test.ts`
+   with a reason in `build-config/content-hash.ts`, and `test/one-face.test.ts` (was density.test.ts)
    holds that nothing under `core/` reaches it. A density pass is still a
    table edit.
 2. **Fixtures are constructed, not walked.** Ruling 3 asks for the worst case
@@ -2072,7 +2072,7 @@ not edited; the argument for each is in
    each worst case from the seed's own draws (a six-member party with six
    held items, a full backpack, every relic, eight gyms cleared with a full
    graveyard, a 24-turn battle) and the gallery renders it through the app's
-   own screens. The seeded run is untouched: `test/density.test.ts` replays
+   own screens. The seeded run is untouched: `test/one-face.test.ts` (was density.test.ts) replays
    SMOKE24 in all three modes and compares the run log byte for byte.
 3. **The stat line on a pick card keeps abbreviations in Detailed.** The
    definition gives Detailed full labels. On the starter and capture cards the
@@ -2120,8 +2120,8 @@ not edited; the argument for each is in
     (`test/visual-tutorial-anchors.test.ts`, named `visual-tutorial-guard` until M6.2) is what makes a future fold that
     hides an anchor fail loudly.
 12. **The existing two-valued suites were rewritten, not deleted**, each with
-    a comment naming this patch: `test/density.test.ts` (renamed from
-    4.7.2's verbosity suite), `test/visual-density.test.ts`,
+    a comment naming this patch: `test/one-face.test.ts` (was density.test.ts) (renamed from
+    4.7.2's verbosity suite), `test/visual-one-face.test.ts` (was visual-density.test.ts),
     `test/visual-stat-bars.test.ts`, `test/party-stats.test.ts`,
     `test/threat-readout.test.ts`, `test/party-drawer.test.ts`,
     `test/pre-gym-confirm.test.ts`, `test/visual-phone-seed-bar.test.ts`.
@@ -5112,7 +5112,7 @@ four drawn ones, two of them carrying a card, a segment-0 shop measured 864.
 Pocket hides the cards, in CSS (`:root[data-density="pocket"] .shop__item >
 .move--card`). Not by a branch in the screen: a screen that reasoned about
 density in JS would not re-render when the mode is switched live, and
-`test/density.test.ts` greps for exactly that. Detailed and Simple keep the
+`test/one-face.test.ts` (was density.test.ts) greps for exactly that. Detailed and Simple keep the
 cards and scroll, which they always did.
 
 The lesson is the ordinary one and it is worth the line: **the gate found this,
@@ -8233,7 +8233,7 @@ Measuring more than the item asks is the safe direction against a ceiling, and
 M7.2 reruns this same script, so the "before" and "after" columns agree by
 construction. **The item's figure of fourteen is stale rather than wrong**: the
 twelve router screens are still twelve, `ROUTER_SCREEN_COUNT` still says so, and
-`test/density.test.ts` still holds it.
+`test/one-face.test.ts` (was density.test.ts) still holds it.
 
 One further deviation inside the same item. The census reports an **`app shell`**
 component — the header, drawer bar, seed bar and stamps — and subtracts it in
@@ -8520,7 +8520,7 @@ justified the mode is better served by the grid at double the width.
 
 **Deleted:** the `move-bar` theme module, the `moveBar` setting and its accessors,
 the drawer's picker and its copy, the `notFirstLaunch` and `openApp` options,
-179 lines of stylesheet, and five patterns from `test/density.test.ts`'s
+179 lines of stylesheet, and five patterns from `test/one-face.test.ts` (was density.test.ts)'s
 forbidden list. Those patterns guarded `core/` against seeing a presentation
 axis; the axis no longer exists, so a pattern for it could never match, and a
 guard that cannot fail is not a guard. The rule it enforced is unchanged for
@@ -10626,7 +10626,7 @@ flag never followed.
 
    **The first cut of this was wider and two tests said so, correctly.** It
    dropped the `transient` exemption outright, on the argument that a click is
-   a deliberate act and a hover panel is not. `test/visual-density.test.ts`
+   a deliberate act and a hover panel is not. `test/visual-one-face.test.ts` (was visual-density.test.ts)
    went red on both of its Pocket cases — *"Pocket folds every member card
    together"* and *"keeps the threat counts ... behind a tap in Pocket"* —
    because each drives a desktop mouse, and `.click()` on a chip opens the
@@ -10685,7 +10685,7 @@ panel's contents are the same rows `renderMoveRows` has printed since M1.2.
 Two things in it were shaped by this defect before anyone had named it, and
 neither is edited now.
 
-`test/visual-density.test.ts` asserts two Pocket facts by clicking a chip and
+`test/visual-one-face.test.ts` (was visual-density.test.ts) asserts two Pocket facts by clicking a chip and
 reading the panel. **That is a desktop path and no phone has it** — the tap
 those cases stand in for opens nothing, before this patch or after it. The
 cases are about the *density* rule, the panel is the instrument, and rewriting
@@ -10826,7 +10826,7 @@ they have been shown. A store that exists but names no mode (written before
 the density patch, with neither `density` nor `verbosity`) was also being
 shown Detailed. `loadSettings` now tells that store apart from a first launch
 and keeps it on Detailed. Only an empty store, or an unreadable one, gets
-Pocket. `test/pocket-default.test.ts` holds all five cases through
+Pocket. test/pocket-default.test.ts (deleted at 5.0/1) holds all five cases through
 `localStorage`.
 
 **The picker order is unchanged**, Detailed first. It lists most words to

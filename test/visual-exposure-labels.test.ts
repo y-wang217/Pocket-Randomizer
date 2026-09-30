@@ -38,7 +38,7 @@ async function open(surface: GallerySurface, seed: string, exposure: 'fresh' | '
   const context = await harness.browser.newContext({ viewport: PHONE });
   await context.route(/play\.pokemonshowdown\.com/, (route) => route.abort());
   const page = await context.newPage();
-  await page.goto(`${harness.url}/gallery.html#seed=${seed}&screen=${surface}&density=pocket&fixture=loaded&exposure=${exposure}`, { waitUntil: 'load' });
+  await page.goto(`${harness.url}/gallery.html#seed=${seed}&screen=${surface}&fixture=loaded&exposure=${exposure}`, { waitUntil: 'load' });
   await page.waitForSelector('html[data-gallery-ready="true"]', { timeout: 60_000 });
   await page.evaluate(() => globalThis.document.fonts.ready);
   await page.waitForTimeout(200);

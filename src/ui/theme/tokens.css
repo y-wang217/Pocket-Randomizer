@@ -294,29 +294,27 @@
   --panel-scrim-solid: var(--bg);
   --panel-blur: 2px;
 
-  /* ---------- the density modes ----------
-     Three unitless multipliers the stylesheet applies to the chrome — card
-     padding, section gaps and margins, the two title sizes. The numbers live
-     in `data/densityTuning.ts` and `ui/theme/density.ts` writes them here at
-     startup beside `data-density`, the same bridge `--motion-duration` uses.
-     These are the fallbacks for a document that never ran that code, and they
-     are Detailed by definition: 1 is the layout the guarded screens are
-     measured against. */
-  --density-pad: 1;
-  --density-gap: 1;
-  --density-title: 1;
+  /* ---------- the chrome scale ----------
+     Three unitless multipliers the stylesheet applies to the chrome: card
+     padding, section gaps and margins, the two title sizes. They were the
+     density modes' scales until Stage 5.0/1 retired Simple and Detailed
+     (bible R6, D50); the values are Pocket's, which is the one face, and
+     they are constants now rather than something a setting writes. */
+  --chrome-pad: 0.5;
+  --chrome-gap: 0.5;
+  --chrome-title: 0.8;
   /* Every clickable surface, a tenth larger than it was. **The docked sheet
      patch, 2026-09-25**, on the author's ask. Multiplies the padding of the
      button families and the move bar's 44px floor; `styles.css` pairs it with
      an invisible five-percent hit slop on every button. Not a density number:
      the modes change how much chrome there is, not how big a finger is. */
   --tap-scale: 1.1;
-  /* The two titles the mode scales, as tokens, because every `font-size` in
+  /* The two titles the chrome scale shrinks, as tokens, because every `font-size` in
      the stylesheet must be one (`test/visual-tokens.test.ts`). At scale 1
      these are exactly `--fs-6xl`, `--fs-5xl` and `--fs-3xl`. */
-  --fs-apptitle: calc(var(--fs-6xl) * var(--density-title));
-  --fs-apptitlephone: calc(var(--fs-5xl) * var(--density-title));
-  --fs-screentitle: calc(var(--fs-3xl) * var(--density-title));
+  --fs-apptitle: calc(var(--fs-6xl) * var(--chrome-title));
+  --fs-apptitlephone: calc(var(--fs-5xl) * var(--chrome-title));
+  --fs-screentitle: calc(var(--fs-3xl) * var(--chrome-title));
 
   /* ---------- two radii ---------- */
   --radius-card: 4px;
@@ -382,7 +380,7 @@
      `ui/theme/motion.ts` writes this property onto the root beside
      `--motion-duration`, so what the stylesheet reads is a published result;
      the declaration here is what a document that never ran that code gets, on
-     the same footing as the density multipliers above.
+     the same footing as any other fallback here.
 
      It used to be the other way round, and that was Bug A: `scene.ts` read
      this property back out of the computed style to decide how long to park,

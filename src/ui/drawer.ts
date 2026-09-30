@@ -56,18 +56,13 @@ import { createOverlay } from './overlay';
 import {
   BATTLE_SPEED_COPY,
   BATTLE_SPEED_HEADING,
-  DENSITY_COPY,
-  DENSITY_HEADING,
   DRAWER_COPY,
 } from './copy/screens';
 import {
   BATTLE_SPEEDS,
-  DENSITIES,
   getBattleSpeed,
-  getDensity,
   onSettingsChange,
   setBattleSpeed,
-  setDensity,
 } from './settings';
 import { memberCardContents } from './member-card';
 
@@ -105,32 +100,6 @@ export interface Drawer {
   isOpen(): boolean;
 }
 
-/**
- * The mode picker. **Density modes patch, step 7.**
- *
- * In the drawer because the drawer is the one surface reachable from every
- * screen of a run, and a reading preference belongs where the player is
- * reading: the mode changes under the open drawer as it changes under the
- * screen behind it. Three options, each named and each with one line saying
- * what it does (`ui/copy/screens.ts`, `DENSITY_COPY`); the pressed one is
- * the store's value, repainted on every settings change so a mode set by
- * any other path — the migration, a reset — reads true here.
- *
- * Writes the setting and nothing else. Run state is not in reach of this
- * function, and `test/party-drawer.test.ts` presses every control on the
- * drawer to hold that. The root attribute is not written here either: the
- * app hears the store and writes the root (`ui/app.ts`, `mountApp`).
- */
-function createDensityPicker(): HTMLElement {
-  return createPicker({
-    heading: DENSITY_HEADING,
-    block: 'density',
-    attribute: 'density',
-    options: DENSITIES.map((mode) => ({ value: mode, ...DENSITY_COPY[mode] })),
-    read: getDensity,
-    write: setDensity,
-  });
-}
 
 
 /**
@@ -170,7 +139,7 @@ function createBattleSpeedPicker(): HTMLElement {
  *
  * `block` is the class prefix and `attribute` the dataset key the choices
  * carry. **Both stay per-picker on purpose.** The first build shared
- * `density__choice` between them, and `test/density-picker.test.ts` — which
+ * `density__choice` between them, and the density picker's test (deleted with the picker at 5.0/1), which
  * queries that class and reads `dataset.density` off what it finds — started
  * seeing five buttons and two nulls. A suite that names one picker must keep
  * finding one picker.
@@ -249,7 +218,6 @@ export function createDrawer(): Drawer {
     members,
     relics,
     note,
-    createDensityPicker(),
     createBattleSpeedPicker(),
   );
 

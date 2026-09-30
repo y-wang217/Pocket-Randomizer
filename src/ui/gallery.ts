@@ -70,9 +70,8 @@ import { createShopScreen } from './screens/shop';
 import { createStarterSelect } from './screens/starter-select';
 import { createSummary } from './screens/summary';
 import { createSeedBar } from './seed-bar';
-import { DENSITIES, fillExposure, getDensity, initSettings, onSettingsChange, setDensity, type Density } from './settings';
+import { fillExposure, initSettings } from './settings';
 import { createStamps } from './stamps';
-import { applyDensity } from './theme/density';
 import { applyLocale } from './theme/locale';
 import { applyMotion } from './theme/motion';
 import { createTooltips } from './tooltips';
@@ -86,24 +85,13 @@ function isSurface(value: string): value is GallerySurface {
 /** A count past R7's third exposure, so no family's label is due. */
 const EXHAUSTED_EXPOSURE = 4;
 
-function isDensity(value: string | null): value is Density {
-  return value !== null && (DENSITIES as readonly string[]).includes(value);
-}
-
 async function main(): Promise<void> {
   const params = new URLSearchParams(globalThis.location.hash.replace(/^#/, ''));
   const seed = params.get('seed') ?? 'S49B-1';
   const requested = params.get('screen') ?? 'summary';
   const surface: GallerySurface = isSurface(requested) ? requested : 'summary';
 
-  /*
-   * The mode, from the store and then from the URL. The same holder and the
-   * same root attribute the app uses, so nothing here is a second path: a
-   * `density=` parameter is exactly a stored preference for this one page.
-   */
   initSettings();
-  const density = params.get('density');
-  if (isDensity(density)) setDensity(density);
   /*
    * The exposure state, **D44**. Every family past R7's third exposure unless
    * the URL says `exposure=fresh`, because section 4 budgets the steady state
@@ -123,8 +111,6 @@ async function main(): Promise<void> {
    * that instrument and keep measuring what they measured.
    */
   const loaded = params.get('fixture') === 'loaded';
-  applyDensity(getDensity());
-  onSettingsChange((settings) => applyDensity(settings.density));
   applyMotion(document.documentElement);
 
   const root = document.querySelector<HTMLElement>('#app');

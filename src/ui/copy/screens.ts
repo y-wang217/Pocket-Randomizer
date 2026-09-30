@@ -24,7 +24,7 @@
  * forms — `test/boundaries.test.ts` reads both.
  */
 import type { Prose } from '../dom';
-import type { Density, BattleSpeed } from '../settings';
+import type { BattleSpeed } from '../settings';
 
 export const STARTER_COPY = {
   blurb: {
@@ -138,22 +138,6 @@ export const TARGET_EFFECT = {
     short: `Four moves. You choose what ${move} replaces.`,
   }),
 };
-
-/**
- * The three modes as the drawer's picker names them: a name and one line
- * saying what the mode does. Facts about the layout — what is on screen,
- * what a screen costs — and never which one suits whom. One form, because
- * a control that changes its own words with the mode it sets is a control
- * the player cannot read while using it; one line each, because the drawer
- * is under the Pocket gate too and three wrapped lines put its sheet over.
- */
-export const DENSITY_HEADING = 'Density';
-export const DENSITY_COPY: Readonly<Record<Density, { name: string; description: string }>> = {
-  detailed: { name: 'Detailed', description: 'Full labels and full prose.' },
-  simple: { name: 'Simple', description: 'Short labels and fewer words.' },
-  pocket: { name: 'Pocket', description: 'Fits every screen without scrolling.' },
-};
-
 
 export const BATTLE_SPEED_HEADING = 'Battle speed';
 /*

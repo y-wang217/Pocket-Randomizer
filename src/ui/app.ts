@@ -80,7 +80,6 @@ import { gymForSegment } from '../data/gyms';
 import { itemLayoutOf, partyWithPlan } from './party-layout';
 import { clearItemDraft, clearRunLog, loadItemDraft, loadRunLog, saveItemDraft, saveRunLog } from './storage';
 import { applyMotion } from './theme/motion';
-import { applyDensity } from './theme/density';
 
 /**
  * How this fight should end on the stage. **The battle animation run.**
@@ -111,31 +110,7 @@ export function outroFor(review: BattleReview): OutroKind {
 
 
 export function mountApp(root: HTMLElement): void {
-  /*
-   * The density mode, once at startup and once per change. **Patch 4.7.2,
-   * ruling 4, and this is the whole of the subscription.**
-   *
-   * `initSettings` first so the attribute is written from the stored preference
-   * before any screen is built, rather than the first frame rendering in the
-   * default and flipping.
-   *
-   * The subscription is the line after this one, at the shell rather than
-   * inside a run, and is unsubscribed nowhere, because
-   * the mode outlives every run: it is written onto `<html>` and read only by
-   * the stylesheet, so a screen drawn before a change, after it, or while it
-   * happens is correct without anything re-rendering. That is the difference
-   * from what this replaced — a subscription that redrew the map and the
-   * party screen and left the drawer, pre-gym, reward, summary and battle
-   * screens showing the mode they were built in. Nothing registers with this
-   * and nothing can forget to.
-   *
-   * `ui/theme/density.ts` carries the argument for the attribute over a
-   * redraw, including why a shell-level redraw could not avoid being a
-   * per-screen registration in this router.
-   */
   const settings = initSettings();
-  applyDensity(settings.density);
-  onSettingsChange((next) => applyDensity(next.density));
   /*
    * The move bar layout, once at startup and once per change.
    *

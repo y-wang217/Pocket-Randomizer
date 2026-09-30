@@ -116,7 +116,7 @@ describe('reading a store back', () => {
   });
 
   it('reads a store written before the field as never labelled', () => {
-    const read = readSettings({ density: 'pocket' });
+    const read = readSettings({ battleSpeed: 'even' });
     expect(read.exposure).toBeUndefined();
     expect(DEFAULT_SETTINGS.exposure.counts).toEqual({});
   });

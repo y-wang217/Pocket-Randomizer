@@ -89,8 +89,6 @@ import {
   REPLACE_COPY,
   TARGET_COPY,
   TARGET_EFFECT,
-  DENSITY_HEADING,
-  DENSITY_COPY,
   BATTLE_SPEED_HEADING,
   BATTLE_SPEED_COPY,
   DRAWER_COPY,
@@ -512,11 +510,6 @@ section({
   where: 'The three pickers in the drawer.',
   source: 'src/ui/copy/screens.ts',
   rows: [
-    { key: `heading · ${DENSITY_HEADING}`, text: DENSITY_HEADING },
-    ...Object.entries(DENSITY_COPY).flatMap(([key, value]) => [
-      { key: `density.${key} · name`, text: value.name },
-      { key: `density.${key} · description`, text: value.description },
-    ]),
     { key: `heading · ${BATTLE_SPEED_HEADING}`, text: BATTLE_SPEED_HEADING },
     ...Object.entries(BATTLE_SPEED_COPY).flatMap(([key, value]) => [
       { key: `battleSpeed.${key} · name`, text: value.name },

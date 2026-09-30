@@ -84,7 +84,7 @@ describe('the party screen stat bars', () => {
   beforeAll(async () => {
     // In Pocket, where the bars are since the density modes patch (Detailed
     // and Simple print the number). Stored, so the app starts in it.
-    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24', undefined, { density: 'pocket' });
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
     // Straight to the party screen: it is the first surface a member card
     // reaches and the one the bug was reported on.
     for (let step = 0; step < 600; step++) {

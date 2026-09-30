@@ -43,7 +43,7 @@ async function open(
   const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 1, ...options });
   await context.route(/play\.pokemonshowdown\.com/, (route) => route.abort());
   const page = await context.newPage();
-  await page.goto(`${harness.url}/gallery.html#seed=V5-LOADED-1&screen=battle&density=pocket&fixture=loaded&exposure=exhausted${query}`, { waitUntil: 'load' });
+  await page.goto(`${harness.url}/gallery.html#seed=V5-LOADED-1&screen=battle&fixture=loaded&exposure=exhausted${query}`, { waitUntil: 'load' });
   await page.waitForSelector('html[data-gallery-ready="true"]', { timeout: 60_000 });
   await page.evaluate(() => globalThis.document.fonts.ready);
   await page.waitForTimeout(250);
