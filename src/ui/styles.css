@@ -7236,8 +7236,10 @@ button,
 }
 .map-graph .node--compact .node__mark { width: 36px; height: 36px; }
 .map-graph .node__label { gap: 0; }
-/* The mark alone inside the disc: the chip's own box is the disc. */
-.map-graph .node__kind { padding: 0; background: none; border: 0; }
+/* The kind chip keeps the one neutral chip style (`visual-v2`: every
+   neutral chip shares one colour, fill and outline) and takes the disc's
+   shape, so it reads as a ring inside the disc rather than a square. */
+.map-graph .node__kind { display: grid; place-items: center; width: 80%; height: 80%; padding: 0; border-radius: 50%; }
 .map-graph .node--gym .node__mark { border-radius: var(--radius-card); }
 
 .map-graph .node__facts {
@@ -7274,10 +7276,10 @@ button,
 /* The detail line, on the step being chosen from only. A size smaller than
    the name so a shop's shelf fits three lines in a third of the frame. */
 .map-graph .node__detail { max-width: 108px; font-size: var(--fs-xs); line-height: 1.25; }
-/* The coin amount sits bare inside its box: the chip's own inset outline
-   would draw a second box inside the detail line and the wallet. */
+/* The coin amount keeps the one neutral chip style (`visual-v2`), with no
+   padding of its own so it sits in the detail line's height. */
 .map-graph .chip--currency,
-.map__wallet .chip--currency { padding: 0; background: none; border: 0; box-shadow: none; color: var(--text); }
+.map__wallet .chip--currency { padding: 0 var(--space-h); }
 .map-graph .chip--currency { display: inline-flex; align-items: center; gap: var(--space-h); vertical-align: middle; }
 .map-graph .chip--currency svg { width: 12px; height: 12px; }
 
