@@ -29,7 +29,17 @@ const WEATHERS = ['rain', 'sun', 'sand', 'snow', 'wind'] as const;
  * after it. The reading was an accident of what sat in the corner.
  */
 const BATTLE = '.screen[data-screen="battle"]';
-const TEXT = [`${BATTLE} .screen__title`, `${BATTLE} .panel__name`] as const;
+/*
+ * **Stage 5.0/5**: the header's words, not `.screen__title`. Since D46 the
+ * title holds the node mark and nothing else, so this test was reading the
+ * contrast of a 16px glyph box against its own most common colour. The SVG
+ * head covered under half that box and passed by accident; the 8px drawing is
+ * two-thirds ink, so its ink became the "background" and the reading fell to
+ * 1.2 with nothing on screen changed but the mark. The header's words, the
+ * opponent and its tier, are `.screen__blurb`, which is the text this test
+ * means.
+ */
+const TEXT = [`${BATTLE} .battle__header .screen__blurb`, `${BATTLE} .panel__name`] as const;
 const FAINT = `${BATTLE} .battle__detail-text`;
 
 let harness: Harness;
