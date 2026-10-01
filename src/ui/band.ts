@@ -65,7 +65,7 @@ let open: Band | null = null;
  * long-press patch, 2026-10-01.**
  *
  * The band mounted on `<body>`, and the inspect layer is delegated from the
- * shell (`createTooltips(shell)`), so a long press on a card inside a band
+ * shell (`app.ts` mounts it there), so a long press on a card inside a band
  * never reached it: the claim band showed a move card that R5 says one long
  * press explains, and the press did nothing. Two things were wrong, and moving
  * the element fixes both. The events now bubble through the shell, and the
