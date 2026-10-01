@@ -74,8 +74,14 @@ describe('the one face', () => {
     // The body folds in Pocket; open the first card to reach its stat block.
     await page.locator(`${visible('party')} .party__member-toggle`).first().click();
     await page.waitForTimeout(150);
-    expect(await paintedCount(page, '.stats--grid .stat__value')).toBe(0);
-    expect(await paintedCount(page, '.stats--grid .stat__bar-fill'), 'the opened card shows all six bars').toBe(6);
+    /*
+     * Scoped to the party screen since bible Rev 19 (D79): the starter detail
+     * panel's block wears `stats--grid` with its numbers at rest, and the
+     * starter screen stays in the document, hidden, after the pick.
+     */
+    const party = visible('party');
+    expect(await paintedCount(page, `${party} .stats--grid .stat__value`)).toBe(0);
+    expect(await paintedCount(page, `${party} .stats--grid .stat__bar-fill`), 'the opened card shows all six bars').toBe(6);
     /*
      * **The label is the glyph in Pocket. M3.2.** Section 3's Six stats row is
      * "glyph, bar, number" and R2 forbids the word at rest, so the mark from
@@ -83,8 +89,8 @@ describe('the one face', () => {
      * same shape D16 ruled for the type chip's word, and reversed by the same
      * item that reverses that one, M6.4.
      */
-    expect(await visibleText(page, '.stats--grid .stat__label')).toBe('');
-    expect(await paintedCount(page, '.stats--grid .stat__label .glyph')).toBe(6);
+    expect(await visibleText(page, `${party} .stats--grid .stat__label`)).toBe('');
+    expect(await paintedCount(page, `${party} .stats--grid .stat__label .glyph`)).toBe(6);
     await close();
   }, 600_000);
 

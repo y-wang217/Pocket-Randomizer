@@ -108,6 +108,10 @@
   --highlight: #f4c83f;
   --selected: #2f6fd6;
   --disabled: #9aa2ad;
+  /* A window's toned fill, a step below the cream. Bible Rev 19, D78: the
+     starter screen's cards and detail panel, the author's "make it darker". */
+  --panel-fill: color-mix(in srgb, var(--base-deep) 84%, var(--border-heavy));
+  --panel-raised: color-mix(in srgb, var(--base-deep) 70%, var(--base-surface));
   --nav-fill: var(--border-heavy);
   --nav-ink: #dce5f1;
   --nav-rule: color-mix(in srgb, var(--nav-ink) 18%, var(--nav-fill));

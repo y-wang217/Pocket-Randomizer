@@ -168,8 +168,8 @@ const starterCount = await page.locator('.starter').count();
 console.log(`  ${starterCount === 3 ? 'ok  ' : 'FAIL'} three starters offered (x${starterCount})`);
 if (starterCount !== 3) problems.push(`expected 3 starters, saw ${starterCount}`);
 await check('starter types', '.starter .type');
-// A move card per move since M6.0 (D40); the screen drew its own rows before.
-await check('starter movesets', '.starter__moves .move--card');
+// A move chip per move since bible Rev 19 (D78); move cards under D40.
+await check('starter movesets', '.starter__moves .move--chip');
 await check('starter move power', '.starter .move__power');
 
 const seed = await page.inputValue('.seedbar__input');
@@ -199,7 +199,7 @@ else if (versioned[1] !== SEED) problems.push(`seed from the URL was not used (s
  */
 async function playRun(label) {
   await page.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
-  await (await bulkiestStarter()).click();
+  await pickBulkiestStarter();
 
   let battles = 0;
   let nodes = 0;
@@ -639,27 +639,31 @@ async function playRun(label) {
 }
 
 /**
- * The starter with the most HP, ties to the leftmost card.
+ * Pick the starter with the most HP, ties to the leftmost card.
  *
  * At PARTY_SIZE 1 this one click is the largest decision in the run — it is the
  * only Pokemon the player will ever have — so a bot that takes whichever card is
  * first is not playing the game, it is sampling it.
+ *
+ * The max HP is the detail panel's since bible Rev 19 (D78, D79): a tap
+ * selects a card and fills the panel, and the Choose control commits.
  */
-async function bulkiestStarter() {
+async function pickBulkiestStarter() {
   const cards = page.locator('.starter');
   const count = await cards.count();
   let best = 0;
   let bestHp = -1;
   for (let i = 0; i < count; i++) {
-    // The card prints the HP glyph and <N> since M6.0; N is the number the choice turns on.
-    const meta = (await cards.nth(i).locator('.starter__hp-value').textContent()) ?? '';
+    await cards.nth(i).click();
+    const meta = (await page.locator('.starter-detail .stat[data-row="hp"] .stat__value').textContent()) ?? '';
     const hp = Number(/(\d+)/.exec(meta)?.[1] ?? 0);
     if (hp > bestHp) {
       bestHp = hp;
       best = i;
     }
   }
-  return cards.nth(best);
+  await cards.nth(best).click();
+  await page.locator('.starter-select__choose').click();
 }
 
 /**
@@ -951,10 +955,13 @@ const phoneCheck = (label, ok, detail) => {
  * 5 of the design bible closes with. One component draws them all now, so this
  * counts the rows it draws.
  */
-const starterStats = await phone.locator('.starter .stats .stat').count();
-phoneCheck('starter cards show base stats', starterStats >= 18, `${starterStats} cells across 3 cards`);
-
 await phone.locator('.starter').first().click();
+// The selected starter's stats, numbers at rest, in the detail panel since
+// bible Rev 19 (D79); on each card under D40.
+const starterStats = await phone.locator('.starter-detail .stats--numbers .stat__value:visible').count();
+phoneCheck('the selected starter shows its six stats as numbers', starterStats === 6, `${starterStats} numbers`);
+
+await phone.locator('.starter-select__choose').click();
 
 /*
  * The locale pick, which from Stage 4.6a sits between the starter and the map.
