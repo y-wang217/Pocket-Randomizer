@@ -32,14 +32,18 @@
  * rules on them with M7.1's evidence, and a density change stays a stylesheet
  * change rather than a re-render.
  *
- * ## Numbers, at rest, and no bar
+ * ## Numbers, at rest, and a bar against the band
  *
  * **Bible Rev 20, R13, D81 and D82.** The stats are vital information: on the
  * face, as numbers, on every call site, never behind a fold or a press. The
- * bar is retired (*"bars suck. replace bars with the stat numbers proper"*),
- * so a cell is the mark and the number and nothing else. The starter detail
- * panel's `numbers` option (D79) is gone with it, because every call site is
- * that call site now.
+ * bar drawn against a flat ceiling was retired (*"bars suck"*).
+ *
+ * **Bible Rev 21, D88 (Stage 5.1).** The bar is back beside the number, and
+ * its scale is the **band**: the lowest and highest value that stat takes at
+ * this Pokemon's level across the species pool (`statBandAt`). Empty at the
+ * floor, full at the ceiling, so a Munchlax with near the most HP a level-15
+ * Pokemon can have reads as a nearly full bar, where the old ceiling of 200
+ * drew every early-game stat as a stub. The number is never replaced by it.
  *
  * ## What it does not do
  *
@@ -50,6 +54,7 @@
  * order is `STAT_ORDER`, which is Showdown's, so a number a player learns here
  * is in the place they will look for it during a fight.
  */
+import { statBandAt, type StatBand } from '../core/battle/driver';
 import { STAT_ORDER, statInfo } from '../data/statInfo';
 import { el } from './dom';
 import { glyphNode } from './theme/glyph';
@@ -80,10 +85,26 @@ export interface StatBlockOptions {
    * one: R10's permit, and the colour says the sign again, never who to drop.
    */
   against?: StatValues;
+  /**
+   * The Pokemon's level, which picks the band each bar is measured against.
+   * **Bible Rev 21, D88.** Every call site that knows whose stats these are
+   * passes it; without one the cell is the glyph and the number alone.
+   */
+  level?: number;
 }
 
 /**
- * Six rows of glyph, bar and number, always all six, in `STAT_ORDER`.
+ * Where a value sits in its band, 0 at the floor and 1 at the ceiling.
+ * Clamped, so a number off the band's edge draws an empty or a full bar
+ * rather than one that leaves its track.
+ */
+export function bandFraction(value: number, range: { min: number; max: number }): number {
+  if (!Number.isFinite(range.min) || !Number.isFinite(range.max) || range.max <= range.min) return 1;
+  return Math.max(0, Math.min(1, (value - range.min) / (range.max - range.min)));
+}
+
+/**
+ * Six cells of glyph, number and band bar, always all six, in `STAT_ORDER`.
  *
  * `values` is the whole input. A caller with a `PokemonState` spreads its
  * base stats and its max HP; the inspect layer parses a serialized string.
@@ -93,6 +114,8 @@ export interface StatBlockOptions {
 export function statBlock(values: StatValues, options: StatBlockOptions = {}): HTMLElement {
   const root = el('div', `stats stats--${options.layout ?? 'grid'}`);
   if (options.tutorial) root.dataset['tutorial'] = options.tutorial;
+  const band: StatBand | null = options.level === undefined ? null : statBandAt(options.level);
+  if (options.level !== undefined) root.dataset['level'] = String(options.level);
 
   for (const stat of STAT_ORDER) {
     const value = values[stat] ?? 0;
@@ -128,10 +151,29 @@ export function statBlock(values: StatValues, options: StatBlockOptions = {}): H
     label.tabIndex = 0;
     label.setAttribute('role', 'button');
 
-    // The number, at rest (R13). The bar it sat beside is retired (D82).
+    // The number, at rest (R13).
     const number = el('span', 'stat__value');
     number.textContent = String(value);
     row.append(label, number);
+
+    /*
+     * The bar against the band (D88). Decorative to a reader, because the
+     * number beside it is the fact and the band is on the label's press;
+     * the range rides on the label for that press.
+     */
+    const range = band?.[stat as keyof StatBand];
+    if (range) {
+      const fraction = bandFraction(value, range);
+      const bar = el('span', 'stat__bar');
+      bar.setAttribute('aria-hidden', 'true');
+      const fill = el('span', 'stat__bar-fill');
+      fill.style.width = `${Math.round(fraction * 1000) / 10}%`;
+      bar.append(fill);
+      row.dataset['fraction'] = fraction.toFixed(3);
+      label.dataset['band'] = `${range.min}-${range.max}`;
+      label.dataset['level'] = String(options.level);
+      row.append(bar);
+    }
 
     if (options.against) {
       const change = (options.against[stat] ?? 0) - value;

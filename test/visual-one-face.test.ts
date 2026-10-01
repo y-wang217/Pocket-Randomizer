@@ -68,19 +68,20 @@ async function partyScreen(): Promise<{ page: Page; close: () => Promise<void> }
 
 describe('the one face', () => {
   /**
-   * **Six numbers per block, on the card's head, and no bar. Bible Rev 20,
-   * R13, D82 and D83.** This was "six bars per block and no number on
-   * screen" from the one-face stage to Rev 19; the stats are vital now, so
-   * every card paints its six numbers without a tap, and the label is still
-   * the glyph (R2).
+   * **Six numbers per block, on the card's head, each with its band bar.
+   * Bible Rev 20, R13, D82 and D83; Rev 21, D88.** This was "six bars per
+   * block and no number on screen" from the one-face stage to Rev 19 and
+   * "no bar" at Rev 20; the stats are vital, so every card paints its six
+   * numbers without a tap, the band bar sits beside each number and never in
+   * its place, and the label is still the glyph (R2).
    */
-  it('six numbers per block on every card, unopened, and no bar', async () => {
+  it('six numbers per block on every card, unopened, each with its band bar', async () => {
     const { page, close } = await partyScreen();
     const cards = await paintedCount(page, '.screen--party .party__member');
     expect(cards).toBeGreaterThan(0);
     const party = visible('party');
     expect(await paintedCount(page, `${party} .party__member .stats .stat__value`)).toBe(cards * 6);
-    expect(await paintedCount(page, `${party} .stat__bar, ${party} .stat__bar-fill`)).toBe(0);
+    expect(await paintedCount(page, `${party} .party__member .stats .stat__bar`)).toBe(cards * 6);
     expect(await visibleText(page, `${party} .stats--grid .stat__label`)).toBe('');
     expect(await paintedCount(page, `${party} .stats--grid .stat__label .glyph`)).toBe(cards * 6);
     await close();

@@ -74,7 +74,7 @@ import {
 import { statusInfo, STATUS_PERSISTENCE_NOTE } from '../data/statusInfo';
 import { TIER_INFO } from '../data/tierInfo';
 import { GLYPH_LABELS } from '../data/glyphLabels';
-import { carryingLine, CURRENCY_COPY, KIND_HINTS, restoreTitle, REWARD_COPY } from './copy/screens';
+import { carryingLine, CURRENCY_COPY, KIND_HINTS, restoreTitle, REWARD_COPY, STAT_BAND_COPY } from './copy/screens';
 import { FIELD_SUPPRESSED, fieldEffect, fieldName } from '../data/fieldCopy';
 import { capabilityTypes, type Capability } from '../data/capabilities';
 import { OUTCOME_TIERS, type OutcomeTier } from '../data/eventPools';
@@ -812,7 +812,7 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
     case 'category':
       return renderCategory(id);
     case 'stat':
-      return renderStat(id, trigger?.dataset['value']);
+      return renderStat(id, trigger?.dataset['value'], trigger?.dataset['band'], trigger?.dataset['level']);
     case 'hp':
       return renderHp(trigger?.dataset['value']);
     case 'band':
@@ -824,7 +824,7 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
     case 'archetype':
       return renderArchetypes();
     case 'stats':
-      return renderMonStats(id, trigger?.dataset['detail']);
+      return renderMonStats(id, trigger?.dataset['detail'], trigger?.dataset['level']);
     case 'move':
       return renderMoveRows(id);
     case 'gym':
@@ -1129,7 +1129,7 @@ function renderStages(detail?: string): HTMLElement | null {
  * Nothing here is written copy: the marks are M1.1's sheet, the words are
  * `data/statInfo.ts`'s, and the numbers arrive on the trigger.
  */
-function renderMonStats(species: string, detail?: string): HTMLElement | null {
+function renderMonStats(species: string, detail?: string, level?: string): HTMLElement | null {
   const rows = (detail ?? '').split('\n').filter((row) => row.length > 0);
   if (rows.length === 0) return null;
   const values: Record<string, number> = {};
@@ -1138,7 +1138,7 @@ function renderMonStats(species: string, detail?: string): HTMLElement | null {
     values[stat] = Number(value);
   }
   const body = panel(species, 'tip__body--rows');
-  body.append(statBlock(values));
+  body.append(statBlock(values, level ? { level: Number(level) } : {}));
   return body;
 }
 
@@ -1349,7 +1349,7 @@ function renderCategory(id: string): HTMLElement | null {
  * also the closest this file comes to advice, and it stays on the safe side of
  * Part 4 by naming a term in the damage formula rather than a course of action.
  */
-function renderStat(id: string, value?: string): HTMLElement | null {
+function renderStat(id: string, value?: string, band?: string, level?: string): HTMLElement | null {
   const info = statInfo(id);
   if (!info) return null;
   // The value, when the trigger carries one: in Pocket the row is a bar and
@@ -1360,6 +1360,9 @@ function renderStat(id: string, value?: string): HTMLElement | null {
   if (info.pairsWith) {
     body.append(line(`Resolved against the defender's ${info.pairsWith}.`, 'tip__note'));
   }
+  // The band the bar is drawn against (D88), when the cell drew one.
+  const [min, max] = (band ?? '').split('-');
+  if (min && max && level) body.append(line(STAT_BAND_COPY.line(level, min, max), 'tip__note'));
   return body;
 }
 

@@ -108,7 +108,7 @@ function renderOption(option: SpeciesEntry, question: EvolutionQuestion, index: 
     spriteFigure(option.species, { phase: index }),
     header,
     // The shared stat block, six across. M3.2, D20.
-    statBlock({ ...detail.baseStatsAtLevel, hp: detail.maxHp }, { layout: 'row' }),
+    statBlock({ ...detail.baseStatsAtLevel, hp: detail.maxHp }, { layout: 'row', level: detail.level }),
   );
   card.addEventListener('click', onChoose);
   return card;

@@ -48,6 +48,14 @@ export const STARTER_LABELS = {
   choose: (species: string): string => `Choose ${species}`,
 } as const;
 
+/**
+ * The band a stat bar is measured against, on the stat glyph's press.
+ * **Bible Rev 21, D88.** A bare range at a level: no rating, no hedge.
+ */
+export const STAT_BAND_COPY = {
+  line: (level: string, min: string, max: string): string => `At level ${level}, the pool runs ${min} to ${max}.`,
+} as const;
+
 export const LOCALE_COPY = {
   blurb: {
     long:

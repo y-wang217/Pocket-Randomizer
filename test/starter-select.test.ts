@@ -1,17 +1,20 @@
 /**
  * The starter screen's compact cards and detail panel. **Bible Rev 19, D78 to
- * D80** (`docs/spec/gymrun-patch-starter-select-redesign.md`).
+ * D80** (`docs/spec/gymrun-patch-starter-select-redesign.md`); the panel over
+ * the selected card's moves and its band bars, **Rev 21, D88 and D89**
+ * (`docs/spec/gymrun-stage5.1-band-bars-and-starter-fit.md`).
  *
  * @vitest-environment jsdom
  */
 import { describe, expect, it } from 'vitest';
 
-import { describeSpecCard } from '../src/core/battle/driver';
+import { describeSpecCard, statBandAt } from '../src/core/battle/driver';
 import { moveCoverage, typeVulnerabilities } from '../src/core/coverage';
 import { createRun } from '../src/core/run';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 import { STARTER_LABELS } from '../src/ui/copy/screens';
 import { createStarterSelect } from '../src/ui/screens/starter-select';
+import { bandFraction } from '../src/ui/stat-block';
 
 const SEED = 'STARTER-DETAIL';
 
@@ -22,18 +25,20 @@ function mounted() {
   screen.render(options, (index) => picks.push(index));
   document.body.replaceChildren(screen.root);
   const cards = [...screen.root.querySelectorAll<HTMLButtonElement>('.starter')];
-  const detail = screen.root.querySelector<HTMLElement>('.starter-detail')!;
+  const panels = cards.map((card) => card.querySelector<HTMLElement>('.starter-detail')!);
   const choose = screen.root.querySelector<HTMLButtonElement>('.starter-select__choose')!;
-  return { options, picks, cards, detail, choose };
+  return { options, picks, cards, panels, choose };
 }
 
 describe('at rest', () => {
   it('selects nothing, fills no panel and offers no commit (D69, C1)', () => {
-    const { cards, detail, choose } = mounted();
+    const { cards, panels, choose } = mounted();
     expect(cards).toHaveLength(DEFAULT_TUNING.starterOptionCount);
     for (const card of cards) expect(card.getAttribute('aria-pressed')).toBe('false');
-    expect(detail.hidden).toBe(true);
-    expect(detail.childElementCount).toBe(0);
+    for (const panel of panels) {
+      expect(panel.hidden).toBe(true);
+      expect(panel.childElementCount).toBe(0);
+    }
     expect(choose.hidden).toBe(true);
   });
 
@@ -48,25 +53,36 @@ describe('at rest', () => {
 });
 
 describe('a tap', () => {
-  it('selects the card, fills the panel with the numbers and the coverage, and never picks', () => {
-    const { options, picks, cards, detail, choose } = mounted();
+  it('selects the card, opens the panel over its moves with the numbers, the bars and the coverage, and never picks', () => {
+    const { options, picks, cards, panels, choose } = mounted();
     cards[1]!.click();
 
     expect(cards.map((card) => card.getAttribute('aria-pressed'))).toEqual(['false', 'true', 'false']);
     expect(picks).toEqual([]);
-    expect(detail.hidden).toBe(false);
+    expect(panels.map((panel) => panel.hidden)).toEqual([true, false, true]);
+    expect(cards[1]!.dataset['view']).toBe('detail');
+    // The panel is the card's, over its move column (D89): the moves stay in the card.
+    expect(panels[1]!.parentElement).toBe(cards[1]);
+    expect(cards[1]!.querySelectorAll('.move--chip')).toHaveLength(4);
 
     const card = describeSpecCard(options[1]!);
-    const stats = detail.querySelector('.stats');
-    expect(stats, 'the stat block with its numbers at rest (D79; every call site since D82)').not.toBeNull();
-    const values = Object.fromEntries(
-      [...stats!.querySelectorAll<HTMLElement>('.stat')].map((row) => [row.dataset['row'], row.querySelector('.stat__value')?.textContent]),
-    );
+    const stats = panels[1]!.querySelector('.stats');
+    expect(stats, 'the stat block with its numbers at rest (D79)').not.toBeNull();
+    const rows = [...stats!.querySelectorAll<HTMLElement>('.stat')];
+    const values = Object.fromEntries(rows.map((row) => [row.dataset['row'], row.querySelector('.stat__value')?.textContent]));
     expect(values['hp']).toBe(String(card.maxHp));
     expect(values['spe']).toBe(String(card.baseStatsAtLevel.spe));
+    // Every number has its band bar at the starter's level (D88).
+    const band = statBandAt(card.level);
+    expect(stats!.getAttribute('data-level')).toBe(String(card.level));
+    for (const row of rows) {
+      expect(row.querySelector('.stat__bar-fill')).not.toBeNull();
+      const range = band[row.dataset['row'] as keyof typeof band];
+      expect(Number(row.dataset['fraction'])).toBeCloseTo(bandFraction(Number(row.querySelector('.stat__value')?.textContent), range), 3);
+    }
 
-    const effective = detail.querySelector('.starter-detail__row--effective');
-    const vulnerable = detail.querySelector('.starter-detail__row--vulnerable');
+    const effective = panels[1]!.querySelector('.starter-detail__row--effective');
+    const vulnerable = panels[1]!.querySelector('.starter-detail__row--vulnerable');
     const covered = moveCoverage(card.moves);
     const exposed = typeVulnerabilities(card.types);
     expect(effective === null).toBe(covered.length === 0);
@@ -78,12 +94,28 @@ describe('a tap', () => {
     expect(choose.textContent).toBe(STARTER_LABELS.choose(card.species));
   });
 
+  it('flips the selected card between the panel and its moves, and keeps the selection (C2)', () => {
+    const { picks, cards, panels, choose } = mounted();
+    cards[0]!.click();
+    cards[0]!.click();
+    expect(cards[0]!.getAttribute('aria-pressed')).toBe('true');
+    expect(cards[0]!.dataset['view']).toBe('moves');
+    expect(panels[0]!.hidden).toBe(true);
+    expect(choose.hidden).toBe(false);
+    cards[0]!.click();
+    expect(cards[0]!.dataset['view']).toBe('detail');
+    expect(panels[0]!.hidden).toBe(false);
+    expect(picks).toEqual([]);
+  });
+
   it('moves the selection, and the panel follows it', () => {
-    const { options, cards, detail, choose } = mounted();
+    const { options, cards, panels, choose } = mounted();
     cards[0]!.click();
     cards[2]!.click();
     expect(cards.map((card) => card.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'true']);
-    expect(detail.querySelector('.starter-detail__name')?.textContent).toBe(describeSpecCard(options[2]!).species);
+    expect(panels.map((panel) => panel.hidden)).toEqual([true, true, false]);
+    expect(panels[0]!.childElementCount, 'a card that loses the selection empties its panel').toBe(0);
+    expect(cards[0]!.dataset['view']).toBe('moves');
     expect(choose.textContent).toBe(STARTER_LABELS.choose(describeSpecCard(options[2]!).species));
   });
 });

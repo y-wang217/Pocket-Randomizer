@@ -49,7 +49,10 @@ import { GYMRUN_GEN, TURN_LIMIT, gymrunFormat } from './format';
 import { bandOfMove } from '../../data/moveOverrides';
 import type { Policy } from './policy';
 import { readContribution } from './contribution';
-import { statsAtLevel } from './stats';
+import { DISPLAY_STATS, statsAtLevel } from './stats';
+import { SPECIES_POOL } from '../../data/speciesPools';
+import { stageAllowedAt } from '../../data/evolution';
+import { isSpeciesBlacklisted } from '../../data/blacklists';
 import { rejectionReason } from './switching';
 import type { ActiveFacts, BattleFacts, MoveFacts } from './view';
 import type { SeenKnowledge } from '../types';
@@ -1422,6 +1425,55 @@ export function moveIdentity(nameOrId: string): MoveIdentity | null {
 export function speciesTypes(species: string): readonly string[] {
   const data = Dex.forGen(GYMRUN_GEN).species.get(species);
   return data.exists ? data.types : [];
+}
+
+/** The lowest and highest value one stat takes at one level. */
+export interface StatRange {
+  min: number;
+  max: number;
+}
+
+/** The six ranges, keyed as `DISPLAY_STATS` spells them. HP is max HP. */
+export type StatBand = Readonly<Record<keyof StatsTable, StatRange>>;
+
+const bandCache = new Map<number, StatBand>();
+
+/**
+ * The band each stat can take at a level. **Stage 5.1, bible Rev 21, D88.**
+ *
+ * The stat bar's scale: empty at the floor, full at the ceiling. The floor and
+ * ceiling are the lowest and highest value of that stat across every species
+ * the randomizer may field at `level`, which is the same filter
+ * `bandedSpeciesPool` gates on (`stageAllowedAt` and the blacklist), each base
+ * stat run through `statsAtLevel`. Every Pokemon sits on one spread (Serious,
+ * 31 IVs, 0 EVs), so species and level are the whole of a stat and the band is
+ * exact rather than an estimate.
+ *
+ * Read off the pool and the dex, in pool order, so nothing is drawn and no
+ * version axis can move. Cached per level, because the party screen asks for
+ * six Pokemon at a handful of levels on every render.
+ */
+export function statBandAt(level: number): StatBand {
+  const cached = bandCache.get(level);
+  if (cached) return cached;
+  const dex = Dex.forGen(GYMRUN_GEN);
+  const band = Object.fromEntries(DISPLAY_STATS.map((stat) => [stat, { min: Infinity, max: -Infinity }])) as Record<
+    keyof StatsTable,
+    StatRange
+  >;
+  for (const entry of SPECIES_POOL) {
+    if (!stageAllowedAt(entry, level) || isSpeciesBlacklisted(entry.id)) continue;
+    const species = dex.species.get(entry.id);
+    if (!species.exists) continue;
+    const stats = statsAtLevel(species.baseStats, level, species.maxHP);
+    for (const stat of DISPLAY_STATS) {
+      const range = band[stat];
+      range.min = Math.min(range.min, stats[stat]);
+      range.max = Math.max(range.max, stats[stat]);
+    }
+  }
+  bandCache.set(level, band);
+  return band;
 }
 
 /** A move's one-line description, for the move tooltip. */
