@@ -44,6 +44,13 @@ export interface StarterSelect {
 
 export function createStarterSelect(): StarterSelect {
   const root = el('section', 'screen screen--starter');
+  /*
+   * **The scene behind the pick. Bible Rev 20, D87.** The author's painting
+   * of the clearing the run sets out from, through the manifest like the
+   * battle stage's and the map's, inside the frame. The cards and the panel
+   * stay opaque over it; the stylesheet puts the heading and blurb on plates.
+   */
+  applyBackdrop(root, 'starter-backdrop');
   const heading = el('h2', 'screen__title');
   heading.textContent = 'Choose your starter';
   const blurb = el('p', 'screen__blurb');
