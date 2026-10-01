@@ -40,7 +40,15 @@ by their scenes. The originals are kept in [`assets/`](assets/):
 | 5 | marsh | [`assets/stage5.0-map-backdrop-marsh.webp`](assets/stage5.0-map-backdrop-marsh.webp) |
 
 **Forest, ruins and badlands did not arrive** with the message that names
-eight. They keep the placeholder until they do.
+eight. They arrived in a second message, with no text, three images attached:
+
+| Order | Locale | File |
+|---|---|---|
+| 6 | forest | [`assets/stage5.0-map-backdrop-forest.webp`](assets/stage5.0-map-backdrop-forest.webp) |
+| 7 | ruins | [`assets/stage5.0-map-backdrop-ruins.webp`](assets/stage5.0-map-backdrop-ruins.webp) |
+| 8 | badlands | [`assets/stage5.0-map-backdrop-badlands.webp`](assets/stage5.0-map-backdrop-badlands.webp) |
+
+All eight are delivered, each 1024x1536.
 
 ## What the session takes from them
 
