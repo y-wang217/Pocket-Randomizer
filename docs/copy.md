@@ -1096,7 +1096,7 @@ Source: `src/data/tutorial.ts` · 17 strings
 | Key | Text | Rewrite |
 |---|---|---|
 | `starter.seed` | **The seed** — A seed fixes the whole run. The same seed and the same choices give the same run, so the code here can be copied and played again. |  |
-| `starter.starters` | **Three starters** — A run begins with one of these three. A card is everything there is to know about it. Pressing and holding anything, here or later, explains it. |  |
+| `starter.starters` | **Three starters** — A run begins with one of these three. Tap one to see its stats and matchups, then choose it. Pressing and holding anything, here or later, explains it. |  |
 | `locale.regions` | **A region** — Each part of the run is one region, chosen here. It sets which wild Pokemon and events appear, and it ends at a gym whose type is shown. |  |
 | `map.options` | **The current step** — Each step offers two or three options, and exactly one is taken. Steps below are done; steps above are still to come, up to the gym. |  |
 | `map.tier` | **How hard a fight is** — The pips are a fight’s tier. Each filled pip is a harder fight that pays a larger reward. |  |
@@ -1175,5 +1175,5 @@ Found by grep, not by import: a string assigned straight to `textContent`, `titl
 | `src/ui/screens/summary.ts` line 150 | The run |  |
 | `src/ui/screens/summary.ts` line 189 | Copy seed |  |
 | `src/ui/screens/summary.ts` line 220 | Copy result |  |
-| `src/ui/screens/starter-select.ts` line 37 | Choose your starter |  |
+| `src/ui/screens/starter-select.ts` line 48 | Choose your starter |  |
 

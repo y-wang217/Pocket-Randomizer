@@ -2870,20 +2870,35 @@ body {
 
 /* ---------- starter select ---------- */
 
+/*
+ * **Compact cards, a detail panel, and a step darker. Bible Rev 19, D78 to
+ * D80.** The author found this screen "too bright all white": cream cards on
+ * a hairline, the one pick surface 5.0 never gave its window treatment. Every
+ * card and the panel now wear the heavy rule the sidebar and the battle wear,
+ * on the toned panel fill rather than the cream, and the sprite stands on a
+ * crop of a battle backdrop instead of floating in a corner.
+ *
+ * One column at every width: the frame is at most `--frame-max` wide, so the
+ * mockup's second column is the panel below the cards.
+ */
 .starters {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: calc(var(--space-3) * var(--chrome-gap));
+  grid-template-columns: minmax(0, 1fr);
+  gap: calc(var(--space-2h) * var(--chrome-gap));
 }
 
 .starter {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--space-2) * var(--chrome-pad));
-  padding: calc(var(--space-3h) * var(--chrome-pad));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  grid-template-areas:
+    "head side"
+    "scene side";
+  grid-template-rows: auto 1fr;
+  gap: var(--space-1h) var(--space-2h);
+  padding: var(--space-2);
   text-align: left;
-  background: var(--bg-raised);
-  border: var(--hairline) solid var(--border-strong);
+  background: var(--panel-fill);
+  border: var(--rule-heavy) solid var(--border-heavy);
   border-radius: var(--radius-card);
   color: var(--text);
   font: inherit;
@@ -2891,58 +2906,160 @@ body {
   transition: border-color 120ms ease, transform 120ms ease;
 }
 
-.starter:hover { border-color: var(--emphasis); transform: translateY(-1px); }
+.starter:hover { transform: translateY(-1px); }
 .starter:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
 
-.starter__header { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
-.starter__name { font-weight: 600; font-size: var(--fs-xl); }
-.starter__level { color: var(--text-faint); font-family: var(--font-body); font-size: var(--fs-md); }
-/* Holds the ability chip and the HP figure since the chip-audit patch, so it is
-   a row rather than a line of text. */
-.starter__meta {
+/* The selected state, and only after a tap: D69's rule, the reward card's
+   recipe. Nothing sets `aria-pressed="true"` before the player's own tap. */
+.starter[aria-pressed="true"] {
+  border-color: var(--selected);
+  box-shadow: 0 0 0 var(--rule-heavy) var(--selected);
+}
+
+.starter__header {
+  grid-area: head;
   display: flex;
-  /*
-   * **Wraps.** It did not, and `test/visual-phone-seed-bar.test.ts` caught the
-   * consequence: an ability chip is uppercase with letter-spacing, so
-   * `ELECTRIC SURGE` beside the HP figure took the starter screen to 401px in a
-   * 390px viewport. A non-wrapping flex row cannot shrink below its content and
-   * nothing above it clips, so the overflow reached the document.
-   *
-   * That assertion covers the starter screen. Nine screens have no equivalent,
-   * which is the item filed in `docs/README.md` section 5.
-   */
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.starter__name { font-weight: 700; font-size: var(--fs-xl); }
+.starter__level { color: var(--text-dim); font-family: var(--font-numeral); font-size: var(--fs-md); }
+.starter__header .panel__types { flex-basis: 100%; }
+
+/* The scene: a battle backdrop, scaled to cover the cell and held at its lower
+   middle where the ground is, under the figure. Its own element so the figure
+   keeps the card's first slot. */
+.starter__scene {
+  grid-area: scene;
+  display: block;
+  min-height: 92px;
+  border: var(--hairline) solid var(--border-heavy);
+  border-radius: var(--radius-chip);
+  background:
+    var(--backdrop-image, none) center 70% / cover no-repeat,
+    var(--bg-sunken);
+  image-rendering: pixelated;
+}
+
+/* The figure stands on the scene: the same grid cell, above it, at the foot. */
+.starter > .figure {
+  --figure-size: 72px;
+  grid-area: scene;
+  position: relative;
+  top: auto;
+  right: auto;
+  z-index: 1;
+  justify-self: center;
+  align-self: end;
+  margin-bottom: var(--space-1);
+}
+
+.starter__side {
+  grid-area: side;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1h);
+  min-width: 0;
+  padding: var(--space-1h);
+  background: var(--panel-raised);
+  border: var(--hairline) solid var(--border-heavy);
+  border-radius: var(--radius-chip);
+}
+
+.starter__meta {
+  /* Wraps: an uppercase ability chip runs long, and a non-wrapping row took
+     this screen past 390px once (`test/visual-phone-seed-bar.test.ts`). */
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1);
-  color: var(--text-dim);
-  font-family: var(--font-body);
   font-size: var(--fs-sm);
 }
 
-/* Two across in Pocket, since M6.0 (D40) and D45: four cards in one column
-   made each starter about 490px, two across makes it about 305. The screen
-   scrolls either way, by D45's ruling, and this is the layout that puts the
-   whole first starter and half the second in the first screenful. */
+/* Move chips since D78, one per line: the name, and the chip's own meta at
+   the line's end, so the four powers sit in one column. */
 .starter__moves {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-2);
-}
-
-/* The max HP as the HP row's glyph and a number, since M6.0 (D40). */
-.starter__hp { display: inline-flex; align-items: center; gap: var(--space-h); color: var(--text); }
-
-/* Move cards since M6.0 (D40): the list is a container, and the card owns
-   its own face. */
-.starter__moves {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-h);
   margin: 0;
-  padding: 0;
-  display: grid;
+  padding: var(--space-1) 0 0;
+  border-top: var(--hairline) solid var(--border);
+}
+.starter__moves .move--chip {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-h) var(--space-1);
+  min-height: 0;
+  padding: var(--space-h) 0;
+  background: none;
+  border: 0;
+}
+.starter__moves .move--chip .move__name { font-size: var(--fs-md); min-width: 0; }
+
+/* The detail panel: the selected starter's numbers and coverage. D79, D80. */
+.starter-detail {
+  display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  border-top: var(--hairline) solid var(--border);
-  padding-top: var(--space-2);
+  margin-top: calc(var(--space-3) * var(--chrome-gap));
+  padding: var(--space-2h) var(--space-3);
+  background: var(--panel-fill);
+  border: var(--rule-heavy) solid var(--border-heavy);
+  border-radius: var(--radius-card);
 }
+.starter-detail[hidden] { display: none; }
+.starter-detail__name { margin: 0; font-size: var(--fs-lg); font-weight: 700; letter-spacing: var(--tracking-label); text-transform: uppercase; }
+
+.starter-detail__row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: var(--hairline) solid var(--border);
+}
+.starter-detail__label { font-size: var(--fs-md); font-weight: 700; color: var(--text-dim); }
+.starter-detail__types { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+
+/* The numbers at rest, D79: one row per stat, glyph, bar, number, as the
+   mockup draws it. The one-face block hides `.stat__value` everywhere else. */
+.stats.stats--numbers {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+  border-top: 0;
+  padding-top: 0;
+}
+.stats--numbers .stat {
+  display: grid;
+  grid-template-columns: var(--space-6) minmax(0, 1fr) 3ch;
+  align-items: center;
+  gap: var(--space-2);
+}
+.stats--numbers .stat__label { order: 0; }
+.stats--numbers .stat__bar { order: 1; height: 10px; border: var(--hairline) solid var(--border-heavy); }
+.stats--numbers .stat__bar-fill { background: var(--selected); }
+.stats--numbers .stat__value {
+  order: 2;
+  display: inline;
+  text-align: right;
+  font-family: var(--font-numeral);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.starter-select__choose {
+  display: block;
+  width: 100%;
+  margin-top: calc(var(--space-2h) * var(--chrome-gap));
+  padding: var(--space-3);
+  font-size: var(--fs-lg);
+}
+.starter-select__choose[hidden] { display: none; }
 
 
 /* ---------- bands and berries ---------- */

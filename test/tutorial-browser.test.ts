@@ -108,6 +108,7 @@ describe('the tutorial at 390x844', () => {
 
     // Locale, then map: each screen's marks once, on first reach.
     await page.locator('.starter').first().click();
+    await page.locator('.starter-select__choose').click();
     await page.waitForSelector(visible('locale'));
     await page.waitForSelector('.coach:not([hidden])');
     const locale = await tapThrough(page);

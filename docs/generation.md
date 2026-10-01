@@ -12044,8 +12044,65 @@ No version axis moves; nothing under `core/` or `data/` changed.
    also take the smaller ring. Only 390x844 shows every row's facts. That is
    the floor doing what D63's ruling asked of it, and the report's table and
    text are corrected to say so, with a dated note.
+## 92. The starter select redesign: compact cards, a detail panel, and what it builds that the mockup did not show
 
-## 92. Stage 5.0/5: the art pass
+**2026-10-01.** [`spec/gymrun-patch-starter-select-redesign.md`](spec/gymrun-patch-starter-select-redesign.md),
+bible Rev 19 (D78 to D80), on `claude/magical-shannon-64iefo`. The author's
+playtest observation is in [`design/playtest-log.md`](design/playtest-log.md).
+No version axis moves and no seeded output changes: the two new `core/coverage.ts`
+helpers read the type chart and draw nothing, and `data/tutorial.ts`, the one
+`data/` file touched, is on `contentHash`'s exclusion list.
+
+Built to the bible where the mockup and the bible differ, each recorded here
+rather than in the prompt:
+
+1. **No Reroll Starters.** Ruled out by the author before any code: a reroll is
+   keyed draws made at generation, a logged decision and a `RUN_LOG_VERSION`
+   bump, and that is a core patch of its own.
+2. **Nothing is preselected.** The mockup opens with Electrike outlined. D69's
+   rule, and C1: a card the screen selects is a card the screen chose. The
+   detail panel and the Choose control appear on the player's first tap.
+3. **The ability's description stays on the long press.** The mockup prints
+   it under the name; a sentence at rest is R12, and the amendment process
+   would have to be the one to move it.
+4. **The stat rows are glyphs, not `HP`, `ATK`, `SPE`.** R2 forbids the field
+   label at rest; R7's exposure label carries the word on a first run. The
+   numbers the observation asked for are at rest (D79).
+5. **"Vulnerable to", not "Weak To".** Section 8 forbids *weak* on any surface,
+   and `data/forbiddenWords.ts` carries it.
+6. **The panel is in the frame, not the desktop sidebar.** The sidebar is
+   read-only (D53) and hidden below 1024px, so a phone would have lost the
+   facts, which C2 forbids. The frame is at most 480px wide, so the panel is
+   below the cards at every width rather than the mockup's second column.
+7. **The commit is a screen-level Choose control, not the confirm band.** The
+   selection is the confirm: a band would open over the panel it is confirming
+   against. Recorded in the bible's D78.
+8. **Effective against counts the damaging moves' types**, as the author
+   corrected the mockup; a status move adds nothing (ruled). Both rows read the
+   type chart only, so an ability (Levitate) is not folded in; it is one long
+   press away on the ability chip.
+9. **The scene under the sprite** is the battle backdrop of the first region,
+   in `LOCALES` order, whose four types admit the starter's primary type. All
+   eighteen types are in some region's four. A table read, not a draw.
+10. **The walk scripts tap, then choose.** `scripts/smoke.mjs` and
+    `scripts/visual/browser.mjs` read each starter's max HP off the detail panel
+    by tapping each card in turn (a selection, never a pick), then tap the
+    bulkiest and Choose. The coach mark's copy says a tap shows the stats and
+    matchups, because "a card is everything there is to know" stopped being true.
+11. **The starter card leaves the pick cards' shared surface.** Stage V0's
+    sibling test held the starter, locale, reward and capture cards to one
+    computed surface. The author asked for the starter screen alone to go a
+    step darker, so the starter's three cards are held alike and the other
+    three kinds keep the shared surface (`test/visual-v0.test.ts`).
+12. **Priority paints on the party screen in the family walk.** S49B-1's
+    starters carried the only priority move the walk saw, on the move cards
+    D78 replaced with chips (which carry no chevron). The walk visits the
+    party screen on `PRIO-3` and opens its first member card, which carries
+    Beak Blast, a negative bracket. The
+    classroom test taps a card before reading, since the stats are the
+    panel's (`test/visual-exposure-labels.test.ts`).
+
+## 93. Stage 5.0/5: the art pass
 
 **2026-10-01**, on `claude/eloquent-heisenberg-383rnt`, from `main` at
 `0c78f5b`. Rulings:
@@ -12055,7 +12112,7 @@ opened by acknowledging the seventeen backdrops already delivered in 5.0/2 and
 5.0/4). Report: [`visual/reports/5.0-stage5.md`](visual/reports/5.0-stage5.md).
 **No version axis moves**: nothing under `core/` or `data/` changed, and every
 drawing lives under `src/ui/assets/`, outside `contentHash`. The bible is
-unchanged (Rev 18).
+unchanged by this stage (Rev 19, from §92).
 
 Deviations from Stage 5 of
 [`spec/gymrun-stage5.0-visual-redesign.md`](spec/gymrun-stage5.0-visual-redesign.md)
@@ -12171,3 +12228,9 @@ What the checks found:
     were counted on the cards, so `result-relic` and `shop-relic` fall by 1
     on the budgeted column, and the reward card's worst instance goes 2 to 0.
     No copy changed; `docs/copy.md` needs no rebuild.
+15. **Renumbered at the merge.** This section was written as §92; the starter
+    select patch merged to `main` first with its own §92, so this one is §93.
+    The two rulings files filed during the stage
+    ([`spec/gymrun-stage5.0-rulings-stage5.md`](spec/gymrun-stage5.0-rulings-stage5.md)
+    and [`spec/gymrun-stage5.0-rulings-slot-grids.md`](spec/gymrun-stage5.0-rulings-slot-grids.md))
+    say §92 and are left as filed; they mean this section.

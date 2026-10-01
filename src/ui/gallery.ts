@@ -52,7 +52,7 @@ import { createNav } from './nav';
 import { presentAsScreen } from './overlay';
 import { anyShop, deepMapState, finishedResult, incomingMove, lateState, openingState, relicOffer, relicShop, targetedReward, wordiestEvent } from './gallery-fixtures';
 import { GALLERY_SURFACES, type GallerySurface } from './gallery-surfaces';
-import { labelExposures } from './exposure-labels';
+import { labelExposures, watchExposures } from './exposure-labels';
 import { createHeader } from './header';
 import { createTutorial } from './tutorial';
 import type { TutorialScreen } from '../data/tutorial';
@@ -449,7 +449,16 @@ async function main(): Promise<void> {
     : current
       ? { screen: current, within: router.root.querySelector<HTMLElement>(`.screen[data-screen="${current}"]`) as ParentNode | null }
       : null;
-  if (onTop?.within) labelExposures(onTop.screen, onTop.within);
+  if (onTop?.within) {
+    const { screen, within } = onTop;
+    labelExposures(screen, within);
+    /*
+     * And again whenever the surface changes, as `app.ts` does. Since bible
+     * Rev 19 (D78) a tap on a starter card paints the stat glyphs in the
+     * detail panel after the first pass, and the app labels them then.
+     */
+    if (within instanceof HTMLElement) watchExposures(within, () => ({ screen, within }));
+  }
 
   if (params.get('tutorial') === 'fresh') {
     const screen = TUTORIAL_SURFACE[surface];
