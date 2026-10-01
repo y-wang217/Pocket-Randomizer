@@ -22,6 +22,7 @@
  * not by the glyph. This function marks the family (`data-family`) so M6.1 has
  * something to key from, and renders no text of its own.
  */
+import { glyphArt } from '../assets/manifest';
 import { el } from '../dom';
 import { GLYPHS, GLYPH_VIEWBOX, type Glyph } from './glyphs';
 import type { GlyphFamily } from '../../data/glyphFamilies';
@@ -80,6 +81,17 @@ export function glyphNode(id: string, options: GlyphOptions = {}): HTMLElement |
     // word by the census for the same reason a bare number is not.
     node.classList.add('glyph--lettering');
     node.textContent = glyph.art.text;
+    return node;
+  }
+
+  // The node, capability and currency families have class C art since 5.0/5
+  // (D61): an 8px drawing in ink, masked in `currentColor` so it stays the
+  // monochrome mark this file has always drawn, at a whole multiple of its
+  // native size (2 at 16, 3 at 24). No drawing, the sheet's SVG mark.
+  const art = glyphArt(glyph.id);
+  if (art) {
+    node.classList.add('glyph--art');
+    node.style.setProperty('--glyph-art', `url(${art})`);
     return node;
   }
 

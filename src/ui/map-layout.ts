@@ -38,7 +38,14 @@ export const DEFAULT_GRID: SlotGrid = {
   lean: 4,
 };
 
-/** Tuned grids, by locale. Empty until the art pass (5.0/5) has art to tune against. */
+/**
+ * Tuned grids, by locale. **Empty by ruling, 5.0/5**
+ * (`docs/spec/gymrun-stage5.0-rulings-slot-grids.md`): on most backdrops the
+ * outer slots stand off the painted ground on some rows, and narrowing the
+ * grid would overlap the current step's cards, so the author took the
+ * difference. A repaint with a wider clearing reopens it, as one entry here
+ * per backdrop, with `scripts/visual/slot-overlay.ts` as the evidence.
+ */
 export const BACKDROP_GRIDS: Partial<Readonly<Record<LocaleId, SlotGrid>>> = {};
 
 /**

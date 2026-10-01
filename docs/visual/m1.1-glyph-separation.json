@@ -1,5 +1,22 @@
 {
  "floor": 0.12,
+ "drawn": [
+  "capability-cut",
+  "capability-surf",
+  "capability-strength",
+  "capability-rockSmash",
+  "capability-fly",
+  "capability-waterfall",
+  "capability-dive",
+  "capability-flash",
+  "node-wild",
+  "node-trainer",
+  "node-rest",
+  "node-gym",
+  "node-shop",
+  "node-event",
+  "currency-coin"
+ ],
  "worst": [
   {
    "family": "capability",
@@ -44,18 +61,18 @@
    "score": 0.265625
   },
   {
-   "family": "node",
-   "a": "node-trainer",
-   "b": "node-shop",
-   "simulation": "none",
-   "score": 0.28125
-  },
-  {
    "family": "field",
    "a": "field-electric",
    "b": "field-grassy",
    "simulation": "none",
    "score": 0.296875
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-gym",
+   "simulation": "none",
+   "score": 0.34375
   },
   {
    "family": "category",
@@ -5874,308 +5891,308 @@
    "a": "capability-cut",
    "b": "capability-surf",
    "simulation": "none",
-   "score": 0.3671875
+   "score": 0.40625
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-strength",
    "simulation": "none",
-   "score": 0.36328125
+   "score": 0.40625
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-rockSmash",
    "simulation": "none",
-   "score": 0.3515625
+   "score": 0.46875
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-fly",
    "simulation": "none",
-   "score": 0.3671875
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-waterfall",
    "simulation": "none",
-   "score": 0.55859375
+   "score": 0.59375
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-dive",
    "simulation": "none",
-   "score": 0.3203125
+   "score": 0.5
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-flash",
    "simulation": "none",
-   "score": 0.45703125
+   "score": 0.53125
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-band-on",
    "simulation": "none",
-   "score": 0.265625
+   "score": 0.33984375
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-band-off",
    "simulation": "none",
-   "score": 0.2578125
+   "score": 0.3828125
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-strength",
    "simulation": "none",
-   "score": 0.25390625
+   "score": 0.5
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-rockSmash",
    "simulation": "none",
-   "score": 0.4453125
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-fly",
    "simulation": "none",
-   "score": 0.3046875
+   "score": 0.40625
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-waterfall",
    "simulation": "none",
-   "score": 0.5234375
+   "score": 0.625
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-dive",
    "simulation": "none",
-   "score": 0.3359375
+   "score": 0.59375
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-flash",
    "simulation": "none",
-   "score": 0.44921875
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-band-on",
-   "simulation": "none",
-   "score": 0.25
-  },
-  {
-   "family": "capability",
-   "a": "capability-surf",
-   "b": "capability-band-off",
-   "simulation": "none",
-   "score": 0.3203125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-rockSmash",
-   "simulation": "none",
-   "score": 0.3359375
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-fly",
-   "simulation": "none",
-   "score": 0.3125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-waterfall",
-   "simulation": "none",
-   "score": 0.453125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-dive",
-   "simulation": "none",
-   "score": 0.328125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-flash",
-   "simulation": "none",
-   "score": 0.4296875
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-band-on",
-   "simulation": "none",
-   "score": 0.3203125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-band-off",
    "simulation": "none",
    "score": 0.390625
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-surf",
+   "b": "capability-band-off",
+   "simulation": "none",
+   "score": 0.34375
+  },
+  {
+   "family": "capability",
+   "a": "capability-strength",
+   "b": "capability-rockSmash",
+   "simulation": "none",
+   "score": 0.46875
+  },
+  {
+   "family": "capability",
+   "a": "capability-strength",
    "b": "capability-fly",
    "simulation": "none",
    "score": 0.4375
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-strength",
    "b": "capability-waterfall",
    "simulation": "none",
-   "score": 0.4453125
+   "score": 0.5625
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-strength",
    "b": "capability-dive",
    "simulation": "none",
-   "score": 0.296875
+   "score": 0.25
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-strength",
    "b": "capability-flash",
    "simulation": "none",
-   "score": 0.5
+   "score": 0.3125
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-strength",
    "b": "capability-band-on",
    "simulation": "none",
-   "score": 0.3515625
+   "score": 0.4921875
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
-   "b": "capability-band-off",
-   "simulation": "none",
-   "score": 0.3671875
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-waterfall",
-   "simulation": "none",
-   "score": 0.5546875
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-dive",
-   "simulation": "none",
-   "score": 0.30078125
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-flash",
-   "simulation": "none",
-   "score": 0.4609375
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-band-on",
-   "simulation": "none",
-   "score": 0.25390625
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-band-off",
-   "simulation": "none",
-   "score": 0.28515625
-  },
-  {
-   "family": "capability",
-   "a": "capability-waterfall",
-   "b": "capability-dive",
-   "simulation": "none",
-   "score": 0.4765625
-  },
-  {
-   "family": "capability",
-   "a": "capability-waterfall",
-   "b": "capability-flash",
-   "simulation": "none",
-   "score": 0.578125
-  },
-  {
-   "family": "capability",
-   "a": "capability-waterfall",
-   "b": "capability-band-on",
-   "simulation": "none",
-   "score": 0.5234375
-  },
-  {
-   "family": "capability",
-   "a": "capability-waterfall",
+   "a": "capability-strength",
    "b": "capability-band-off",
    "simulation": "none",
    "score": 0.5625
   },
   {
    "family": "capability",
-   "a": "capability-dive",
+   "a": "capability-rockSmash",
+   "b": "capability-fly",
+   "simulation": "none",
+   "score": 0.53125
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
+   "b": "capability-waterfall",
+   "simulation": "none",
+   "score": 0.40625
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
+   "b": "capability-dive",
+   "simulation": "none",
+   "score": 0.40625
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
    "b": "capability-flash",
+   "simulation": "none",
+   "score": 0.46875
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
+   "b": "capability-band-on",
+   "simulation": "none",
+   "score": 0.546875
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
+   "b": "capability-band-off",
+   "simulation": "none",
+   "score": 0.5859375
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-waterfall",
+   "simulation": "none",
+   "score": 0.5625
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-dive",
+   "simulation": "none",
+   "score": 0.4375
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-flash",
+   "simulation": "none",
+   "score": 0.4375
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-band-on",
+   "simulation": "none",
+   "score": 0.5078125
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-band-off",
    "simulation": "none",
    "score": 0.4765625
   },
   {
    "family": "capability",
+   "a": "capability-waterfall",
+   "b": "capability-dive",
+   "simulation": "none",
+   "score": 0.625
+  },
+  {
+   "family": "capability",
+   "a": "capability-waterfall",
+   "b": "capability-flash",
+   "simulation": "none",
+   "score": 0.375
+  },
+  {
+   "family": "capability",
+   "a": "capability-waterfall",
+   "b": "capability-band-on",
+   "simulation": "none",
+   "score": 0.75
+  },
+  {
+   "family": "capability",
+   "a": "capability-waterfall",
+   "b": "capability-band-off",
+   "simulation": "none",
+   "score": 0.8046875
+  },
+  {
+   "family": "capability",
+   "a": "capability-dive",
+   "b": "capability-flash",
+   "simulation": "none",
+   "score": 0.3125
+  },
+  {
+   "family": "capability",
    "a": "capability-dive",
    "b": "capability-band-on",
    "simulation": "none",
-   "score": 0.2265625
+   "score": 0.4921875
   },
   {
    "family": "capability",
    "a": "capability-dive",
    "b": "capability-band-off",
    "simulation": "none",
-   "score": 0.2578125
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-flash",
    "b": "capability-band-on",
    "simulation": "none",
-   "score": 0.44140625
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-flash",
    "b": "capability-band-off",
    "simulation": "none",
-   "score": 0.40234375
+   "score": 0.625
   },
   {
    "family": "capability",
@@ -6189,308 +6206,308 @@
    "a": "capability-cut",
    "b": "capability-surf",
    "simulation": "protanopia",
-   "score": 0.3671875
+   "score": 0.40625
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-strength",
    "simulation": "protanopia",
-   "score": 0.36328125
+   "score": 0.40625
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-rockSmash",
    "simulation": "protanopia",
-   "score": 0.3515625
+   "score": 0.46875
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-fly",
    "simulation": "protanopia",
-   "score": 0.3671875
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-waterfall",
    "simulation": "protanopia",
-   "score": 0.55859375
+   "score": 0.59375
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-dive",
    "simulation": "protanopia",
-   "score": 0.3203125
+   "score": 0.5
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-flash",
    "simulation": "protanopia",
-   "score": 0.45703125
+   "score": 0.53125
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-band-on",
    "simulation": "protanopia",
-   "score": 0.265625
+   "score": 0.33984375
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-band-off",
    "simulation": "protanopia",
-   "score": 0.2578125
+   "score": 0.3828125
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-strength",
    "simulation": "protanopia",
-   "score": 0.25390625
+   "score": 0.5
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-rockSmash",
    "simulation": "protanopia",
-   "score": 0.4453125
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-fly",
    "simulation": "protanopia",
-   "score": 0.3046875
+   "score": 0.40625
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-waterfall",
    "simulation": "protanopia",
-   "score": 0.5234375
+   "score": 0.625
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-dive",
    "simulation": "protanopia",
-   "score": 0.3359375
+   "score": 0.59375
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-flash",
    "simulation": "protanopia",
-   "score": 0.44921875
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-band-on",
-   "simulation": "protanopia",
-   "score": 0.25
-  },
-  {
-   "family": "capability",
-   "a": "capability-surf",
-   "b": "capability-band-off",
-   "simulation": "protanopia",
-   "score": 0.3203125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-rockSmash",
-   "simulation": "protanopia",
-   "score": 0.3359375
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-fly",
-   "simulation": "protanopia",
-   "score": 0.3125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-waterfall",
-   "simulation": "protanopia",
-   "score": 0.453125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-dive",
-   "simulation": "protanopia",
-   "score": 0.328125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-flash",
-   "simulation": "protanopia",
-   "score": 0.4296875
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-band-on",
-   "simulation": "protanopia",
-   "score": 0.3203125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-band-off",
    "simulation": "protanopia",
    "score": 0.390625
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-surf",
+   "b": "capability-band-off",
+   "simulation": "protanopia",
+   "score": 0.34375
+  },
+  {
+   "family": "capability",
+   "a": "capability-strength",
+   "b": "capability-rockSmash",
+   "simulation": "protanopia",
+   "score": 0.46875
+  },
+  {
+   "family": "capability",
+   "a": "capability-strength",
    "b": "capability-fly",
    "simulation": "protanopia",
    "score": 0.4375
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-strength",
    "b": "capability-waterfall",
    "simulation": "protanopia",
-   "score": 0.4453125
+   "score": 0.5625
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-strength",
    "b": "capability-dive",
    "simulation": "protanopia",
-   "score": 0.296875
+   "score": 0.25
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-strength",
    "b": "capability-flash",
    "simulation": "protanopia",
-   "score": 0.5
+   "score": 0.3125
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-strength",
    "b": "capability-band-on",
    "simulation": "protanopia",
-   "score": 0.3515625
+   "score": 0.4921875
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
-   "b": "capability-band-off",
-   "simulation": "protanopia",
-   "score": 0.3671875
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-waterfall",
-   "simulation": "protanopia",
-   "score": 0.5546875
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-dive",
-   "simulation": "protanopia",
-   "score": 0.30078125
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-flash",
-   "simulation": "protanopia",
-   "score": 0.4609375
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-band-on",
-   "simulation": "protanopia",
-   "score": 0.25390625
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-band-off",
-   "simulation": "protanopia",
-   "score": 0.28515625
-  },
-  {
-   "family": "capability",
-   "a": "capability-waterfall",
-   "b": "capability-dive",
-   "simulation": "protanopia",
-   "score": 0.4765625
-  },
-  {
-   "family": "capability",
-   "a": "capability-waterfall",
-   "b": "capability-flash",
-   "simulation": "protanopia",
-   "score": 0.578125
-  },
-  {
-   "family": "capability",
-   "a": "capability-waterfall",
-   "b": "capability-band-on",
-   "simulation": "protanopia",
-   "score": 0.5234375
-  },
-  {
-   "family": "capability",
-   "a": "capability-waterfall",
+   "a": "capability-strength",
    "b": "capability-band-off",
    "simulation": "protanopia",
    "score": 0.5625
   },
   {
    "family": "capability",
-   "a": "capability-dive",
+   "a": "capability-rockSmash",
+   "b": "capability-fly",
+   "simulation": "protanopia",
+   "score": 0.53125
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
+   "b": "capability-waterfall",
+   "simulation": "protanopia",
+   "score": 0.40625
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
+   "b": "capability-dive",
+   "simulation": "protanopia",
+   "score": 0.40625
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
    "b": "capability-flash",
+   "simulation": "protanopia",
+   "score": 0.46875
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
+   "b": "capability-band-on",
+   "simulation": "protanopia",
+   "score": 0.546875
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
+   "b": "capability-band-off",
+   "simulation": "protanopia",
+   "score": 0.5859375
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-waterfall",
+   "simulation": "protanopia",
+   "score": 0.5625
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-dive",
+   "simulation": "protanopia",
+   "score": 0.4375
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-flash",
+   "simulation": "protanopia",
+   "score": 0.4375
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-band-on",
+   "simulation": "protanopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-band-off",
    "simulation": "protanopia",
    "score": 0.4765625
   },
   {
    "family": "capability",
+   "a": "capability-waterfall",
+   "b": "capability-dive",
+   "simulation": "protanopia",
+   "score": 0.625
+  },
+  {
+   "family": "capability",
+   "a": "capability-waterfall",
+   "b": "capability-flash",
+   "simulation": "protanopia",
+   "score": 0.375
+  },
+  {
+   "family": "capability",
+   "a": "capability-waterfall",
+   "b": "capability-band-on",
+   "simulation": "protanopia",
+   "score": 0.75
+  },
+  {
+   "family": "capability",
+   "a": "capability-waterfall",
+   "b": "capability-band-off",
+   "simulation": "protanopia",
+   "score": 0.8046875
+  },
+  {
+   "family": "capability",
+   "a": "capability-dive",
+   "b": "capability-flash",
+   "simulation": "protanopia",
+   "score": 0.3125
+  },
+  {
+   "family": "capability",
    "a": "capability-dive",
    "b": "capability-band-on",
    "simulation": "protanopia",
-   "score": 0.2265625
+   "score": 0.4921875
   },
   {
    "family": "capability",
    "a": "capability-dive",
    "b": "capability-band-off",
    "simulation": "protanopia",
-   "score": 0.2578125
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-flash",
    "b": "capability-band-on",
    "simulation": "protanopia",
-   "score": 0.44140625
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-flash",
    "b": "capability-band-off",
    "simulation": "protanopia",
-   "score": 0.40234375
+   "score": 0.625
   },
   {
    "family": "capability",
@@ -6504,308 +6521,308 @@
    "a": "capability-cut",
    "b": "capability-surf",
    "simulation": "deuteranopia",
-   "score": 0.3671875
+   "score": 0.40625
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-strength",
    "simulation": "deuteranopia",
-   "score": 0.36328125
+   "score": 0.40625
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-rockSmash",
    "simulation": "deuteranopia",
-   "score": 0.3515625
+   "score": 0.46875
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-fly",
    "simulation": "deuteranopia",
-   "score": 0.3671875
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-waterfall",
    "simulation": "deuteranopia",
-   "score": 0.55859375
+   "score": 0.59375
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-dive",
    "simulation": "deuteranopia",
-   "score": 0.3203125
+   "score": 0.5
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-flash",
    "simulation": "deuteranopia",
-   "score": 0.45703125
+   "score": 0.53125
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-band-on",
    "simulation": "deuteranopia",
-   "score": 0.265625
+   "score": 0.33984375
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-band-off",
    "simulation": "deuteranopia",
-   "score": 0.2578125
+   "score": 0.3828125
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-strength",
    "simulation": "deuteranopia",
-   "score": 0.25390625
+   "score": 0.5
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-rockSmash",
    "simulation": "deuteranopia",
-   "score": 0.4453125
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-fly",
    "simulation": "deuteranopia",
-   "score": 0.3046875
+   "score": 0.40625
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-waterfall",
    "simulation": "deuteranopia",
-   "score": 0.5234375
+   "score": 0.625
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-dive",
    "simulation": "deuteranopia",
-   "score": 0.3359375
+   "score": 0.59375
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-flash",
    "simulation": "deuteranopia",
-   "score": 0.44921875
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-band-on",
-   "simulation": "deuteranopia",
-   "score": 0.25
-  },
-  {
-   "family": "capability",
-   "a": "capability-surf",
-   "b": "capability-band-off",
-   "simulation": "deuteranopia",
-   "score": 0.3203125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-rockSmash",
-   "simulation": "deuteranopia",
-   "score": 0.3359375
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-fly",
-   "simulation": "deuteranopia",
-   "score": 0.3125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-waterfall",
-   "simulation": "deuteranopia",
-   "score": 0.453125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-dive",
-   "simulation": "deuteranopia",
-   "score": 0.328125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-flash",
-   "simulation": "deuteranopia",
-   "score": 0.4296875
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-band-on",
-   "simulation": "deuteranopia",
-   "score": 0.3203125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-band-off",
    "simulation": "deuteranopia",
    "score": 0.390625
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-surf",
+   "b": "capability-band-off",
+   "simulation": "deuteranopia",
+   "score": 0.34375
+  },
+  {
+   "family": "capability",
+   "a": "capability-strength",
+   "b": "capability-rockSmash",
+   "simulation": "deuteranopia",
+   "score": 0.46875
+  },
+  {
+   "family": "capability",
+   "a": "capability-strength",
    "b": "capability-fly",
    "simulation": "deuteranopia",
    "score": 0.4375
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-strength",
    "b": "capability-waterfall",
    "simulation": "deuteranopia",
-   "score": 0.4453125
+   "score": 0.5625
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-strength",
    "b": "capability-dive",
    "simulation": "deuteranopia",
-   "score": 0.296875
+   "score": 0.25
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-strength",
    "b": "capability-flash",
    "simulation": "deuteranopia",
-   "score": 0.5
+   "score": 0.3125
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-strength",
    "b": "capability-band-on",
    "simulation": "deuteranopia",
-   "score": 0.3515625
+   "score": 0.4921875
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
-   "b": "capability-band-off",
-   "simulation": "deuteranopia",
-   "score": 0.3671875
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-waterfall",
-   "simulation": "deuteranopia",
-   "score": 0.5546875
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-dive",
-   "simulation": "deuteranopia",
-   "score": 0.30078125
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-flash",
-   "simulation": "deuteranopia",
-   "score": 0.4609375
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-band-on",
-   "simulation": "deuteranopia",
-   "score": 0.25390625
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-band-off",
-   "simulation": "deuteranopia",
-   "score": 0.28515625
-  },
-  {
-   "family": "capability",
-   "a": "capability-waterfall",
-   "b": "capability-dive",
-   "simulation": "deuteranopia",
-   "score": 0.4765625
-  },
-  {
-   "family": "capability",
-   "a": "capability-waterfall",
-   "b": "capability-flash",
-   "simulation": "deuteranopia",
-   "score": 0.578125
-  },
-  {
-   "family": "capability",
-   "a": "capability-waterfall",
-   "b": "capability-band-on",
-   "simulation": "deuteranopia",
-   "score": 0.5234375
-  },
-  {
-   "family": "capability",
-   "a": "capability-waterfall",
+   "a": "capability-strength",
    "b": "capability-band-off",
    "simulation": "deuteranopia",
    "score": 0.5625
   },
   {
    "family": "capability",
-   "a": "capability-dive",
+   "a": "capability-rockSmash",
+   "b": "capability-fly",
+   "simulation": "deuteranopia",
+   "score": 0.53125
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
+   "b": "capability-waterfall",
+   "simulation": "deuteranopia",
+   "score": 0.40625
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
+   "b": "capability-dive",
+   "simulation": "deuteranopia",
+   "score": 0.40625
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
    "b": "capability-flash",
+   "simulation": "deuteranopia",
+   "score": 0.46875
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
+   "b": "capability-band-on",
+   "simulation": "deuteranopia",
+   "score": 0.546875
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
+   "b": "capability-band-off",
+   "simulation": "deuteranopia",
+   "score": 0.5859375
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-waterfall",
+   "simulation": "deuteranopia",
+   "score": 0.5625
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-dive",
+   "simulation": "deuteranopia",
+   "score": 0.4375
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-flash",
+   "simulation": "deuteranopia",
+   "score": 0.4375
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-band-on",
+   "simulation": "deuteranopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-band-off",
    "simulation": "deuteranopia",
    "score": 0.4765625
   },
   {
    "family": "capability",
+   "a": "capability-waterfall",
+   "b": "capability-dive",
+   "simulation": "deuteranopia",
+   "score": 0.625
+  },
+  {
+   "family": "capability",
+   "a": "capability-waterfall",
+   "b": "capability-flash",
+   "simulation": "deuteranopia",
+   "score": 0.375
+  },
+  {
+   "family": "capability",
+   "a": "capability-waterfall",
+   "b": "capability-band-on",
+   "simulation": "deuteranopia",
+   "score": 0.75
+  },
+  {
+   "family": "capability",
+   "a": "capability-waterfall",
+   "b": "capability-band-off",
+   "simulation": "deuteranopia",
+   "score": 0.8046875
+  },
+  {
+   "family": "capability",
+   "a": "capability-dive",
+   "b": "capability-flash",
+   "simulation": "deuteranopia",
+   "score": 0.3125
+  },
+  {
+   "family": "capability",
    "a": "capability-dive",
    "b": "capability-band-on",
    "simulation": "deuteranopia",
-   "score": 0.2265625
+   "score": 0.4921875
   },
   {
    "family": "capability",
    "a": "capability-dive",
    "b": "capability-band-off",
    "simulation": "deuteranopia",
-   "score": 0.2578125
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-flash",
    "b": "capability-band-on",
    "simulation": "deuteranopia",
-   "score": 0.44140625
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-flash",
    "b": "capability-band-off",
    "simulation": "deuteranopia",
-   "score": 0.40234375
+   "score": 0.625
   },
   {
    "family": "capability",
@@ -6819,308 +6836,308 @@
    "a": "capability-cut",
    "b": "capability-surf",
    "simulation": "tritanopia",
-   "score": 0.3671875
+   "score": 0.40625
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-strength",
    "simulation": "tritanopia",
-   "score": 0.36328125
+   "score": 0.40625
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-rockSmash",
    "simulation": "tritanopia",
-   "score": 0.3515625
+   "score": 0.46875
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-fly",
    "simulation": "tritanopia",
-   "score": 0.3671875
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-waterfall",
    "simulation": "tritanopia",
-   "score": 0.55859375
+   "score": 0.59375
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-dive",
    "simulation": "tritanopia",
-   "score": 0.3203125
+   "score": 0.5
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-flash",
    "simulation": "tritanopia",
-   "score": 0.45703125
+   "score": 0.53125
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-band-on",
    "simulation": "tritanopia",
-   "score": 0.265625
+   "score": 0.33984375
   },
   {
    "family": "capability",
    "a": "capability-cut",
    "b": "capability-band-off",
    "simulation": "tritanopia",
-   "score": 0.2578125
+   "score": 0.3828125
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-strength",
    "simulation": "tritanopia",
-   "score": 0.25390625
+   "score": 0.5
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-rockSmash",
    "simulation": "tritanopia",
-   "score": 0.4453125
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-fly",
    "simulation": "tritanopia",
-   "score": 0.3046875
+   "score": 0.40625
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-waterfall",
    "simulation": "tritanopia",
-   "score": 0.5234375
+   "score": 0.625
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-dive",
    "simulation": "tritanopia",
-   "score": 0.3359375
+   "score": 0.59375
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-flash",
    "simulation": "tritanopia",
-   "score": 0.44921875
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-surf",
    "b": "capability-band-on",
-   "simulation": "tritanopia",
-   "score": 0.25
-  },
-  {
-   "family": "capability",
-   "a": "capability-surf",
-   "b": "capability-band-off",
-   "simulation": "tritanopia",
-   "score": 0.3203125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-rockSmash",
-   "simulation": "tritanopia",
-   "score": 0.3359375
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-fly",
-   "simulation": "tritanopia",
-   "score": 0.3125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-waterfall",
-   "simulation": "tritanopia",
-   "score": 0.453125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-dive",
-   "simulation": "tritanopia",
-   "score": 0.328125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-flash",
-   "simulation": "tritanopia",
-   "score": 0.4296875
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-band-on",
-   "simulation": "tritanopia",
-   "score": 0.3203125
-  },
-  {
-   "family": "capability",
-   "a": "capability-strength",
-   "b": "capability-band-off",
    "simulation": "tritanopia",
    "score": 0.390625
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-surf",
+   "b": "capability-band-off",
+   "simulation": "tritanopia",
+   "score": 0.34375
+  },
+  {
+   "family": "capability",
+   "a": "capability-strength",
+   "b": "capability-rockSmash",
+   "simulation": "tritanopia",
+   "score": 0.46875
+  },
+  {
+   "family": "capability",
+   "a": "capability-strength",
    "b": "capability-fly",
    "simulation": "tritanopia",
    "score": 0.4375
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-strength",
    "b": "capability-waterfall",
    "simulation": "tritanopia",
-   "score": 0.4453125
+   "score": 0.5625
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-strength",
    "b": "capability-dive",
    "simulation": "tritanopia",
-   "score": 0.296875
+   "score": 0.25
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-strength",
    "b": "capability-flash",
    "simulation": "tritanopia",
-   "score": 0.5
+   "score": 0.3125
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
+   "a": "capability-strength",
    "b": "capability-band-on",
    "simulation": "tritanopia",
-   "score": 0.3515625
+   "score": 0.4921875
   },
   {
    "family": "capability",
-   "a": "capability-rockSmash",
-   "b": "capability-band-off",
-   "simulation": "tritanopia",
-   "score": 0.3671875
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-waterfall",
-   "simulation": "tritanopia",
-   "score": 0.5546875
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-dive",
-   "simulation": "tritanopia",
-   "score": 0.30078125
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-flash",
-   "simulation": "tritanopia",
-   "score": 0.4609375
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-band-on",
-   "simulation": "tritanopia",
-   "score": 0.25390625
-  },
-  {
-   "family": "capability",
-   "a": "capability-fly",
-   "b": "capability-band-off",
-   "simulation": "tritanopia",
-   "score": 0.28515625
-  },
-  {
-   "family": "capability",
-   "a": "capability-waterfall",
-   "b": "capability-dive",
-   "simulation": "tritanopia",
-   "score": 0.4765625
-  },
-  {
-   "family": "capability",
-   "a": "capability-waterfall",
-   "b": "capability-flash",
-   "simulation": "tritanopia",
-   "score": 0.578125
-  },
-  {
-   "family": "capability",
-   "a": "capability-waterfall",
-   "b": "capability-band-on",
-   "simulation": "tritanopia",
-   "score": 0.5234375
-  },
-  {
-   "family": "capability",
-   "a": "capability-waterfall",
+   "a": "capability-strength",
    "b": "capability-band-off",
    "simulation": "tritanopia",
    "score": 0.5625
   },
   {
    "family": "capability",
-   "a": "capability-dive",
+   "a": "capability-rockSmash",
+   "b": "capability-fly",
+   "simulation": "tritanopia",
+   "score": 0.53125
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
+   "b": "capability-waterfall",
+   "simulation": "tritanopia",
+   "score": 0.40625
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
+   "b": "capability-dive",
+   "simulation": "tritanopia",
+   "score": 0.40625
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
    "b": "capability-flash",
+   "simulation": "tritanopia",
+   "score": 0.46875
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
+   "b": "capability-band-on",
+   "simulation": "tritanopia",
+   "score": 0.546875
+  },
+  {
+   "family": "capability",
+   "a": "capability-rockSmash",
+   "b": "capability-band-off",
+   "simulation": "tritanopia",
+   "score": 0.5859375
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-waterfall",
+   "simulation": "tritanopia",
+   "score": 0.5625
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-dive",
+   "simulation": "tritanopia",
+   "score": 0.4375
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-flash",
+   "simulation": "tritanopia",
+   "score": 0.4375
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-band-on",
+   "simulation": "tritanopia",
+   "score": 0.5078125
+  },
+  {
+   "family": "capability",
+   "a": "capability-fly",
+   "b": "capability-band-off",
    "simulation": "tritanopia",
    "score": 0.4765625
   },
   {
    "family": "capability",
+   "a": "capability-waterfall",
+   "b": "capability-dive",
+   "simulation": "tritanopia",
+   "score": 0.625
+  },
+  {
+   "family": "capability",
+   "a": "capability-waterfall",
+   "b": "capability-flash",
+   "simulation": "tritanopia",
+   "score": 0.375
+  },
+  {
+   "family": "capability",
+   "a": "capability-waterfall",
+   "b": "capability-band-on",
+   "simulation": "tritanopia",
+   "score": 0.75
+  },
+  {
+   "family": "capability",
+   "a": "capability-waterfall",
+   "b": "capability-band-off",
+   "simulation": "tritanopia",
+   "score": 0.8046875
+  },
+  {
+   "family": "capability",
+   "a": "capability-dive",
+   "b": "capability-flash",
+   "simulation": "tritanopia",
+   "score": 0.3125
+  },
+  {
+   "family": "capability",
    "a": "capability-dive",
    "b": "capability-band-on",
    "simulation": "tritanopia",
-   "score": 0.2265625
+   "score": 0.4921875
   },
   {
    "family": "capability",
    "a": "capability-dive",
    "b": "capability-band-off",
    "simulation": "tritanopia",
-   "score": 0.2578125
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-flash",
    "b": "capability-band-on",
    "simulation": "tritanopia",
-   "score": 0.44140625
+   "score": 0.5625
   },
   {
    "family": "capability",
    "a": "capability-flash",
    "b": "capability-band-off",
    "simulation": "tritanopia",
-   "score": 0.40234375
+   "score": 0.625
   },
   {
    "family": "capability",
@@ -7134,420 +7151,420 @@
    "a": "node-wild",
    "b": "node-trainer",
    "simulation": "none",
+   "score": 0.375
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-rest",
+   "simulation": "none",
+   "score": 0.5
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-gym",
+   "simulation": "none",
+   "score": 0.34375
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-shop",
+   "simulation": "none",
    "score": 0.40625
   },
   {
    "family": "node",
    "a": "node-wild",
-   "b": "node-rest",
-   "simulation": "none",
-   "score": 0.38671875
-  },
-  {
-   "family": "node",
-   "a": "node-wild",
-   "b": "node-gym",
-   "simulation": "none",
-   "score": 0.2890625
-  },
-  {
-   "family": "node",
-   "a": "node-wild",
-   "b": "node-shop",
-   "simulation": "none",
-   "score": 0.3203125
-  },
-  {
-   "family": "node",
-   "a": "node-wild",
    "b": "node-event",
    "simulation": "none",
-   "score": 0.38671875
+   "score": 0.421875
   },
   {
    "family": "node",
    "a": "node-trainer",
    "b": "node-rest",
    "simulation": "none",
-   "score": 0.33984375
+   "score": 0.375
   },
   {
    "family": "node",
    "a": "node-trainer",
    "b": "node-gym",
    "simulation": "none",
-   "score": 0.453125
+   "score": 0.46875
   },
   {
    "family": "node",
    "a": "node-trainer",
    "b": "node-shop",
    "simulation": "none",
-   "score": 0.28125
+   "score": 0.34375
   },
   {
    "family": "node",
    "a": "node-trainer",
    "b": "node-event",
    "simulation": "none",
-   "score": 0.38671875
+   "score": 0.484375
   },
   {
    "family": "node",
    "a": "node-rest",
    "b": "node-gym",
    "simulation": "none",
-   "score": 0.38671875
+   "score": 0.40625
   },
   {
    "family": "node",
    "a": "node-rest",
    "b": "node-shop",
    "simulation": "none",
-   "score": 0.29296875
+   "score": 0.34375
   },
   {
    "family": "node",
    "a": "node-rest",
    "b": "node-event",
    "simulation": "none",
-   "score": 0.4453125
+   "score": 0.546875
   },
   {
    "family": "node",
    "a": "node-gym",
    "b": "node-shop",
    "simulation": "none",
-   "score": 0.37890625
+   "score": 0.375
   },
   {
    "family": "node",
    "a": "node-gym",
    "b": "node-event",
    "simulation": "none",
-   "score": 0.41015625
+   "score": 0.546875
   },
   {
    "family": "node",
    "a": "node-shop",
    "b": "node-event",
    "simulation": "none",
-   "score": 0.4609375
+   "score": 0.640625
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-trainer",
    "simulation": "protanopia",
+   "score": 0.375
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-rest",
+   "simulation": "protanopia",
+   "score": 0.5
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-gym",
+   "simulation": "protanopia",
+   "score": 0.34375
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-shop",
+   "simulation": "protanopia",
    "score": 0.40625
   },
   {
    "family": "node",
    "a": "node-wild",
-   "b": "node-rest",
-   "simulation": "protanopia",
-   "score": 0.38671875
-  },
-  {
-   "family": "node",
-   "a": "node-wild",
-   "b": "node-gym",
-   "simulation": "protanopia",
-   "score": 0.2890625
-  },
-  {
-   "family": "node",
-   "a": "node-wild",
-   "b": "node-shop",
-   "simulation": "protanopia",
-   "score": 0.3203125
-  },
-  {
-   "family": "node",
-   "a": "node-wild",
    "b": "node-event",
    "simulation": "protanopia",
-   "score": 0.38671875
+   "score": 0.421875
   },
   {
    "family": "node",
    "a": "node-trainer",
    "b": "node-rest",
    "simulation": "protanopia",
-   "score": 0.33984375
+   "score": 0.375
   },
   {
    "family": "node",
    "a": "node-trainer",
    "b": "node-gym",
    "simulation": "protanopia",
-   "score": 0.453125
+   "score": 0.46875
   },
   {
    "family": "node",
    "a": "node-trainer",
    "b": "node-shop",
    "simulation": "protanopia",
-   "score": 0.28125
+   "score": 0.34375
   },
   {
    "family": "node",
    "a": "node-trainer",
    "b": "node-event",
    "simulation": "protanopia",
-   "score": 0.38671875
+   "score": 0.484375
   },
   {
    "family": "node",
    "a": "node-rest",
    "b": "node-gym",
    "simulation": "protanopia",
-   "score": 0.38671875
+   "score": 0.40625
   },
   {
    "family": "node",
    "a": "node-rest",
    "b": "node-shop",
    "simulation": "protanopia",
-   "score": 0.29296875
+   "score": 0.34375
   },
   {
    "family": "node",
    "a": "node-rest",
    "b": "node-event",
    "simulation": "protanopia",
-   "score": 0.4453125
+   "score": 0.546875
   },
   {
    "family": "node",
    "a": "node-gym",
    "b": "node-shop",
    "simulation": "protanopia",
-   "score": 0.37890625
+   "score": 0.375
   },
   {
    "family": "node",
    "a": "node-gym",
    "b": "node-event",
    "simulation": "protanopia",
-   "score": 0.41015625
+   "score": 0.546875
   },
   {
    "family": "node",
    "a": "node-shop",
    "b": "node-event",
    "simulation": "protanopia",
-   "score": 0.4609375
+   "score": 0.640625
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-trainer",
    "simulation": "deuteranopia",
+   "score": 0.375
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-rest",
+   "simulation": "deuteranopia",
+   "score": 0.5
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-gym",
+   "simulation": "deuteranopia",
+   "score": 0.34375
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-shop",
+   "simulation": "deuteranopia",
    "score": 0.40625
   },
   {
    "family": "node",
    "a": "node-wild",
-   "b": "node-rest",
-   "simulation": "deuteranopia",
-   "score": 0.38671875
-  },
-  {
-   "family": "node",
-   "a": "node-wild",
-   "b": "node-gym",
-   "simulation": "deuteranopia",
-   "score": 0.2890625
-  },
-  {
-   "family": "node",
-   "a": "node-wild",
-   "b": "node-shop",
-   "simulation": "deuteranopia",
-   "score": 0.3203125
-  },
-  {
-   "family": "node",
-   "a": "node-wild",
    "b": "node-event",
    "simulation": "deuteranopia",
-   "score": 0.38671875
+   "score": 0.421875
   },
   {
    "family": "node",
    "a": "node-trainer",
    "b": "node-rest",
    "simulation": "deuteranopia",
-   "score": 0.33984375
+   "score": 0.375
   },
   {
    "family": "node",
    "a": "node-trainer",
    "b": "node-gym",
    "simulation": "deuteranopia",
-   "score": 0.453125
+   "score": 0.46875
   },
   {
    "family": "node",
    "a": "node-trainer",
    "b": "node-shop",
    "simulation": "deuteranopia",
-   "score": 0.28125
+   "score": 0.34375
   },
   {
    "family": "node",
    "a": "node-trainer",
    "b": "node-event",
    "simulation": "deuteranopia",
-   "score": 0.38671875
+   "score": 0.484375
   },
   {
    "family": "node",
    "a": "node-rest",
    "b": "node-gym",
    "simulation": "deuteranopia",
-   "score": 0.38671875
+   "score": 0.40625
   },
   {
    "family": "node",
    "a": "node-rest",
    "b": "node-shop",
    "simulation": "deuteranopia",
-   "score": 0.29296875
+   "score": 0.34375
   },
   {
    "family": "node",
    "a": "node-rest",
    "b": "node-event",
    "simulation": "deuteranopia",
-   "score": 0.4453125
+   "score": 0.546875
   },
   {
    "family": "node",
    "a": "node-gym",
    "b": "node-shop",
    "simulation": "deuteranopia",
-   "score": 0.37890625
+   "score": 0.375
   },
   {
    "family": "node",
    "a": "node-gym",
    "b": "node-event",
    "simulation": "deuteranopia",
-   "score": 0.41015625
+   "score": 0.546875
   },
   {
    "family": "node",
    "a": "node-shop",
    "b": "node-event",
    "simulation": "deuteranopia",
-   "score": 0.4609375
+   "score": 0.640625
   },
   {
    "family": "node",
    "a": "node-wild",
    "b": "node-trainer",
    "simulation": "tritanopia",
+   "score": 0.375
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-rest",
+   "simulation": "tritanopia",
+   "score": 0.5
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-gym",
+   "simulation": "tritanopia",
+   "score": 0.34375
+  },
+  {
+   "family": "node",
+   "a": "node-wild",
+   "b": "node-shop",
+   "simulation": "tritanopia",
    "score": 0.40625
   },
   {
    "family": "node",
    "a": "node-wild",
-   "b": "node-rest",
-   "simulation": "tritanopia",
-   "score": 0.38671875
-  },
-  {
-   "family": "node",
-   "a": "node-wild",
-   "b": "node-gym",
-   "simulation": "tritanopia",
-   "score": 0.2890625
-  },
-  {
-   "family": "node",
-   "a": "node-wild",
-   "b": "node-shop",
-   "simulation": "tritanopia",
-   "score": 0.3203125
-  },
-  {
-   "family": "node",
-   "a": "node-wild",
    "b": "node-event",
    "simulation": "tritanopia",
-   "score": 0.38671875
+   "score": 0.421875
   },
   {
    "family": "node",
    "a": "node-trainer",
    "b": "node-rest",
    "simulation": "tritanopia",
-   "score": 0.33984375
+   "score": 0.375
   },
   {
    "family": "node",
    "a": "node-trainer",
    "b": "node-gym",
    "simulation": "tritanopia",
-   "score": 0.453125
+   "score": 0.46875
   },
   {
    "family": "node",
    "a": "node-trainer",
    "b": "node-shop",
    "simulation": "tritanopia",
-   "score": 0.28125
+   "score": 0.34375
   },
   {
    "family": "node",
    "a": "node-trainer",
    "b": "node-event",
    "simulation": "tritanopia",
-   "score": 0.38671875
+   "score": 0.484375
   },
   {
    "family": "node",
    "a": "node-rest",
    "b": "node-gym",
    "simulation": "tritanopia",
-   "score": 0.38671875
+   "score": 0.40625
   },
   {
    "family": "node",
    "a": "node-rest",
    "b": "node-shop",
    "simulation": "tritanopia",
-   "score": 0.29296875
+   "score": 0.34375
   },
   {
    "family": "node",
    "a": "node-rest",
    "b": "node-event",
    "simulation": "tritanopia",
-   "score": 0.4453125
+   "score": 0.546875
   },
   {
    "family": "node",
    "a": "node-gym",
    "b": "node-shop",
    "simulation": "tritanopia",
-   "score": 0.37890625
+   "score": 0.375
   },
   {
    "family": "node",
    "a": "node-gym",
    "b": "node-event",
    "simulation": "tritanopia",
-   "score": 0.41015625
+   "score": 0.546875
   },
   {
    "family": "node",
    "a": "node-shop",
    "b": "node-event",
    "simulation": "tritanopia",
-   "score": 0.4609375
+   "score": 0.640625
   },
   {
    "family": "field",
