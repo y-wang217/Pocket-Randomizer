@@ -4551,26 +4551,49 @@ The rest block 5.0/3 to 5.0/5.
 
 ---
 
+## Rulings, 2026-09-30, opening 5.0/3
+
+The author took every recommendation on the seven rows blocking 5.0/3, filed
+verbatim as
+[`../spec/gymrun-stage5.0-rulings-d65-d71.md`](../spec/gymrun-stage5.0-rulings-d65-d71.md).
+The bible goes to Rev 17.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D65 | **Option 1.** The capability glyph sits at rest on a relic card, the map node's glyph without its chevron. | Bible sections 3 and 5. `../generation.md` §89 |
+| D66 | **Option 1.** R2 stands. The face is the mark; the name and the effect line are on the long press, the relic's name included now that the manifest carries a relic icon (D36's deviation retired). Coins and restore cards get section 4 rows at 0: `+N` beside the currency glyph, `+N%` beside a bar. | Bible sections 2, 3, 4 and 5. `../generation.md` §89 |
+| D67 | **Option 1.** A move kind mounts the move card. Three across where they fit, stacked where they do not. | Bible section 5's Reward card row says so. `../generation.md` §89 |
+| D68 | **Option 1.** The reward screen is the result screen's card section. No new route. | No bible change |
+| D69 | **Option 1.** No resting cursor; tap selects and opens the band, the band's commit claims, its cancel returns to the cards. Section 5's Confirm band row gains the result screen and the shop; section 4 gains a claim and buy row at 6. The selection is UI state and never reaches the log. | Bible sections 4 and 5. `../generation.md` §89 |
+| D70 | **Option 1.** The coverage line is D5's two sign rows; the capture card stays outside the reward card. D38 stays open. | No bible change |
+| D71 | **Option 1.** No disc on a TM card. | Bible section 5's Reward card row. `../generation.md` §89 |
+
+**Still open after these seven:** D61, D63, D64, D72 and D75, all 5.0/4's or
+5.0/5's, and D38.
+
+---
+
 ## Rulings, 2026-09-30, opening 5.0/4
 
 The session listed what had to be decided before 5.0/4, with a recommendation
 for each, and the author answered *"go with your recommendations for all
 items"*, filed verbatim as
 [`../spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md`](../spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md).
-The bible goes to Rev 17.
+The bible goes to Rev 18.
 
 | Row | Ruling | Where it lands |
 |---|---|---|
-| D61 | **Option 1.** Class C node and capability art enters the sheet as glyph entries drawn by `glyphNode`, native 8px, the six named marks kept, M1.1's colour-blind check re-run before 5.0/5 mounts it. Trainer sprites are the player marker only. 5.0/4 draws today's SVG marks. | No bible change. `../generation.md` §89 |
-| D63 | **Neither option as written.** 5.0/0 measured that option 1 does not fit: one spare line under a node at 390x844, none at the desktop's pitch. The step being chosen from carries the whole card, detail line included; every other row carries the mark, the tier pips and the capability glyph with its chevron, and the rest is on the mark's long press. Below the pitch those need, the other rows keep the mark alone. Every node inspects; only the step being chosen from commits. | Bible section 5, *Map node card*; section 9 gains the bet. `../generation.md` §89 |
+| D61 | **Option 1.** Class C node and capability art enters the sheet as glyph entries drawn by `glyphNode`, native 8px, the six named marks kept, M1.1's colour-blind check re-run before 5.0/5 mounts it. Trainer sprites are the player marker only. 5.0/4 draws today's SVG marks. | No bible change. `../generation.md` §90 |
+| D63 | **Neither option as written.** 5.0/0 measured that option 1 does not fit: one spare line under a node at 390x844, none at the desktop's pitch. The step being chosen from carries the whole card, detail line included; every other row carries the mark, the tier pips and the capability glyph with its chevron, and the rest is on the mark's long press. Below the pitch those need, the other rows keep the mark alone. Every node inspects; only the step being chosen from commits. | Bible section 5, *Map node card*; section 9 gains the bet. `../generation.md` §90 |
 | D64 | **Option 1.** The chevron keeps none, latent and known. "Held" is `known`. | No bible change |
-| D72 | **Option 1.** The gym stays in the rail, once. The crop replaces the swatch; the type badges are type chips (D62). | Bible section 5, *Locale card*. `../generation.md` §89 |
-| D75 | **Option 1.** A node's place is its option index within the step against the backdrop's slot grid. No hash, no CLAUDE.md note. | No bible change. `../generation.md` §89 |
+| D72 | **Option 1.** The gym stays in the rail, once. The crop replaces the swatch; the type badges are type chips (D62). | Bible section 5, *Locale card*. `../generation.md` §90 |
+| D75 | **Option 1.** A node's place is its option index within the step against the backdrop's slot grid. No hash, no CLAUDE.md note. | No bible change. `../generation.md` §90 |
 
 Three more items were ruled in the same answer and have no row: the map
 backdrops ship as placeholders; the pitch floor above; the commit stays one tap
 with no confirm. 5.0/4 runs before 5.0/3.
 
-**Still open after these five:** D51, which closes with 5.0/1's merge, and D65
-to D71, which block 5.0/3. D77, filed by this stage's census, was ruled option 1
-the same day and built in 5.0/4.
+**Still open after these five:** D51, which closes with 5.0/1's merge, and D38.
+D65 to D71 were ruled for 5.0/3, which merged first (the section above). D77,
+filed by this stage's census, was ruled option 1 the same day and built in
+5.0/4.

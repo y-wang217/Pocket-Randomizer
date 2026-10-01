@@ -128,7 +128,7 @@ describe('the nodes', () => {
     step.options.forEach((node, option) => {
       const element = root.querySelectorAll<HTMLElement>('.step--current .node')[option]!;
       const payout = nodePayout(node, state.currentSegment);
-      const coins = element.querySelector<HTMLElement>('.chip--currency');
+      const coins = element.querySelector<HTMLElement>('.coin-amount');
       if (payout > 0) {
         expect(coins?.dataset['value']).toBe(String(payout));
         expect(coins?.dataset['tip']).toBe('currency:payout');
@@ -157,7 +157,7 @@ describe('the nodes', () => {
         expect(mark.dataset['detail']).toContain(`${node.shop.items.length} on the shelf, from ${cheapest}`);
         if (element.classList.contains('node--current')) {
           expect(element.querySelector('.node__shelf-count')?.textContent).toBe(String(node.shop.items.length));
-          const price = element.querySelector<HTMLElement>('.chip--currency[data-tip="currency:price"]');
+          const price = element.querySelector<HTMLElement>('.coin-amount[data-tip="currency:price"]');
           expect(price?.dataset['value']).toBe(String(cheapest));
           expect(element.querySelector('.node__detail')?.textContent).not.toMatch(/shelf|from/);
         }

@@ -649,7 +649,7 @@ Source: `src/data/glyphLabels.ts` · 51 strings
 | `field-grassy` | Grassy |  |
 | `field-misty` | Misty |  |
 | `field-psychic` | Psychic |  |
-| `currency` | Coins |  |
+| `currency-coin` | Coins |  |
 | `capability-cut` | Cut |  |
 | `capability-surf` | Surf |  |
 | `capability-strength` | Strength |  |
@@ -1149,7 +1149,7 @@ Found by grep, not by import: a string assigned straight to `textContent`, `titl
 | `src/ui/drawer.ts` line 191 | Relics |  |
 | `src/ui/header.ts` line 22 | GYMRUN |  |
 | `src/ui/overlay.ts` line 117 | Close |  |
-| `src/ui/screens/shop.ts` line 33 | Shop |  |
+| `src/ui/screens/shop.ts` line 34 | Shop |  |
 | `src/ui/screens/party.ts` line 163 | Your party |  |
 | `src/ui/screens/party.ts` line 432 | TMs |  |
 | `src/ui/screens/party.ts` line 455 | Teach |  |

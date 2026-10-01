@@ -16,9 +16,10 @@
  */
 import { basketCost, type ShopStock } from '../../core/economy';
 import type { RunState } from '../../core/run';
+import { openBand } from '../band';
 import { el } from '../scene';
 import { setProse } from '../dom';
-import { SHOP_COPY } from '../copy/screens';
+import { BUY_COPY, SHOP_COPY } from '../copy/screens';
 import { renderRewardCard } from './reward';
 
 export interface ShopScreen {
@@ -67,8 +68,10 @@ export function createShopScreen(): ShopScreen {
           const price = Number(row.dataset['price']);
           const chosen = selected.has(index);
           row.classList.toggle('shop__item--chosen', chosen);
-          const button = row.querySelector('button');
+          const button = row.querySelector<HTMLButtonElement>('button.reward');
           if (button) {
+            // Chosen only after a tap, never at rest (Stage 5.0/3, D69).
+            button.setAttribute('aria-pressed', String(chosen));
             // Affordable means "affordable *given what is already in the
             // basket*", which is the only version of the word that helps.
             button.disabled = !chosen && price > left;
@@ -124,7 +127,34 @@ export function createShopScreen(): ShopScreen {
         }),
       );
 
-      leave.onclick = () => onLeave([...selected].sort((a, b) => a - b));
+      /*
+       * **A basket is bought through the band. Stage 5.0/3, D69.** The shop
+       * already selected before it committed, which is the shape D69 asks of
+       * the result screen; what it lacked was the one confirm component. The
+       * band shows the basket's cards, and its way out returns to the shelf
+       * with the basket intact. Leaving with nothing is not a buy and does not
+       * ask.
+       */
+      leave.onclick = () => {
+        const basket = [...selected].sort((a, b) => a - b);
+        if (basket.length === 0) {
+          onLeave(basket);
+          return;
+        }
+        const content = el('div', 'shop__basket');
+        for (const index of basket) {
+          const item = stock.items[index];
+          if (item) content.append(renderRewardCard(item.reward, state, () => undefined, { price: item.price, inert: true }));
+        }
+        openBand({
+          title: BUY_COPY.title,
+          content,
+          confirm: BUY_COPY.confirm,
+          cancel: BUY_COPY.cancel,
+          onConfirm: () => onLeave(basket),
+          onCancel: () => leave.focus(),
+        });
+      };
       refresh();
     },
   };

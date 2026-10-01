@@ -1,8 +1,8 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 17, Sept 30, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 18, Oct 1, 2026.
 
-**Rev 17** carries two amendments and three rulings that keep the text, ruled
+**Rev 18** carries four amendments and three rulings that keep the text, ruled
 2026-09-30 by the author on rows D61, D63, D64, D72 and D75, filed by Stage
 5.0's spike against 5.0/4, the map
 ([`../spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md`](../spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md)).
@@ -28,6 +28,29 @@ section 3 gains a *Shop shelf* row, and the map node card's detail line
 carries no kind hint and no shelf words; the hint was always section 3's
 inspect fact, and the shelf is a count and a coin amount.
 
+**Rev 17** carries four amendments and three rulings that keep the text, ruled
+2026-09-30 by the author on rows D65 to D71, filed by Stage 5.0's spike
+against 5.0/3, the reward, result and shop cards
+([`../spec/gymrun-stage5.0-rulings-d65-d71.md`](../spec/gymrun-stage5.0-rulings-d65-d71.md)).
+**D65**: section 3's Relic row and section 5's Reward card row put the
+capability glyph at rest on a relic card, the same glyph the map node wears.
+**D66**: R2 stands. A card's face is its mark: the item or berry sprite, the
+relic's icon from the asset manifest, which retires D36's recorded deviation
+(the name was the encoding while no relic art existed), and the boosted type
+chip. The name and the effect line are inspect facts on every kind. Section 4
+gains the two rows M5.1 found missing: a coins card is `+N` beside the
+currency glyph, and a restore card is `+N%` beside a bar filled to it, both at
+0 words. **D69**: section 5's Confirm band row gains the result screen and the
+shop, six screens. A card shows the selected state only after the player's
+tap, never at rest; the claim is the band's commit, and the band's cancel
+returns to the cards, never past them. Section 4 gains a *Confirm band
+(claim, buy)* row at 6. **D71**: section 5's Reward card row says a TM card
+carries no disc: the move card is its face, and a type-coloured disc would
+draw the type twice (R3). **D67, D68, D70**: no change. A move kind mounts the
+move card, three across where they fit and stacked where they do not, and
+there is still no third call site; the reward screen is the result screen's
+card section; the capture card keeps D5's sign rows and stays outside the
+reward card.
 
 **Rev 16** carries one amendment and four rulings that keep the text, ruled
 2026-09-30 by the author on rows D56 to D60, filed by Stage 5.0's spike
@@ -317,7 +340,7 @@ Thirteen glyph families (2026-09-30, D54; twelve under D47, 2026-09-25; eleven u
 | Capability | One glyph per capability, plus a band chevron filled to the run's reach — none, latent, known (2026-09-22, D37) | Neutral |
 | Node | One glyph per node kind: a head (trainer), a bush (wild), a tent (rest), a badge (gym), a bag (shop), a question mark (event). On the map node card at 24, on the battle screen header at 16 (2026-09-25, D46) | Neutral |
 | Field | Nine glyphs for the state of the board: rain, sun, sand, snow, strong winds, and the four terrains. Heavy rain and Extreme sun wear the rain and sun marks and differ on inspect. At 16 in a fixed slot on the battle screen header, dimmed while an ability suppresses the weather. The battle backdrop behind the stage carries the same state as a wash and a terrain tint, colour secondary to the glyph (2026-09-25, D47; on the backdrop, not the world, 2026-09-30, D60) | Neutral glyph; the wash and tint are global tokens mixed into the backdrop's own |
-| Currency | One mark, beside a bare number wherever a coin amount appears: the map node's payout, the shop price, the wallet (2026-09-30, D54) | Neutral |
+| Currency | One mark, beside a bare number wherever a coin amount appears: the map node's payout, the shop price, the wallet, a coins card (2026-09-30, D54 and D66) | Neutral |
 
 Font: Pixelify Sans, blanket, per the 4.7.1 decision. If the numeral font jitters on HP and PP counters, `--font-numeral` falls back to the mono stack, one line, and this table is annotated.
 
@@ -345,12 +368,12 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Six stats | Glyph, bar, number. Always all six. Party order | Never hidden | Stat definition |
 | Held item | Item sprite in a fixed slot | Empty slot renders nothing | Name, one effect line |
 | Berry | Berry sprite, same slot | Empty slot renders nothing | Name, trigger condition (the one place a sentence survives) |
-| Relic | Relic sprite in the relic row | None | Name, capability it satisfies |
+| Relic | Relic icon, from the asset manifest, in the relic row and on the relic card. On the card, the capability glyph it satisfies sits beside it, the map node's glyph without its chevron (2026-09-30, D65 and D66) | None | Name, capability it satisfies, effect |
 | Coverage change (capture card) | Two rows of type chips, plus row and minus row, signs only. The signs are permanent, not an exposure label: coverage is not a glyph family (2026-09-19, D5) | Empty row renders nothing | The full before and after sets |
 | Capability requirement (map node) | Capability glyph plus band chevron (none, latent, known) | None | Capability name, what satisfies it |
 | Tier (map node) | Tier pips, reward-tier pips | None | Tier definition |
 | Field state (weather, terrain) | Field glyph at 16 on the battle screen header; the battle backdrop's wash and terrain tint behind the stage. Turns remaining are never shown (2026-09-25, D47; 2026-09-30, D60) | None: the locale's own backdrop, no glyph | Name and effect line, from `fieldCopy`; under suppression, which ability holds it off |
-| Coin amount (payout, price, wallet) | Currency glyph beside the bare number (2026-09-30, D54) | Never hidden | The word *coins*, and what the amount buys or pays |
+| Coin amount (payout, price, wallet, coins card) | Currency glyph beside the bare number (2026-09-30, D54) | Never hidden | The word *coins*, and what the amount buys or pays |
 | Shop shelf (map node) | How many items, as a bare number, and the cheapest price as a coin amount (2026-09-30, D77) | Never hidden on the step being chosen from | The shelf line: how many are on the shelf, and from what price |
 | Node kind (map node, battle header) | Kind glyph. A gym's leader name beside it, a proper noun, is the identity and not the kind (2026-09-25, D46) | Never hidden | The kind's hint, from `KIND_HINTS` |
 | Archetype | Not rendered where the stat bars already draw it (4.8.0.3) | Absent | Not on inspect either; it is a derived label and can lie under randomization |
@@ -368,7 +391,9 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Battle move button | 0 | Name |
 | Move card (reward, TM shelf, recipient, replacement, confirm) | 0 | Name |
 | Move chip (compact list form) | 0 | Name |
-| Item, berry or relic reward card | 8 | **None** — the face is the sprite; name and effect line are inspect facts (2026-09-22, D36) |
+| Item, berry or relic reward card | 8 | **None** — the face is the sprite, or the relic's icon and capability glyph; name and effect line are inspect facts (2026-09-22, D36; the relic's name joined them 2026-09-30, D66) |
+| Coins reward card | 0 | **None** — `+N` beside the currency glyph. The word *coins* and what they buy are inspect facts (2026-09-30, D66) |
+| Restore reward card | 0 | **None** — `+N%` beside a bar filled to N. What it restores (HP, PP, status, the whole party) is an inspect fact (2026-09-30, D66) |
 | Recipient / teach target card | 0 | Species name |
 | Party row and party drawer | 0 plus the ability name | Species name, nickname, ability name (2026-09-21, D19) |
 | Pokemon battle panel | 0 plus the ability name | Name, nickname, ability name (2026-09-21, D19) |
@@ -378,13 +403,14 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Result screen | 6 | Outcome word, "+N", continue |
 | Capture card | 0 | Follows the recipient card |
 | Event screen | 59 | Hook 12, four labels 4, four hints 6 — 52 — plus the Toll's price 5 and the control 2. The requirement, the band and the reward tier are glyphs (2026-09-22, D33) |
-| Locale card | Locale name, four type chips, and a crop of the locale's map backdrop where the palette swatch stood. The segment's gym is not on the card: it is shown once, in the screen's rail, because the gym belongs to the segment and not to the locale (2026-09-22, D29; the crop and the gym, 2026-09-30, D72) | The locale screen |
+| Locale card | 0 | Locale name plus four type chips |
 | Locale screen | 4 | The instruction (2026-09-22, D32) |
 | Starter card | 0 plus the ability name | Species name, ability name. The moves are move cards and the stats are the stat block (2026-09-23, D40) |
 | Pre-gym screen | 4 | Gym leader name, type chip, "Choose lead" |
 | Confirm overlay (replace) | 6 | "Replace Tackle with Fire Punch?" |
 | Confirm overlay (decline) | 6 | "Forfeit this reward?", and the band's two controls (2026-09-21, D22) |
-| Map node card | Node glyph at 24 with the leader's name on a gym, then beneath it the tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29; the glyph exists and the pips sit beneath it since 2026-09-25, D46). **On the map screen's graph, the step being chosen from carries the whole card, its detail line included** (the payout as the currency glyph and a number, the AI tier, a shop's shelf as a count and a coin amount; never the kind's hint, which is the glyph's inspect, D77). **Every other row carries the node glyph (and a gym's leader), the tier pips and the capability glyph with its chevron, and nothing else at rest**; the rest of the card is on the node glyph's long press. Where the frame is too short for even that, those rows keep the glyph alone, with the rest on the same press. A node's place on the graph is its option index within its step against the scene backdrop's slot grid, never a hash or a draw (2026-09-30, D63 and D75) | The map screen and the map drawer |
+| Confirm band (claim, buy) | 6 | The question, and the band's two controls. The card or cards being claimed are the content, at their own budgets (2026-09-30, D69) |
+| Map node card | 1 | AI tier. The payout's unit is the currency glyph (2026-09-30, D54; was 2 under D46, 2026-09-25; 3 under D37, 2026-09-22); the kind is the node glyph |
 | Shop stock card | 8 | **None** — one component with the reward card since M5.1, plus a bare price number (2026-09-22, D29 and D36) |
 | Shell nav | 5 | Map, Team, Bag, Run Info, Settings. One word per tab; the icons are controls, not glyphs (2026-09-30, D54) |
 | Run Info screen and desktop sidebar | Unbudgeted | Read-only readouts, like the archive: the decision feed (R11's carve-out) and the run's position. Never a decision surface (2026-09-30, D53 and D55) |
@@ -462,16 +488,19 @@ disagreed for six revisions without anything noticing, because nothing measured
 a card on its own until D30 gave the census a row for one. Section 3 wins, on
 its own claim to the at-rest question; the figures stay where they are, as the
 headroom D1 says a budget is when it is larger than the surviving words can
-reach. **A relic card is the one deviation and it is recorded rather than
-absorbed**: no relic sprite exists in the tree, so its name is the encoding —
+reach. **A relic card was the one deviation and it was recorded rather than
+absorbed**: no relic sprite existed in the tree, so its name was the encoding —
 a proper noun, which this section's counting rule excludes, so the card still
-reads zero.
+read zero. **Retired 2026-09-30, D66**: the asset manifest carries a relic icon
+for every relic, so the icon is the face and the name went to inspect with
+the rest.
 
 **Two reward kinds have no row in this table at all**: a coins card and a
 restore card. Found by M5.1, which does not name them and left them untouched,
 and recorded here so the gap is visible rather than inferred from silence. It
 is the same shape as the battle header before D28 and the locale screen before
-D32, and it belongs to M7.2.
+D32, and it belonged to M7.2. **Closed 2026-09-30, D66**, by the two rows
+above: each is a mark and a bare number, at 0.
 
 **Every figure in this table is a ceiling, not a target** (ruled 2026-09-19, D1). A surface under its budget is done; a surface over it is not. The counting rule in this section's header stands as written — proper nouns and bare numbers are excluded — and where a budget is larger than the words that survive can reach, the difference is headroom, not a quota. The flag strip row is the one budget stated per event rather than per surface: one flag per hit, and the battle screen's own budget excludes it.
 
@@ -494,12 +523,12 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Battle screen header | Node glyph at 16, opponent, AI tier, field glyph at 16 in a fixed slot after the tier, and the turn header at the row's end (2026-09-25, D46 and D47; the kind was a word under D28, 2026-09-21; the turn, 2026-09-30, D58) | Battle |
 | World | The locale's three layers and drift, behind the game frame (2026-09-25, D47; the field state moved to the scene backdrop, 2026-09-30, D60) | Every screen, mounted once by `app.ts`, outside the frame |
 | Scene backdrop | The game screen's painted scene inside the frame, from the asset manifest: the locale's battle backdrop, or the gym's, behind the battle stage; the locale's map backdrop behind the map. During a battle, the field state as a weather wash and a terrain tint over it, global tokens mixed into the backdrop's own. A missing file is the manifest's placeholder at the correct size (2026-09-30, D60) | The battle stage and the map, inside the frame. Never outside it: that is the World's |
-| Reward card | The item or berry sprite in a fixed slot, a relic's name, the boosted type chip, the move card on a move kind, and the shop's price number (2026-09-22, D29 and D36) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |
+| Reward card | The item or berry sprite in a fixed slot, a relic's icon and the capability glyph it satisfies (2026-09-30, D65 and D66), the boosted type chip, the move card on a move kind, with no TM disc (D67 and D71), `+N` beside the currency glyph on coins and `+N%` beside a bar on a restore (D66), and the shop's price beside the currency glyph (2026-09-22, D29 and D36). Three across where they fit, stacked where they do not. **Selected only after a tap**: no card carries the selected state before the player puts it there, and the claim is the Confirm band's commit (2026-09-30, D69) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |
 | Shell nav | Five tabs, each a word and a control icon: Map, Team, Bag, Run Info, Settings. **A tab opens a screen, not an overlay** (2026-09-30, D53). Opened while a decision is pending elsewhere, the screen is a readout: it never advances run state, never submits, never consumes RNG, and closing it returns to the pending decision, which is the §12 standing rule's three properties carried from the drawer to the screen. Map from anywhere but the map is the chain without its picker, so there is still exactly one path by which a node completes | The shell, every viewport. Replaces the drawer triggers |
 | Run Info screen | The decision feed, newest first, and the run's position: gym rail, locale, seed (2026-09-30, D53 and D55) | The Run Info tab. The desktop sidebar mounts the same feed |
-| Map node card | Node glyph at 24 with the leader's name on a gym, then beneath it the tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29; the glyph exists and the pips sit beneath it since 2026-09-25, D46) | The map screen and the map drawer |
-| Locale card | Locale name, four type chips, the palette swatch (2026-09-22, D29) | The locale screen |
-| Confirm band | The question, an optional line, the content being traded, and exactly two controls: the one that commits and the way out (2026-09-22, D29) | `ui/band.ts`, mounted by the four screens that confirm. No screen builds its own |
+| Map node card | Node glyph at 24 with the leader's name on a gym, then beneath it the tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29; the glyph exists and the pips sit beneath it since 2026-09-25, D46). **On the map screen's graph, the step being chosen from carries the whole card, its detail line included** (the payout as the currency glyph and a number, the AI tier, a shop's shelf as a count and a coin amount; never the kind's hint, which is the glyph's inspect, D77). **Every other row carries the node glyph (and a gym's leader), the tier pips and the capability glyph with its chevron, and nothing else at rest**; the rest of the card is on the node glyph's long press. Where the frame is too short for even that, those rows keep the glyph alone, with the rest on the same press. A node's place on the graph is its option index within its step against the scene backdrop's slot grid, never a hash or a draw (2026-09-30, D63 and D75) | The map screen and the map drawer |
+| Locale card | Locale name, four type chips, and a crop of the locale's map backdrop where the palette swatch stood. The segment's gym is not on the card: it is shown once, in the screen's rail, because the gym belongs to the segment and not to the locale (2026-09-22, D29; the crop and the gym, 2026-09-30, D72) | The locale screen |
+| Confirm band | The question, an optional line, the content being traded, and exactly two controls: the one that commits and the way out (2026-09-22, D29). On a claim or a buy, the way out returns to the cards and never leaves the offer: CLAUDE.md allows no skip at the card (2026-09-30, D69) | `ui/band.ts`, mounted by the six screens that confirm: the four of Rev 1, plus the result screen and the shop (2026-09-30, D69). No screen builds its own |
 | Event choice | The label, the hint, the reward-tier pips and the Toll's price. The requirement and the band sit above the choices, as the map node card's glyph and chevron (2026-09-22, D33) | `screens/event.ts`. One surface, and the only one section 4 budgets prose on |
 | Exposure label | The first-encounter label for a glyph family | Rendered by the glyph, driven by the exposure store. Every family's marks pass through the glyph renderer, band pips, status lettering and the effectiveness edge included, so a family cannot be drawn without reporting itself (2026-09-23, D41) |
 

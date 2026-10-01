@@ -74,7 +74,7 @@ import {
 import { statusInfo, STATUS_PERSISTENCE_NOTE } from '../data/statusInfo';
 import { TIER_INFO } from '../data/tierInfo';
 import { GLYPH_LABELS } from '../data/glyphLabels';
-import { CURRENCY_COPY, KIND_HINTS } from './copy/screens';
+import { carryingLine, CURRENCY_COPY, KIND_HINTS, restoreTitle, REWARD_COPY } from './copy/screens';
 import { FIELD_SUPPRESSED, fieldEffect, fieldName } from '../data/fieldCopy';
 import { capabilityTypes, type Capability } from '../data/capabilities';
 import { OUTCOME_TIERS, type OutcomeTier } from '../data/eventPools';
@@ -111,8 +111,15 @@ type TipKind =
    */
   | 'flag'
   | 'node'
-  /** A coin amount beside the currency mark. Stage 5.0/4, D54. */
+  /** A coin amount on the map: a payout, a shelf's price, the wallet. Stage 5.0/4, D54. */
   | 'currency'
+  /**
+   * A coins card and a restore card, whose words left the face for the long
+   * press. Stage 5.0/3, D66. `coins:<amount>` carries the balance on
+   * `data-detail`; `restore:<percent>` is the share restored.
+   */
+  | 'coins'
+  | 'restore'
   /** The field glyph on the battle header: weather or terrain. Stage 4.11 Tier 2, D47. */
   | 'field'
   /**
@@ -276,6 +283,8 @@ const KINDS = [
   'flag',
   'node',
   'currency',
+  'coins',
+  'restore',
   'field',
   'archetype',
   'stats',
@@ -842,6 +851,10 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
       return renderNodeKind(id, trigger?.dataset['detail']);
     case 'currency':
       return renderCurrency(id, trigger?.dataset['value']);
+    case 'coins':
+      return renderCoins(id, trigger?.dataset['detail']);
+    case 'restore':
+      return renderRestore(id);
     case 'field':
       return renderField(id, trigger?.dataset['suppressed'] === 'true');
     case 'capability-band':
@@ -1269,6 +1282,32 @@ function renderAbility(id: string): HTMLElement | null {
   // `abilityText` is where data/abilityOverrides.ts gets its say. Empty today,
   // so this is the dex's own description for every ability in the pool.
   body.append(line(abilityText(info.id, info.shortDesc), 'tip__text'));
+  return body;
+}
+
+/**
+ * A coins card, in words. **Stage 5.0/3, D66.** Section 3's coin row: *"the
+ * word coins, and what the amount buys or pays"*. The balance rides on
+ * `data-detail` because it is a fact about this render (QA-003: the result
+ * screen shows the balance before the node folds its payout in).
+ */
+function renderCoins(id: string, detail?: string): HTMLElement | null {
+  const amount = Number(id);
+  if (!Number.isFinite(amount)) return null;
+  const body = panel(`+${amount} ${GLYPH_LABELS['currency-coin'] ?? ''}`.trim());
+  body.append(line(REWARD_COPY.coins.long, 'tip__text'));
+  const carrying = Number(detail);
+  if (detail && Number.isFinite(carrying)) body.append(line(carryingLine(carrying).long, 'tip__note'));
+  return body;
+}
+
+/** A restore card, in words. **Stage 5.0/3, D66.** What the share is of. */
+function renderRestore(id: string): HTMLElement | null {
+  const percent = Number(id);
+  if (!Number.isFinite(percent) || percent <= 0) return null;
+  const fraction = percent / 100;
+  const body = panel(restoreTitle(fraction));
+  body.append(line((fraction >= 1 ? REWARD_COPY.heal : REWARD_COPY.healPartial).long, 'tip__text'));
   return body;
 }
 

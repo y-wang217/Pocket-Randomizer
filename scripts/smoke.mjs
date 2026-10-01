@@ -358,6 +358,8 @@ async function playRun(label) {
       if (await card.count()) {
         if (rewards === 0) await page.screenshot({ path: `stats/${label}-reward.png`, fullPage: true });
         await card.click();
+        // A tap selects; the claim band's commit takes it (Stage 5.0/3, D69).
+        await page.locator('.confirm-band .primary-action').click();
         rewards++;
         await page.waitForTimeout(25);
         continue;

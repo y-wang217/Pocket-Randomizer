@@ -42,8 +42,6 @@ export type ChipVariant =
   | 'capability'
   | 'capability-band'
   | 'node'
-  /** A coin amount: the currency mark and a bare number. Stage 5.0/4, D54. */
-  | 'currency'
   | 'category'
   | 'effect'
   | 'flag'
@@ -381,23 +379,18 @@ export function capabilityBandChevron(band: string, label: string): HTMLElement 
 }
 
 /**
- * A coin amount: the currency mark beside a bare number. **Stage 5.0/4, D54.**
- *
- * Section 2's thirteenth family and section 3's *Coin amount* row: the mark
- * is the unit, so the word `coins` leaves the face and waits on inspect,
- * where the `currency:` tip names it and says what the amount is. `context`
- * picks that line (`payout` for what a node pays, `price` for a shelf's cheapest); the number rides on
- * `data-value`, the way a stat label carries its value, because it is a fact
- * about this render and not a lookup.
+ * A coin amount that inspects, for the map. **Stage 5.0/4.** `coinAmount`
+ * below (5.0/3) is the mark and the number; this adds the `currency:` tip,
+ * because section 3's *Coin amount* row puts *"the word coins, and what the
+ * amount buys or pays"* on inspect and a map amount is a fact the player
+ * routes by. `context` picks that line (`payout` for what a node pays,
+ * `price` for a shelf's cheapest, `wallet` for the run's coins); the number
+ * rides on `data-value`, the way a stat label carries its value.
  */
 export function currencyAmount(amount: number, context: 'payout' | 'price' | 'wallet'): HTMLElement {
-  const node = build('currency', 'coins', '', { tip: `currency:${context}` });
+  const node = coinAmount(String(amount));
+  node.dataset['tip'] = `currency:${context}`;
   node.dataset['value'] = String(amount);
-  const mark = glyphNode('currency', { label: 'Coins', size: 16 });
-  if (mark) node.append(mark);
-  const value = el('span', 'coins__value');
-  value.textContent = String(amount);
-  node.append(value);
   node.setAttribute('aria-label', `${amount} coins`);
   return node;
 }
@@ -545,4 +538,21 @@ export function flagChip(kind: string, text: string, options: ChipOptions = {}):
 /** A plain neutral badge: lead, item, ability, volatile, relic. */
 export function neutralChip(text: string, modifier: string, options: ChipOptions = {}): HTMLElement {
   return build('neutral', `badge badge--${modifier}`, text, options);
+}
+
+/**
+ * A coin amount: the currency glyph beside a bare number. **Section 2's
+ * currency family, ruled under D54, first drawn in Stage 5.0/3.** The shop's
+ * price and the coins card; the wallet and the map node's payout follow as
+ * their stages reach them. Not a chip: the mark qualifies the number beside
+ * it, and the number is the fact.
+ */
+export function coinAmount(amount: string, className = ''): HTMLElement {
+  const node = el('span', `coin-amount${className ? ` ${className}` : ''}`);
+  const mark = glyphNode('currency-coin');
+  if (mark) node.append(mark);
+  const value = el('span', 'coin-amount__value');
+  value.textContent = amount;
+  node.append(value);
+  return node;
 }

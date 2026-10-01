@@ -72,12 +72,9 @@ describe('the glyph sheet', () => {
    * 13, then this line. The assertion is unchanged in force: a twelfth family
    * fails here, which is what makes the stop-and-file a gate rather than a
    * hope.
-   *
-   * **Thirteen since Stage 5.0/4.** D54 added `currency` to section 2 in Rev
-   * 15 (2026-09-30) and 5.0/4 drew its one mark, for the map node's payout;
-   * the stop-and-file ran before this line moved, as the paragraph above
-   * requires.
    */
+  // Thirteen since Stage 5.0/3: `currency`, ruled under D54 (Rev 15) and
+  // first drawn for the shop price and the coins card (D66, Rev 17).
   it('fills all thirteen families of section 2, and no fourteenth', () => {
     expect(GLYPH_FAMILIES).toHaveLength(13);
     for (const family of GLYPH_FAMILIES) expect(glyphsOf(family), family).not.toHaveLength(0);
