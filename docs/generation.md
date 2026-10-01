@@ -12044,3 +12044,107 @@ No version axis moves; nothing under `core/` or `data/` changed.
    also take the smaller ring. Only 390x844 shows every row's facts. That is
    the floor doing what D63's ruling asked of it, and the report's table and
    text are corrected to say so, with a dated note.
+
+## 92. Stage 5.0/5: the art pass
+
+**2026-10-01**, on `claude/eloquent-heisenberg-383rnt`, from `main` at
+`0c78f5b`. Rulings:
+[`spec/gymrun-stage5.0-rulings-stage5.md`](spec/gymrun-stage5.0-rulings-stage5.md)
+(the author took every recommendation in the session's list of decisions, which
+opened by acknowledging the seventeen backdrops already delivered in 5.0/2 and
+5.0/4). Report: [`visual/reports/5.0-stage5.md`](visual/reports/5.0-stage5.md).
+**No version axis moves**: nothing under `core/` or `data/` changed, and every
+drawing lives under `src/ui/assets/`, outside `contentHash`. The bible is
+unchanged (Rev 18).
+
+Deviations from Stage 5 of
+[`spec/gymrun-stage5.0-visual-redesign.md`](spec/gymrun-stage5.0-visual-redesign.md)
+and from the rulings, recorded here rather than edited into either:
+
+1. **Thirty-one icons, not thirty-three.** The session's answer counted twelve
+   relics; `data/relics.ts` has ten. Six node marks, eight capability marks,
+   ten relics, five nav icons, one currency mark and one wordmark. The rulings
+   file records the answer as given.
+2. **The session drew the icons**, by ruling (item 1), on their native grids,
+   as text in `scripts/visual/icons.py`, which writes the PNGs. A painting
+   area-averaged to 8px loses its shape; a grid does not. The prompt's *"Open:
+   who makes class C"* closes with it. Any file can be replaced by the author
+   with a drop and no regeneration.
+3. **Node native size 8, not the spike's 16** (item 2, D61). Only 8 scales by
+   whole multiples to both 16 (the battle header) and 24 (the map node card).
+   `NATIVE.node` moved; capability and currency were already 8.
+4. **Two tones.** `ArtFile` gains `tone`: a backdrop or a relic is `colour`;
+   the node, capability and currency marks, the nav icons and the wordmark are
+   `mask`, drawn in `currentColor` through a CSS mask. Every glyph has been
+   monochrome `currentColor` since M1.1, and bible section 2 makes colour
+   secondary, so a coloured drawing of a glyph would have broken a rule the
+   art pass has no standing to break. It also follows the theme for free.
+5. **The three glyph families' art goes through `glyphNode` (D61).**
+   `glyphArt(id)` resolves `node-*`, `capability-*` (not the band chevron, which
+   has no class C slot) and `currency-coin` to their manifest keys, and the
+   renderer draws the drawing as a mask, falling back to the sheet's SVG when
+   there is none. The unmounted `currency` manifest key is now
+   `currency-coin`'s drawing: one coin, not two. `data-family` is written
+   exactly as before, so R7's exposure labels and D41's rule (*"a family
+   cannot be drawn without reporting itself"*) hold unchanged.
+6. **No placeholder remains, but each entry keeps its letter** as the fallback
+   for a file that does not resolve, so test 4 still has something to show at
+   the native size. `test/asset-manifest.test.ts` now reads every PNG's own
+   header and holds it to its native size.
+7. **The sidebar's word is visually hidden once the wordmark draws** (item 10):
+   the drawing is `aria-hidden`, the word stays as its name for a screen
+   reader, and GYMRUN is not painted twice. The phone header's title is
+   untouched.
+8. **The gym backdrop's Poke Balls are painted out at native size** (item 3),
+   as a step of `scripts/visual/backdrops.py` (`paint_out_gym_emblem`) so that
+   re-running the converter keeps the edit: the floor keeps a plain court ring,
+   each banner's ball becomes a diamond, the mark the map entrances' banners
+   already wear. The edit maps every pixel back to its own palette index;
+   `quantize(palette=...)` was tried first and snapped near-twin colours
+   together across 775 untouched pixels. The other sixteen backdrops carry no
+   Poke Ball (the city's banners are a fleur-de-lis) and regenerate byte
+   identical.
+
+What the checks found:
+
+9. **M1.1's separation, re-run on the drawings** (item 4, D61). The script
+   measures a glyph with a drawing *as the drawing*, the 8px PNG scaled 2x
+   without smoothing, exactly as the mask draws it at 16, and writes `drawn`
+   into the table so `test/glyphs.test.ts` can tell a table measured on the
+   drawings from one measured on the SVGs. Every family clears 0.12. Worst
+   drawn pairs: node 0.344 (the SVGs were 0.281), capability 0.250 (0.254),
+   so the drawings separate as well as the marks they replace or better.
+   The shop mark was redrawn once before measuring, from a handle over a box
+   (it read as a padlock) to a sack tied at the neck.
+10. **The slot grids stay empty, and that is a finding, not a pass** (item 6).
+    `scripts/visual/slot-overlay.ts` draws every slot (two options and three,
+    every step index) over every map backdrop at 390x844, 1366x768 and
+    375x667. On most backdrops the outer three-option slots, at 16-24% and
+    76-84% of the width, land off the painted ground on some rows: the shore's
+    and the marsh's water, the summit's ice, the cave's and the ruins' walls,
+    the city's stairs and lamp posts, the badlands' lava top left. 5.0/4's
+    *"every node stands in the painted clearing"* was true of the nodes one
+    seed's worst case used, not of every slot. **Narrowing a grid is not free**:
+    the step being chosen from carries the whole card, 94px for `26 · Rookie`
+    and about 106px for the widest tier word, and three slots on the default
+    grid already sit about 107px apart at 390 and 103px at 375. Pulling the
+    outer slots in far enough to clear the art makes those cards overlap,
+    which breaks the decision row to fix the scenery. Two outcomes of the plan
+    conflict here, so it goes to the author with options (the report's "For
+    the reviewer") instead of being traded in a commit.
+11. **Nothing on the battle stage is drawn on bare art** (item 7). Every text
+    and every glyph on the stage sits on an HP box, an opaque panel, so the
+    backdrop cannot move a text reading. `test/visual-backdrop-contrast.test.ts`
+    asserts that, then measures what the backdrop can reach: each HP box's
+    edge (the better of border and fill) against the dominant colour of the
+    art in a 6px band around it, against WCAG 1.4.11's 3:1, for nine backdrops
+    by ten field states. 180 readings; the lowest is 3.51 (the foe's box on
+    badlands and on cave under psychic terrain). The first cut sampled the
+    stage's own dark frame, two pixels from the foe's box, and read the same
+    colour on every backdrop; the band is now kept inside the stage's border.
+12. **Bytes** (item 9). The 31 icons are 4,215 bytes as files and, under
+    Vite's 4 KB inline limit, are inlined into the one script: the first load
+    grows by 8,209 bytes raw, **3,845 gzipped (+0.47%)**, CSS by 126 gzipped,
+    and the request count is unchanged (17 PNGs, all backdrops, each fetched
+    when its screen first shows). The gym backdrop is 138 bytes smaller in the
+    build. The backdrops, already in, are 633,202 bytes.
