@@ -174,9 +174,12 @@ export const GLYPHS: readonly Glyph[] = [
     art: { kind: 'markup', markup: '<circle cx="12" cy="12" r="6.2" fill="none" stroke="currentColor" stroke-width="1.2"/>' },
   },
 
-  // PP: a drop. A supply that is spent, which is the fact the number beside it
-  // quantifies. Distinct from every round shape in the sheet by its point.
-  { id: 'pp', family: 'pp', label: labelOf('pp'), art: path('M12 2.5c0 0 7 7.8 7 11.6A7 7 0 1 1 5 14.1C5 10.3 12 2.5 12 2.5z') },
+  // PP: a cartridge, upright. Ammunition, which is what PP is: a count of
+  // uses spent one per use (the author, 2026-10-01: *"Its essentially ammo"*;
+  // it was a drop until then). Bullet, case and rim are three parts with a
+  // gap between each, so the round reads as a round at 16 and is told from
+  // every other tall shape in the sheet by its point over a straight case.
+  { id: 'pp', family: 'pp', label: labelOf('pp'), art: path('M9 9.5C9 6 10.4 3.6 12 2c1.6 1.6 3 4 3 7.5zM8.5 10.5h7v9h-7zM7.5 20.5h9V22h-9z') },
 
   // Accuracy: a bullseye, and a dart for the move that cannot miss. Rings
   // against a solid wedge — the pair the kills-it condition is really about.

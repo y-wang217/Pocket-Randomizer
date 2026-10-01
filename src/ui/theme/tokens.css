@@ -72,53 +72,63 @@
  */
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 
   /* ---------- base: four values ----------
-     **Stage 5.0/1 turned the palette over.** The four were a near-black, a
-     dark panel and two creams from V0 to 4.11; the 5.0 redesign is a light
-     GBA-era face (the reference image, `docs/design/v5-reference.png`), so
-     the frame is a pale blue, the cards are cream, and the text is the dark
-     ink the creams used to be the opposite of. The names are V0's and are
-     kept, so every derived token below still reads as what it is for: `deep`
-     is the frame, `surface` the card, `cream` the ink. */
-  --base-deep: #e4ecf6;
-  --base-surface: #fbfaf3;
-  --cream: #1d2530;
-  --cream-dim: #4a5566;
+     **Dark again since 2026-10-01** (`docs/spec/gymrun-patch-dark-palette-ammo-pp.md`,
+     the author: *"Whole app back to dark"*). V0 to 4.11 were a near-black, a
+     dark panel and two creams; Stage 5.0/1 turned them over to a light
+     GBA-era face, and this patch turns them back to V0's four values. What
+     5.0 built on top of the palette stays: the window shapes, the heavy
+     borders, the solid HP boxes, no drop shadows on windows. The tokens below
+     that were written for a light frame are re-derived for a dark one, each
+     where it stands. `deep` is the frame, `surface` the card, `cream` the
+     ink. */
+  --base-deep: #0b0f17;
+  --base-surface: #151c27;
+  --cream: #efe6d2;
+  --cream-dim: #a79f90;
 
   /* ---------- derived surfaces and text ---------- */
   --bg: var(--base-deep);
   --bg-raised: var(--base-surface);
-  --bg-sunken: color-mix(in srgb, var(--base-deep) 88%, var(--cream));
-  --border: color-mix(in srgb, var(--cream) 40%, var(--base-surface));
-  --border-strong: color-mix(in srgb, var(--cream) 65%, var(--base-surface));
+  --bg-sunken: color-mix(in srgb, var(--base-deep) 82%, #000);
+  --border: color-mix(in srgb, var(--cream) 18%, var(--base-surface));
+  --border-strong: color-mix(in srgb, var(--cream) 32%, var(--base-surface));
 
   --text: var(--cream);
   --text-dim: var(--cream-dim);
-  --text-faint: color-mix(in srgb, var(--cream-dim) 78%, var(--base-surface));
+  --text-faint: color-mix(in srgb, var(--cream-dim) 68%, var(--base-surface));
 
   /* ---------- the 5.0 window tokens ----------
      The plan's one set: panel fill, dark border, highlight, selected,
      disabled, and the three HP colours below. Low radius, no gradients, no
      shadows, no backdrop-filter anywhere in the frame. */
   --frame-fill: var(--bg);
-  --border-heavy: #263649;
+  /* The window border: a light rule on the dark frame, where 5.0 drew a dark
+     one on the light frame. A literal, at 3.6:1 against the surface, so two
+     windows that touch (the HP boxes on a full battle panel) still keep WCAG
+     1.4.11's 3:1 edge between them; `test/visual-backdrop-contrast` reads it. */
+  --border-heavy: #737880;
+  /* What a token on a painting casts. Its own token since the palette went
+     dark, because it was the heavy border and that is light now. */
+  --token-shadow: #000;
   --rule-heavy: 2px;
   --highlight: #f4c83f;
-  --selected: #2f6fd6;
-  --disabled: #9aa2ad;
+  --selected: #4a8ef0;
+  --disabled: #5d6470;
   /* The stat block's band bar (bible Rev 21, D88): one neutral colour at
      every fraction, never a colour by how full it is, and a track a step
      darker than the cell it sits in. */
-  --stat-bar: #3d74c9;
-  --stat-bar-track: color-mix(in srgb, var(--border-heavy) 22%, transparent);
+  --stat-bar: #5b8fe0;
+  --stat-bar-track: color-mix(in srgb, var(--cream) 14%, transparent);
   /* A window's toned fill, a step below the cream. Bible Rev 19, D78: the
      starter screen's cards and detail panel, the author's "make it darker". */
-  --panel-fill: color-mix(in srgb, var(--base-deep) 84%, var(--border-heavy));
-  --panel-raised: color-mix(in srgb, var(--base-deep) 70%, var(--base-surface));
-  --nav-fill: var(--border-heavy);
-  --nav-ink: #dce5f1;
+  --panel-fill: var(--base-surface);
+  --panel-raised: color-mix(in srgb, var(--cream) 6%, var(--base-surface));
+  /* The nav sits a step above the frame, ink in the cream. */
+  --nav-fill: #1b2534;
+  --nav-ink: var(--cream);
   --nav-rule: color-mix(in srgb, var(--nav-ink) 18%, var(--nav-fill));
   --nav-disabled: color-mix(in srgb, var(--nav-ink) 38%, var(--nav-fill));
   /* The frame's geometry: phone first, and the same column on a desktop. */
@@ -154,12 +164,12 @@
   --drift-period: 32s;
 
   /* The overlay dim and the one drop shadow, mixed from the deep base. */
-  --dim: color-mix(in srgb, var(--cream) 55%, transparent);
+  --dim: color-mix(in srgb, var(--base-deep) 78%, transparent);
   --shadow: color-mix(in srgb, var(--cream) 0%, transparent);
 
   /* ---------- the one accent ---------- */
   --accent: var(--highlight);
-  --accent-ink: var(--cream);
+  --accent-ink: var(--base-deep);
 
   /* ---------- readouts: resources and outcomes, not chrome ---------- */
   --hp-high: #3fb950;
@@ -263,10 +273,14 @@
    * 4.79. Still one number: the fill and the outline keep the hue, so a chip
    * still reads as its type, and the glyph is the primary channel anyway
    * (bible section 2).
+   *
+   * **And back to 60% with the dark palette, 2026-10-01.** 30% was the light
+   * frame's number; on the dark card the hue mixes toward a light cream, so
+   * the label wants the share it carried from 4.7.2 to 4.11.
    */
   --chip-fill: 16%;
   --chip-line: 55%;
-  --chip-text: 30%;
+  --chip-text: 60%;
 
   /* ---------- faces ---------- */
   --font-mono-stack: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;

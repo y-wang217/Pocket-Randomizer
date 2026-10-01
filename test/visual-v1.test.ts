@@ -12,8 +12,14 @@
  * actually protects, plus a floor for the rest:
  *
  *   - A style whose rendered background is the same in every locale sits on
- *     an opaque surface (a card, a panel, a chip). It must equal the V0
- *     baseline. This is every node card and every battle panel.
+ *     an opaque surface (a card, a panel, a chip). It must not fall below the
+ *     V0 baseline. This is every node card and every battle panel.
+ *     **"Equal" until 2026-10-01**, when the dark palette came back
+ *     (`docs/spec/gymrun-patch-dark-palette-ammo-pp.md`) and put these styles
+ *     on V0's own surfaces again: the map node's detail line, its type chip
+ *     and the battle panel's HP text were made heavier on purpose in 5.0 and
+ *     read above V0 now. The rule protects contrast from the world; a style
+ *     that gained contrast by design is not what it guards against.
  *   - A style whose background changes with the locale sits on the world. It
  *     must stay at or above WCAG AA (4.5:1) where V0 had it above AA, and
  *     within a tenth of V0 where V0 already had it below.
@@ -140,7 +146,7 @@ describe('contrast over the world', () => {
         for (const [i, reading] of readings.entries()) {
           const locale = LOCALE_IDS[i];
           if (onSurface) {
-            if (Math.abs(reading.ratio - base.ratio) > 0.05) failures.push(`${locale} ${screen} ${label}: ${reading.ratio} vs baseline ${base.ratio} on an unchanged surface`);
+            if (reading.ratio < base.ratio - 0.05) failures.push(`${locale} ${screen} ${label}: ${reading.ratio} under baseline ${base.ratio} on an unchanged surface`);
           } else {
             const floor = base.ratio >= 4.5 ? 4.5 : base.ratio - 0.1;
             if (reading.ratio < floor) failures.push(`${locale} ${screen} ${label}: ${reading.ratio} under the floor ${floor} (baseline ${base.ratio})`);

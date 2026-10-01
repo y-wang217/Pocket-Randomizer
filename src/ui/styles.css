@@ -7495,8 +7495,8 @@ button,
   background: color-mix(in srgb, var(--bg-raised) 90%, transparent);
   border: 0;
   box-shadow:
-    0 var(--space-h) 0 color-mix(in srgb, var(--border-heavy) 45%, transparent),
-    0 0 var(--space-2) color-mix(in srgb, var(--border-heavy) 30%, transparent);
+    0 var(--space-h) 0 color-mix(in srgb, var(--token-shadow) 45%, transparent),
+    0 0 var(--space-2) color-mix(in srgb, var(--token-shadow) 30%, transparent);
   transition: box-shadow 120ms ease;
 }
 .map-graph .node--upcoming .node__mark { width: 30px; height: 30px; }
@@ -7555,7 +7555,7 @@ button,
   box-shadow:
     0 0 0 var(--rule-heavy) var(--selected),
     0 0 var(--space-3) var(--space-h) color-mix(in srgb, var(--selected) 55%, transparent),
-    0 var(--space-1) 0 color-mix(in srgb, var(--border-heavy) 45%, transparent);
+    0 var(--space-1) 0 color-mix(in srgb, var(--token-shadow) 45%, transparent);
 }
 .map-graph .node--current:hover { transform: translate(-50%, calc(-50% - 1px)); }
 .map-graph .node--current:hover .node__mark {

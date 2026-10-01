@@ -12430,3 +12430,38 @@ Presentation only: no version axis moves, no data table changes, and
    item 6 on the author's seed; `test/visual-stat-bars.test.ts` measures each
    painted fill against its declared fraction again, the 4.7.2 promise back
    with the bar.
+
+## 97. The dark palette back, and a cartridge for PP
+
+2026-10-01, [`spec/gymrun-patch-dark-palette-ammo-pp.md`](spec/gymrun-patch-dark-palette-ammo-pp.md).
+Presentation only: no `core/` change, no version axis moves, no bible rule
+moves (the bible names neither the palette nor the PP glyph's drawing).
+
+1. **Superseded: Stage 5.0/1's light palette** (§ the 5.0/1 entry,
+   `tokens.css`'s *"Stage 5.0/1 turned the palette over"*). The four base
+   values are V0's again: `#0b0f17`, `#151c27`, `#efe6d2`, `#a79f90`. What 5.0
+   built on the palette stays: window shapes, heavy borders, solid HP boxes,
+   no drop shadows on windows, the nav.
+2. **Re-derived for a dark frame**, each in `tokens.css` where it stands:
+   `--border` and `--border-strong` (18% and 32% cream), `--bg-sunken` and
+   `--text-faint` (V0's mixes), `--border-heavy` (a literal `#737880`, 3.6:1
+   against the surface, so two HP boxes that touch keep a 3:1 edge),
+   `--selected`, `--disabled`, the band bar and its track, the starter's
+   `--panel-fill` and `--panel-raised`, the nav fill and ink, the overlay
+   `--dim`, `--accent-ink`, and `--chip-text` back to 4.7.2's 60%. The map
+   token's drop shadow reads a new `--token-shadow`, because it was the heavy
+   border and that is light now.
+3. **The PP glyph** is an upright cartridge (bullet, case, rim), where it was
+   a drop. **Deviation from the spec's reading**, which said *side on*: side
+   on, the round is a 24-by-9 sliver at 16px; upright it fills the cell and
+   reads as a round beside the number. Same id, family, label and slot. The
+   M1.1 glyph sheets are regenerated.
+4. **A test rule narrowed.** `test/visual-v1` and `test/visual-v3` held a
+   style on an unchanged surface to *equal* its V0 contrast. The dark palette
+   put the map node's detail line, its type chip and the battle panel's HP
+   text back on V0's surfaces, where 5.0's heavier text reads 13.56, 8.07 and
+   13.56 against V0's 3.66, 7.48 and 6.42. The rule protects contrast from
+   the world, so it is now *not below* V0; the header says so, with the date.
+5. **Gates, this container.** Type check, lint, build, the node suite (151
+   files, 2,000 tests). Browser half: everything else passes after items 2
+   and 4; `test/visual-chips.test.ts` is reported in the PR.
