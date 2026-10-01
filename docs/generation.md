@@ -12164,3 +12164,10 @@ What the checks found:
     because a glyph is not a text style, and `visual-field` reads the
     header's words (`.battle__header .screen__blurb`), which is what it
     meant. The node's words stay guarded as `node detail`.
+14. **The census moved only by the placeholders' letters** (D74, re-recorded
+    once at the end). The nav's five lettered chips were counted as words on
+    every surface, so each surface falls by 5 in its shell (app shell 297 to
+    197 across twenty surfaces). The relic placeholders' letters (`TS`, `PH`)
+    were counted on the cards, so `result-relic` and `shop-relic` fall by 1
+    on the budgeted column, and the reward card's worst instance goes 2 to 0.
+    No copy changed; `docs/copy.md` needs no rebuild.

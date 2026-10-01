@@ -23,26 +23,26 @@ the three density columns this table carried are one.
 
 | Surface | words | less shell | first run |
 |---|---:|---:|---:|
-| starter | 34 | 20 | 71 |
-| locale | 17 | 3 | 9 |
-| map | 23 | 9 | 23 |
-| battle | 20 | 6 | 27 |
-| result | 16 | 2 | 4 |
-| result-capture | 54 | 40 | 47 |
-| target | 66 | 52 | 58 |
-| replace | 29 | 15 | 25 |
-| party | 31 | 17 | 20 |
-| pre-gym | 17 | 3 | 6 |
-| shop | 31 | 17 | 29 |
-| event | 68 | 54 | 54 |
-| result-relic | 27 | 13 | 17 |
-| shop-relic | 32 | 18 | 33 |
-| drawer | 30 | 16 | 19 |
-| map-drawer | 34 | 20 | 34 |
-| confirm-replace | 33 | 19 | 29 |
-| confirm-forfeit | 74 | 60 | 66 |
-| summary | 368 | 337 | 410 |
-| log-sheet | 150 | 136 | 157 |
+| starter | 29 | 20 | 71 |
+| locale | 12 | 3 | 9 |
+| map | 18 | 9 | 23 |
+| battle | 15 | 6 | 27 |
+| result | 11 | 2 | 4 |
+| result-capture | 49 | 40 | 47 |
+| target | 61 | 52 | 58 |
+| replace | 24 | 15 | 25 |
+| party | 26 | 17 | 20 |
+| pre-gym | 12 | 3 | 6 |
+| shop | 26 | 17 | 29 |
+| event | 63 | 54 | 54 |
+| result-relic | 21 | 12 | 16 |
+| shop-relic | 26 | 17 | 32 |
+| drawer | 25 | 16 | 19 |
+| map-drawer | 29 | 20 | 34 |
+| confirm-replace | 28 | 19 | 29 |
+| confirm-forfeit | 69 | 60 | 66 |
+| summary | 363 | 337 | 410 |
+| log-sheet | 145 | 136 | 157 |
 
 ## Per component
 
@@ -66,12 +66,12 @@ budget is 0 or the component renders once.
 | flag strip | 6 | 3 |
 | confirm overlay | 9 | 5 |
 | stat block | 0 | 0 |
-| reward card | 2 | 1 |
+| reward card | 0 | 0 |
 | map node card | 8 | 1 |
 | locale card | 0 | 0 |
 | starter card | 0 | 0 |
 | event choice | 40 | 13 |
-| app shell | 297 | 14 |
+| app shell | 197 | 14 |
 | screen chrome (no component) | 767 | — |
 
 ## Every word counted
@@ -79,23 +79,23 @@ budget is 0 or the component renders once.
 The one face. One row per surface, so a number
 above can be argued with rather than taken on faith.
 
-- **starter** (34): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `Choose` `your` `starter` `Species` `ability` `and` `moves` `are` `randomized` `HP` `and` `PP` `carry` `between` `fights` `a` `gym` `clear` `restores` `both` `GYMRUN-715122-SMOKE24` `r22`
-- **locale** (17): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `Choose` `a` `region` `GYMRUN-715122-SMOKE24` `r22`
-- **map** (23): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `Gym` `of` `Pokemon` `steps` `before` `the` `gym` `Pokemon` `Rookie` `GYMRUN-715122-SMOKE24` `r22`
-- **battle** (20): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `Trainer's` `Seasoned` `Turn` `Paralysed` `Badly` `poisoned` `GYMRUN-715122-SMOKE24` `r22`
-- **result** (16): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `one` `NORMAL` `GYMRUN-715122-SMOKE24` `r22`
-- **result-capture** (54): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `Lv58` `Beaten` `Yours` `to` `take` `Party` `full` `one` `goes` `Your` `party` `of` `choose` `who` `to` `release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `Keep` `my` `party` `as` `it` `is` `GYMRUN-715122-SMOKE24` `r22`
-- **target** (66): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `TM` `Who` `learns` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `GYMRUN-715122-SMOKE24` `r22`
-- **replace** (29): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `learns` `Pick` `the` `move` `it` `replaces` `undo` `Learning` `Phys` `Attacker` `Knows` `tap` `one` `to` `replace` `GYMRUN-715122-SMOKE24` `r22`
-- **party** (31): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `Your` `party` `Slot` `leads` `Release` `is` `permanent` `Watch` `for` `Backpack` `of` `carried` `Relics` `Back` `to` `the` `map` `GYMRUN-715122-SMOKE24` `r22`
-- **pre-gym** (17): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `Send` `in` `Items` `GYMRUN-715122-SMOKE24` `r22`
-- **shop** (31): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `Shop` `Nothing` `is` `bought` `until` `you` `leave` `selling` `no` `coming` `back` `Carrying` `Basket` `Left` `Leave` `without` `buying` `GYMRUN-715122-SMOKE24` `r22`
-- **event** (68): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `A` `sinkhole` `pool` `with` `a` `clear` `bottom` `and` `no` `shallows` `at` `all` `Fish` `from` `the` `rim` `A` `line` `brings` `something` `up` `Drop` `in` `and` `grab` `to` `the` `bottom` `and` `deep` `Drag` `it` `with` `nets` `Every` `pair` `of` `hands` `then` `cramp` `Costs` `HP` `party` `Go` `to` `the` `bottom` `there` `it` `has` `a` `floor` `Carry` `on` `GYMRUN-715122-SMOKE24` `r22`
-- **result-relic** (27): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `Choose` `a` `reward` `of` `the` `three` `There` `is` `no` `skip` `one` `ELITE` `TS` `GYMRUN-715122-SMOKE24` `r22`
-- **shop-relic** (32): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `Shop` `Nothing` `is` `bought` `until` `you` `leave` `selling` `no` `coming` `back` `Carrying` `Basket` `Left` `PH` `Leave` `without` `buying` `GYMRUN-715122-SMOKE24` `r22`
-- **drawer** (30): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `Gym` `of` `Pokemon` `steps` `before` `the` `gym` `Pokemon` `Rookie` `Your` `party` `Carrying` `now` `Relics` `Read` `only` `GYMRUN-715122-SMOKE24` `r22`
-- **map-drawer** (34): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `Gym` `of` `Pokemon` `steps` `before` `the` `gym` `Pokemon` `Rookie` `The` `run` `Gym` `of` `Pokemon` `steps` `before` `the` `gym` `Pokemon` `Rookie` `GYMRUN-715122-SMOKE24` `r22`
-- **confirm-replace** (33): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `learns` `Pick` `the` `move` `it` `replaces` `undo` `Learning` `Phys` `Attacker` `Knows` `tap` `one` `to` `replace` `GYMRUN-715122-SMOKE24` `r22` `Replace` `with` `Replace` `Keep`
-- **confirm-forfeit** (74): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `TM` `Who` `learns` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Don't` `learn` `it` `GYMRUN-715122-SMOKE24` `r22` `Forfeit` `this` `reward` `Forfeit` `Keep`
-- **summary** (368): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Stage` `gen9customgame` `a` `roster` `that` `grows` `caught` `in` `eight` `regions` `and` `scored` `Tutorial` `run` `Copy` `seed` `New` `seed` `gyms` `nodes` `fights` `turns` `rests` `seed` `GYMRUN-715122-SMOKE24` `The` `first` `gyms` `Past` `the` `opening` `The` `far` `side` `of` `the` `map` `gym` `short` `All` `eight` `Rematch` `this` `seed` `Copy` `seed` `Copy` `result` `New` `seed` `Score` `Gyms` `cleared` `Elite` `nodes` `taken` `Hard` `nodes` `taken` `Pokemon` `caught` `Relics` `held` `Standing` `at` `the` `end` `Turns` `taken` `Party` `slots` `Final` `party` `Phys` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `Phys` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `Phys` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `Phys` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `Mixed` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `Phys` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `in` `battle` `Lv30` `fell` `at` `Gym` `to` `Lv44` `fell` `at` `Gym` `to` `Lv30` `fell` `at` `Gym` `to` `Lv28` `fell` `at` `Gym` `to` `Lv46` `fell` `at` `Gym` `to` `Lv21` `fell` `at` `Gym` `to` `Lv30` `fell` `at` `Gym` `to` `Lv44` `fell` `at` `Gym` `to` `Coverage` `Reaches` `Fighting` `Ghost` `Ground` `Normal` `The` `run` `won` `in` `HP` `site` `rested` `HP` `Trainer's` `won` `in` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `Trainer` `won` `in` `HP` `Trainer` `won` `in` `HP` `Trainer` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `site` `rested` `HP` `Trainer` `won` `in` `HP` `won` `in` `HP` `Trainer` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `Something` `happens` `rested` `HP` `Something` `happens` `rested` `HP` `Something` `happens` `rested` `HP` `Trainer` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `won` `in` `HP` `Shop` `rested` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `Something` `happens` `rested` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `Shop` `rested` `HP` `Something` `happens` `rested` `HP` `Ghost` `won` `in` `HP` `Trainer` `won` `in` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `won` `in` `HP` `Trainer` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `GYMRUN-715122-SMOKE24` `r22`
-- **log-sheet** (150): `M` `Map` `T` `Team` `B` `Bag` `R` `Info` `S` `Settings` `GYMRUN` `Tutorial` `Trainer's` `Seasoned` `Turn` `rose` `Fully` `paralysed` `History` `started` `between` `Player` `and` `Opponent` `Go` `Opponent` `sent` `out` `The` `opposing` `Golem's` `started` `to` `rain` `Turn` `The` `opposing` `used` `The` `opposing` `Golem's` `rose` `sharply` `used` `Snorlax's` `rose` `sharply` `continues` `to` `fall` `Turn` `The` `opposing` `used` `is` `paralyzed` `may` `be` `unable` `to` `move` `used` `The` `opposing` `was` `badly` `poisoned` `continues` `to` `fall` `The` `opposing` `was` `hurt` `by` `poison` `HP` `Turn` `The` `opposing` `used` `The` `opposing` `Golem's` `rose` `sharply` `is` `paralyzed` `can't` `move` `continues` `to` `fall` `The` `opposing` `was` `hurt` `by` `poison` `HP` `Turn` `The` `opposing` `used` `The` `opposing` `Golem's` `rose` `sharply` `used` `Snorlax's` `rose` `sharply` `continues` `to` `fall` `The` `opposing` `was` `hurt` `by` `poison` `HP` `Turn` `The` `opposing` `used` `The` `opposing` `Golem's` `won't` `go` `any` `higher` `is` `paralyzed` `can't` `move` `none` `ended` `The` `opposing` `was` `hurt` `by` `poison` `HP` `Turn` `GYMRUN-715122-SMOKE24` `r22`
+- **starter** (29): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Choose` `your` `starter` `Species` `ability` `and` `moves` `are` `randomized` `HP` `and` `PP` `carry` `between` `fights` `a` `gym` `clear` `restores` `both` `GYMRUN-715122-SMOKE24` `r22`
+- **locale** (12): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Choose` `a` `region` `GYMRUN-715122-SMOKE24` `r22`
+- **map** (18): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Gym` `of` `Pokemon` `steps` `before` `the` `gym` `Pokemon` `Rookie` `GYMRUN-715122-SMOKE24` `r22`
+- **battle** (15): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Trainer's` `Seasoned` `Turn` `Paralysed` `Badly` `poisoned` `GYMRUN-715122-SMOKE24` `r22`
+- **result** (11): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `one` `NORMAL` `GYMRUN-715122-SMOKE24` `r22`
+- **result-capture** (49): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Lv58` `Beaten` `Yours` `to` `take` `Party` `full` `one` `goes` `Your` `party` `of` `choose` `who` `to` `release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `Keep` `my` `party` `as` `it` `is` `GYMRUN-715122-SMOKE24` `r22`
+- **target** (61): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `TM` `Who` `learns` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `GYMRUN-715122-SMOKE24` `r22`
+- **replace** (24): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `learns` `Pick` `the` `move` `it` `replaces` `undo` `Learning` `Phys` `Attacker` `Knows` `tap` `one` `to` `replace` `GYMRUN-715122-SMOKE24` `r22`
+- **party** (26): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Your` `party` `Slot` `leads` `Release` `is` `permanent` `Watch` `for` `Backpack` `of` `carried` `Relics` `Back` `to` `the` `map` `GYMRUN-715122-SMOKE24` `r22`
+- **pre-gym** (12): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Send` `in` `Items` `GYMRUN-715122-SMOKE24` `r22`
+- **shop** (26): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Shop` `Nothing` `is` `bought` `until` `you` `leave` `selling` `no` `coming` `back` `Carrying` `Basket` `Left` `Leave` `without` `buying` `GYMRUN-715122-SMOKE24` `r22`
+- **event** (63): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `A` `sinkhole` `pool` `with` `a` `clear` `bottom` `and` `no` `shallows` `at` `all` `Fish` `from` `the` `rim` `A` `line` `brings` `something` `up` `Drop` `in` `and` `grab` `to` `the` `bottom` `and` `deep` `Drag` `it` `with` `nets` `Every` `pair` `of` `hands` `then` `cramp` `Costs` `HP` `party` `Go` `to` `the` `bottom` `there` `it` `has` `a` `floor` `Carry` `on` `GYMRUN-715122-SMOKE24` `r22`
+- **result-relic** (21): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Choose` `a` `reward` `of` `the` `three` `There` `is` `no` `skip` `one` `ELITE` `GYMRUN-715122-SMOKE24` `r22`
+- **shop-relic** (26): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Shop` `Nothing` `is` `bought` `until` `you` `leave` `selling` `no` `coming` `back` `Carrying` `Basket` `Left` `Leave` `without` `buying` `GYMRUN-715122-SMOKE24` `r22`
+- **drawer** (25): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Gym` `of` `Pokemon` `steps` `before` `the` `gym` `Pokemon` `Rookie` `Your` `party` `Carrying` `now` `Relics` `Read` `only` `GYMRUN-715122-SMOKE24` `r22`
+- **map-drawer** (29): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Gym` `of` `Pokemon` `steps` `before` `the` `gym` `Pokemon` `Rookie` `The` `run` `Gym` `of` `Pokemon` `steps` `before` `the` `gym` `Pokemon` `Rookie` `GYMRUN-715122-SMOKE24` `r22`
+- **confirm-replace** (28): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `learns` `Pick` `the` `move` `it` `replaces` `undo` `Learning` `Phys` `Attacker` `Knows` `tap` `one` `to` `replace` `GYMRUN-715122-SMOKE24` `r22` `Replace` `with` `Replace` `Keep`
+- **confirm-forfeit** (69): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `TM` `Who` `learns` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Don't` `learn` `it` `GYMRUN-715122-SMOKE24` `r22` `Forfeit` `this` `reward` `Forfeit` `Keep`
+- **summary** (363): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Stage` `gen9customgame` `a` `roster` `that` `grows` `caught` `in` `eight` `regions` `and` `scored` `Tutorial` `run` `Copy` `seed` `New` `seed` `gyms` `nodes` `fights` `turns` `rests` `seed` `GYMRUN-715122-SMOKE24` `The` `first` `gyms` `Past` `the` `opening` `The` `far` `side` `of` `the` `map` `gym` `short` `All` `eight` `Rematch` `this` `seed` `Copy` `seed` `Copy` `result` `New` `seed` `Score` `Gyms` `cleared` `Elite` `nodes` `taken` `Hard` `nodes` `taken` `Pokemon` `caught` `Relics` `held` `Standing` `at` `the` `end` `Turns` `taken` `Party` `slots` `Final` `party` `Phys` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `Phys` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `Phys` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `Phys` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `Mixed` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `Phys` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `in` `battle` `Lv30` `fell` `at` `Gym` `to` `Lv44` `fell` `at` `Gym` `to` `Lv30` `fell` `at` `Gym` `to` `Lv28` `fell` `at` `Gym` `to` `Lv46` `fell` `at` `Gym` `to` `Lv21` `fell` `at` `Gym` `to` `Lv30` `fell` `at` `Gym` `to` `Lv44` `fell` `at` `Gym` `to` `Coverage` `Reaches` `Fighting` `Ghost` `Ground` `Normal` `The` `run` `won` `in` `HP` `site` `rested` `HP` `Trainer's` `won` `in` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `Trainer` `won` `in` `HP` `Trainer` `won` `in` `HP` `Trainer` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `site` `rested` `HP` `Trainer` `won` `in` `HP` `won` `in` `HP` `Trainer` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `Something` `happens` `rested` `HP` `Something` `happens` `rested` `HP` `Something` `happens` `rested` `HP` `Trainer` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `won` `in` `HP` `Shop` `rested` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `Something` `happens` `rested` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `Shop` `rested` `HP` `Something` `happens` `rested` `HP` `Ghost` `won` `in` `HP` `Trainer` `won` `in` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `won` `in` `HP` `Trainer` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `GYMRUN-715122-SMOKE24` `r22`
+- **log-sheet** (145): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Trainer's` `Seasoned` `Turn` `rose` `Fully` `paralysed` `History` `started` `between` `Player` `and` `Opponent` `Go` `Opponent` `sent` `out` `The` `opposing` `Golem's` `started` `to` `rain` `Turn` `The` `opposing` `used` `The` `opposing` `Golem's` `rose` `sharply` `used` `Snorlax's` `rose` `sharply` `continues` `to` `fall` `Turn` `The` `opposing` `used` `is` `paralyzed` `may` `be` `unable` `to` `move` `used` `The` `opposing` `was` `badly` `poisoned` `continues` `to` `fall` `The` `opposing` `was` `hurt` `by` `poison` `HP` `Turn` `The` `opposing` `used` `The` `opposing` `Golem's` `rose` `sharply` `is` `paralyzed` `can't` `move` `continues` `to` `fall` `The` `opposing` `was` `hurt` `by` `poison` `HP` `Turn` `The` `opposing` `used` `The` `opposing` `Golem's` `rose` `sharply` `used` `Snorlax's` `rose` `sharply` `continues` `to` `fall` `The` `opposing` `was` `hurt` `by` `poison` `HP` `Turn` `The` `opposing` `used` `The` `opposing` `Golem's` `won't` `go` `any` `higher` `is` `paralyzed` `can't` `move` `none` `ended` `The` `opposing` `was` `hurt` `by` `poison` `HP` `Turn` `GYMRUN-715122-SMOKE24` `r22`
