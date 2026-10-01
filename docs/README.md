@@ -49,6 +49,7 @@ editing.
 | [`design/design-bible.md`](design/design-bible.md) | **Permanent.** How every attribute is presented: the thirteen rules, the thirteen glyph families, the encoding table, the surface text budgets, the component canon, the battle turn grammar. Outranks any prompt on presentation | Before changing anything a player looks at |
 | [`design/playtest-log.md`](design/playtest-log.md) | The observations that are allowed to amend the bible. One row per observation, dated, with a tester count | Proposing an amendment, or checking whether one is earned |
 | [`spec/`](spec/) | The prompts and design documents themselves, verbatim | Its README says which are live |
+| [`reports/playloop-diagnosis.md`](reports/playloop-diagnosis.md) | The 2026-10-01 mechanical diagnosis of the playloop as a roguelike: the real loop, where it is strong and flat, and twelve testable hypotheses. A research report, not a prompt | Before proposing any change to what a run offers, rewards or kills |
 
 ### Where two files touch the same fact
 
