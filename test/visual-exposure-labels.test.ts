@@ -10,8 +10,9 @@
  *     Across the surfaces, all ten families are painted somewhere, so none can
  *     ship without its label ever firing. This walk found D41; kept, it would
  *     have found D37's capability glyph too.
- *   - **The classroom (section 7).** Starter select on a fresh store labels
- *     every family it paints, and on an exhausted store labels none. With
+ *   - **The classroom (section 7).** Starter select on a fresh store, after a
+ *     tap fills its detail panel (D78), labels every family it paints, and on
+ *     an exhausted store labels none. With
  *     `GYMRUN_RECORD=1` it writes the screenshot the item's done-when asks the
  *     visual bot for, to `docs/visual/m6.1-starter-first-run.png`.
  */
@@ -67,9 +68,13 @@ describe('the family walk (D41)', () => {
   it('finds every mark reporting its family, and all ten families painted somewhere', async () => {
     const seen = new Set<string>();
     const silent: string[] = [];
-    // SMOKE24 is the census seed; S49B-1's starters carry a priority move, which
-    // no SMOKE24 surface paints.
-    const walks: [GallerySurface, string][] = [...GALLERY_SURFACES.map((surface): [GallerySurface, string] => [surface, 'SMOKE24']), ['starter', 'S49B-1']];
+    /*
+     * SMOKE24 is the census seed, and no SMOKE24 surface paints a priority
+     * move. S49B-1's starters carried one until bible Rev 19 (D78) made their
+     * moves chips, which carry no chevron; PRIO-3's first starter is a Barboach
+     * with Quick Attack, and the party screen draws its four move cards.
+     */
+    const walks: [GallerySurface, string][] = [...GALLERY_SURFACES.map((surface): [GallerySurface, string] => [surface, 'SMOKE24']), ['party', 'PRIO-3']];
     for (const [surface, seed] of walks) {
       const { page, close } = await open(surface, seed, 'exhausted');
       const reading = await readFamilies(page);
@@ -85,6 +90,14 @@ describe('the family walk (D41)', () => {
 describe('the classroom (section 7)', () => {
   it('labels every family starter select paints, on a fresh store', async () => {
     const { page, close } = await open('starter', 'S49B-1', 'fresh');
+    /*
+     * A tap first: since bible Rev 19 (D78, D79) the cards carry move chips
+     * (type, category) and the six stats are the detail panel's, which a tap
+     * fills. Section 7's classroom is type, category and the stats.
+     */
+    await page.locator('.starter').first().click();
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(200);
     const { families } = await readFamilies(page);
     const labelled = await page.evaluate(() =>
       [...new Set([...globalThis.document.querySelectorAll<HTMLElement>('[data-exposure-label]')].map((label) => label.dataset['exposureLabel']))].sort(),
@@ -94,7 +107,7 @@ describe('the classroom (section 7)', () => {
       await page.screenshot({ path: join(process.cwd(), 'docs/visual/m6.1-starter-first-run.png'), fullPage: true });
     }
     await close();
-    expect(families.length, 'the classroom paints the move card families since M6.0').toBeGreaterThanOrEqual(6);
+    expect(families, 'the classroom paints type, category and the stats since D78').toEqual(expect.arrayContaining(['category', 'stat', 'type']));
     expect(labelled).toEqual(families);
     expect(width, 'the labels never push the page sideways').toBeLessThanOrEqual(PHONE.width);
   }, 120_000);

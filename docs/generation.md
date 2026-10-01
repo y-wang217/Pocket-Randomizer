@@ -12089,3 +12089,14 @@ rather than in the prompt:
     by tapping each card in turn (a selection, never a pick), then tap the
     bulkiest and Choose. The coach mark's copy says a tap shows the stats and
     matchups, because "a card is everything there is to know" stopped being true.
+11. **The starter card leaves the pick cards' shared surface.** Stage V0's
+    sibling test held the starter, locale, reward and capture cards to one
+    computed surface. The author asked for the starter screen alone to go a
+    step darker, so the starter's three cards are held alike and the other
+    three kinds keep the shared surface (`test/visual-v0.test.ts`).
+12. **Priority paints on the party screen in the family walk.** S49B-1's
+    starters carried the only priority move the walk saw, on the move cards
+    D78 replaced with chips (which carry no chevron). The walk visits the
+    party screen on `PRIO-3`, whose first starter has Quick Attack. The
+    classroom test taps a card before reading, since the stats are the
+    panel's (`test/visual-exposure-labels.test.ts`).
