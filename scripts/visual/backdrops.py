@@ -33,6 +33,13 @@ centre ring replaced by the circle's own cream stone; each banner's ball
 becomes a diamond, the mark the map entrances' banners already wear. The other
 sixteen backdrops carry no Poke Ball (checked at 5.0/5) and are untouched.
 
+**The opening painting** (`--opening`,
+`docs/spec/gymrun-patch-opening-world.md`): one 1024x1536 painting,
+converted as a map backdrop is but at twice the grid (544x816) and 64
+colours, because it covers the whole viewport rather than the map's column,
+from `stage5.0-starter-backdrop.webp` to `src/ui/assets/backdrops/opening.png`,
+the World behind the frame before the first region.
+
 Tooling, not the game: it needs Pillow (`pip install pillow`), which nothing in
 the build or the test suite imports. Re-run it when the art changes.
 """
@@ -45,6 +52,7 @@ REGIONS = ('gym', 'cave', 'shore', 'summit', 'city', 'forest', 'ruins', 'marsh',
 OUT = os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'ui', 'assets', 'backdrops', 'battle')
 
 MAP_NATIVE = (272, 408)
+OPENING_NATIVE = (544, 816)
 LOCALES = ('cave', 'shore', 'summit', 'city', 'forest', 'ruins', 'marsh', 'badlands')
 MAP_OUT = os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'ui', 'assets', 'backdrops', 'map')
 
@@ -133,7 +141,14 @@ def main() -> None:
     parser.add_argument('source', help='directory holding stage5.0-battle-backdrop-<region>.webp')
     parser.add_argument('--colors', type=int, default=48)
     parser.add_argument('--map', action='store_true', help='convert the map backdrops instead')
+    parser.add_argument('--opening', action='store_true', help='convert the opening painting instead')
     args = parser.parse_args()
+    if args.opening:
+        source = os.path.join(args.source, 'stage5.0-starter-backdrop.webp')
+        target = os.path.join(os.path.dirname(MAP_OUT), 'opening.png')
+        convert(source, max(args.colors, 64), OPENING_NATIVE).save(target, optimize=True)
+        print(f'opening: {os.path.getsize(target)} bytes')
+        return
     kind, names, out, native = ('map', LOCALES, MAP_OUT, MAP_NATIVE) if args.map else ('battle', REGIONS, OUT, NATIVE)
     os.makedirs(out, exist_ok=True)
     for region in names:

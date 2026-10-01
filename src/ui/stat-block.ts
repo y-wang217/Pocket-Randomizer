@@ -32,6 +32,15 @@
  * rules on them with M7.1's evidence, and a density change stays a stylesheet
  * change rather than a re-render.
  *
+ * ## Numbers, at rest, and no bar
+ *
+ * **Bible Rev 20, R13, D81 and D82.** The stats are vital information: on the
+ * face, as numbers, on every call site, never behind a fold or a press. The
+ * bar is retired (*"bars suck. replace bars with the stat numbers proper"*),
+ * so a cell is the mark and the number and nothing else. The starter detail
+ * panel's `numbers` option (D79) is gone with it, because every call site is
+ * that call site now.
+ *
  * ## What it does not do
  *
  * No sort, no conditional emphasis, no total, no marker on the largest number.
@@ -41,7 +50,7 @@
  * order is `STAT_ORDER`, which is Showdown's, so a number a player learns here
  * is in the place they will look for it during a fight.
  */
-import { STAT_BAR_CEILING, STAT_ORDER, statInfo } from '../data/statInfo';
+import { STAT_ORDER, statInfo } from '../data/statInfo';
 import { el } from './dom';
 import { glyphNode } from './theme/glyph';
 
@@ -64,12 +73,13 @@ export interface StatBlockOptions {
    */
   tutorial?: string;
   /**
-   * The numbers at rest. **Bible Rev 19, D79.** The one-face stylesheet hides
-   * `.stat__value` everywhere, the number one press away on the label; the
-   * starter detail panel is the one call site that shows it, because the pick
-   * there turns on a number (Speed) a bar cannot be read to.
+   * The swap's stat change. **Bible Rev 20, D84.** The incoming Pokemon's six
+   * numbers, on a member card the capture offer would release: each cell
+   * carries `incoming - value` beside its own number, signed, green up and
+   * red down, zero rendering nothing. All six, on every member card, never
+   * one: R10's permit, and the colour says the sign again, never who to drop.
    */
-  numbers?: boolean;
+  against?: StatValues;
 }
 
 /**
@@ -81,7 +91,7 @@ export interface StatBlockOptions {
  * what keeps it from becoming a second source of truth about a Pokemon.
  */
 export function statBlock(values: StatValues, options: StatBlockOptions = {}): HTMLElement {
-  const root = el('div', `stats stats--${options.layout ?? 'grid'}${options.numbers ? ' stats--numbers' : ''}`);
+  const root = el('div', `stats stats--${options.layout ?? 'grid'}`);
   if (options.tutorial) root.dataset['tutorial'] = options.tutorial;
 
   for (const stat of STAT_ORDER) {
@@ -118,21 +128,21 @@ export function statBlock(values: StatValues, options: StatBlockOptions = {}): H
     label.tabIndex = 0;
     label.setAttribute('role', 'button');
 
-    /*
-     * **Both, always, in every mode. Patch 4.7.2, ruling 3.** The number and
-     * the bar are both rendered and `[data-density]` on the root decides what
-     * is shown, which is what lets a mode change reach a card already on
-     * screen without anything re-rendering it.
-     */
+    // The number, at rest (R13). The bar it sat beside is retired (D82).
     const number = el('span', 'stat__value');
     number.textContent = String(value);
+    row.append(label, number);
 
-    const bar = el('span', 'stat__bar');
-    const fill = el('span', 'stat__bar-fill');
-    fill.style.width = `${Math.min(100, (value / STAT_BAR_CEILING) * 100)}%`;
-    bar.append(fill);
-
-    row.append(label, number, bar);
+    if (options.against) {
+      const change = (options.against[stat] ?? 0) - value;
+      if (change !== 0) {
+        const delta = el('span', `stat__delta stat__delta--${change > 0 ? 'up' : 'down'}`);
+        delta.textContent = change > 0 ? `+${change}` : `\u2212${-change}`;
+        delta.setAttribute('aria-label', `${info?.label ?? stat} ${change > 0 ? 'rises' : 'falls'} by ${Math.abs(change)}`);
+        row.dataset['change'] = change > 0 ? 'up' : 'down';
+        row.append(delta);
+      }
+    }
     root.append(row);
   }
   return root;

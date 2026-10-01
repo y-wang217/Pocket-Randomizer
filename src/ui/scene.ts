@@ -62,6 +62,8 @@ import { spriteFigure, spriteImg, spriteUrl } from './sprites';
 import { itemIcon, pokeballSprite } from './slots';
 import { SCENES } from './theme/scenes';
 import { glyphNode } from './theme/glyph';
+import { applyBackdrop } from './assets/manifest';
+import { statBlock } from './stat-block';
 import type { MoveTag } from '../data/moveTags';
 import { MOVE_FACT_COLUMN, MOVE_FACT_COLUMNS, MOVE_FACT_INFO, MOVE_FACT_OWN_SLOT, moveFactAriaLabel, type StripFactId } from '../data/moveFactInfo';
 import type { MoveFact } from '../core/moveFacts';
@@ -135,6 +137,15 @@ interface SidePanel {
   root: HTMLElement;
   name: HTMLElement;
   level: HTMLElement;
+  /**
+   * The six stats, at rest, on the player's side only. **Bible Rev 20, D83.**
+   *
+   * The stats are vital (R13), and the author asked for them *"ideally in the
+   * battle screen too"*. Empty and hidden on the foe's panel, whose numbers
+   * stay on its long press (D18): the stage has room for one stat row over
+   * the bodies, and the one asked for is the player's own.
+   */
+  stats: HTMLElement;
   /**
    * How much of this side is still standing, on the foe panel only.
    *
@@ -914,8 +925,11 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   root.tabIndex = 0;
   root.setAttribute('role', 'button');
 
-  root.append(roster, header, hp.root, meta, chips);
-  return { root, name, level, roster, priority, types, hp, hpText, status, volatiles, traits, item, itemGhost, stages };
+  const stats = el('div', 'panel__stats');
+  stats.hidden = kind === 'foe';
+
+  root.append(roster, header, hp.root, meta, chips, stats);
+  return { root, name, level, stats, roster, priority, types, hp, hpText, status, volatiles, traits, item, itemGhost, stages };
 }
 
 /**
@@ -1084,7 +1098,17 @@ function updateSidePanel(
     `${isFoe ? 'Opposing ' : ''}${active.species}, ${levelAria(active.level, active.gender)}`,
   );
   panel.root.dataset['tip'] = `stats:${active.species}`;
-  panel.root.dataset['detail'] = statDetail(active);
+  const detail = statDetail(active);
+  /*
+   * The player's six numbers at rest (D83), redrawn only when the body or its
+   * numbers change: a level-up mid-run and a switch are the two that do.
+   */
+  if (!isFoe && panel.root.dataset['detail'] !== detail) {
+    const values: Record<string, number> = { hp: active.hp.max };
+    for (const stat of BOOSTABLE_STATS) values[stat] = active.stats[stat].base;
+    panel.stats.replaceChildren(statBlock(values, { layout: 'row' }));
+  }
+  panel.root.dataset['detail'] = detail;
 
   panel.types.replaceChildren(...active.types.map((type) => panelTypeChip(type)));
 
@@ -2838,6 +2862,12 @@ export interface WorldScene {
   setLocale(locale: LocaleId | null): void;
   /** The locale the art currently shows, or null. */
   current(): LocaleId | null;
+  /**
+   * Whether the opening painting shows while no locale does. **Bible Rev 20,
+   * D87.** The app turns it on for the two screens before the first region,
+   * the starter and the region picker, whose page was otherwise flat.
+   */
+  setOpening(on: boolean): void;
   destroy(): void;
 }
 
@@ -2850,8 +2880,18 @@ function prefersReducedMotion(): boolean {
 export function createWorldScene(follow: HTMLElement | null = document.documentElement): WorldScene {
   const root = el('div', 'world');
   root.setAttribute('aria-hidden', 'true');
-  // Empty until a region arrives.
+  // Empty until a region arrives, or the opening painting is asked for.
   root.hidden = true;
+  /*
+   * **The opening painting. Bible Rev 20, D87.** The author's painting of the
+   * clearing the run sets out from, with the whole world beyond it, filling
+   * the page behind the frame before any region's layers do. One element
+   * under the layers, through the manifest like every backdrop; a locale's
+   * layers replace it rather than drawing over it.
+   */
+  const opening = el('div', 'world__opening');
+  applyBackdrop(opening, 'opening-backdrop');
+  let openingOn = false;
   const far = el('div', 'world__layer world__layer--far');
   const mid = el('div', 'world__layer world__layer--mid');
   const near = el('div', 'world__layer world__layer--near');
@@ -2865,7 +2905,12 @@ export function createWorldScene(follow: HTMLElement | null = document.documentE
    */
   const weather = el('div', 'world__weather');
   const scrim = el('div', 'world__scrim');
-  root.append(far, mid, near, weather, scrim);
+  root.append(opening, far, mid, near, weather, scrim);
+  const show = (): void => {
+    root.hidden = !locale && !openingOn;
+    if (!locale && openingOn) root.dataset['opening'] = 'true';
+    else delete root.dataset['opening'];
+  };
 
   let locale: LocaleId | null = null;
   let reduced = prefersReducedMotion();
@@ -2911,7 +2956,7 @@ export function createWorldScene(follow: HTMLElement | null = document.documentE
       locale = next;
       reduced = prefersReducedMotion();
       root.dataset['locale'] = next ?? '';
-      root.hidden = !next;
+      show();
       if (!next) {
         far.replaceChildren();
         mid.replaceChildren();
@@ -2940,6 +2985,10 @@ export function createWorldScene(follow: HTMLElement | null = document.documentE
       mid.style.transform = '';
       near.style.transform = '';
       onScroll();
+    },
+    setOpening(on) {
+      openingOn = on;
+      show();
     },
     destroy() {
       observer?.disconnect();

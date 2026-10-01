@@ -26,23 +26,23 @@ the three density columns this table carried are one.
 | starter | 29 | 20 | 38 |
 | locale | 12 | 3 | 9 |
 | map | 18 | 9 | 23 |
-| battle | 15 | 6 | 27 |
+| battle | 15 | 6 | 30 |
 | result | 11 | 2 | 4 |
-| result-capture | 49 | 40 | 47 |
-| target | 61 | 52 | 58 |
+| result-capture | 49 | 40 | 65 |
+| target | 61 | 52 | 76 |
 | replace | 24 | 15 | 25 |
-| party | 26 | 17 | 20 |
-| pre-gym | 12 | 3 | 6 |
+| party | 26 | 17 | 38 |
+| pre-gym | 12 | 3 | 24 |
 | shop | 26 | 17 | 29 |
 | event | 63 | 54 | 54 |
 | result-relic | 21 | 12 | 16 |
 | shop-relic | 26 | 17 | 32 |
-| drawer | 25 | 16 | 19 |
+| drawer | 25 | 16 | 37 |
 | map-drawer | 29 | 20 | 34 |
 | confirm-replace | 28 | 19 | 29 |
-| confirm-forfeit | 69 | 60 | 66 |
+| confirm-forfeit | 69 | 60 | 84 |
 | summary | 363 | 337 | 410 |
-| log-sheet | 145 | 136 | 157 |
+| log-sheet | 145 | 136 | 160 |
 
 ## Per component
 

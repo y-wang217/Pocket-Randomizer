@@ -163,7 +163,7 @@ function renderDetail(detail: SpecCard): HTMLElement[] {
   const name = el('h3', 'starter-detail__name');
   name.textContent = detail.species;
 
-  const stats = statBlock({ ...detail.baseStatsAtLevel, hp: detail.maxHp }, { numbers: true });
+  const stats = statBlock({ ...detail.baseStatsAtLevel, hp: detail.maxHp });
 
   const rows = [
     coverageRow('effective', STARTER_LABELS.effective, moveCoverage(detail.moves)),

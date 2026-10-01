@@ -55,7 +55,8 @@ import { setProse } from './dom';
 import { createOverlay } from './overlay';
 import { DRAWER_BAG_HEADING, DRAWER_COPY } from './copy/screens';
 import { itemById } from '../data/items';
-import { renderSlots } from './slots';
+import { itemIcon, renderSlots } from './slots';
+import { itemCopy } from '../data/itemCopy';
 import { memberCardContents } from './member-card';
 
 export interface DrawerView {
@@ -214,6 +215,34 @@ export function createDrawer(): Drawer {
           view.bag.capacity,
         );
         bag.append(heading, slots);
+        /*
+         * **The bag listed at rest. Bible Rev 20, R13 and D81.** The hotbar's
+         * cells said nothing until long-pressed (*"more ui on the bag. the
+         * click to open sucks"*); a carried item's name and effect line are
+         * vital, so every item is also a row of sprite, name and effect line,
+         * in the hotbar's order. The press still opens the same `item:` tip.
+         */
+        if (view.bag.loose.length > 0) {
+          const list = el('ul', 'drawer__items');
+          for (const id of view.bag.loose) {
+            const entry = itemById(id);
+            const row = el('li', 'drawer__item');
+            const icon = el('span', 'drawer__item-icon');
+            icon.append(itemIcon(id));
+            icon.setAttribute('aria-hidden', 'true');
+            const name = el('span', 'drawer__item-name');
+            name.textContent = entry?.name ?? id;
+            name.dataset['tip'] = `item:${id}`;
+            name.tabIndex = 0;
+            name.setAttribute('role', 'button');
+            const effect = el('span', 'drawer__item-effect');
+            // The berry's lifetime with it, as the party screen's row says it.
+            effect.textContent = entry ? `${itemCopy(entry.id)}${entry.consumable ? ' Used up when it fires.' : ''}` : '';
+            row.append(icon, name, effect);
+            list.append(row);
+          }
+          bag.append(list);
+        }
         if (view.bag.tms.length > 0) {
           const tms = el('ul', 'drawer__tms');
           for (const move of view.bag.tms) {

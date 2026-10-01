@@ -11,7 +11,9 @@
  * is a placeholder. **The nine battle backdrops are art since 5.0/2**
  * (`docs/spec/gymrun-stage5.0-battle-backdrops.md`), and **the eight map
  * backdrops since 5.0/4** (`docs/spec/gymrun-stage5.0-map-backdrops.md`),
- * converted from the author's paintings by `scripts/visual/backdrops.py`.
+ * converted from the author's paintings by `scripts/visual/backdrops.py`, and
+ * **the opening painting**, the World before the first region, since Bible
+ * Rev 20, D87 (`docs/spec/gymrun-patch-opening-world.md`).
  * **Every icon is art since 5.0/5** (`docs/spec/gymrun-stage5.0-rulings-stage5.md`),
  * drawn on its native grid by `scripts/visual/icons.py`. No placeholder is
  * left; each entry keeps its letter, which is what a file that fails to
@@ -95,6 +97,8 @@ export type Asset = Placeholder | ArtFile;
 
 export const NATIVE = {
   mapBackdrop: { width: 272, height: 408 },
+  /** Twice the map's grid: it covers the viewport behind the frame (D87). */
+  openingBackdrop: { width: 544, height: 816 },
   battleBackdrop: { width: 224, height: 136 },
   node: { width: 8, height: 8 },
   capability: { width: 8, height: 8 },
@@ -152,6 +156,14 @@ const mapBackdrop = (id: LocaleId): ArtFile => ({
   tone: 'colour',
 });
 
+/** The World's painting before the first region. Rev 20, D87. */
+const openingBackdrop: ArtFile = {
+  kind: 'file',
+  file: 'backdrops/opening.png',
+  native: NATIVE.openingBackdrop,
+  tone: 'colour',
+};
+
 /** An icon's drawing, since 5.0/5, with the letter it falls back to. */
 const icon = (file: string, native: NativeSize, tone: Tone, letter: string): ArtFile => ({
   kind: 'file',
@@ -164,6 +176,7 @@ const icon = (file: string, native: NativeSize, tone: Tone, letter: string): Art
 export type AssetKey =
   | `map-backdrop:${LocaleId}`
   | `battle-backdrop:${LocaleId | 'gym'}`
+  | 'opening-backdrop'
   | `node:${NodeKind}`
   | `capability:${Capability}`
   | `relic:${RelicId}`
@@ -178,6 +191,7 @@ function build(): ReadonlyMap<AssetKey, Asset> {
     entries.push([`battle-backdrop:${locale.id}`, battleBackdrop(locale.id)]);
   }
   entries.push(['battle-backdrop:gym', battleBackdrop('gym')]);
+  entries.push(['opening-backdrop', openingBackdrop]);
   for (const [kind, letter] of Object.entries(NODE_LETTERS) as [NodeKind, string][]) {
     entries.push([`node:${kind}`, icon(`glyphs/node-${kind}.png`, NATIVE.node, 'mask', letter)]);
   }

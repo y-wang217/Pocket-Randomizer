@@ -12234,3 +12234,123 @@ What the checks found:
     ([`spec/gymrun-stage5.0-rulings-stage5.md`](spec/gymrun-stage5.0-rulings-stage5.md)
     and [`spec/gymrun-stage5.0-rulings-slot-grids.md`](spec/gymrun-stage5.0-rulings-slot-grids.md))
     say §92 and are left as filed; they mean this section.
+
+## 94. Stats at rest, the map's later rows, the locale card as a peek
+
+**2026-10-01.** [`spec/gymrun-patch-r22-stats-at-rest-and-map.md`](spec/gymrun-patch-r22-stats-at-rest-and-map.md),
+bible Rev 20 (D81 to D86), on `claude/sleepy-dijkstra-tp2176`. The author's
+observation is in [`design/playtest-log.md`](design/playtest-log.md). No version
+axis moves and no seeded output changes: nothing under `core/` or `data/` is
+touched, so `contentHash` is unchanged. `STAT_BAR_CEILING` in
+`data/statInfo.ts` has no reader now; it is left in place because deleting it
+would move `contentHash` for a dead constant, and goes with the next data pass.
+
+The author took no questions on this one. Where the build reads the message
+rather than following it, the reading is in the spec file and here:
+
+1. **R13 is a carve-out, not a repeal.** Words stay budgeted as section 4
+   says; the six stats are vital by the author's word, and a carried item's
+   name and effect line by the session's reading of *"the click to open
+   sucks"*, recorded as a reading in R13 so a ruling can take it back alone.
+2. **The bars are gone from the component, not hidden.** `statBlock` draws
+   the mark and the number and nothing else, at every call site; the starter
+   panel's `numbers` option (D79) went with them, and the panel draws the same
+   cells a size up.
+3. **The foe's battle panel keeps its six on the long press (D18).** The
+   message asked for Litten's stats on the battle screen; the stage has room
+   over the bodies for one stat row, and the foe's numbers were already a
+   press away. R13 names this as its one exception and section 9 carries the
+   bet.
+4. **The swap's stat change is on every member card, not on the offer.** At a
+   full party the offer could replace any of six, so the change is drawn on
+   each member card: that member's six numbers, and beside each the signed
+   difference the incoming Pokemon would make in that slot, green up, red
+   down, zero unmarked. The archetype chip leaves those cards with the
+   numbers' arrival, as section 3's Archetype row says. With room to spare
+   nothing is replaced and nothing is drawn.
+5. **Later map rows keep their facts on the press, not nowhere.** *"Revealed
+   once it's time to make a decision in that node"* read literally would take
+   the tier and requirement off the long press too. That is the first fact the
+   UI would withhold after the run has drawn it, which is C2 and a CLAUDE.md
+   invariant, so it is the author's ruling to make, not a reading. The kind
+   glyph's press on a later row says the tier and the requirement in words.
+6. **"The map buttons ... ideally hidden"** is read as the nodes' chrome: the
+   heavy black ring is gone, the disc is a soft token with a shadow, a size
+   down on later and walked rows, and the row being chosen from is the one
+   with a ring, in the selection colour with a glow. The gym rail keeps its
+   sideways scroll and draws no scrollbar. The step numbers stay, lighter.
+7. **The bag's controls are one tap away, the item is not.** The party
+   screen's backpack rows are tiles: sprite, name and effect line at rest, two
+   to a line. A tap on the item opens its give and discard controls, one row
+   at a time; at rest, six species names on each of eight rows was a screen of
+   buttons (measured at the worst case: the backpack alone ran past 1,200px).
+   The read-only bag (the Bag tab, and the Team tab mid-fight) lists each item
+   under the hotbar with the same three facts.
+8. **The locale card is the crop, full-bleed**, the name and the four chips
+   each on a plate of the raised surface at 78%.
+9. **The drawer's member cards go two-up**, as the party screen's have since
+   the density patch. Six single-column heads, each with its stat row, ran the
+   drawer's sheet to 966px inside 796 at the worst case; two-up it is 796 in
+   796, and `test/visual-pocket.test.ts`'s overlay gate holds unchanged.
+10. **The stat mark is `--text-dim`, a step darker than the faint label it
+    was beside a bar.** The cell's own tint is a step darker than the card,
+    and the battle panel's stat label read 3.35 against the 3.56 floor on
+    every locale (`visual-v1`, `visual-v3`). No floor moved.
+11. **The current map node's token is 40px**, the disc's old outer size, so
+    the map's decision row is where `docs/visual/baseline/heights.json`
+    recorded it; a 42px first cut moved both edges by a pixel.
+12. **`test/visual-stat-bars.test.ts` measures the numbers now**, with the
+    bars it measured gone. It keeps its name because the 4.7.2 record cites
+    it, and asks the same of the number it asked of the fill: a painted box on
+    all six rows of an unopened card, carrying the label's value, and no bar.
+    `test/visual-one-face.test.ts`'s first case is rewritten from *"six bars
+    per block and no number on screen"* to six numbers per card, unopened,
+    and no bar. `test/party-stats.test.ts` swaps its two bar-width cases for
+    the head-not-fold case and the swap's sign case.
+13. **The census moved only in its first-run column**, which gates nothing
+    (D44). The steady-state words on every surface are unchanged: the item
+    names are proper nouns, and the bag's two effect lines are R13's, excluded
+    by `VITAL_SLOTS` in `scripts/visual/census.ts`. The first-run column rose
+    by 18 on the party, pre-gym, drawer, target, capture and forfeit surfaces
+    and by 3 on battle and the log sheet, because the stat family's exposure labels now paint
+    on surfaces where the stat block used to be folded or absent. R7 holds
+    them to two visits.
+14. **Gates, this container.** Type check, lint, build, the 150-file unit
+    suite and the smoke run pass. The browser half passes except
+    `test/visual-chips.test.ts`, whose 600-step sweep times out at 900s here;
+    it times out identically on `main` at `2b6b48c` in the same container, so
+    it is the container's speed rather than this change. Measured and not
+    gated: at the gallery's worst case the party screen scrolls inside the
+    frame (1,018px in 749) and the capture card at a full party does too
+    (947 in 749). `test/visual-pocket.test.ts` reads the document's height,
+    which the frame's own scroller has hidden since 5.0/1, so it passes
+    without seeing either. Recorded rather than ruled.
+
+## 95. The opening painting, behind the frame
+
+**2026-10-01.** [`spec/gymrun-patch-starter-backdrop.md`](spec/gymrun-patch-starter-backdrop.md)
+and [`spec/gymrun-patch-opening-world.md`](spec/gymrun-patch-opening-world.md),
+bible Rev 20, D87, on `claude/sleepy-dijkstra-tp2176`. No version axis moves:
+the drawing is under `src/ui/assets/`, outside `contentHash`.
+
+1. **Built twice.** The first build read *"Add this asset to starter page"* as
+   a scene backdrop inside the frame, behind the starter cards, with a window
+   cut under the blurb to show it (`20a333b`). The author: *"it makes the UI
+   too cluttered"*, and *"my goal is to have an asset fill the whitespace in
+   the background"*. Reverted whole (`21d3715`); the starter screen inside the
+   frame is as it was.
+2. **The World shows it.** `createWorldScene` gains an opening layer under the
+   locale layers and `setOpening`, which the app and the gallery call from the
+   router for the starter screen and the region picker. While no locale is
+   set and the opening is asked for, the World shows the painting and nothing
+   else (no scrim, no drift); a locale's layers replace it, and every other
+   screen with no locale (the summary) keeps the World hidden, as
+   `test/visual-v3.test.ts` holds.
+3. **Converted at twice the map grid.** The page is the viewport, not the
+   map's column, so `scripts/visual/backdrops.py --opening` writes 544x816 at
+   64 colours (155,529 bytes) where a map backdrop is 272x408 at 48; at the
+   map's grid the painting drew at nearly 7x on a 1858px window and read as
+   blocks. Drawn `cover`, its horizon kept in view at 22%.
+4. **The region picker too.** The message names the starter page; the region
+   picker is the other screen before the first region and had the same empty
+   page, so the painting stays up until a region's own World arrives.

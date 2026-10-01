@@ -18,6 +18,7 @@ import { resolveCapability } from '../src/core/capabilities';
 import { nodePayout } from '../src/core/economy';
 import { localeOf, stepsOf, type RunState } from '../src/core/run';
 import { AI_TIER_LABEL, aiTierFor } from '../src/data/ai';
+import { BAND_LABELS } from '../src/data/eventCopy';
 import { KIND_HINTS } from '../src/ui/copy/screens';
 import { deepMapState, openingState } from '../src/ui/gallery-fixtures';
 import { DEFAULT_GRID, slotX } from '../src/ui/map-layout';
@@ -107,18 +108,34 @@ describe('the nodes', () => {
     expect(picked).toEqual([buttons.length - 1]);
   });
 
-  it('gives the step being chosen from the whole card, and every other row the mark, tier and capability', () => {
+  /**
+   * **Later rows at the glyph alone since Bible Rev 20, D85.** The step being
+   * chosen from carries the whole card and a walked row its pips and
+   * chevron; a row not yet reached carries the kind and nothing else at rest,
+   * and its tier and requirement are words on the kind glyph's press.
+   */
+  it('gives the step being chosen from the whole card, walked rows the pips, and later rows the kind alone', () => {
     const state = deepMapState(SEED);
     const root = drawn(state, () => {});
+    let later = 0;
     for (const node of root.querySelectorAll<HTMLElement>('.node')) {
       const current = node.classList.contains('node--current');
+      const upcoming = node.classList.contains('node--upcoming');
       expect(node.querySelector('.node__kind'), 'every node wears its kind').not.toBeNull();
       expect(node.classList.contains(current ? 'node--full' : 'node--compact')).toBe(true);
       if (!current) expect(node.querySelector('.node__detail'), 'the detail line is on the current row only').toBeNull();
-      if ([...node.classList].some((name) => name.startsWith('node--tier-'))) {
-        expect(node.querySelector('.tier-pips'), 'a tiered node on any row shows its pips').not.toBeNull();
+      const tiered = [...node.classList].some((name) => name.startsWith('node--tier-'));
+      if (upcoming) {
+        later += 1;
+        expect(node.querySelector('.node__facts'), 'a later row carries no facts at rest').toBeNull();
+        if (tiered && !node.classList.contains('node--gym')) {
+          expect(node.querySelector<HTMLElement>('.node__kind')?.dataset['detail'], 'the tier is on the press').toMatch(/tier/);
+        }
+      } else if (tiered) {
+        expect(node.querySelector('.tier-pips'), 'a tiered node on a reached row shows its pips').not.toBeNull();
       }
     }
+    expect(later, 'the fixture has later rows to hold the rule against').toBeGreaterThan(0);
   });
 
   it('puts the payout as the currency mark and the AI tier on the face of a current fight', () => {
@@ -180,14 +197,21 @@ describe('the nodes', () => {
     }
   });
 
-  it('keeps the capability chevron at the band resolveCapability returns, on every row (D64)', () => {
+  it('keeps the capability chevron at the band resolveCapability returns, on every reached row (D64, D85)', () => {
     const state = deepMapState(SEED);
     const root = drawn(state, () => {});
     stepsOf(state).forEach((step) =>
       step.options.forEach((node, option) => {
         if (!node.event) return;
-        const gate = root.querySelector(`[data-anchor="${step.index}:${option}"]`)!.closest('.node')!.querySelector('.node__gate');
-        expect(gate?.classList.contains(`node__gate--${resolveCapability(state, node.event.requires)}`)).toBe(true);
+        const element = root.querySelector(`[data-anchor="${step.index}:${option}"]`)!.closest('.node')!;
+        const band = resolveCapability(state, node.event.requires);
+        if (element.classList.contains('node--upcoming')) {
+          // On the press, in the chevron's own words.
+          expect(element.querySelector<HTMLElement>('.node__kind')?.dataset['detail']).toContain(BAND_LABELS[band]);
+          return;
+        }
+        const gate = element.querySelector('.node__gate');
+        expect(gate?.classList.contains(`node__gate--${band}`)).toBe(true);
       }),
     );
   });

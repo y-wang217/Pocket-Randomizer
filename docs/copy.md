@@ -1142,11 +1142,11 @@ Found by grep, not by import: a string assigned straight to `textContent`, `titl
 | `src/ui/seed-bar.ts` line 102 | Start run |  |
 | `src/ui/seed-bar.ts` line 112 | New seed |  |
 | `src/ui/seed-bar.ts` line 117 | Resume saved run |  |
-| `src/ui/scene.ts` line 1240 | Moves first at this Speed |  |
-| `src/ui/scene.ts` line 2363 | BP |  |
-| `src/ui/scene.ts` line 2382 | PP |  |
-| `src/ui/drawer.ts` line 163 | Party |  |
-| `src/ui/drawer.ts` line 191 | Relics |  |
+| `src/ui/scene.ts` line 1263 | Moves first at this Speed |  |
+| `src/ui/scene.ts` line 2386 | BP |  |
+| `src/ui/scene.ts` line 2405 | PP |  |
+| `src/ui/drawer.ts` line 164 | Party |  |
+| `src/ui/drawer.ts` line 192 | Relics |  |
 | `src/ui/header.ts` line 22 | GYMRUN |  |
 | `src/ui/overlay.ts` line 117 | Close |  |
 | `src/ui/screens/shop.ts` line 34 | Shop |  |
@@ -1158,8 +1158,8 @@ Found by grep, not by import: a string assigned straight to `textContent`, `titl
 | `src/ui/screens/party.ts` line 549 | Lead |  |
 | `src/ui/screens/party.ts` line 558 | Release |  |
 | `src/ui/screens/party.ts` line 647 | Backpack |  |
-| `src/ui/screens/party.ts` line 719 | Discard |  |
-| `src/ui/screens/acquisition.ts` line 198 | Take it |  |
+| `src/ui/screens/party.ts` line 734 | Discard |  |
+| `src/ui/screens/acquisition.ts` line 206 | Take it |  |
 | `src/ui/screens/locale-select.ts` line 144 | Choose a region |  |
 | `src/ui/screens/move-replace.ts` line 67 | Learning |  |
 | `src/ui/screens/pre-gym.ts` line 161 | Items |  |
