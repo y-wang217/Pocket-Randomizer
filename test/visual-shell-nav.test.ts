@@ -98,6 +98,16 @@ describe('the tabs are readouts over a pending decision', () => {
     expect(await openScreen(page)).toBe('party');
     expect(await page.locator('[data-nav="team"]').getAttribute('aria-current')).toBe('page');
     expect(await savedLog(page), 'opening the party screen submits nothing').toBe(before);
+
+    // Map from that party screen is the way back to the map, not the readout
+    // over the party screen: its nodes are buttons again.
+    await page.locator('[data-nav="map"]').click();
+    await page.waitForTimeout(150);
+    expect(await openTabScreen(page), 'no readout opens over the party screen').toBeNull();
+    expect(await openScreen(page)).toBe('map');
+    expect(await page.locator('[data-nav="map"]').getAttribute('aria-current')).toBe('page');
+    expect(await page.locator('.screen[data-screen="map"] button.node').count(), 'the map can pick a node').toBeGreaterThan(0);
+    expect(await savedLog(page), 'leaving the party screen submits nothing').toBe(before);
     await context.close();
   }, 600_000);
 });

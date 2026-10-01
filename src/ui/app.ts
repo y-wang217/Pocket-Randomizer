@@ -350,6 +350,18 @@ export function mountApp(root: HTMLElement): void {
    * tab opens the read-only drawer instead. Assigned by `start()`.
    */
   let openPartyRoute: (bag: boolean) => boolean = () => false;
+  /**
+   * Leave the party screen for the map screen it was opened from, the way its
+   * own back control does. Returns false, and leaves everything where it is,
+   * when the party screen was opened from the pre-gym screen or a boundary is
+   * waiting on its answer: there the Map tab opens the readout as it does from
+   * any other decision. Assigned by `start()`.
+   *
+   * Without this the Map tab pressed from the party screen opened the readout
+   * over it, a map whose nodes cannot be pressed, and the only way back to
+   * the real map was the party screen's own control underneath.
+   */
+  let leavePartyForMap: () => boolean = () => false;
 
   nav.onPress((id, button) => {
     const name = router.current();
@@ -370,6 +382,7 @@ export function mountApp(root: HTMLElement): void {
     switch (id) {
       case 'map': {
         if (name === 'map') break;
+        if (name === 'party' && leavePartyForMap()) break;
         const state = readMap();
         if (!state) break;
         mapDrawer.open(state, button);
@@ -1095,6 +1108,12 @@ export function mountApp(root: HTMLElement): void {
       atTeachBoundary = false;
       showParty(name);
       if (bag) partyScreen.root.querySelector('.backpack')?.scrollIntoView?.({ block: 'start' });
+      return true;
+    };
+    leavePartyForMap = () => {
+      if (!live || router.current() !== 'party' || partyReturn !== 'map' || itemPlanPick.isWaiting()) return false;
+      // The plan stays held in `pendingPlan`, exactly as the back control leaves it.
+      showScreen('map');
       return true;
     };
 
