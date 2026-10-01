@@ -106,8 +106,10 @@
      shadows, no backdrop-filter anywhere in the frame. */
   --frame-fill: var(--bg);
   /* The window border: a light rule on the dark frame, where 5.0 drew a dark
-     one on the light frame. */
-  --border-heavy: color-mix(in srgb, var(--cream) 34%, var(--base-surface));
+     one on the light frame. A literal, at 3.6:1 against the surface, so two
+     windows that touch (the HP boxes on a full battle panel) still keep WCAG
+     1.4.11's 3:1 edge between them; `test/visual-backdrop-contrast` reads it. */
+  --border-heavy: #737880;
   /* What a token on a painting casts. Its own token since the palette went
      dark, because it was the heavy border and that is light now. */
   --token-shadow: #000;

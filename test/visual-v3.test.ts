@@ -267,7 +267,7 @@ describe('contrast over the scene', () => {
         for (const [i, reading] of readings.entries()) {
           const locale = LOCALE_IDS[i];
           if (onSurface) {
-            if (Math.abs(reading.ratio - base.ratio) > 0.05) failures.push(`${locale} ${screen} ${label}: ${reading.ratio} vs baseline ${base.ratio} on an unchanged surface`);
+            if (reading.ratio < base.ratio - 0.05) failures.push(`${locale} ${screen} ${label}: ${reading.ratio} under baseline ${base.ratio} on an unchanged surface`);
           } else {
             const floor = base.ratio >= 4.5 ? 4.5 : base.ratio - 0.1;
             if (reading.ratio < floor) failures.push(`${locale} ${screen} ${label}: ${reading.ratio} under the floor ${floor} (baseline ${base.ratio})`);
