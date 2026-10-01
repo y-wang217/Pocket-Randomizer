@@ -167,7 +167,7 @@ export function memberCardContents(
     track,
     meta,
     itemRow(options.holding),
-    statBlock({ ...spec.baseStatsAtLevel, hp: member.maxHp }),
+    statBlock({ ...spec.baseStatsAtLevel, hp: member.maxHp }, { level: spec.level }),
   );
 
   /*

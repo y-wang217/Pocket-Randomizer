@@ -18,14 +18,14 @@ import { join } from 'node:path';
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { describeSpecCard } from '../src/core/battle/driver';
+import { describeSpecCard, statBandAt } from '../src/core/battle/driver';
 import { createRun, chooseStarter, type RunState } from '../src/core/run';
 import { createParty } from '../src/core/party';
 import type { PokemonState } from '../src/core/types';
 import { STAT_ORDER, statInfo } from '../src/data/statInfo';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 import { memberCardContents } from '../src/ui/member-card';
-import { statBlock } from '../src/ui/stat-block';
+import { bandFraction, statBlock } from '../src/ui/stat-block';
 import { resetSettings } from '../src/ui/settings';
 
 function started(): RunState {
@@ -87,16 +87,30 @@ describe('the six stat rows on a member card', () => {
   });
 
   /**
-   * **The numbers at rest, and no bar. Bible Rev 20, R13, D82 and D83.** The
-   * block is on the card's head, not in the fold the moves sit behind, and it
-   * draws no bar for a stylesheet to show or hide.
+   * **The numbers at rest, with the band bar beside them. Bible Rev 20, R13,
+   * D83; Rev 21, D88.** The block is on the card's head, not in the fold the
+   * moves sit behind, and every number has a bar measured against the band
+   * of values that stat takes at the member's level: never in place of the
+   * number.
    */
-  it('puts the six numbers on the head, outside the fold, with no bar', () => {
-    const card = memberCardContents(distinctMember(), { holding: null, tuning: DEFAULT_TUNING });
+  it('puts the six numbers on the head, outside the fold, each with its band bar', () => {
+    const member = distinctMember();
+    const card = memberCardContents(member, { holding: null, tuning: DEFAULT_TUNING });
     const block = card.querySelector('.stats');
     expect(block?.parentElement).toBe(card);
     expect(block?.closest('.collapse__body')).toBeNull();
-    expect(card.querySelectorAll('.stat__bar, .stat__bar-fill')).toHaveLength(0);
+    const rows = [...card.querySelectorAll<HTMLElement>('.stats .stat')];
+    expect(rows).toHaveLength(6);
+    const band = statBandAt(member.spec.level);
+    for (const row of rows) {
+      expect(row.querySelector('.stat__value')?.textContent).not.toBe('');
+      const fill = row.querySelector<HTMLElement>('.stat__bar .stat__bar-fill');
+      expect(fill, `${row.dataset['row']} has a bar`).not.toBeNull();
+      const value = Number(row.querySelector('.stat__value')?.textContent);
+      const range = band[row.dataset['row'] as keyof typeof band];
+      expect(Number(row.dataset['fraction'])).toBeCloseTo(bandFraction(value, range), 3);
+      expect(row.querySelector<HTMLElement>('.stat__label')?.dataset['band']).toBe(`${range.min}-${range.max}`);
+    }
   });
 
   /*

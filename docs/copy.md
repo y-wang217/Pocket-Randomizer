@@ -1142,9 +1142,9 @@ Found by grep, not by import: a string assigned straight to `textContent`, `titl
 | `src/ui/seed-bar.ts` line 102 | Start run |  |
 | `src/ui/seed-bar.ts` line 112 | New seed |  |
 | `src/ui/seed-bar.ts` line 117 | Resume saved run |  |
-| `src/ui/scene.ts` line 1263 | Moves first at this Speed |  |
-| `src/ui/scene.ts` line 2386 | BP |  |
-| `src/ui/scene.ts` line 2405 | PP |  |
+| `src/ui/scene.ts` line 1265 | Moves first at this Speed |  |
+| `src/ui/scene.ts` line 2388 | BP |  |
+| `src/ui/scene.ts` line 2407 | PP |  |
 | `src/ui/drawer.ts` line 164 | Party |  |
 | `src/ui/drawer.ts` line 192 | Relics |  |
 | `src/ui/header.ts` line 22 | GYMRUN |  |
@@ -1175,5 +1175,5 @@ Found by grep, not by import: a string assigned straight to `textContent`, `titl
 | `src/ui/screens/summary.ts` line 150 | The run |  |
 | `src/ui/screens/summary.ts` line 189 | Copy seed |  |
 | `src/ui/screens/summary.ts` line 220 | Copy result |  |
-| `src/ui/screens/starter-select.ts` line 48 | Choose your starter |  |
+| `src/ui/screens/starter-select.ts` line 56 | Choose your starter |  |
 

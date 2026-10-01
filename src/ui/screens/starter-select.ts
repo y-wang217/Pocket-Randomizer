@@ -22,6 +22,14 @@
  *   for 2x or more, and what hits its own typing for more than 1x. Both are
  *   type chart facts against no opponent, in the wheel's order.
  *
+ * **Stage 5.1, bible Rev 21, D88 to D90**
+ * (`docs/spec/gymrun-stage5.1-band-bars-and-starter-fit.md`). The panel moved
+ * from below the cards to **over the selected card's move column** (D89), so a
+ * selection never scrolls, and the card's own tap flips the column between the
+ * panel and the moves, which keeps the moves one tap away (C2). The stat block
+ * carries its band bars (D88). The cards are tightened so three of them, the
+ * heading, the blurb and the Choose control fit a phone without a scroll (D90).
+ *
  * Everything comes from `describeSpecCard` and `core/coverage.ts`, so this
  * file never sees the sim.
  */
@@ -50,14 +58,12 @@ export function createStarterSelect(): StarterSelect {
   setProse(blurb, STARTER_COPY.blurb);
   const grid = el('div', 'starters');
   grid.dataset['tutorial'] = 'starters';
-  const detail = el('section', 'starter-detail');
-  detail.hidden = true;
   const choose = document.createElement('button');
   choose.type = 'button';
   choose.className = 'button primary-action starter-select__choose';
   choose.hidden = true;
 
-  root.append(heading, blurb, grid, detail, choose);
+  root.append(heading, blurb, grid, choose);
 
   return {
     root,
@@ -66,25 +72,38 @@ export function createStarterSelect(): StarterSelect {
       let selected: number | null = null;
       let committed = false;
 
-      const buttons = cards.map((card, index) => renderCard(card, index, () => select(index)));
+      const built = cards.map((card, index) => renderCard(card, index, () => tap(index)));
+      const buttons = built.map((entry) => entry.card);
       grid.replaceChildren(...buttons);
-      detail.replaceChildren();
-      detail.hidden = true;
       choose.hidden = true;
 
-      function select(index: number): void {
+      /*
+       * A tap on another card selects it and opens its panel over its moves;
+       * a tap on the selected card flips that column between the panel and
+       * the moves. Only one card ever carries a panel, so the other two keep
+       * their moves at rest.
+       */
+      function tap(index: number): void {
         if (committed) return;
+        if (selected === index) {
+          const entry = built[index]!;
+          entry.show(entry.card.dataset['view'] === 'detail' ? 'moves' : 'detail');
+          return;
+        }
         selected = index;
-        buttons.forEach((button, i) => button.setAttribute('aria-pressed', String(i === index)));
+        built.forEach((entry, i) => {
+          entry.card.setAttribute('aria-pressed', String(i === index));
+          if (i === index) entry.show('detail');
+          else entry.clear();
+        });
         const card = cards[index]!;
-        detail.replaceChildren(...renderDetail(card));
-        detail.hidden = false;
         choose.textContent = STARTER_LABELS.choose(card.species);
         choose.hidden = false;
         /*
-         * On a phone the panel is below the third card, so the tap that fills
-         * it brings it into view. `nearest`, so a panel already on screen does
-         * not move, and no smooth scroll under reduced motion.
+         * The screen fits a phone at rest and with a selection (D90), so this
+         * is a no-op there. On a frame shorter than the goal it brings the
+         * commit into view. `nearest`, and no smooth scroll under reduced
+         * motion.
          */
         const smooth = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
         choose.scrollIntoView?.({ block: 'nearest', behavior: smooth ? 'smooth' : 'auto' });
@@ -110,7 +129,15 @@ function backdropFor(types: readonly string[]): LocaleId | null {
   return locale ? locale.id : null;
 }
 
-function renderCard(detail: SpecCard, index: number, onSelect: () => void): HTMLElement {
+interface BuiltCard {
+  card: HTMLElement;
+  /** Fill the panel if it is empty, and show the panel or the moves. */
+  show(view: 'detail' | 'moves'): void;
+  /** Empty the panel and show the moves: the card is no longer selected. */
+  clear(): void;
+}
+
+function renderCard(detail: SpecCard, index: number, onTap: () => void): BuiltCard {
   const card = document.createElement('button');
   card.type = 'button';
   card.className = 'starter';
@@ -153,24 +180,41 @@ function renderCard(detail: SpecCard, index: number, onSelect: () => void): HTML
   );
   side.append(meta, moves);
 
-  card.append(figure, scene, header, side);
-  card.addEventListener('click', onSelect);
-  return card;
+  // The panel over the move column (D89): empty and hidden until selected.
+  const panel = el('div', 'starter-detail');
+  panel.hidden = true;
+
+  card.append(figure, scene, header, side, panel);
+  card.dataset['view'] = 'moves';
+  card.addEventListener('click', onTap);
+  return {
+    card,
+    show(view) {
+      if (panel.childElementCount === 0) panel.replaceChildren(...renderDetail(detail));
+      panel.hidden = view !== 'detail';
+      card.dataset['view'] = view;
+    },
+    clear() {
+      panel.replaceChildren();
+      panel.hidden = true;
+      card.dataset['view'] = 'moves';
+    },
+  };
 }
 
-/** The detail panel's contents for one starter. D79 and D80. */
+/**
+ * The detail panel's contents for one starter. D79, D80 and D88. No name
+ * heading: the panel sits on the card that already carries it (D89).
+ */
 function renderDetail(detail: SpecCard): HTMLElement[] {
-  const name = el('h3', 'starter-detail__name');
-  name.textContent = detail.species;
-
-  const stats = statBlock({ ...detail.baseStatsAtLevel, hp: detail.maxHp });
+  const stats = statBlock({ ...detail.baseStatsAtLevel, hp: detail.maxHp }, { layout: 'grid', level: detail.level });
 
   const rows = [
     coverageRow('effective', STARTER_LABELS.effective, moveCoverage(detail.moves)),
     coverageRow('vulnerable', STARTER_LABELS.vulnerable, typeVulnerabilities(detail.types)),
   ].filter((row): row is HTMLElement => row !== null);
 
-  return [name, stats, ...rows];
+  return [stats, ...rows];
 }
 
 /** One coverage row: the label and its type chips. An empty row renders nothing. */

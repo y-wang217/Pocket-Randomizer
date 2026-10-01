@@ -1,6 +1,27 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 20, Oct 1, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 21, Oct 1, 2026.
+
+**Rev 21** carries three amendments, D88 to D90, from the author's message of
+2026-10-01 naming Stage 5.1
+([`../spec/gymrun-stage5.1-band-bars-and-starter-fit.md`](../spec/gymrun-stage5.1-band-bars-and-starter-fit.md)),
+recorded in [`playtest-log.md`](playtest-log.md) the same day. **D88**: the stat
+bar returns beside the number, measured against the **band**: the lowest and
+highest value that stat takes at that Pokemon's level across the species the
+randomizer may field there (*"instead of marking out of 400 or whatever, mark it
+out of the band of possible values for that stat"*). Empty at the band's floor,
+full at its ceiling, one neutral colour, on every call site of the stat block.
+The number stays at rest beside it, so R13 holds: a bar beside its number can be
+read to the number. D82's *"no bar"* is reversed for the banded bar only; the
+flat ceiling it retired stays retired. The message also asked for a gold mark
+on a max IV and outlines for a nature's plus and minus; GYMRUN has no IVs and no
+natures, and the author, asked, took them out (*"build band bars, ignore iv and
+nature"*), so no mark is specified here. **D89**: the starter detail panel opens
+over the selected card's move column rather than below the cards, and the
+selected card's own tap flips between the panel and the moves, so the moves stay
+one tap away (C2). **D90**: the starter screen fits a 390-wide phone with
+Safari's toolbars up without a scroll, three cards and the Choose control
+included; reached by tightening the card, never by dropping a fact.
 
 **Rev 20** carries six amendments, D81 to D86, from the author's message of
 2026-10-01 against production R22
@@ -375,7 +396,7 @@ Enforce: the mapper returns a list; the renderer takes the first by precedence. 
 Forbids: highlighting Atk because the incoming move is Physical; sorting recipients by fit; projected damage on a recipient card.
 Permits: on a swap, every stat's signed difference between the incoming Pokemon and the member it would replace, coloured by its sign, all six on every member card, never one (2026-10-01, D84). The colour says which way a number moved, the same fact the sign says; it never says which member to release.
 Enforce: the recipient and teach screens mount the party stat component unchanged, in party order.
-Amended 2026-10-01 (D82): this rule read *"Bars compare members"*, and the stat block drew glyph, bar and number. The bars are retired by the author's directive, and the rule's substance is unchanged.
+Amended 2026-10-01 (D82): this rule read *"Bars compare members"*, and the stat block drew glyph, bar and number. The bars are retired by the author's directive, and the rule's substance is unchanged. The banded bar returned the same day (D88); it is measured against the band at the Pokemon's own level, never against the other options on the screen, so it compares a number with what that stat can be and not one option with another.
 
 **R11. The log is never rendered at rest.** The battle log lives in the log sheet, reachable by a pull, kept for bug reports and determinism. The battle screen shows the turn header, the panels, the flags and nothing written.
 Forbids: a scrolling log on the battle screen; a text line for turn order.
@@ -390,7 +411,7 @@ One exception, named here so no other is read into it: the opposing battle panel
 Vital today: **the six stats** (the author's word, 2026-10-01), and **a carried item's name and effect line in the bag** (the session's reading of *"the click to open sucks"*, recorded as a reading so a later ruling can take it back without touching the stats).
 Forbids: folding a vital fact; a vital fact as a bar or any other shape that cannot be read to its number; adding a fact to the vital list by a patch.
 Does not permit: a verdict. C1 and C2 outrank this rule. A vital number is an attribute, and nothing about being vital lets a surface rank, sort or emphasise it.
-Enforce: the vital list is this rule's text and nothing else; adding a fact to it is an amendment. A test asserts the stat block renders six numbers on every call site, with no bar and no fold.
+Enforce: the vital list is this rule's text and nothing else; adding a fact to it is an amendment. A test asserts the stat block renders six numbers on every call site, with no fold. Since D88 (2026-10-01) each number has its band bar beside it; the bar is never in place of the number.
 
 ---
 
@@ -439,7 +460,7 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Volatile condition | Three-letter chip, same family and same slot rule as Status, one per condition | None | Full name, effect, from `statusInfo` (2026-09-21, D19) |
 | Ability | Name, in a fixed slot. The one attribute with no glyph and no shorthand: abilities are a pool, not a family | Absent. An unrevealed opponent's renders a `?` in the slot rather than nothing, because held-and-unknown is not the same fact as none | Full text, from `abilityOverrides` (2026-09-21, D19) |
 | Stat stages | Multiplier plus ladder, nonzero only | 0 | Stage count, source |
-| Six stats | Glyph and number, at rest on every surface that carries them (R13). Always all six. Party order. No bar (2026-10-01, D81 and D82; glyph, bar, number from Rev 1 to Rev 19) | Never hidden | Stat definition |
+| Six stats | Glyph, number and band bar, at rest on every surface that carries them (R13). Always all six. Party order. The bar is empty at the band's floor and full at its ceiling: the lowest and highest value the stat takes at this Pokemon's level across the species the randomizer may field there. One neutral colour, never a colour by fraction (2026-10-01, D88; glyph and number under D81 and D82; glyph, bar against a flat ceiling, number from Rev 1 to Rev 19) | Never hidden | Stat definition, and the band at this level |
 | Stat change (capture card, on a swap) | On each member card, beside each of the six numbers, the signed difference the incoming Pokemon would make in that slot, green when it rises, red when it falls. All six, every member, party order (2026-10-01, D84) | Zero renders nothing; no swap (room in the party) renders no row | The stat's definition, and both numbers |
 | Held item | Item sprite in a fixed slot. In the bag's list, the sprite, the name and the effect line, at rest (R13, 2026-10-01, D81) | Empty slot renders nothing | Name, one effect line |
 | Berry | Berry sprite, same slot | Empty slot renders nothing | Name, trigger condition (the one place a sentence survives) |
@@ -482,7 +503,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Locale card | 0 | Locale name plus four type chips |
 | Locale screen | 4 | The instruction (2026-09-22, D32) |
 | Starter card | 0 plus the ability name | Species name, ability name. The moves are move chips; the stats are the detail panel's stat block (2026-10-01, D78; move cards and the block on the card under D40, 2026-09-23) |
-| Starter detail panel | 5 | The two coverage labels and the *Choose* control. The stat block is glyphs and numbers (2026-10-01, D79 and D80) |
+| Starter detail panel | 5 | The two coverage labels and the *Choose* control. The stat block is glyphs, numbers and band bars (2026-10-01, D79, D80 and D88). The panel sits over the selected card's move column (D89) |
 | Pre-gym screen | 4 | Gym leader name, type chip, "Choose lead" |
 | Confirm overlay (replace) | 6 | "Replace Tackle with Fire Punch?" |
 | Confirm overlay (decline) | 6 | "Forfeit this reward?", and the band's two controls (2026-09-21, D22) |
@@ -593,7 +614,7 @@ One component per attribute cluster. A screen mounts components; it never draws 
 |---|---|---|
 | Move card | Name, type chip, category glyph, BP, PP, band pips, accuracy, priority, describeMove icon strip | `moveFacts` (seven card surfaces; starter select added 2026-09-23, D40) and `renderMove` (battle button). Two call sites is the accepted shape; a third is an amendment |
 | Move chip | Name, type chip, category glyph, BP | Replacement and teach lists, and the starter card (2026-10-01, D78) |
-| Stat block | Six cells of glyph and number, at rest, no bar (2026-10-01, D82; glyph, bar, number until then). On a swap, each cell carries the stat change beside its number (D84) | Party row (out of the fold, D83), recipient, capture (the offered card, and every member card on a swap, D84), pre-gym, the starter detail panel (D79), and the battle panel on the player's side (D83) |
+| Stat block | Six cells of glyph, number and band bar, at rest (2026-10-01, D88; no bar under D82; glyph, bar against a flat ceiling, number until then). The band is the Pokemon's level's, read off the species pool and the stat formula, never drawn. On a swap, each cell carries the stat change beside its number (D84) | Party row (out of the fold, D83), recipient, capture (the offered card, and every member card on a swap, D84), pre-gym, the starter detail panel (D79), and the battle panel on the player's side (D83) |
 | Pokemon panel | Name, level, gender, HP bar and number, status chips, volatile chips, ability name, stat stage ladder, item sprite, priority chevron (2026-09-19, D6; volatiles and ability 2026-09-21, D19), and on the player's side the stat block (2026-10-01, D83) | Battle |
 | Party row | Species, level, gender, HP bar and number, status chips, ability name, item sprite, the stat block at rest (2026-10-01, D83), four move cards, which fold | Drawer, party screen, pre-gym, teach target, **capture card** (call sites corrected 2026-09-21; ability, gender and the block, D19 and M3.2; **cards not chips**, D21a re-ruled 2026-09-21; capture added 2026-09-22, D29, and M5.4 is the item that makes it true; the map rail call site removed with the map's party HUD, 2026-09-30) |
 | Type chip | Glyph in colour | Everywhere a type appears |
@@ -709,6 +730,8 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | The foe's stats on the press are enough (2026-10-01, D83) | A tester long-presses the opposing panel most turns, or asks what the opponent's Speed is before a move | The foe's panel carries the same stat row at rest, and the stage gives up a line for it |
 | The stat change reads as a fact, not a pick (2026-10-01, D84) | A tester releases the member with the most green, or says the colours told them who to drop | The colours go and the signs stay, as the coverage rows' do |
 | The map's later rows lose nothing at the glyph alone (2026-10-01, D85) | A tester routes toward a node two or more steps ahead and is surprised by its tier or its requirement, or long-presses most later nodes before every pick | The tier pips return to later rows, and the chevron stays on the press |
+| The band bar reads as a fact, not a rating (2026-10-01, D88) | A tester picks the starter or keeps the member with the fullest bars and says the bars told them to, or reads a full bar as "best" rather than as the top of what that stat can be at this level | The bars go and the numbers stay, as under D82, and the band moves to the stat glyph's inspect |
+| The starter detail over the moves loses nothing (2026-10-01, D89) | A tester commits a starter without having seen its moves after selecting it, or asks where the moves went | The panel returns below the cards, and the screen gives up the no-scroll goal (D90) for it |
 | The starter coverage rows read as facts, not a pick (2026-10-01, D80) | A tester says a starter is the one to take because its row is longer, or picks by row length into a gym it loses to | The rows move to the type chips' inspect, and the panel keeps the stat block alone |
 | Event screen holds at 59 words (2026-09-22, D33; was 40) | Rejigged events with four reward tiers need more than two lines to state requirement and choice | Requirement moves to the map node glyph; prompt shrinks |
 | The map's later rows lose nothing (2026-09-30, D63; the pips and chevron off later rows 2026-10-01, D85) | A tester routes toward a node two or more steps ahead and is surprised by what it paid or how its opponent played, or long-presses more than half the later nodes before every pick | The detail line returns to every row that fits it, and the map drops a row of chrome to make the room |

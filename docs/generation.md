@@ -12354,3 +12354,79 @@ the drawing is under `src/ui/assets/`, outside `contentHash`.
 4. **The region picker too.** The message names the starter page; the region
    picker is the other screen before the first region and had the same empty
    page, so the painting stays up until a region's own World arrives.
+
+## 96. Stage 5.1: band bars, the starter detail over the moves, a starter screen without a scroll
+
+**2026-10-01.** [`spec/gymrun-stage5.1-band-bars-and-starter-fit.md`](spec/gymrun-stage5.1-band-bars-and-starter-fit.md),
+bible Rev 21, D88 to D90, on `claude/level-15-stat-bars-layout-s8s0ma`.
+Presentation only: no version axis moves, no data table changes, and
+`contentHash` is unmoved. The band reads `data/speciesPools.ts`,
+`data/evolution.ts` and `data/blacklists.ts`, which `core/` already imported.
+
+1. **The natures and IVs in the message do not exist, and were not built.**
+   The message assumed *"the stats have boosted values based on nature and
+   ivs"* and asked for a gold mark on a max IV and red and blue outlines for a
+   nature's plus and minus. Every GYMRUN Pokemon is Serious with 31 IVs and 0
+   EVs, so the gold would sit on all six stats of every Pokemon and the
+   outlines would never paint. Adding them is a generation change
+   (`RANDOMIZER_VERSION`, balance), so the session asked before any code; the
+   author: *"build band bars, ignore iv and nature."* Nothing about natures,
+   IVs or outlines is in the tree or the bible.
+2. **The band.** `statBandAt(level)` in `core/battle/driver.ts` (the adapter,
+   because it reads base stats off the dex) walks `SPECIES_POOL` in pool
+   order, keeps the entries `bandedSpeciesPool` would admit at that level
+   (`stageAllowedAt` and not blacklisted), runs each base stat through
+   `statsAtLevel`, and keeps the min and max per stat. No draw, so no stream
+   key and no RNG consumed; cached per level. At level 15: HP 32 to 86
+   (Diglett, Wobbuffet), Atk 11 to 48, Def 11 to 78 (Shuckle), SpA 12 to 50,
+   SpD 15 to 78 (Shuckle), Spe 11 to 48. A level-15 Munchlax's 70 HP is 70%
+   of its band, which is the author's example; `test/stat-band.test.ts` pins
+   it.
+3. **The band is min to max, not a percentile.** The literal reading of
+   *"the band of possible values"*. The cost is Shuckle: its Def and SpD set
+   the ceiling, so a typical Def bar sits near a fifth. Clipping the band to a
+   percentile would make an outlier's bar leave its track, and the band would
+   stop being what the press says it is. Recorded rather than ruled; a later
+   ruling can cut the ceiling.
+4. **Every stat block, not just the starter's.** D82 retired the bar from the
+   one component, so the bar came back to the one component: the party card,
+   the player's battle panel, the opponent's long press, the capture card
+   (offered and every member on a swap), the evolution fork and the starter
+   panel, each at its own Pokemon's level. The number is never replaced by the
+   bar (R13). The opponent's press takes its level off the panel's new
+   `data-level`. The stat glyph's press adds one line,
+   `STAT_BAND_COPY.line`: *"At level 15, the pool runs 32 to 86."*
+   `STAT_BAR_CEILING` in `data/statInfo.ts`, the flat 200 the old bars were
+   drawn against and unread since D82, is deleted: the band replaces it.
+5. **The panel over the moves.** The starter detail panel moved into each
+   card, in the move column's grid cell above the moves, which keep their box
+   under it (`visibility: hidden`), so opening the panel never moves a card's
+   edges unless the panel is taller than the moves. A tap on another card
+   selects it and opens its panel; a tap on the selected card flips between
+   the panel and the moves (C2); a card that loses the selection empties its
+   panel. The species name heading the old panel carried is gone: the card
+   under the panel carries it. Inside the panel the stat block is two columns
+   of three (HP, Atk, Def; SpA, SpD, Spe), each a row of glyph, bar and
+   number, and the coverage labels sit in a column beside their chips.
+6. **No scroll, measured.** At 390x700 (an iPhone with Safari's toolbars up)
+   the frame is 605px. Before: 678px at rest and 970px with a selection, the
+   panel below the third card. After: the author's seed and nine others fit at
+   rest and with each of the three cards selected. Tightened to get there: one
+   line per move with the name ellipsised (the chip's press carries it), a
+   smaller scene and figure (64px and 56px), a narrower left column, a
+   smaller blurb face, smaller gaps, and the ability chip's tracking removed
+   so *Embody Aspect (Hearthflame)* stays on one line. **The known miss:** a
+   starter whose two coverage rows both run past five chips (Snover on
+   `GYMRUN-12-LLLL`) grows its card by about 20px when selected and the
+   screen scrolls 11px at 700 tall. On a first run, the exposure labels put
+   words in the type chips for two visits per family, and those visits will
+   scroll; section 4 budgets the steady state, and so does this goal.
+7. **Gates, this container.** Type check, lint, build, the smoke run, the
+   151-file node suite (2,000 tests) and the same under strict trim pass. The
+   browser half passes except `test/visual-chips.test.ts`, whose 600-step
+   sweep hit its 900s hook timeout, the same container timeout §94 recorded on
+   `main`; it was not re-run against `main` this session. The text census
+   re-ran with no change. `test/visual-starter-fit.test.ts` is new and holds
+   item 6 on the author's seed; `test/visual-stat-bars.test.ts` measures each
+   painted fill against its declared fraction again, the 4.7.2 promise back
+   with the bar.

@@ -108,6 +108,11 @@
   --highlight: #f4c83f;
   --selected: #2f6fd6;
   --disabled: #9aa2ad;
+  /* The stat block's band bar (bible Rev 21, D88): one neutral colour at
+     every fraction, never a colour by how full it is, and a track a step
+     darker than the cell it sits in. */
+  --stat-bar: #3d74c9;
+  --stat-bar-track: color-mix(in srgb, var(--border-heavy) 22%, transparent);
   /* A window's toned fill, a step below the cream. Bible Rev 19, D78: the
      starter screen's cards and detail panel, the author's "make it darker". */
   --panel-fill: color-mix(in srgb, var(--base-deep) 84%, var(--border-heavy));

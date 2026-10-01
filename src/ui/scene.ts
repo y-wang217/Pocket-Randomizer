@@ -1098,6 +1098,7 @@ function updateSidePanel(
     `${isFoe ? 'Opposing ' : ''}${active.species}, ${levelAria(active.level, active.gender)}`,
   );
   panel.root.dataset['tip'] = `stats:${active.species}`;
+  panel.root.dataset['level'] = String(active.level);
   const detail = statDetail(active);
   /*
    * The player's six numbers at rest (D83), redrawn only when the body or its
@@ -1106,7 +1107,7 @@ function updateSidePanel(
   if (!isFoe && panel.root.dataset['detail'] !== detail) {
     const values: Record<string, number> = { hp: active.hp.max };
     for (const stat of BOOSTABLE_STATS) values[stat] = active.stats[stat].base;
-    panel.stats.replaceChildren(statBlock(values, { layout: 'row' }));
+    panel.stats.replaceChildren(statBlock(values, { layout: 'row', level: active.level }));
   }
   panel.root.dataset['detail'] = detail;
 

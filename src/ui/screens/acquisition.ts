@@ -371,7 +371,7 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
     header,
     meta,
     // The shared stat block, six across, as the starter card draws it. M3.2, D20.
-    statBlock({ ...detail.baseStatsAtLevel, hp: detail.maxHp }, { layout: 'row' }),
+    statBlock({ ...detail.baseStatsAtLevel, hp: detail.maxHp }, { layout: 'row', level: detail.level }),
     moves,
   );
   return card;
@@ -439,7 +439,7 @@ function renderExisting(
     header,
     track,
     meta,
-    statBlock({ ...detail.baseStatsAtLevel, hp: member.maxHp }, { layout: 'row', against }),
+    statBlock({ ...detail.baseStatsAtLevel, hp: member.maxHp }, { layout: 'row', against, level: detail.level }),
   );
 
   if (full) {

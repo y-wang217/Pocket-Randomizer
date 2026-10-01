@@ -1,6 +1,7 @@
 /**
  * The six stat numbers, measured where they are painted. **Patch 4.7.2; the
- * bars retired at Bible Rev 20, D82.**
+ * bars retired at Bible Rev 20, D82, and back against the band at Rev 21,
+ * D88.**
  *
  * This file measured the six stat *bars*: the 4.7.2 bug was a fill whose
  * declared width never became a pixel, invisible to every DOM check. The bars
@@ -8,6 +9,12 @@
  * one asked of the number: on the party screen's first member card, unopened,
  * each of the six rows paints a non-empty number box, and the number painted
  * is the value the label carries for the long press.
+ *
+ * Since D88 each number has a bar beside it again, measured against the band
+ * that stat takes at the member's level, and the 4.7.2 promise comes back
+ * with it: a fill whose declared width never becomes a pixel is the bug this
+ * file was written for, so each fill's painted width is measured against the
+ * fraction the row declares.
  *
  * The name is kept because the documents that record the 4.7.2 bug cite it,
  * and the bug's class is still guarded generally by
@@ -31,6 +38,9 @@ afterAll(async () => {
 
 interface Row {
   label: string;
+  fraction: number | null;
+  track: number;
+  fill: number;
   value: number | null;
   labelled: number | null;
   width: number;
@@ -47,8 +57,12 @@ async function statRows(page: Page, screen: string): Promise<Row[]> {
       const box = value ? value.getBoundingClientRect() : null;
       const text = (value?.textContent ?? '').trim();
       const labelled = (row.querySelector('.stat__label') as HTMLElement | null)?.dataset['value'];
+      const fraction = (row as HTMLElement).dataset['fraction'];
       return {
         label: (row.querySelector('.stat__label-long')?.textContent ?? '').trim(),
+        fraction: fraction === undefined ? null : Number(fraction),
+        track: row.querySelector('.stat__bar')?.getBoundingClientRect().width ?? 0,
+        fill: row.querySelector('.stat__bar-fill')?.getBoundingClientRect().width ?? 0,
         value: text === '' ? null : Number(text),
         labelled: labelled === undefined ? null : Number(labelled),
         width: box?.width ?? 0,
@@ -60,7 +74,6 @@ async function statRows(page: Page, screen: string): Promise<Row[]> {
 
 describe('the party screen stat numbers', () => {
   let rows: Row[];
-  let bars = -1;
 
   beforeAll(async () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
@@ -80,7 +93,6 @@ describe('the party screen stat numbers', () => {
     }
     // No tap: the numbers are on the card's head since D83.
     rows = await statRows(page, 'party');
-    bars = await page.locator(`${visible('party')} .stat__bar, ${visible('party')} .stat__bar-fill`).count();
     await context.close();
   }, 600_000);
 
@@ -106,7 +118,12 @@ describe('the party screen stat numbers', () => {
     expect(rows.map((row) => row.value)).toEqual(rows.map((row) => row.labelled));
   });
 
-  it('draws no bar', () => {
-    expect(bars).toBe(0);
+  it('paints each band bar to the fraction its row declares (D88)', () => {
+    for (const row of rows) {
+      expect(row.fraction, `${row.label} declares a fraction`).not.toBeNull();
+      expect(row.track, `${row.label} paints a track`).toBeGreaterThan(8);
+      // The fill keeps a 2px floor so an empty bar is still seen as a bar.
+      expect(row.fill, row.label).toBeCloseTo(Math.max(2, row.track * row.fraction!), 0);
+    }
   });
 });
