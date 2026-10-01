@@ -12312,7 +12312,7 @@ rather than following it, the reading is in the spec file and here:
     names are proper nouns, and the bag's two effect lines are R13's, excluded
     by `VITAL_SLOTS` in `scripts/visual/census.ts`. The first-run column rose
     by 18 on the party, pre-gym, drawer, target, capture and forfeit surfaces
-    and by 3 on battle, because the stat family's exposure labels now paint
+    and by 3 on battle and the log sheet, because the stat family's exposure labels now paint
     on surfaces where the stat block used to be folded or absent. R7 holds
     them to two visits.
 14. **Gates, this container.** Type check, lint, build, the 150-file unit
