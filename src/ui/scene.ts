@@ -42,7 +42,7 @@ import {
  * `docs/generation.md` section 55 records it for whoever next has reason to
  * edit that file.
  */
-import type { ActiveUiView, BattleUiView, MoveUiView } from '../core/battle/view';
+import type { ActiveUiView, BattleUiView, BenchMoveUiView, MoveUiView, SwitchUiView } from '../core/battle/view';
 import type { LocaleId } from '../data/locales';
 import { createBar, type Bar } from './bar';
 import { outroHoldMs } from './theme/motion';
@@ -1752,6 +1752,26 @@ function renderMoves(
   container.replaceChildren(
     ...view.moves.map((move) => renderMove(move, view.awaitingChoice, cause, onChoose)),
   );
+  markSuper(container, view.moves);
+}
+
+/**
+ * Light the super effective move and grey the damaging moves beside it.
+ * **The effectiveness emphasis patch, bible D91.**
+ *
+ * The flag goes on the container and the stylesheet does the rest, off the
+ * `data-effect` and `data-damaging` each move already carries. It is set only
+ * while a usable move is super effective: with none, nothing is greyed and
+ * the bar reads as it did before D91, so a neutral move is never marked on
+ * its own (R4). A move with no PP left is not counted, because lighting a
+ * move the player cannot press would grey the ones they can.
+ */
+function markSuper(
+  container: HTMLElement,
+  moves: readonly { band: string | null; usable?: boolean }[],
+): void {
+  if (moves.some((move) => move.band === 'super' && move.usable !== false)) container.dataset['hasSuper'] = 'true';
+  else delete container.dataset['hasSuper'];
 }
 
 /**
@@ -1818,7 +1838,7 @@ function benchLabel(view: BattleUiView): string {
 }
 
 function renderBenchMember(
-  member: SwitchView,
+  member: SwitchUiView,
   view: BattleUiView,
   onChoose: (choice: Choice) => void,
 ): HTMLElement {
@@ -1875,10 +1895,47 @@ function renderBenchMember(
   // The body, at the row's right, phased by slot. Idle-sprites patch. Built
   // from the view's species, as every other fact on this row is.
   button.append(spriteFigure(member.species, { phase: member.slot }), name, level, types, bar.root, meta);
+  const forecast = benchForecast(member.forecast);
+  if (forecast) button.append(forecast);
   button.addEventListener('click', () => onChoose(switchChoice(member.slot)));
   return button;
 }
 
+/**
+ * A benched member's damaging moves, forecast against the Pokemon on the
+ * field. **The effectiveness emphasis patch, bible D92.**
+ *
+ * The move button's vocabulary at a row's size: the move's type chip, the
+ * multiplier beside it when it is not neutral, the edge in the forecast's
+ * family, lit and greyed by the same rule as the bar (D91), per member. A
+ * status move has no forecast and is left out: the row says what each move
+ * would do to what is standing there, and a status move's answer is not a
+ * multiplier.
+ *
+ * **Inert, for the reason the type chips above are.** The whole row is the
+ * switch, and a tipped chip inside it is a dead patch of that control. The
+ * names and the full interaction are on the party screen's move cards.
+ *
+ * No row is lit as a whole and the rows keep party order: the forecast is per
+ * move, never a verdict on the member (R10, and section 9's D92 bet).
+ */
+function benchForecast(forecast: readonly BenchMoveUiView[]): HTMLElement | null {
+  const damaging = forecast.filter((move) => move.band !== null);
+  if (damaging.length === 0) return null;
+  const row = el('span', 'bench__moves');
+  for (const move of damaging) {
+    const cell = el('span', 'bench__move');
+    cell.dataset['damaging'] = 'true';
+    if (move.band && move.band !== 'neutral') cell.dataset['effect'] = move.band;
+    cell.setAttribute('aria-label', `${move.name}: ${EFFECTIVENESS_LABELS[move.band ?? 'neutral']}`);
+    cell.append(typeChip(move.type));
+    const label = move.band === 'neutral' ? null : effectivenessFraction(move.effectiveness);
+    if (label && move.band) cell.append(effectChip(label, move.band));
+    row.append(cell);
+  }
+  markSuper(row, damaging);
+  return row;
+}
 
 function renderMove(
   move: MoveUiView,
@@ -2037,6 +2094,9 @@ function renderMove(
    * that does is read because the others do not.
    */
   if (move.band && move.band !== 'neutral') button.dataset['effect'] = move.band;
+  // A damaging move is one the bar can grey (D91). A status move has no type
+  // effectiveness, so it is never greyed: that would claim a fact it lacks.
+  if (move.band !== null) button.dataset['damaging'] = 'true';
 
   // Both halves: this is the one surface that knows the remaining count, and
   // section 3 dims the max rather than dropping it.

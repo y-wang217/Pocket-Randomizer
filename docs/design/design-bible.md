@@ -23,8 +23,9 @@ greyed). R8 is amended from "on the move button" to "on a move the player can
 use from this board". It is still a fact about the present board: the bench
 row says what each move would do to what is standing there now, never which
 member to send. No row is lit as a whole and the rows keep party order (R10).
-**D93**: one coach mark on the battle screen says what the lit and greyed moves
-mean and that the switch pane shows the same. It states the fact; it never says
+**D93**: the battle screen's move-button coach mark says what the lit and
+greyed moves mean and that the switch pane shows the same, folded into that mark
+rather than added, under the author's cap of seventeen marks. It states the fact; it never says
 what to do (section 8).
 
 **Rev 21** carries three amendments, D88 to D90, from the author's message of
