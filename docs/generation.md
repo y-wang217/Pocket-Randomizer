@@ -12148,3 +12148,16 @@ What the checks found:
     and the request count is unchanged (17 PNGs, all backdrops, each fetched
     when its screen first shows). The gym backdrop is 138 bytes smaller in the
     build. The backdrops, already in, are 633,202 bytes.
+13. **Three text-contrast readings were measuring glyphs, and the drawings
+    exposed it.** Since patch 4.10.1 (D46) the map's `.node__label` (current
+    and upcoming) and the battle header's `.screen__title` each hold a node mark
+    and no text. `scripts/visual/contrast.mjs` and `test/visual-field.test.ts`
+    read them as text, taking the most common colour in the box as the
+    background. The SVG marks covered under half their box and passed by
+    accident. The 8px drawings are mostly ink, so the ink became the
+    "background" and the reading fell to 1.2 on every locale, with nothing on
+    screen changed but the mark (`visual-v3`, 24 failures; `visual-field`,
+    five). **No floor moved.** The three selectors leave the contrast list,
+    because a glyph is not a text style, and `visual-field` reads the
+    header's words (`.battle__header .screen__blurb`), which is what it
+    meant. The node's words stay guarded as `node detail`.

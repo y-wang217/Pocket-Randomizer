@@ -37,17 +37,24 @@ export const STYLES = {
     ['.map__region-name', 'region name'],
     // The party HUD left the map in 5.0/4; the wallet stayed, in the heading.
     ['.map__wallet', 'wallet'],
-    ['.step--current .node__label', 'node label'],
+    /*
+     * **Stage 5.0/5**: no `.node__label` and no battle `.screen__title`. Since
+     * patch 4.10.1 (D46) each holds a node mark and no text, so a text reading
+     * of them is the mark's ink against its own box. The SVG marks covered
+     * under half the box and read as text on a background by accident; the
+     * 8px drawings are mostly ink, and the reading fell to 1.2 with nothing on
+     * screen changed but the mark. A glyph is not a text style, so they leave
+     * the list. The node's words are `node detail`; the battle header's are
+     * `battle blurb`.
+     */
     ['.step--current .node__detail', 'node detail'],
     ['.step--current .tier', 'tier chip'],
-    ['.step--upcoming .node__label', 'upcoming node label'],
     ['.map__region .type', 'type chip'],
     ['.rail__label', 'rail label'],
     ['.step__marker', 'step marker'],
     ['.threats__summary', 'threat summary'],
   ],
   battle: [
-    ['.screen__title', 'battle title'],
     ['.screen__blurb', 'battle blurb'],
     ['.panel__name', 'panel name'],
     ['.panel__level', 'panel level'],
