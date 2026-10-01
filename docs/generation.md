@@ -12130,8 +12130,11 @@ What the checks found:
     grid already sit about 107px apart at 390 and 103px at 375. Pulling the
     outer slots in far enough to clear the art makes those cards overlap,
     which breaks the decision row to fix the scenery. Two outcomes of the plan
-    conflict here, so it goes to the author with options (the report's "For
-    the reviewer") instead of being traded in a commit.
+    conflict here, so it went to the author with options instead of being
+    traded in a commit. **Ruled the same day, option 1**
+    ([`spec/gymrun-stage5.0-rulings-slot-grids.md`](spec/gymrun-stage5.0-rulings-slot-grids.md)):
+    a known difference; `BACKDROP_GRIDS` stays empty, and a repaint with a
+    wider clearing is how it reopens.
 11. **Nothing on the battle stage is drawn on bare art** (item 7). Every text
     and every glyph on the stage sits on an HP box, an opaque panel, so the
     backdrop cannot move a text reading. `test/visual-backdrop-contrast.test.ts`
