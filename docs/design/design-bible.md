@@ -1,6 +1,37 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 19, Oct 1, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 20, Oct 1, 2026.
+
+**Rev 20** carries six amendments, D81 to D86, from the author's message of
+2026-10-01 against production R22
+([`../spec/gymrun-patch-r22-stats-at-rest-and-map.md`](../spec/gymrun-patch-r22-stats-at-rest-and-map.md)),
+recorded in [`playtest-log.md`](playtest-log.md) the same day. The message
+fires R6's row in section 9 a second time, on every surface rather than the
+starter screen (*"i can't see litten's stats in any page"*), and the author
+asked for the rule rather than the row's remedy: *"amend a new rule that
+number of words must be limited as usual EXCEPT for vital information, of
+which the stats is key."* **D81**: a new rule, **R13, vital information is
+shown, not budgeted**. A vital fact is at rest on every surface that carries
+it and never counts against section 4; the stats are vital by the author's
+word, and a carried item's name and effect line by the session's reading,
+which a later ruling can take back alone. **D82**: the bars are retired
+(*"bars suck"*). The stat block is glyph and number, and R10 reads *numbers*
+where it read *bars*. **D83**: the party row's stat block is at rest, out of
+the fold, and the battle panel on the player's side carries it; the
+opponent's does not, because its numbers are not facts the player holds.
+**D84**: on a swap, the capture card's party list carries each member's stat
+block with the signed difference the swap would make, green up and red down,
+all six, never one: section 3 gains a *Stat change* row, R10 permits it, and
+section 9 carries the bet against C1. **D85**: on the map's graph a row
+other than the one being chosen from carries the node glyph and nothing else
+at rest (*"show the node type ... but not the sub heading"*); the tier pips
+and the capability chevron are on the glyph's long press with the rest of the
+card, so C2 holds by inspect. Withholding them from the press as well is not
+taken: it would be the first fact the UI holds back after the run has drawn
+it, and that is a C2 ruling the author has not made. The node's disc loses
+its ring off the chosen row. **D86**: the locale card is the crop of its map
+backdrop, full-bleed, the name and the type chips each on a semi-opaque plate
+over it (D72 put the crop where the swatch stood).
 
 **Rev 19** carries three amendments, ruled 2026-10-01 by the author on rows
 D78 to D80, from an observation recorded in
@@ -284,9 +315,9 @@ Engineering constraints that this document assumes and does not restate: `core/`
 
 ---
 
-## 1. Twelve rules
+## 1. Thirteen rules
 
-Each rule: the rule, what it forbids, how it is enforced. Rules are numbered by priority. When two conflict, the lower number wins.
+Each rule: the rule, what it forbids, how it is enforced. Rules are numbered by priority. When two conflict, the lower number wins, with one exception: R13 is a carve-out from R2, R3, R6 and section 4, and on a vital fact it wins over them (2026-10-01, D81).
 
 **R1. Position encodes identity.** Every attribute has one fixed slot on every surface where it appears. Base power is in the same corner of a battle button, a reward card, a TM card, a party row chip and a confirm overlay.
 Forbids: moving an attribute between surfaces; a "compact variant" that reorders slots.
@@ -316,7 +347,7 @@ Amended 2026-09-25 (the docked sheet patch). The rule read *"Release closes"* an
 **R6. The default face is the compact face.** What a card shows at rest is the compact encoding in section 3. The full version is what inspect opens, not what a setting enables.
 Forbids: shipping two card faces; a setting that adds words to a card at rest.
 **One face, no density setting** (2026-09-30, D50). The card face this document specifies is the Pocket face, and it is the only face: Simple and Detailed are retired and the setting is deleted, not hidden. Whether a secondary fact sits behind a tap is ruled per surface, in section 4 and section 5, never by a setting. No retirement removes a fact: anything Simple or Detailed showed at rest is on the face or one long press away.
-Amended 2026-09-30 (D50). This rule read: *"Simple and Detailed stay for one validation cycle and are retired if the disconfirmer in section 9 does not fire"*, with a validation cycle defined (2026-09-19, D11) as two rounds of the section 10 protocol, three testers each. The author ruled the cycle done on a full playthrough of their own and the outside tester's QA passes of 2026-09-29 and 2026-09-30, with the disconfirmer not observed. That is fewer testers than D11's definition, and [`playtest-log.md`](playtest-log.md) records it as it was. Section 9's *"numbers on stats"* fallback stays available if a later tester asks for all numbers always visible.
+Amended 2026-09-30 (D50). This rule read: *"Simple and Detailed stay for one validation cycle and are retired if the disconfirmer in section 9 does not fire"*, with a validation cycle defined (2026-09-19, D11) as two rounds of the section 10 protocol, three testers each. The author ruled the cycle done on a full playthrough of their own and the outside tester's QA passes of 2026-09-29 and 2026-09-30, with the disconfirmer not observed. That is fewer testers than D11's definition, and [`playtest-log.md`](playtest-log.md) records it as it was. Section 9's *"numbers on stats"* fallback stays available if a later tester asks for all numbers always visible. **Taken past the fallback 2026-10-01 (D81)**: the stats are R13's, at rest everywhere, and no setting returns.
 
 **R7. The first exposure carries the label, the tenth does not.** The first time a glyph family appears for this player, a small label renders beside it for that screen. The label returns once more on the third exposure, then never. Exposure count persists across runs in the settings store, beside the tutorial flags.
 Forbids: permanent labels on glyphs; shipping a glyph family that never gets a label.
@@ -330,9 +361,11 @@ Enforce: the forecast comes from the core effectiveness helper, which reads the 
 Forbids: stacking flags on one hit; a flag for a cause.
 Enforce: the mapper returns a list; the renderer takes the first by precedence. Precedence order lives in `data/tuning.ts`. Note: recoil, drain and multi-hit fired zero times over 699 measured battles and are not in the vocabulary. Add a flag kind only from measurement.
 
-**R10. Bars compare members, never options.** Six stats as glyph, bar and number across party members is an attribute readout. Emphasising the stat that matches the current decision is a verdict.
+**R10. Numbers compare members, never options.** Six stats as glyph and number across party members is an attribute readout. Emphasising the stat that matches the current decision is a verdict.
 Forbids: highlighting Atk because the incoming move is Physical; sorting recipients by fit; projected damage on a recipient card.
+Permits: on a swap, every stat's signed difference between the incoming Pokemon and the member it would replace, coloured by its sign, all six on every member card, never one (2026-10-01, D84). The colour says which way a number moved, the same fact the sign says; it never says which member to release.
 Enforce: the recipient and teach screens mount the party stat component unchanged, in party order.
+Amended 2026-10-01 (D82): this rule read *"Bars compare members"*, and the stat block drew glyph, bar and number. The bars are retired by the author's directive, and the rule's substance is unchanged.
 
 **R11. The log is never rendered at rest.** The battle log lives in the log sheet, reachable by a pull, kept for bug reports and determinism. The battle screen shows the turn header, the panels, the flags and nothing written.
 Forbids: a scrolling log on the battle screen; a text line for turn order.
@@ -341,6 +374,12 @@ Forbids: a scrolling log on the battle screen; a text line for turn order.
 **R12. If a concept cannot be encoded without a sentence, restructure the concept.** Applies to the coverage line, the decline copy, the item effect line, and any future readout.
 Forbids: adding a sentence to a card because the concept was hard to draw.
 Enforce: the amendment process. A proposed sentence at rest is an amendment, not a patch.
+
+**R13. Vital information is shown, not budgeted** (2026-10-01, D81). Words stay limited as section 4 says, **except for vital information**. A vital fact is on the face at rest, on every surface that carries it, as numbers where it is a number, and never behind a fold, a setting or a press. It is never counted against a section 4 budget, and a surface's budget binds only the words that are not vital.
+Vital today: **the six stats** (the author's word, 2026-10-01), and **a carried item's name and effect line in the bag** (the session's reading of *"the click to open sucks"*, recorded as a reading so a later ruling can take it back without touching the stats).
+Forbids: folding a vital fact; a vital fact as a bar or any other shape that cannot be read to its number; adding a fact to the vital list by a patch.
+Does not permit: a verdict. C1 and C2 outrank this rule. A vital number is an attribute, and nothing about being vital lets a surface rank, sort or emphasise it.
+Enforce: the vital list is this rule's text and nothing else; adding a fact to it is an amendment. A test asserts the stat block renders six numbers on every call site, with no bar and no fold.
 
 ---
 
@@ -389,19 +428,20 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Volatile condition | Three-letter chip, same family and same slot rule as Status, one per condition | None | Full name, effect, from `statusInfo` (2026-09-21, D19) |
 | Ability | Name, in a fixed slot. The one attribute with no glyph and no shorthand: abilities are a pool, not a family | Absent. An unrevealed opponent's renders a `?` in the slot rather than nothing, because held-and-unknown is not the same fact as none | Full text, from `abilityOverrides` (2026-09-21, D19) |
 | Stat stages | Multiplier plus ladder, nonzero only | 0 | Stage count, source |
-| Six stats | Glyph, bar, number. Always all six. Party order | Never hidden | Stat definition |
-| Held item | Item sprite in a fixed slot | Empty slot renders nothing | Name, one effect line |
+| Six stats | Glyph and number, at rest on every surface that carries them (R13). Always all six. Party order. No bar (2026-10-01, D81 and D82; glyph, bar, number from Rev 1 to Rev 19) | Never hidden | Stat definition |
+| Stat change (capture card, on a swap) | On each member card, beside each of the six numbers, the signed difference the incoming Pokemon would make in that slot, green when it rises, red when it falls. All six, every member, party order (2026-10-01, D84) | Zero renders nothing; no swap (room in the party) renders no row | The stat's definition, and both numbers |
+| Held item | Item sprite in a fixed slot. In the bag's list, the sprite, the name and the effect line, at rest (R13, 2026-10-01, D81) | Empty slot renders nothing | Name, one effect line |
 | Berry | Berry sprite, same slot | Empty slot renders nothing | Name, trigger condition (the one place a sentence survives) |
 | Relic | Relic icon, from the asset manifest, in the relic row and on the relic card. On the card, the capability glyph it satisfies sits beside it, the map node's glyph without its chevron (2026-09-30, D65 and D66) | None | Name, capability it satisfies, effect |
 | Coverage (starter detail) | Two rows of type chips after their labels: the types the selected starter's damaging moves hit for 2x or more, and the types that hit its typing for more than 1x. Type chart only, type wheel order, never sorted by anything else (2026-10-01, D80) | An empty row renders nothing | The type chip's own inspect: its matchups |
 | Coverage change (capture card) | Two rows of type chips, plus row and minus row, signs only. The signs are permanent, not an exposure label: coverage is not a glyph family (2026-09-19, D5) | Empty row renders nothing | The full before and after sets |
-| Capability requirement (map node) | Capability glyph plus band chevron (none, latent, known) | None | Capability name, what satisfies it |
-| Tier (map node) | Tier pips, reward-tier pips | None | Tier definition |
+| Capability requirement (map node) | Capability glyph plus band chevron (none, latent, known), on the step being chosen from and on walked steps. A later row carries neither at rest (2026-10-01, D85) | None | Capability name, what satisfies it; on a later row, on the node glyph's press |
+| Tier (map node) | Tier pips, reward-tier pips, on the step being chosen from and on walked steps. A later row carries neither at rest (2026-10-01, D85) | None | Tier definition; on a later row, on the node glyph's press |
 | Field state (weather, terrain) | Field glyph at 16 on the battle screen header; the battle backdrop's wash and terrain tint behind the stage. Turns remaining are never shown (2026-09-25, D47; 2026-09-30, D60) | None: the locale's own backdrop, no glyph | Name and effect line, from `fieldCopy`; under suppression, which ability holds it off |
 | Coin amount (payout, price, wallet, coins card) | Currency glyph beside the bare number (2026-09-30, D54) | Never hidden | The word *coins*, and what the amount buys or pays |
 | Shop shelf (map node) | How many items, as a bare number, and the cheapest price as a coin amount (2026-09-30, D77) | Never hidden on the step being chosen from | The shelf line: how many are on the shelf, and from what price |
 | Node kind (map node, battle header) | Kind glyph. A gym's leader name beside it, a proper noun, is the identity and not the kind (2026-09-25, D46) | Never hidden | The kind's hint, from `KIND_HINTS` |
-| Archetype | Not rendered where the stat bars already draw it (4.8.0.3) | Absent | Not on inspect either; it is a derived label and can lie under randomization |
+| Archetype | Not rendered where the stat block already draws the six numbers (4.8.0.3; bars until D82) | Absent | Not on inspect either; it is a derived label and can lie under randomization |
 
 Disappears from every default view: field labels, type names, category words, accuracy at 100, priority at 0, item names, the coverage sentence, the battle log.
 
@@ -421,7 +461,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Restore reward card | 0 | **None** — `+N%` beside a bar filled to N. What it restores (HP, PP, status, the whole party) is an inspect fact (2026-09-30, D66) |
 | Recipient / teach target card | 0 | Species name |
 | Party row and party drawer | 0 plus the ability name | Species name, nickname, ability name (2026-09-21, D19) |
-| Pokemon battle panel | 0 plus the ability name | Name, nickname, ability name (2026-09-21, D19) |
+| Pokemon battle panel | 0 plus the ability name | Name, nickname, ability name (2026-09-21, D19). The player's side carries the stat block, glyphs and numbers (2026-10-01, D83) |
 | Flag strip (battle) | 1 flag per hit, plus 1 non-hit kind per side | The one flag R9 allows, and the second channel (2026-09-21, D23 and D24) |
 | Battle screen header | 3 | Opponent, AI tier, and section 6's turn header, `Turn` and its number (2026-09-30, D58); the kind is the node glyph (2026-09-25, D46; was 4 under D28, 2026-09-21). The field glyph is a glyph and costs nothing (2026-09-25, D47) |
 | Backdrop behind the stage | 0 | None. The field state is a wash and a tint, never a word (2026-09-25, D47; the backdrop, not the world, 2026-09-30, D60) |
@@ -443,6 +483,8 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Summary and graveyard | Unbudgeted | Archive surfaces; complete outcome in the first screenful |
 
 The event screen is the only decision surface where prose is load-bearing. Everything else reaches zero sentences.
+
+**Vital facts are not counted** (2026-10-01, D81). R13's vital list, the six stats and a carried item's name and effect line in the bag, is outside every row in this table. A surface carrying them is measured on its other words only.
 
 **Budgets bind the steady state** (2026-09-23, D44). R7's exposure labels are on a surface for two visits per family and then never again, so the census measures every surface with every family's labels already used up, and records the first-run face in a separate column that gates nothing.
 
@@ -540,9 +582,9 @@ One component per attribute cluster. A screen mounts components; it never draws 
 |---|---|---|
 | Move card | Name, type chip, category glyph, BP, PP, band pips, accuracy, priority, describeMove icon strip | `moveFacts` (seven card surfaces; starter select added 2026-09-23, D40) and `renderMove` (battle button). Two call sites is the accepted shape; a third is an amendment |
 | Move chip | Name, type chip, category glyph, BP | Replacement and teach lists, and the starter card (2026-10-01, D78) |
-| Stat block | Six rows of glyph, bar, number | Party drawer, recipient, capture, pre-gym, and the starter detail panel, the one call site whose numbers are at rest (2026-10-01, D79) |
-| Pokemon panel | Name, level, gender, HP bar and number, status chips, volatile chips, ability name, stat stage ladder, item sprite, priority chevron (2026-09-19, D6; volatiles and ability 2026-09-21, D19) | Battle |
-| Party row | Species, level, gender, HP bar and number, status chips, ability name, item sprite, the stat block, four move cards | Drawer, party screen, pre-gym, teach target, **capture card** (call sites corrected 2026-09-21; ability, gender and the block, D19 and M3.2; **cards not chips**, D21a re-ruled 2026-09-21; capture added 2026-09-22, D29, and M5.4 is the item that makes it true; the map rail call site removed with the map's party HUD, 2026-09-30) |
+| Stat block | Six cells of glyph and number, at rest, no bar (2026-10-01, D82; glyph, bar, number until then). On a swap, each cell carries the stat change beside its number (D84) | Party row (out of the fold, D83), recipient, capture (the offered card, and every member card on a swap, D84), pre-gym, the starter detail panel (D79), and the battle panel on the player's side (D83) |
+| Pokemon panel | Name, level, gender, HP bar and number, status chips, volatile chips, ability name, stat stage ladder, item sprite, priority chevron (2026-09-19, D6; volatiles and ability 2026-09-21, D19), and on the player's side the stat block (2026-10-01, D83) | Battle |
+| Party row | Species, level, gender, HP bar and number, status chips, ability name, item sprite, the stat block at rest (2026-10-01, D83), four move cards, which fold | Drawer, party screen, pre-gym, teach target, **capture card** (call sites corrected 2026-09-21; ability, gender and the block, D19 and M3.2; **cards not chips**, D21a re-ruled 2026-09-21; capture added 2026-09-22, D29, and M5.4 is the item that makes it true; the map rail call site removed with the map's party HUD, 2026-09-30) |
 | Type chip | Glyph in colour | Everywhere a type appears |
 | Inspect layer | The full explanation of whatever was long-pressed | One mechanism, mounted at the shell |
 | Flag strip | One flag per hit by R9's precedence, plus one non-hit kind per side (2026-09-21, D23) | Battle |
@@ -552,8 +594,8 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Reward card | The item or berry sprite in a fixed slot, a relic's icon and the capability glyph it satisfies (2026-09-30, D65 and D66), the boosted type chip, the move card on a move kind, with no TM disc (D67 and D71), `+N` beside the currency glyph on coins and `+N%` beside a bar on a restore (D66), and the shop's price beside the currency glyph (2026-09-22, D29 and D36). Three across where they fit, stacked where they do not. **Selected only after a tap**: no card carries the selected state before the player puts it there, and the claim is the Confirm band's commit (2026-09-30, D69) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |
 | Shell nav | Five tabs, each a word and a control icon: Map, Team, Bag, Run Info, Settings. **A tab opens a screen, not an overlay** (2026-09-30, D53). Opened while a decision is pending elsewhere, the screen is a readout: it never advances run state, never submits, never consumes RNG, and closing it returns to the pending decision, which is the §12 standing rule's three properties carried from the drawer to the screen. Map from anywhere but the map is the chain without its picker, so there is still exactly one path by which a node completes | The shell, every viewport. Replaces the drawer triggers |
 | Run Info screen | The decision feed, newest first, and the run's position: gym rail, locale, seed (2026-09-30, D53 and D55) | The Run Info tab. The desktop sidebar mounts the same feed |
-| Map node card | Node glyph at 24 with the leader's name on a gym, then beneath it the tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29; the glyph exists and the pips sit beneath it since 2026-09-25, D46). **On the map screen's graph, the step being chosen from carries the whole card, its detail line included** (the payout as the currency glyph and a number, the AI tier, a shop's shelf as a count and a coin amount; never the kind's hint, which is the glyph's inspect, D77). **Every other row carries the node glyph (and a gym's leader), the tier pips and the capability glyph with its chevron, and nothing else at rest**; the rest of the card is on the node glyph's long press. Where the frame is too short for even that, those rows keep the glyph alone, with the rest on the same press. A node's place on the graph is its option index within its step against the scene backdrop's slot grid, never a hash or a draw (2026-09-30, D63 and D75) | The map screen and the map drawer |
-| Locale card | Locale name, four type chips, and a crop of the locale's map backdrop where the palette swatch stood. The segment's gym is not on the card: it is shown once, in the screen's rail, because the gym belongs to the segment and not to the locale (2026-09-22, D29; the crop and the gym, 2026-09-30, D72) | The locale screen |
+| Map node card | Node glyph at 24 with the leader's name on a gym, then beneath it the tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29; the glyph exists and the pips sit beneath it since 2026-09-25, D46). **On the map screen's graph, the step being chosen from carries the whole card, its detail line included** (the payout as the currency glyph and a number, the AI tier, a shop's shelf as a count and a coin amount; never the kind's hint, which is the glyph's inspect, D77). **Every other row carries the node glyph (and a gym's leader), the tier pips and the capability glyph with its chevron, and nothing else at rest**; the rest of the card is on the node glyph's long press. Where the frame is too short for even that, those rows keep the glyph alone, with the rest on the same press. **Since 2026-10-01 (D85) a later row, one not yet reached, keeps the glyph alone at every height**: the tier pips and the capability chevron join the rest of the card on the press, and only the row being chosen from and the walked rows carry them at rest. Off the chosen row the disc has no ring; the glyph sits on a soft token over the painting A node's place on the graph is its option index within its step against the scene backdrop's slot grid, never a hash or a draw (2026-09-30, D63 and D75) | The map screen and the map drawer |
+| Locale card | Locale name, four type chips, and a crop of the locale's map backdrop where the palette swatch stood. **Since 2026-10-01 (D86) the crop is the card's whole face**, and the name and the chips each sit on a semi-opaque plate over it. The segment's gym is not on the card: it is shown once, in the screen's rail, because the gym belongs to the segment and not to the locale (2026-09-22, D29; the crop and the gym, 2026-09-30, D72) | The locale screen |
 | Confirm band | The question, an optional line, the content being traded, and exactly two controls: the one that commits and the way out (2026-09-22, D29). On a claim or a buy, the way out returns to the cards and never leaves the offer: CLAUDE.md allows no skip at the card (2026-09-30, D69) | `ui/band.ts`, mounted by the six screens that confirm: the four of Rev 1, plus the result screen and the shop (2026-09-30, D69). No screen builds its own |
 | Event choice | The label, the hint, the reward-tier pips and the Toll's price. The requirement and the band sit above the choices, as the map node card's glyph and chevron (2026-09-22, D33) | `screens/event.ts`. One surface, and the only one section 4 budgets prose on |
 | Exposure label | The first-encounter label for a glyph family | Rendered by the glyph, driven by the exposure store. Every family's marks pass through the glyph renderer, band pips, status lettering and the effectiveness edge included, so a family cannot be drawn without reporting itself (2026-09-23, D41) |
@@ -651,10 +693,13 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | Coverage rows read as gain and loss | A tester cannot say which row is added | Add the two words |
 | R5, long press never submits | Any accidental submission during inspect in playtest | Inspect moves to two-finger tap |
 | R5, the docked sheet reads as dismissable (2026-09-25) | A tester holds, releases, and is stuck with the sheet up, or taps a move to close it and is surprised that nothing was chosen | The scrim dims, so the sheet reads as modal; a second failure returns a visible "tap anywhere to close" line under the text budget |
-| R6, one face loses nothing (Simple and Detailed retired 2026-09-30, D50) | A tester asks for all numbers always visible | A single "numbers on stats" setting returns, not a global mode. **Observed on the starter screen 2026-10-01**: the numbers went to rest on that one surface (D79), and the row stays open for every other |
+| R6, one face loses nothing (Simple and Detailed retired 2026-09-30, D50) | A tester asks for all numbers always visible | A single "numbers on stats" setting returns, not a global mode. **Observed on the starter screen 2026-10-01**: the numbers went to rest on that one surface (D79). **Observed again the same day on every surface**: the author took R13 rather than the setting (D81), so for the stats the row is closed |
+| R13, the vital list stays short (2026-10-01, D81) | A surface reaches its budget only by calling a fact vital, or a tester cannot find the decision on a screen the vital facts fill | The list is cut back to the stats, and the fact that crowded the screen goes to a press |
+| The stat change reads as a fact, not a pick (2026-10-01, D84) | A tester releases the member with the most green, or says the colours told them who to drop | The colours go and the signs stay, as the coverage rows' do |
+| The map's later rows lose nothing at the glyph alone (2026-10-01, D85) | A tester routes toward a node two or more steps ahead and is surprised by its tier or its requirement, or long-presses most later nodes before every pick | The tier pips return to later rows, and the chevron stays on the press |
 | The starter coverage rows read as facts, not a pick (2026-10-01, D80) | A tester says a starter is the one to take because its row is longer, or picks by row length into a gym it loses to | The rows move to the type chips' inspect, and the panel keeps the stat block alone |
 | Event screen holds at 59 words (2026-09-22, D33; was 40) | Rejigged events with four reward tiers need more than two lines to state requirement and choice | Requirement moves to the map node glyph; prompt shrinks |
-| The map's later rows lose nothing (2026-09-30, D63) | A tester routes toward a node two or more steps ahead and is surprised by what it paid or how its opponent played, or long-presses more than half the later nodes before every pick | The detail line returns to every row that fits it, and the map drops a row of chrome to make the room |
+| The map's later rows lose nothing (2026-09-30, D63; the pips and chevron off later rows 2026-10-01, D85) | A tester routes toward a node two or more steps ahead and is surprised by what it paid or how its opponent played, or long-presses more than half the later nodes before every pick | The detail line returns to every row that fits it, and the map drops a row of chrome to make the room |
 | Six-word hints carry the shape of a risk (2026-09-22, D33) | A tester cannot say which of two options is the variable one, or presses a button expecting no cost and is charged | The hints go back up, and the row rises with them rather than the hints being dropped |
 | Move chips suffice for the discard decision | Testers expand every chip to a full card before choosing | Chips gain PP at rest, still no words |
 | Thirteen glyph families is the right size (2026-09-30, D54; twelve under D47, 2026-09-25; eleven under D46, ten under D37, 2026-09-22) | Testers confuse any two glyphs after labels fade | One of the pair becomes a word permanently |
