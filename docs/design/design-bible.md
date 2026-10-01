@@ -1,6 +1,31 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 21, Oct 1, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 22, Oct 1, 2026.
+
+**Rev 22** carries three amendments, D91 to D93, from the author's message of
+2026-10-01
+([`../spec/gymrun-patch-effectiveness-emphasis.md`](../spec/gymrun-patch-effectiveness-emphasis.md)),
+recorded in [`playtest-log.md`](playtest-log.md) the same day. The author's
+directive, not a registered disconfirmer, and the session put both conflicts to
+the author before building. **D91**: on the move bar, while at least one
+damaging move is super effective against the Pokemon on the field, that move is
+lit (a tint of the forecast's green and a heavier edge) and every damaging move
+that is not super effective, neutral included, is greyed. With no super
+effective move on the bar nothing is greyed, and the bar reads as before. A
+status move is never greyed: it has no type effectiveness, and greying it would
+claim a fact it does not have. A greyed move stays a live control. This is
+conditional emphasis, which C1 forbade, and it marks neutral, which R4 forbade;
+both are amended to carry it, and both carry it only for the C1 exception's own
+fact, the present board. **D92**: the forecast also sits on each benched
+member's moves in the switch pane, against the Pokemon on the field, in the
+same vocabulary as the move button (type chip, multiplier, edge, lit and
+greyed). R8 is amended from "on the move button" to "on a move the player can
+use from this board". It is still a fact about the present board: the bench
+row says what each move would do to what is standing there now, never which
+member to send. No row is lit as a whole and the rows keep party order (R10).
+**D93**: one coach mark on the battle screen says what the lit and greyed moves
+mean and that the switch pane shows the same. It states the fact; it never says
+what to do (section 8).
 
 **Rev 21** carries three amendments, D88 to D90, from the author's message of
 2026-10-01 naming Stage 5.1
@@ -338,7 +363,7 @@ Every rule below is a hypothesis with a named disconfirmer in section 9. A rule 
 
 ## 0. The two constraints that outrank everything
 
-**C1. The UI presents attributes, never verdicts.** No recommendation, no score, no "best" marker, no conditional emphasis, no sort that implies rank, no effectiveness against content not yet reached. Two exceptions, both facts about the present board and neither a hint about a future decision: live type effectiveness against the Pokemon currently on the field, and the field multiplier the weather or terrain on the board applies to the move on the button (2026-09-25, D49). (Inherited from Stage 4.5.1 Part 4; the second exception amended 2026-09-25.)
+**C1. The UI presents attributes, never verdicts.** No recommendation, no score, no "best" marker, no conditional emphasis, no sort that implies rank, no effectiveness against content not yet reached. Two exceptions, both facts about the present board and neither a hint about a future decision: live type effectiveness against the Pokemon currently on the field, and the field multiplier the weather or terrain on the board applies to the move on the button (2026-09-25, D49). (Inherited from Stage 4.5.1 Part 4; the second exception amended 2026-09-25.) The first exception carries its own emphasis: a super effective move is lit and the damaging moves beside it that are not are greyed, on the move bar and on the bench's moves, and on nothing else (2026-10-01, D91 and D92).
 
 **C2. No fact that changes a decision is removed. It is re-encoded.** A redesign that drops a decision-relevant fact has failed even if it hits every text budget. The density-modes rule "no mode removes a fact" is a special case of this.
 
@@ -367,6 +392,7 @@ Enforce: the redundancy audit in the glyph inventory (milestone M0.2) lists ever
 **R4. Exception-based display.** Show a value only when it departs from the default.
 Defaults that render nothing: accuracy 100, priority 0, stat stage 0, no status, no item, neutral effectiveness.
 Forbids: "Acc 100", "Priority 0", empty status slots, a neutral effectiveness marker.
+Permits: a neutral damaging move greyed, with no marker, while a super effective move sits beside it (2026-10-01, D91). The grey is the super effective move's contrast, not a marker of neutral: with no super effective move present, neutral renders nothing.
 Enforce: the encoding table (section 3) names the default per attribute; a test asserts the default renders no node.
 Ruling on never-miss moves: absence means "100 and applies". A move that cannot miss (Swift, Aerial Ace, Shock Wave) shows a distinct never-miss glyph, because evasion stages are visible and a 100-accuracy move can miss against them while a never-miss move cannot. This closes the carried "always-hits marker" item.
 
@@ -384,7 +410,7 @@ Amended 2026-09-30 (D50). This rule read: *"Simple and Detailed stay for one val
 Forbids: permanent labels on glyphs; shipping a glyph family that never gets a label.
 Enforce: ten glyph families are tracked (type, category, band, PP, accuracy, priority, effectiveness, status, stat, capability). A test asserts each family's label renders on exposure 1 and 3 and not on exposure 4. The tenth was added 2026-09-22 (D37); this line and the count below still read nine until M5.6 found them, which is why R7's own forbid — *"shipping a glyph family that never gets a label"* — is the reason they are corrected rather than left.
 
-**R8. Forecast on the button, feedback on the target, same vocabulary, never the same place.** Pre-selection effectiveness sits on the move button (the C1 exception). Post-resolution outcomes appear on the Pokemon that was hit, in resolution order.
+**R8. Forecast on the button, feedback on the target, same vocabulary, never the same place.** Pre-selection effectiveness sits on the move button (the C1 exception), and on each benched member's moves in the switch pane, against the Pokemon on the field (2026-10-01, D92). Post-resolution outcomes appear on the Pokemon that was hit, in resolution order.
 Forbids: rendering post-resolution flags on move buttons; rendering the forecast on the opponent panel; deriving one from the other.
 Enforce: the forecast comes from the core effectiveness helper, which reads the field since D49 (2026-09-25); feedback comes from the protocol-to-flags mapper. They share a colour family and a glyph family and nothing else.
 
@@ -429,7 +455,7 @@ Thirteen glyph families (2026-09-30, D54; twelve under D47, 2026-09-25; eleven u
 | PP | Small PP glyph, remaining number, max dimmed | Neutral |
 | Accuracy | Target glyph plus number, under 100 only. Never-miss glyph for moves that cannot miss | Neutral |
 | Priority | Up or down chevron beside the move name, nonzero only. Same chevron on the panel when a bracket decided the turn | Neutral |
-| Effectiveness | Coloured left edge on the button plus the multiplier as a fraction or numeral (¼, ½, 2, 4). Neutral shows nothing. The same colour on the feedback flag | Red/green family, colour-blind checked |
+| Effectiveness | Coloured left edge on the button plus the multiplier as a fraction or numeral (¼, ½, 2, 4). Neutral shows nothing. The same colour on the feedback flag. While a super effective move is on the bar, it is lit and the damaging moves that are not are greyed (2026-10-01, D91) | Red/green family, colour-blind checked |
 | Status | Three-letter chip: BRN, PAR, PSN, TOX, SLP, FRZ. Fixed colour each. One per volatile condition on the same pattern, and **not a tenth family** (2026-09-21, D19): a volatile is a thing happening to this Pokemon right now, which is what this family already means, and it takes the same shape, the same slot rule and the same inspect text | Genre-standard |
 | Stat | Six stat glyphs. Stage as multiplier plus ladder bar (shipped in 4.8.0.3), nonzero only | Neutral |
 | Capability | One glyph per capability, plus a band chevron filled to the run's reach — none, latent, known (2026-09-22, D37) | Neutral |
@@ -454,7 +480,7 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Band | Pip strip | None | Band definition line from `bandInfo` |
 | Accuracy | Number beside target glyph | 100 | Accuracy, evasion interaction |
 | Priority | Chevron | 0 | Bracket value |
-| Effectiveness (forecast) | Edge colour plus multiplier on the button. The multiplier folds in the field's factor for the move: Surf under rain reads its type factor times 1.5 (2026-09-25, D49) | Neutral, with the field folded in | Full type interaction, and the field's part of it |
+| Effectiveness (forecast) | Edge colour plus multiplier on the button, and on each benched member's moves in the switch pane, as type chip and multiplier (2026-10-01, D92). Lit and greyed while a super effective move is present (D91). The multiplier folds in the field's factor for the move: Surf under rain reads its type factor times 1.5 (2026-09-25, D49) | Neutral, with the field folded in | Full type interaction, and the field's part of it |
 | Effectiveness (feedback) | One word on the target, edge colour family | Neutral | Log sheet entry |
 | Status | Three-letter chip | None | Full name, effect |
 | Volatile condition | Three-letter chip, same family and same slot rule as Status, one per condition | None | Full name, effect, from `statusInfo` (2026-09-21, D19) |
@@ -724,6 +750,8 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | Band pips and base power do not read as two ratings | A tester says "a 4 and a 90" as independent scores, or asks which matters | Pips move behind inspect; band rests as a single small numeral |
 | Coverage rows read as gain and loss | A tester cannot say which row is added | Add the two words |
 | R5, long press never submits | Any accidental submission during inspect in playtest | Inspect moves to two-finger tap |
+| The lit and greyed bar reads as a fact, not an instruction (2026-10-01, D91) | A tester says the game told them which move to use, or reads a greyed move as unusable and does not press it when it was the move they wanted | The grey goes, and the lit move keeps its tint and edge |
+| The bench forecast reads as a matchup, not a pick (2026-10-01, D92) | A tester says the switch pane told them who to send, or picks the member with the most lit moves and says so | The bench keeps the multipliers and loses the lit and greyed treatment |
 | R5, the docked sheet reads as dismissable (2026-09-25) | A tester holds, releases, and is stuck with the sheet up, or taps a move to close it and is surprised that nothing was chosen | The scrim dims, so the sheet reads as modal; a second failure returns a visible "tap anywhere to close" line under the text budget |
 | R6, one face loses nothing (Simple and Detailed retired 2026-09-30, D50) | A tester asks for all numbers always visible | A single "numbers on stats" setting returns, not a global mode. **Observed on the starter screen 2026-10-01**: the numbers went to rest on that one surface (D79). **Observed again the same day on every surface**: the author took R13 rather than the setting (D81), so for the stats the row is closed |
 | R13, the vital list stays short (2026-10-01, D81) | A surface reaches its budget only by calling a fact vital, or a tester cannot find the decision on a screen the vital facts fill | The list is cut back to the stats, and the fact that crowded the screen goes to a press |
