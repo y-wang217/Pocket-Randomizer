@@ -48,6 +48,7 @@ import { createIntro } from './intro';
 import { TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
 import { applyLocale } from './theme/locale';
 import { applyField } from './theme/field';
+import { setBandMount } from './band';
 import { createTooltips } from './tooltips';
 import { createWorldScene, el, type OutroKind } from './scene';
 import { newSeed, seedFromLocation, writeSeedToLocation } from './seed';
@@ -508,6 +509,9 @@ export function mountApp(root: HTMLElement): void {
    * that Pokemon's randomized moveset. See `scene.typeChip`.
    */
   createTooltips(shell);
+  // The confirm band mounts where the tooltip layer listens, so a long press
+  // on a card inside it inspects like anywhere else (R5).
+  setBandMount(shell);
 
   /*
    * The coach marks, one layer for the whole app, mounted once like the

@@ -12,12 +12,15 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { openBand, openBandOf } from '../src/ui/band';
+import { DEFAULT_DISPLAY_TUNING } from '../src/data/displayTuning';
+import { openBand, openBandOf, setBandMount } from '../src/ui/band';
+import { createTooltips } from '../src/ui/tooltips';
 
 const ROOT = process.cwd();
 
 afterEach(() => {
   openBandOf()?.close();
+  setBandMount(null);
   document.body.replaceChildren();
 });
 
@@ -34,6 +37,40 @@ function open(overrides: Partial<Parameters<typeof openBand>[0]> = {}) {
   });
   return { band, calls };
 }
+
+describe('the band and the inspect layer', () => {
+  /*
+   * **The band long-press patch, 2026-10-01.** The claim band showed a move
+   * card and a long press on it opened nothing, because the band mounted on
+   * `<body>` and the inspect layer listens on the shell. R5: one gesture, on
+   * any card, everywhere.
+   */
+  it('mounts inside the shell, and a long press on its content inspects', async () => {
+    const shell = document.createElement('main');
+    document.body.append(shell);
+    const layer = createTooltips(shell, { ...DEFAULT_DISPLAY_TUNING, inspectHoldMs: 0 });
+    setBandMount(shell);
+    const chip = document.createElement('span');
+    chip.dataset['tip'] = 'type:Fire';
+    const { band } = open({ content: chip });
+
+    expect(shell.contains(band.root)).toBe(true);
+    // The attribute the stylesheet reads stays on the body.
+    expect(document.body.dataset['bandOpen']).toBe('true');
+
+    chip.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(layer.root.hidden).toBe(false);
+    layer.destroy();
+  });
+
+  it('falls back to its host when the mount has left the document', () => {
+    const detached = document.createElement('main');
+    setBandMount(detached);
+    const { band } = open();
+    expect(band.root.parentElement).toBe(document.body);
+  });
+});
 
 describe('the band', () => {
   it('mounts one dialog with a title, a detail, an accent primary and a hollow secondary', () => {
