@@ -9,8 +9,8 @@
  *
  * So a caller asks for a key and gets an element, and never knows whether it
  * is a placeholder. **The nine battle backdrops are art since 5.0/2**
- * (`docs/spec/gymrun-stage5.0-battle-backdrops.md`), and **the map backdrops
- * as they arrive since 5.0/4** (`docs/spec/gymrun-stage5.0-map-backdrops.md`),
+ * (`docs/spec/gymrun-stage5.0-battle-backdrops.md`), and **the eight map
+ * backdrops since 5.0/4** (`docs/spec/gymrun-stage5.0-map-backdrops.md`),
  * converted from the author's paintings by `scripts/visual/backdrops.py`;
  * every other entry is a placeholder.
  *
@@ -118,16 +118,12 @@ const battleBackdrop = (id: LocaleId | 'gym'): ArtFile => ({
   native: NATIVE.battleBackdrop,
 });
 
-/**
- * The locales whose map backdrop has arrived. **Stage 5.0/4.** A locale named
- * here draws its file; the rest keep the placeholder tint. Adding the next one
- * is a file drop and its id here.
- */
-const MAP_ART: ReadonlySet<LocaleId> = new Set<LocaleId>(['cave', 'shore', 'summit', 'city', 'marsh']);
-
-/** A map backdrop's drawing, or its placeholder until one arrives. */
-const mapBackdrop = (id: LocaleId, letter: string): Asset =>
-  MAP_ART.has(id) ? { kind: 'file', file: `backdrops/map/${id}.png`, native: NATIVE.mapBackdrop } : placeholder(letter, NATIVE.mapBackdrop);
+/** A map backdrop's drawing. One file per locale, since 5.0/4. */
+const mapBackdrop = (id: LocaleId): ArtFile => ({
+  kind: 'file',
+  file: `backdrops/map/${id}.png`,
+  native: NATIVE.mapBackdrop,
+});
 
 export type AssetKey =
   | `map-backdrop:${LocaleId}`
@@ -142,7 +138,7 @@ export type AssetKey =
 function build(): ReadonlyMap<AssetKey, Asset> {
   const entries: [AssetKey, Asset][] = [];
   for (const locale of LOCALES) {
-    entries.push([`map-backdrop:${locale.id}`, mapBackdrop(locale.id, locale.name[0] ?? '')]);
+    entries.push([`map-backdrop:${locale.id}`, mapBackdrop(locale.id)]);
     entries.push([`battle-backdrop:${locale.id}`, battleBackdrop(locale.id)]);
   }
   entries.push(['battle-backdrop:gym', battleBackdrop('gym')]);

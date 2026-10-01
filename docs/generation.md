@@ -11917,12 +11917,13 @@ What the build found:
     686 against the 740 line (it was 389 on a top-down chain; a bottom-up graph
     puts step one near the foot, and the entrance row takes a step's weight so
     it keeps room under it).
-19. **Five map backdrops are art** (`docs/spec/gymrun-stage5.0-map-backdrops.md`),
-    brought forward from 5.0/5 at the author's request: city, summit, shore,
-    cave and marsh. Forest, ruins and badlands keep the placeholder until they
-    arrive; adding one is a file drop and its id in `MAP_ART`
-    (`ui/assets/manifest.ts`). Converted by `scripts/visual/backdrops.py --map`
-    (area downscale, 48-colour palette, no dither), 49 to 69 KB each.
+19. **All eight map backdrops are art** (`docs/spec/gymrun-stage5.0-map-backdrops.md`),
+    brought forward from 5.0/5 at the author's request, in two messages: city,
+    summit, shore, cave and marsh, then forest, ruins and badlands. Every
+    `map-backdrop:` key in the manifest is a file now, as every battle
+    backdrop is; the placeholder tint stays under each as the fallback.
+    Converted by `scripts/visual/backdrops.py --map` (area downscale,
+    48-colour palette, no dither), 49 to 69 KB each, 485 KB for the eight.
 20. **The map backdrop's native size is 272x408, not the spike's 216x432.** The
     paintings are 2:3, and the spike's 1:2 would have cut a quarter of each
     composition. At 2 CSS px an art pixel, 544x816 covers the map area at every
