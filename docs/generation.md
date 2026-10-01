@@ -12097,6 +12097,7 @@ rather than in the prompt:
 12. **Priority paints on the party screen in the family walk.** S49B-1's
     starters carried the only priority move the walk saw, on the move cards
     D78 replaced with chips (which carry no chevron). The walk visits the
-    party screen on `PRIO-3`, whose first starter has Quick Attack. The
+    party screen on `PRIO-3` and opens its first member card, which carries
+    Beak Blast, a negative bracket. The
     classroom test taps a card before reading, since the stats are the
     panel's (`test/visual-exposure-labels.test.ts`).

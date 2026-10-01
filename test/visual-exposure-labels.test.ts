@@ -71,12 +71,17 @@ describe('the family walk (D41)', () => {
     /*
      * SMOKE24 is the census seed, and no SMOKE24 surface paints a priority
      * move. S49B-1's starters carried one until bible Rev 19 (D78) made their
-     * moves chips, which carry no chevron; PRIO-3's first starter is a Barboach
-     * with Quick Attack, and the party screen draws its four move cards.
+     * moves chips, which carry no chevron. PRIO-3's party fixture carries Beak
+     * Blast, a negative bracket, on its first member card, which folds in
+     * Pocket: the walk opens that card.
      */
     const walks: [GallerySurface, string][] = [...GALLERY_SURFACES.map((surface): [GallerySurface, string] => [surface, 'SMOKE24']), ['party', 'PRIO-3']];
     for (const [surface, seed] of walks) {
       const { page, close } = await open(surface, seed, 'exhausted');
+      if (seed === 'PRIO-3') {
+        await page.locator('.party__member-toggle').first().click();
+        await page.waitForTimeout(200);
+      }
       const reading = await readFamilies(page);
       await close();
       for (const family of reading.families) seen.add(family);
