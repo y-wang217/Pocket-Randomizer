@@ -7118,16 +7118,33 @@ button,
       + var(--map-row-entrance-min) + 2 * var(--space-1) + 2 * var(--rule-heavy)
   );
   isolation: isolate;
+  /* A size container, so the drawing below can ask how tall the graph is. */
+  container: map-graph / size;
   border: var(--rule-heavy) solid var(--border-heavy);
   border-radius: var(--radius-card);
   overflow: hidden;
-  /* The scene backdrop (D60): the locale's map drawing when the manifest has
-     one, anchored to the foot where the entrance is and drawn at whole art
-     pixels; under it, always, the placeholder's flat locale tint, so a missing
-     file shows the placeholder at the graph's own size. */
-  background:
-    var(--backdrop-image, none) center bottom / calc(var(--backdrop-w, 0) * var(--art-px)) calc(var(--backdrop-h, 0) * var(--art-px)) no-repeat,
-    color-mix(in srgb, var(--locale-glow) 38%, var(--bg-raised));
+  /* Under everything, always, the placeholder's flat locale tint, so a
+     missing file shows the placeholder at the graph's own size. */
+  background: color-mix(in srgb, var(--locale-glow) 38%, var(--bg-raised));
+}
+/* The scene backdrop (D60): the locale's map drawing when the manifest has
+   one, at whole art pixels, on a layer of its own so it can read the graph's
+   height. Anchored to the foot, then lowered by however much shorter the
+   graph is than the drawing, up to `--map-art-lift`: each painting stands its
+   entrance building just above its foot (`docs/spec/gymrun-stage5.0-map-backdrops.md`),
+   and on a phone, which shows the drawing's lower three quarters, the
+   building would otherwise sit under the first steps rather than at the
+   entrance. A frame as tall as the drawing lowers it not at all. */
+.map-graph::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  --map-art-h: calc(var(--backdrop-h, 0) * var(--art-px));
+  background: var(--backdrop-image, none) no-repeat;
+  background-size: calc(var(--backdrop-w, 0) * var(--art-px)) var(--map-art-h);
+  background-position: center calc(100% + min(var(--map-art-lift), max(0px, var(--map-art-h) - 100cqh)));
   image-rendering: pixelated;
 }
 
@@ -7136,6 +7153,7 @@ button,
    leader's name, every other step a floor its mark fits in. Past the floors
    the space is shared out by weight. */
 .map-graph {
+  --map-art-lift: calc(var(--space-12) + var(--space-8) + var(--space-2));
   --map-row-step-min: 30px;
   --map-row-current-min: 96px;
   --map-row-gym-min: 62px;
@@ -7182,7 +7200,7 @@ button,
   font-size: var(--fs-xs);
   border-color: var(--border-heavy);
 }
-.map-graph .step:not(.step--current) .step__marker { background: var(--bg-raised); }
+.map-graph .step:not(.step--current) .step__marker { background: var(--bg-raised); color: var(--text); }
 
 /* A node: a disc with the kind's mark in it, the facts beneath. */
 .map-graph .node {

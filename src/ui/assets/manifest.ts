@@ -9,9 +9,10 @@
  *
  * So a caller asks for a key and gets an element, and never knows whether it
  * is a placeholder. **The nine battle backdrops are art since 5.0/2**
- * (`docs/spec/gymrun-stage5.0-battle-backdrops.md`), converted from the
- * author's paintings by `scripts/visual/backdrops.py`; every other entry is a
- * placeholder.
+ * (`docs/spec/gymrun-stage5.0-battle-backdrops.md`), and **the map backdrops
+ * as they arrive since 5.0/4** (`docs/spec/gymrun-stage5.0-map-backdrops.md`),
+ * converted from the author's paintings by `scripts/visual/backdrops.py`;
+ * every other entry is a placeholder.
  *
  * ## Where the art lives, and why there
  *
@@ -27,7 +28,9 @@
  * (`docs/visual/reports/5.0-stage0-spike.md`, section 2), except the battle
  * backdrop: 224x136 since 5.0/2, the stage's own 272px height and the widest
  * frame's width at 2 CSS px an art pixel, where the spike's 216x170 was sized
- * for a 340px stage.
+ * for a 340px stage; and the map backdrop, 272x408 since 5.0/4, 2:3 as the
+ * author painted it, which at 2 CSS px covers the map area at every plan size
+ * (the tallest, at 1920x1080, is 816px) where the spike's 216x432 was 1:2.
  *
  * ## What is not here
  *
@@ -64,7 +67,7 @@ export interface ArtFile {
 export type Asset = Placeholder | ArtFile;
 
 export const NATIVE = {
-  mapBackdrop: { width: 216, height: 432 },
+  mapBackdrop: { width: 272, height: 408 },
   battleBackdrop: { width: 224, height: 136 },
   node: { width: 16, height: 16 },
   capability: { width: 8, height: 8 },
@@ -115,6 +118,17 @@ const battleBackdrop = (id: LocaleId | 'gym'): ArtFile => ({
   native: NATIVE.battleBackdrop,
 });
 
+/**
+ * The locales whose map backdrop has arrived. **Stage 5.0/4.** A locale named
+ * here draws its file; the rest keep the placeholder tint. Adding the next one
+ * is a file drop and its id here.
+ */
+const MAP_ART: ReadonlySet<LocaleId> = new Set<LocaleId>(['cave', 'shore', 'summit', 'city', 'marsh']);
+
+/** A map backdrop's drawing, or its placeholder until one arrives. */
+const mapBackdrop = (id: LocaleId, letter: string): Asset =>
+  MAP_ART.has(id) ? { kind: 'file', file: `backdrops/map/${id}.png`, native: NATIVE.mapBackdrop } : placeholder(letter, NATIVE.mapBackdrop);
+
 export type AssetKey =
   | `map-backdrop:${LocaleId}`
   | `battle-backdrop:${LocaleId | 'gym'}`
@@ -128,7 +142,7 @@ export type AssetKey =
 function build(): ReadonlyMap<AssetKey, Asset> {
   const entries: [AssetKey, Asset][] = [];
   for (const locale of LOCALES) {
-    entries.push([`map-backdrop:${locale.id}`, placeholder(locale.name[0] ?? '', NATIVE.mapBackdrop)]);
+    entries.push([`map-backdrop:${locale.id}`, mapBackdrop(locale.id, locale.name[0] ?? '')]);
     entries.push([`battle-backdrop:${locale.id}`, battleBackdrop(locale.id)]);
   }
   entries.push(['battle-backdrop:gym', battleBackdrop('gym')]);

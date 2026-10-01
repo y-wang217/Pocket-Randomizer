@@ -111,9 +111,11 @@ describe('the world', () => {
      * **A short viewport, since Stage 5.0/1.** The map fits a 390x844 frame
      * now and has nothing to scroll, and so does a party of one. At 480 tall
      * the map scrolls inside the frame, which is the scroll the parallax
-     * reads.
+     * reads. **400 since Stage 5.0/4** (`docs/spec/gymrun-stage5.0-visual-redesign.md`,
+     * Stage 4): the map's graph gives its rows back down to a floor, so at
+     * 480 the whole segment fitted with 15px to scroll, under the guard below.
      */
-    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24', { width: 390, height: 480 });
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24', { width: 390, height: 400 });
     await playUntil(page, (screen) => screen === 'map');
     /*
      * **Scroll as far as the map allows, rather than to a fixed 200.**

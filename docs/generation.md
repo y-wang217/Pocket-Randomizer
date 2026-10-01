@@ -11917,3 +11917,31 @@ What the build found:
     686 against the 740 line (it was 389 on a top-down chain; a bottom-up graph
     puts step one near the foot, and the entrance row takes a step's weight so
     it keeps room under it).
+19. **Five map backdrops are art** (`docs/spec/gymrun-stage5.0-map-backdrops.md`),
+    brought forward from 5.0/5 at the author's request: city, summit, shore,
+    cave and marsh. Forest, ruins and badlands keep the placeholder until they
+    arrive; adding one is a file drop and its id in `MAP_ART`
+    (`ui/assets/manifest.ts`). Converted by `scripts/visual/backdrops.py --map`
+    (area downscale, 48-colour palette, no dither), 49 to 69 KB each.
+20. **The map backdrop's native size is 272x408, not the spike's 216x432.** The
+    paintings are 2:3, and the spike's 1:2 would have cut a quarter of each
+    composition. At 2 CSS px an art pixel, 544x816 covers the map area at every
+    plan size: it runs from 504px tall (1366x768) to 816 (1920x1080), and the
+    frame is capped at 480 wide. A phone shows the middle two thirds of the
+    width, which is each painting's clearing.
+21. **The drawing is lowered on short frames, up to 88px.** Each painting
+    stands an entrance building just above its foot. Anchored to the foot, a
+    phone (which shows the drawing's lower three quarters) put that building
+    under steps one and two, with nodes standing on its roof. The drawing
+    sits on the graph's own `::before` and drops by however much shorter the
+    graph is than the drawing (`100cqh`, the graph being a size container),
+    capped at `--map-art-lift`: on a phone the door is at the entrance row
+    where the trainer starts, and a frame as tall as the drawing is unchanged.
+    `BACKDROP_GRIDS` stays empty: in all five the default slot grid already
+    stands every node in the clearing.
+22. **Two browser assertions moved with the graph.** `visual-v3`'s contrast
+    sweep read the step marker at 4.19 against the 4.5 floor: the chain's
+    faint marker ink on the graph's raised marker. The marker takes the text
+    ink (14.73). The same file's parallax case shortened the viewport to 480 so
+    the map would scroll; the graph gives its rows back to a floor and fitted
+    with 15px to spare, so it reads at 400, with a comment naming the plan.

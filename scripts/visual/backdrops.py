@@ -17,6 +17,13 @@ grid. The stage shows 224x136 art pixels at 2 CSS px each (`NATIVE` in
    flat, the way drawn pixel art has them;
 4. written as an indexed PNG to `src/ui/assets/backdrops/battle/<region>.png`.
 
+**Map backdrops, Stage 5.0/4** (`--map`): the paintings arrive at 1024x1536,
+2:3, and the map shows them at 272x408 art pixels
+(`docs/spec/gymrun-stage5.0-map-backdrops.md`), the same ratio, so nothing is
+cropped: steps 2 to 4 only, written to `src/ui/assets/backdrops/map/<locale>.png`
+from `stage5.0-map-backdrop-<locale>.webp`. A painting that is not 2:3 is
+cropped to it from the top, keeping the foot where the entrance is.
+
 Tooling, not the game: it needs Pillow (`pip install pillow`), which nothing in
 the build or the test suite imports. Re-run it when the art changes.
 """
@@ -28,14 +35,18 @@ NATIVE = (224, 136)
 REGIONS = ('gym', 'cave', 'shore', 'summit', 'city', 'forest', 'ruins', 'marsh', 'badlands')
 OUT = os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'ui', 'assets', 'backdrops', 'battle')
 
+MAP_NATIVE = (272, 408)
+LOCALES = ('cave', 'shore', 'summit', 'city', 'forest', 'ruins', 'marsh', 'badlands')
+MAP_OUT = os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'ui', 'assets', 'backdrops', 'map')
 
-def convert(source: str, colors: int) -> Image.Image:
+
+def convert(source: str, colors: int, native: tuple = NATIVE) -> Image.Image:
     image = Image.open(source).convert('RGB')
     width, height = image.size
-    keep = round(width * NATIVE[1] / NATIVE[0])
+    keep = round(width * native[1] / native[0])
     top = max(0, height - keep)  # trim sky, keep the ground
     image = image.crop((0, top, width, top + min(keep, height)))
-    image = image.resize(NATIVE, Image.Resampling.BOX)
+    image = image.resize(native, Image.Resampling.BOX)
     return image.quantize(colors=colors, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
 
 
@@ -43,15 +54,17 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('source', help='directory holding stage5.0-battle-backdrop-<region>.webp')
     parser.add_argument('--colors', type=int, default=48)
+    parser.add_argument('--map', action='store_true', help='convert the map backdrops instead')
     args = parser.parse_args()
-    os.makedirs(OUT, exist_ok=True)
-    for region in REGIONS:
-        source = os.path.join(args.source, f'stage5.0-battle-backdrop-{region}.webp')
+    kind, names, out, native = ('map', LOCALES, MAP_OUT, MAP_NATIVE) if args.map else ('battle', REGIONS, OUT, NATIVE)
+    os.makedirs(out, exist_ok=True)
+    for region in names:
+        source = os.path.join(args.source, f'stage5.0-{kind}-backdrop-{region}.webp')
         if not os.path.exists(source):
             print(f'skip {region}: no source')
             continue
-        target = os.path.join(OUT, f'{region}.png')
-        convert(source, args.colors).save(target, optimize=True)
+        target = os.path.join(out, f'{region}.png')
+        convert(source, args.colors, native).save(target, optimize=True)
         print(f'{region}: {os.path.getsize(target)} bytes')
 
 
