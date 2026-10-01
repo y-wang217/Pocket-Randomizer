@@ -3,10 +3,9 @@
  *
  * The six numbers on a member card are the member's own. **Patch 4.7.2.**
  *
- * The browser half of this promise was `test/visual-stat-bars.test.ts`, which
- * asked whether a bar was *painted* and at the right share. The bars are
- * retired (Bible Rev 20, D82) and that file with them; the painted numbers
- * are `test/visual-one-face.test.ts`'s. This is the cheap exact half: whether
+ * The browser half of this promise is `test/visual-stat-bars.test.ts`, which
+ * asked whether a bar was *painted* until the bars were retired (Bible Rev
+ * 20, D82) and asks it of the number now. This is the cheap exact half: whether
  * the numbers on the card are the numbers the adapter computed for that
  * Pokemon, row by row, in order.
  *

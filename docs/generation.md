@@ -12299,10 +12299,29 @@ rather than following it, the reading is in the spec file and here:
 11. **The current map node's token is 40px**, the disc's old outer size, so
     the map's decision row is where `docs/visual/baseline/heights.json`
     recorded it; a 42px first cut moved both edges by a pixel.
-12. **`test/visual-stat-bars.test.ts` is deleted**, with the bars it measured.
-    Its promise was that each bar painted at its number's share; there is no
-    bar. The painted numbers are `test/visual-one-face.test.ts`'s first case,
-    rewritten from *"six bars per block and no number on screen"* to six
-    numbers per card, unopened, and no bar. `test/party-stats.test.ts` swaps
-    its two bar-width cases for the head-not-fold case and the swap's sign
-    case.
+12. **`test/visual-stat-bars.test.ts` measures the numbers now**, with the
+    bars it measured gone. It keeps its name because the 4.7.2 record cites
+    it, and asks the same of the number it asked of the fill: a painted box on
+    all six rows of an unopened card, carrying the label's value, and no bar.
+    `test/visual-one-face.test.ts`'s first case is rewritten from *"six bars
+    per block and no number on screen"* to six numbers per card, unopened,
+    and no bar. `test/party-stats.test.ts` swaps its two bar-width cases for
+    the head-not-fold case and the swap's sign case.
+13. **The census moved only in its first-run column**, which gates nothing
+    (D44). The steady-state words on every surface are unchanged: the item
+    names are proper nouns, and the bag's two effect lines are R13's, excluded
+    by `VITAL_SLOTS` in `scripts/visual/census.ts`. The first-run column rose
+    by 18 on the party, pre-gym, drawer, target, capture and forfeit surfaces
+    and by 3 on battle, because the stat family's exposure labels now paint
+    on surfaces where the stat block used to be folded or absent. R7 holds
+    them to two visits.
+14. **Gates, this container.** Type check, lint, build, the 150-file unit
+    suite and the smoke run pass. The browser half passes except
+    `test/visual-chips.test.ts`, whose 600-step sweep times out at 900s here;
+    it times out identically on `main` at `2b6b48c` in the same container, so
+    it is the container's speed rather than this change. Measured and not
+    gated: at the gallery's worst case the party screen scrolls inside the
+    frame (1,018px in 749) and the capture card at a full party does too
+    (947 in 749). `test/visual-pocket.test.ts` reads the document's height,
+    which the frame's own scroller has hidden since 5.0/1, so it passes
+    without seeing either. Recorded rather than ruled.
