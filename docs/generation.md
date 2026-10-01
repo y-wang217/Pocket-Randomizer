@@ -12325,3 +12325,32 @@ rather than following it, the reading is in the spec file and here:
     (947 in 749). `test/visual-pocket.test.ts` reads the document's height,
     which the frame's own scroller has hidden since 5.0/1, so it passes
     without seeing either. Recorded rather than ruled.
+
+## 95. The opening painting, behind the frame
+
+**2026-10-01.** [`spec/gymrun-patch-starter-backdrop.md`](spec/gymrun-patch-starter-backdrop.md)
+and [`spec/gymrun-patch-opening-world.md`](spec/gymrun-patch-opening-world.md),
+bible Rev 20, D87, on `claude/sleepy-dijkstra-tp2176`. No version axis moves:
+the drawing is under `src/ui/assets/`, outside `contentHash`.
+
+1. **Built twice.** The first build read *"Add this asset to starter page"* as
+   a scene backdrop inside the frame, behind the starter cards, with a window
+   cut under the blurb to show it (`20a333b`). The author: *"it makes the UI
+   too cluttered"*, and *"my goal is to have an asset fill the whitespace in
+   the background"*. Reverted whole (`21d3715`); the starter screen inside the
+   frame is as it was.
+2. **The World shows it.** `createWorldScene` gains an opening layer under the
+   locale layers and `setOpening`, which the app and the gallery call from the
+   router for the starter screen and the region picker. While no locale is
+   set and the opening is asked for, the World shows the painting and nothing
+   else (no scrim, no drift); a locale's layers replace it, and every other
+   screen with no locale (the summary) keeps the World hidden, as
+   `test/visual-v3.test.ts` holds.
+3. **Converted at twice the map grid.** The page is the viewport, not the
+   map's column, so `scripts/visual/backdrops.py --opening` writes 544x816 at
+   64 colours (155,529 bytes) where a map backdrop is 272x408 at 48; at the
+   map's grid the painting drew at nearly 7x on a 1858px window and read as
+   blocks. Drawn `cover`, its horizon kept in view at 22%.
+4. **The region picker too.** The message names the starter page; the region
+   picker is the other screen before the first region and had the same empty
+   page, so the painting stays up until a region's own World arrives.

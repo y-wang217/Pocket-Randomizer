@@ -204,6 +204,10 @@ export function mountApp(root: HTMLElement): void {
     },
     (name) => {
       shell.dataset['screen'] = name;
+      // The opening painting behind the frame before the first region (D87).
+      // `world` is declared below; the router announces its first screen only
+      // after the app is assembled.
+      world.setOpening(name === 'starter' || name === 'locale');
     },
   );
 

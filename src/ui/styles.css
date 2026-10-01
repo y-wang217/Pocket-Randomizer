@@ -5656,6 +5656,19 @@ button,
 
 .world[hidden] { display: none; }
 
+/* The opening painting (Bible Rev 20, D87): the page behind the frame before
+   the first region, the whole painting scaled to cover the viewport, its far
+   horizon kept in view. Nothing at all once a locale's layers are up. */
+.world__opening {
+  position: absolute;
+  inset: 0;
+  display: none;
+  background: var(--backdrop-image, none) center 22% / cover no-repeat;
+  image-rendering: pixelated;
+}
+.world[data-opening="true"] > .world__opening { display: block; }
+.world[data-opening="true"] > .world__scrim { display: none; }
+
 .world__layer {
   position: absolute;
   inset: 0;

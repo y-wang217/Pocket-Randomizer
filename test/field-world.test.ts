@@ -92,7 +92,9 @@ describe('the battle screen and the world', () => {
   it('mounts the weather layer over the art and under the scrim', () => {
     const world = createWorldScene(null);
     const order = [...world.root.children].map((child) => child.className);
+    // The opening painting sits under everything (Bible Rev 20, D87).
     expect(order).toEqual([
+      'world__opening',
       'world__layer world__layer--far',
       'world__layer world__layer--mid',
       'world__layer world__layer--near',

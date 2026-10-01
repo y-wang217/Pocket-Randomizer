@@ -102,6 +102,22 @@ describe('the world scene', () => {
     world.destroy();
   });
 
+  /** **Bible Rev 20, D87.** The opening painting, before the first region. */
+  it('shows the opening painting only while asked and no locale is up', () => {
+    const world = createWorldScene(null);
+    world.setOpening(true);
+    expect(world.root.hidden).toBe(false);
+    expect(world.root.dataset['opening']).toBe('true');
+    expect(world.root.querySelector<HTMLElement>('.world__opening')?.dataset['backdrop']).toBe('opening-backdrop');
+    world.setLocale(LOCALE_IDS[0]!);
+    expect(world.root.dataset['opening']).toBeUndefined();
+    world.setLocale(null);
+    expect(world.root.dataset['opening']).toBe('true');
+    world.setOpening(false);
+    expect(world.root.hidden).toBe(true);
+    world.destroy();
+  });
+
   it('draws every locale into all three layers with one moving element', () => {
     const world = createWorldScene(null);
     for (const id of LOCALE_IDS) {

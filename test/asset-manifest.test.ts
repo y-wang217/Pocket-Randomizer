@@ -34,6 +34,7 @@ describe('the asset manifest', () => {
       expect(keys).toContain(`battle-backdrop:${locale.id}`);
     }
     expect(keys).toContain('battle-backdrop:gym');
+    expect(keys).toContain('opening-backdrop');
     for (const tab of NAV_TABS) expect(keys).toContain(`nav:${tab}`);
     expect(keys).toContain('currency');
     expect(keys).toContain('wordmark');

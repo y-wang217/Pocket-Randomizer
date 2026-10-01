@@ -152,6 +152,8 @@ async function main(): Promise<void> {
     },
     (name) => {
       shell.dataset['screen'] = name;
+      // As the app does: the opening painting before the first region (D87).
+      world.setOpening(name === 'starter' || name === 'locale');
     },
   );
   const seedBar = createSeedBar();
