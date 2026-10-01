@@ -36,6 +36,18 @@ export const STARTER_COPY = {
   },
 } as const satisfies Record<string, Prose>;
 
+/**
+ * The starter detail panel's words. **Bible Rev 19, D80**: section 4's
+ * *Starter detail panel* row budgets exactly these, the two coverage labels and
+ * the control's verb, at 5. *Vulnerable*, never *weak*: section 8 forbids the
+ * hedge word on every surface and `data/forbiddenWords.ts` carries it.
+ */
+export const STARTER_LABELS = {
+  effective: 'Effective against',
+  vulnerable: 'Vulnerable to',
+  choose: (species: string): string => `Choose ${species}`,
+} as const;
+
 export const LOCALE_COPY = {
   blurb: {
     long:

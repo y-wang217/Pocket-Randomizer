@@ -217,21 +217,29 @@ async function waitForMutation(page, timeout = MUTATION_TIMEOUT_MS) {
   return boundedWait(page, (since) => globalThis.__gymrunWalk.last > since, mark, timeout);
 }
 
-/** The starter with the most HP, ties to the leftmost card. Same as smoke. */
-async function bulkiestStarter(page) {
+/**
+ * Pick the starter with the most HP, ties to the leftmost card. Same as smoke.
+ *
+ * The max HP is the detail panel's since bible Rev 19 (D78, D79): a tap
+ * selects a card and fills the panel, and the Choose control commits. Each
+ * card is tapped in turn to read it, which is a selection and never a pick.
+ */
+async function pickBulkiestStarter(page) {
   const cards = page.locator('.starter');
   const count = await cards.count();
   let best = 0;
   let bestHp = -1;
   for (let i = 0; i < count; i++) {
-    const meta = (await cards.nth(i).locator('.starter__hp-value').textContent()) ?? '';
+    await cards.nth(i).click();
+    const meta = (await page.locator('.starter-detail .stat[data-row="hp"] .stat__value').textContent()) ?? '';
     const hp = Number(/(\d+)/.exec(meta)?.[1] ?? 0);
     if (hp > bestHp) {
       bestHp = hp;
       best = i;
     }
   }
-  return cards.nth(best);
+  await cards.nth(best).click();
+  await page.locator('.starter-select__choose').click();
 }
 
 async function hardestMove(page) {
@@ -394,7 +402,7 @@ async function stepOnceUnparked(page, expected) {
   if (expected !== undefined && screen !== expected) return null;
   switch (screen) {
     case 'starter':
-      await (await bulkiestStarter(page)).click();
+      await pickBulkiestStarter(page);
       return screen;
     case 'locale': {
       const card = page.locator(`${visible('locale')} .locale`).last();

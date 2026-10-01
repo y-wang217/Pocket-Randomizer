@@ -1,6 +1,30 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 18, Oct 1, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 19, Oct 1, 2026.
+
+**Rev 19** carries three amendments, ruled 2026-10-01 by the author on rows
+D78 to D80, from an observation recorded in
+[`playtest-log.md`](playtest-log.md) the same day: the author asked for the
+starter screen's stat numbers, which is section 9's R6 disconfirmer, and for
+the matchup of a starter's moves
+([`../spec/gymrun-patch-starter-select-redesign.md`](../spec/gymrun-patch-starter-select-redesign.md)).
+**D78**: the starter card is compact. Its face is the sprite on a crop of a
+battle backdrop, the name, level and gender, the type chips, the ability name
+and four **move chips**, where D40 put move cards; band, PP, accuracy and
+priority are one long press away on each chip, so C2 holds. A tap selects a
+card, never before it (D69's rule), and fills the *starter detail panel*; a
+screen-level *Choose* control commits. The selection is the confirm, so no band
+opens over it. Section 4's starter card row, section 5's move chip and stat
+block rows, and section 7's classroom paragraph follow. **D79**: the stat block
+in the starter detail panel shows its numbers at rest. Section 3 has said
+*"Glyph, bar, number"* since Rev 1; the R6 row's remedy is taken on the one
+surface the observation was made on, and is not a setting. **D80**: section 3
+gains a *Coverage (starter detail)* row: the types the starter's damaging moves
+hit for 2x or more, and the types that hit its own typing for more than 1x,
+both read off the type chart and drawn in the type wheel's order. It is a fact
+about this Pokemon's moves and typing against no opponent, so C1's ban on
+effectiveness against content not yet reached does not reach it. Section 4
+gains a *Starter detail panel* row at 5, and section 9 carries the bet.
 
 **Rev 18** carries four amendments and three rulings that keep the text, ruled
 2026-09-30 by the author on rows D61, D63, D64, D72 and D75, filed by Stage
@@ -369,6 +393,7 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Held item | Item sprite in a fixed slot | Empty slot renders nothing | Name, one effect line |
 | Berry | Berry sprite, same slot | Empty slot renders nothing | Name, trigger condition (the one place a sentence survives) |
 | Relic | Relic icon, from the asset manifest, in the relic row and on the relic card. On the card, the capability glyph it satisfies sits beside it, the map node's glyph without its chevron (2026-09-30, D65 and D66) | None | Name, capability it satisfies, effect |
+| Coverage (starter detail) | Two rows of type chips after their labels: the types the selected starter's damaging moves hit for 2x or more, and the types that hit its typing for more than 1x. Type chart only, type wheel order, never sorted by anything else (2026-10-01, D80) | An empty row renders nothing | The type chip's own inspect: its matchups |
 | Coverage change (capture card) | Two rows of type chips, plus row and minus row, signs only. The signs are permanent, not an exposure label: coverage is not a glyph family (2026-09-19, D5) | Empty row renders nothing | The full before and after sets |
 | Capability requirement (map node) | Capability glyph plus band chevron (none, latent, known) | None | Capability name, what satisfies it |
 | Tier (map node) | Tier pips, reward-tier pips | None | Tier definition |
@@ -405,7 +430,8 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Event screen | 59 | Hook 12, four labels 4, four hints 6 — 52 — plus the Toll's price 5 and the control 2. The requirement, the band and the reward tier are glyphs (2026-09-22, D33) |
 | Locale card | 0 | Locale name plus four type chips |
 | Locale screen | 4 | The instruction (2026-09-22, D32) |
-| Starter card | 0 plus the ability name | Species name, ability name. The moves are move cards and the stats are the stat block (2026-09-23, D40) |
+| Starter card | 0 plus the ability name | Species name, ability name. The moves are move chips; the stats are the detail panel's stat block (2026-10-01, D78; move cards and the block on the card under D40, 2026-09-23) |
+| Starter detail panel | 5 | The two coverage labels and the *Choose* control. The stat block is glyphs and numbers (2026-10-01, D79 and D80) |
 | Pre-gym screen | 4 | Gym leader name, type chip, "Choose lead" |
 | Confirm overlay (replace) | 6 | "Replace Tackle with Fire Punch?" |
 | Confirm overlay (decline) | 6 | "Forfeit this reward?", and the band's two controls (2026-09-21, D22) |
@@ -513,8 +539,8 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Component | Owns | Call sites today |
 |---|---|---|
 | Move card | Name, type chip, category glyph, BP, PP, band pips, accuracy, priority, describeMove icon strip | `moveFacts` (seven card surfaces; starter select added 2026-09-23, D40) and `renderMove` (battle button). Two call sites is the accepted shape; a third is an amendment |
-| Move chip | Name, type chip, category glyph, BP | Replacement and teach lists |
-| Stat block | Six rows of glyph, bar, number | Party drawer, recipient, capture, pre-gym |
+| Move chip | Name, type chip, category glyph, BP | Replacement and teach lists, and the starter card (2026-10-01, D78) |
+| Stat block | Six rows of glyph, bar, number | Party drawer, recipient, capture, pre-gym, and the starter detail panel, the one call site whose numbers are at rest (2026-10-01, D79) |
 | Pokemon panel | Name, level, gender, HP bar and number, status chips, volatile chips, ability name, stat stage ladder, item sprite, priority chevron (2026-09-19, D6; volatiles and ability 2026-09-21, D19) | Battle |
 | Party row | Species, level, gender, HP bar and number, status chips, ability name, item sprite, the stat block, four move cards | Drawer, party screen, pre-gym, teach target, **capture card** (call sites corrected 2026-09-21; ability, gender and the block, D19 and M3.2; **cards not chips**, D21a re-ruled 2026-09-21; capture added 2026-09-22, D29, and M5.4 is the item that makes it true; the map rail call site removed with the map's party HUD, 2026-09-30) |
 | Type chip | Glyph in colour | Everywhere a type appears |
@@ -590,7 +616,7 @@ Three mechanisms, each with one job. A fourth is an amendment.
 - **Exposure labels** (R7) explain glyphs: what this symbol means, the first and third time you see it.
 - **Inspect** (R5) explains things: what this move, item, status or band does, on demand, forever.
 
-Starter select is the classroom: it has no clock, three full cards, and every glyph family a move and a stat block can carry. On a first run every glyph on that screen carries its label. A player who reads three starter cards has seen category, type, band, PP and the six stats with words once, and accuracy and priority when a starter's move departs from the default. Effectiveness, status and capability need an opponent or a map, and are labelled where they first appear. Corrected 2026-09-23 (D40): this paragraph used to say "every glyph family present", which no screen without an opponent can be.
+Starter select is the classroom: it has no clock, three full cards, and every glyph family a move and a stat block can carry. On a first run every glyph on that screen carries its label. A player who reads three starter cards has seen category, type, band, PP and the six stats with words once, and accuracy and priority when a starter's move departs from the default. Effectiveness, status and capability need an opponent or a map, and are labelled where they first appear. Corrected 2026-09-23 (D40): this paragraph used to say "every glyph family present", which no screen without an opponent can be. Amended 2026-10-01 (D78): the starter card's moves are move chips, so the classroom carries type, category and the six stats; band, PP, accuracy and priority are labelled where they first paint, on the first move card the player meets.
 
 **An exposure is a painted glyph** (2026-09-23, D43). A screen that shows a family's word instead of its glyph, as Detailed and Simple do, does not count toward that family. A player who meets the glyphs later still gets both labels.
 
@@ -625,7 +651,8 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | Coverage rows read as gain and loss | A tester cannot say which row is added | Add the two words |
 | R5, long press never submits | Any accidental submission during inspect in playtest | Inspect moves to two-finger tap |
 | R5, the docked sheet reads as dismissable (2026-09-25) | A tester holds, releases, and is stuck with the sheet up, or taps a move to close it and is surprised that nothing was chosen | The scrim dims, so the sheet reads as modal; a second failure returns a visible "tap anywhere to close" line under the text budget |
-| R6, one face loses nothing (Simple and Detailed retired 2026-09-30, D50) | A tester asks for all numbers always visible | A single "numbers on stats" setting returns, not a global mode |
+| R6, one face loses nothing (Simple and Detailed retired 2026-09-30, D50) | A tester asks for all numbers always visible | A single "numbers on stats" setting returns, not a global mode. **Observed on the starter screen 2026-10-01**: the numbers went to rest on that one surface (D79), and the row stays open for every other |
+| The starter coverage rows read as facts, not a pick (2026-10-01, D80) | A tester says a starter is the one to take because its row is longer, or picks by row length into a gym it loses to | The rows move to the type chips' inspect, and the panel keeps the stat block alone |
 | Event screen holds at 59 words (2026-09-22, D33; was 40) | Rejigged events with four reward tiers need more than two lines to state requirement and choice | Requirement moves to the map node glyph; prompt shrinks |
 | The map's later rows lose nothing (2026-09-30, D63) | A tester routes toward a node two or more steps ahead and is surprised by what it paid or how its opponent played, or long-presses more than half the later nodes before every pick | The detail line returns to every row that fits it, and the map drops a row of chrome to make the room |
 | Six-word hints carry the shape of a risk (2026-09-22, D33) | A tester cannot say which of two options is the variable one, or presses a button expecting no cost and is charged | The hints go back up, and the row rises with them rather than the hints being dropped |

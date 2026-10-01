@@ -45,7 +45,7 @@
  * turns a `PokemonSpec` into move data — reimplementing the lookup from
  * `data/movePools.ts` would be a second source for what a move's type is.
  */
-import { describeSpecCard, typeChart } from './battle/driver';
+import { describeSpecCard, typeChart, typeMultiplier, WHEEL_TYPES } from './battle/driver';
 import type { PokemonState, TypeName } from './types';
 
 /**
@@ -70,6 +70,41 @@ export function offensiveCoverage(party: readonly PokemonState[]): TypeName[] {
   }
 
   return [...covered].sort();
+}
+
+/**
+ * The types one Pokemon's moves hit super effectively, in the type wheel's
+ * order. **Bible Rev 19, D80: the starter detail panel's first row.**
+ *
+ * The author's ruling on the starter screen: the row is the union of what the
+ * **moves'** types hit for 2x or more, not the species' typing, because the
+ * moves are what deals the damage. Status moves add nothing, as in
+ * `offensiveCoverage` above, for the same reason. The wheel's order and never
+ * a count-sorted one: C1 forbids a sort that implies rank.
+ *
+ * Takes the moves rather than a spec so the panel can pass the card it already
+ * has; reads the type chart only, so no ability (Levitate, a -ate) is folded
+ * in. That is the chart's fact, and the ability is one long press away.
+ */
+export function moveCoverage(moves: readonly { type: string; category: string }[]): TypeName[] {
+  const chart = typeChart();
+  const covered = new Set<string>();
+  for (const move of moves) {
+    if (move.category === 'Status') continue;
+    const row = chart.find((entry) => entry.type === move.type);
+    if (!row) continue;
+    for (const target of row.strongAgainst) covered.add(target);
+  }
+  return WHEEL_TYPES.filter((type) => covered.has(type));
+}
+
+/**
+ * The types that hit this typing for more than 1x, in the type wheel's order.
+ * **D80's second row.** A dual typing multiplies, so a 4x counts and an
+ * immunity in either half cancels the other half's weakness.
+ */
+export function typeVulnerabilities(types: readonly string[]): TypeName[] {
+  return WHEEL_TYPES.filter((attacker) => typeMultiplier(attacker, types) > 1);
 }
 
 /** What changed between two coverage sets. Both directions, no arithmetic. */

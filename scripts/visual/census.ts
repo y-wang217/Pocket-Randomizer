@@ -260,12 +260,23 @@ export const COMPONENTS: readonly { id: string; selector: string; why: string; b
     /*
      * **Section 4's starter card row, added with D40's ruling (M6.0).** `.starter`
      * is the card's root `<button>`; the screen root is `screen--starter`, so the
-     * two do not collide. The move cards and the stat block inside it are listed
-     * above and are the nearer ancestors, so this row counts only what the card
-     * draws itself: the species, the level, the ability and the HP figure.
+     * two do not collide. Since bible Rev 19 (D78) the card carries move chips,
+     * listed above as the nearer ancestor, so this row counts only what the card
+     * draws itself: the species, the level and the ability.
      */
     selector: '.starter',
-    why: 'Section 4 budgets the starter card at 0 plus the ability name (D40).',
+    why: 'Section 4 budgets the starter card at 0 plus the ability name (D78; D40 before it).',
+  },
+  {
+    id: 'starter detail panel',
+    /*
+     * **Section 4's starter detail panel row, bible Rev 19 (D79, D80).** Empty
+     * and hidden until a tap selects a card, so the gallery's at-rest face
+     * reads nothing here; the two coverage labels are what it carries once
+     * filled. The Choose control sits outside it and is the screen's.
+     */
+    selector: '.starter-detail',
+    why: 'Section 4 budgets the starter detail panel at 5: the two coverage labels and the Choose control (D80).',
   },
   {
     id: 'event choice',

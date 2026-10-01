@@ -63,6 +63,13 @@ export interface StatBlockOptions {
    * so the mark keeps resolving to exactly one element.
    */
   tutorial?: string;
+  /**
+   * The numbers at rest. **Bible Rev 19, D79.** The one-face stylesheet hides
+   * `.stat__value` everywhere, the number one press away on the label; the
+   * starter detail panel is the one call site that shows it, because the pick
+   * there turns on a number (Speed) a bar cannot be read to.
+   */
+  numbers?: boolean;
 }
 
 /**
@@ -74,7 +81,7 @@ export interface StatBlockOptions {
  * what keeps it from becoming a second source of truth about a Pokemon.
  */
 export function statBlock(values: StatValues, options: StatBlockOptions = {}): HTMLElement {
-  const root = el('div', `stats stats--${options.layout ?? 'grid'}`);
+  const root = el('div', `stats stats--${options.layout ?? 'grid'}${options.numbers ? ' stats--numbers' : ''}`);
   if (options.tutorial) root.dataset['tutorial'] = options.tutorial;
 
   for (const stat of STAT_ORDER) {

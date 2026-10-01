@@ -105,7 +105,7 @@ export const TUTORIAL: Readonly<Record<TutorialScreen, readonly TutorialMark[]>>
       anchor: '[data-tutorial="starters"]',
       title: 'Three starters',
       text:
-        'A run begins with one of these three. A card is everything there is to know about it. ' +
+        'A run begins with one of these three. Tap one to see its stats and matchups, then choose it. ' +
         'Pressing and holding anything, here or later, explains it.',
     },
   ],
