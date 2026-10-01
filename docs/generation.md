@@ -12325,23 +12325,3 @@ rather than following it, the reading is in the spec file and here:
     (947 in 749). `test/visual-pocket.test.ts` reads the document's height,
     which the frame's own scroller has hidden since 5.0/1, so it passes
     without seeing either. Recorded rather than ruled.
-
-## 95. The starter screen's backdrop
-
-**2026-10-01.** [`spec/gymrun-patch-starter-backdrop.md`](spec/gymrun-patch-starter-backdrop.md),
-bible Rev 20, D87, on `claude/sleepy-dijkstra-tp2176`. No version axis moves:
-the drawing is under `src/ui/assets/`, outside `contentHash`.
-
-1. **Converted as a map backdrop is**, by `scripts/visual/backdrops.py
-   --starter`: 1024x1536 to 272x408 art pixels, area-averaged, 48 colours,
-   no dither. 43,547 bytes as `src/ui/assets/backdrops/starter.png`, behind
-   the manifest key `starter-backdrop`.
-2. **Anchored at the top, with a window under the blurb.** At its foot, as
-   the map draws its own, three opaque cards covered everything but grass.
-   At the top, with 64 art pixels of margin under the blurb, the lake, the
-   city and the ruins show between the heading and the cards; the heading and
-   blurb sit on plates of the raised surface, as the locale card's name does.
-3. **What it costs.** At 390x844 the three cards still fit, the third ending
-   above the foot of the frame. At 1366x768 the screen now scrolls by 48px,
-   the third card's foot below the fold; the first card is whole above it,
-   which is D45's gate for this screen.

@@ -34,11 +34,7 @@ taken: it would be the first fact the UI holds back after the run has drawn
 it, and that is a C2 ruling the author has not made. The node's disc loses
 its ring off the chosen row. **D86**: the locale card is the crop of its map
 backdrop, full-bleed, the name and the type chips each on a semi-opaque plate
-over it (D72 put the crop where the swatch stood). **D87**, the same day, from
-the author's painting delivered with *"Add this asset to starter page"*
-([`../spec/gymrun-patch-starter-backdrop.md`](../spec/gymrun-patch-starter-backdrop.md)):
-section 5's *Scene backdrop* gains a third call site, the starter screen, on
-the map backdrop's grid, with the cards and the detail panel opaque over it.
+over it (D72 put the crop where the swatch stood).
 
 **Rev 19** carries three amendments, ruled 2026-10-01 by the author on rows
 D78 to D80, from an observation recorded in
@@ -598,7 +594,7 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Flag strip | One flag per hit by R9's precedence, plus one non-hit kind per side (2026-09-21, D23) | Battle |
 | Battle screen header | Node glyph at 16, opponent, AI tier, field glyph at 16 in a fixed slot after the tier, and the turn header at the row's end (2026-09-25, D46 and D47; the kind was a word under D28, 2026-09-21; the turn, 2026-09-30, D58) | Battle |
 | World | The locale's three layers and drift, behind the game frame (2026-09-25, D47; the field state moved to the scene backdrop, 2026-09-30, D60) | Every screen, mounted once by `app.ts`, outside the frame |
-| Scene backdrop | The game screen's painted scene inside the frame, from the asset manifest: the locale's battle backdrop, or the gym's, behind the battle stage; the locale's map backdrop behind the map. During a battle, the field state as a weather wash and a terrain tint over it, global tokens mixed into the backdrop's own. A missing file is the manifest's placeholder at the correct size (2026-09-30, D60) | The battle stage, the map, and the starter screen (2026-10-01, D87), inside the frame. Never outside it: that is the World's |
+| Scene backdrop | The game screen's painted scene inside the frame, from the asset manifest: the locale's battle backdrop, or the gym's, behind the battle stage; the locale's map backdrop behind the map. During a battle, the field state as a weather wash and a terrain tint over it, global tokens mixed into the backdrop's own. A missing file is the manifest's placeholder at the correct size (2026-09-30, D60) | The battle stage and the map, inside the frame. Never outside it: that is the World's |
 | Reward card | The item or berry sprite in a fixed slot, a relic's icon and the capability glyph it satisfies (2026-09-30, D65 and D66), the boosted type chip, the move card on a move kind, with no TM disc (D67 and D71), `+N` beside the currency glyph on coins and `+N%` beside a bar on a restore (D66), and the shop's price beside the currency glyph (2026-09-22, D29 and D36). Three across where they fit, stacked where they do not. **Selected only after a tap**: no card carries the selected state before the player puts it there, and the claim is the Confirm band's commit (2026-09-30, D69) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |
 | Shell nav | Five tabs, each a word and a control icon: Map, Team, Bag, Run Info, Settings. **A tab opens a screen, not an overlay** (2026-09-30, D53). Opened while a decision is pending elsewhere, the screen is a readout: it never advances run state, never submits, never consumes RNG, and closing it returns to the pending decision, which is the §12 standing rule's three properties carried from the drawer to the screen. Map from anywhere but the map is the chain without its picker, so there is still exactly one path by which a node completes | The shell, every viewport. Replaces the drawer triggers |
 | Run Info screen | The decision feed, newest first, and the run's position: gym rail, locale, seed (2026-09-30, D53 and D55) | The Run Info tab. The desktop sidebar mounts the same feed |

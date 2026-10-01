@@ -11,9 +11,7 @@
  * is a placeholder. **The nine battle backdrops are art since 5.0/2**
  * (`docs/spec/gymrun-stage5.0-battle-backdrops.md`), and **the eight map
  * backdrops since 5.0/4** (`docs/spec/gymrun-stage5.0-map-backdrops.md`),
- * converted from the author's paintings by `scripts/visual/backdrops.py`, and
- * **the starter screen's** since Bible Rev 20, D87
- * (`docs/spec/gymrun-patch-starter-backdrop.md`), on the map backdrop's grid.
+ * converted from the author's paintings by `scripts/visual/backdrops.py`.
  * **Every icon is art since 5.0/5** (`docs/spec/gymrun-stage5.0-rulings-stage5.md`),
  * drawn on its native grid by `scripts/visual/icons.py`. No placeholder is
  * left; each entry keeps its letter, which is what a file that fails to
@@ -154,14 +152,6 @@ const mapBackdrop = (id: LocaleId): ArtFile => ({
   tone: 'colour',
 });
 
-/** The starter screen's drawing, on the map backdrop's grid. Rev 20, D87. */
-const starterBackdrop: ArtFile = {
-  kind: 'file',
-  file: 'backdrops/starter.png',
-  native: NATIVE.mapBackdrop,
-  tone: 'colour',
-};
-
 /** An icon's drawing, since 5.0/5, with the letter it falls back to. */
 const icon = (file: string, native: NativeSize, tone: Tone, letter: string): ArtFile => ({
   kind: 'file',
@@ -174,7 +164,6 @@ const icon = (file: string, native: NativeSize, tone: Tone, letter: string): Art
 export type AssetKey =
   | `map-backdrop:${LocaleId}`
   | `battle-backdrop:${LocaleId | 'gym'}`
-  | 'starter-backdrop'
   | `node:${NodeKind}`
   | `capability:${Capability}`
   | `relic:${RelicId}`
@@ -189,7 +178,6 @@ function build(): ReadonlyMap<AssetKey, Asset> {
     entries.push([`battle-backdrop:${locale.id}`, battleBackdrop(locale.id)]);
   }
   entries.push(['battle-backdrop:gym', battleBackdrop('gym')]);
-  entries.push(['starter-backdrop', starterBackdrop]);
   for (const [kind, letter] of Object.entries(NODE_LETTERS) as [NodeKind, string][]) {
     entries.push([`node:${kind}`, icon(`glyphs/node-${kind}.png`, NATIVE.node, 'mask', letter)]);
   }

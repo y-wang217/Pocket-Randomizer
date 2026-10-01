@@ -2998,41 +2998,6 @@ body {
 }
 .starter__moves .move--chip .move__name { font-size: var(--fs-md); min-width: 0; }
 
-/* The scene behind the pick (Bible Rev 20, D87): the starter backdrop at
-   whole art pixels, its sky and the far-off world at the screen's head, under
-   a screen that fills the frame. Anchored at the foot it showed only grass
-   round the cards. The heading and blurb sit on plates of the
-   raised surface, as the locale card's name does (D86). */
-.screen--starter {
-  position: relative;
-  isolation: isolate;
-  min-height: 100%;
-}
-.screen--starter::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    var(--backdrop-image, none) center top / calc(var(--backdrop-w, 0) * var(--art-px)) calc(var(--backdrop-h, 0) * var(--art-px)) no-repeat,
-    var(--bg);
-  image-rendering: pixelated;
-}
-/* A window on the painting under the blurb: 64 art pixels, which at the
-   top anchor is the lake, the city and the ruins. The cards cover the rest. */
-.screen--starter > .screen__blurb { margin-bottom: calc(var(--art-px) * 64); }
-.screen--starter > .screen__title,
-.screen--starter > .screen__blurb {
-  justify-self: start;
-  align-self: flex-start;
-  width: fit-content;
-  max-width: 100%;
-  padding: var(--space-h) var(--space-2);
-  border-radius: var(--radius-chip);
-  background: color-mix(in srgb, var(--bg-raised) 82%, transparent);
-}
-
 /* The detail panel: the selected starter's numbers and coverage. D79, D80. */
 .starter-detail {
   display: flex;

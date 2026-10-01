@@ -33,11 +33,6 @@ centre ring replaced by the circle's own cream stone; each banner's ball
 becomes a diamond, the mark the map entrances' banners already wear. The other
 sixteen backdrops carry no Poke Ball (checked at 5.0/5) and are untouched.
 
-**The starter screen's backdrop** (`--starter`,
-`docs/spec/gymrun-patch-starter-backdrop.md`): one 1024x1536 painting,
-converted exactly as a map backdrop is, from `stage5.0-starter-backdrop.webp`
-to `src/ui/assets/backdrops/starter.png`.
-
 Tooling, not the game: it needs Pillow (`pip install pillow`), which nothing in
 the build or the test suite imports. Re-run it when the art changes.
 """
@@ -138,14 +133,7 @@ def main() -> None:
     parser.add_argument('source', help='directory holding stage5.0-battle-backdrop-<region>.webp')
     parser.add_argument('--colors', type=int, default=48)
     parser.add_argument('--map', action='store_true', help='convert the map backdrops instead')
-    parser.add_argument('--starter', action='store_true', help="convert the starter screen's backdrop instead")
     args = parser.parse_args()
-    if args.starter:
-        source = os.path.join(args.source, 'stage5.0-starter-backdrop.webp')
-        target = os.path.join(os.path.dirname(MAP_OUT), 'starter.png')
-        convert(source, args.colors, MAP_NATIVE).save(target, optimize=True)
-        print(f'starter: {os.path.getsize(target)} bytes')
-        return
     kind, names, out, native = ('map', LOCALES, MAP_OUT, MAP_NATIVE) if args.map else ('battle', REGIONS, OUT, NATIVE)
     os.makedirs(out, exist_ok=True)
     for region in names:
