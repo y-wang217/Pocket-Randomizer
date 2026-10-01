@@ -2297,6 +2297,16 @@ body {
 
 .glyph > svg { display: block; width: 100%; height: 100%; }
 
+/* A glyph with class C art (5.0/5, D61): the 8px drawing as a mask over
+   `currentColor`, so the mark keeps the colour every glyph takes from its
+   slot. Drawn at 16 or 24, whole multiples of 8, never smoothed. */
+.glyph--art {
+  background-color: currentColor;
+  -webkit-mask: var(--glyph-art) center / 100% 100% no-repeat;
+  mask: var(--glyph-art) center / 100% 100% no-repeat;
+  image-rendering: pixelated;
+}
+
 /*
  * The exposure label. **Milestone M6.1, R7.** The word beside a glyph on its
  * family's first and third exposure, then never again. Small and dim, since it
@@ -6876,8 +6886,26 @@ button,
   font-size: var(--fs-xs);
   font-weight: 700;
 }
-.asset--art { background-size: 100% 100%; image-rendering: pixelated; }
+/* A drawing: its own colours on the background, or ink through a mask in
+   `currentColor` (5.0/5), at whole multiples of the art pixel. */
+.asset--art { image-rendering: pixelated; }
+.asset--colour { background: var(--asset-image) center / 100% 100% no-repeat; }
+.asset--mask {
+  background-color: currentColor;
+  -webkit-mask: var(--asset-image) center / 100% 100% no-repeat;
+  mask: var(--asset-image) center / 100% 100% no-repeat;
+}
 .sidebar__wordmark .asset--placeholder { display: none; }
+/* With the drawing in (5.0/5), the word is the drawing's name for a screen
+   reader and is not painted a second time beside it. */
+.sidebar__wordmark .asset--art + .sidebar__wordmark-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
 /*
  * **A tab screen fills the frame under the nav.** The party drawer, the map

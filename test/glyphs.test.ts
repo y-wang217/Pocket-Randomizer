@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { BAND_PIPS } from '../src/data/bandInfo';
+import { glyphArtKey } from '../src/ui/assets/manifest';
 import { TYPE_ICON_NAMES } from '../src/ui/theme/typeIcons';
 import {
   GLYPHS,
@@ -37,6 +38,8 @@ const SEPARATION = join(process.cwd(), 'docs/visual/m1.1-glyph-separation.json')
 
 interface SeparationFile {
   floor: number;
+  /** The glyphs measured as their class C drawing (5.0/5). */
+  drawn: string[];
   worst: { family: string; a: string; b: string; simulation: string; score: number }[];
   all: { family: string; a: string; b: string; simulation: string; score: number }[];
 }
@@ -167,6 +170,19 @@ describe('the 16px separation', () => {
     const pairable = GLYPH_FAMILIES.filter((family) => glyphsOf(family).length > 1) as GlyphFamily[];
     for (const family of pairable) {
       for (const glyph of glyphsOf(family)) expect(measured, `${glyph.id} unmeasured; re-run the sheet`).toContain(glyph.id);
+    }
+  });
+
+  /*
+   * Stage 5.0/5, D61: the node, capability and currency marks are class C
+   * drawings now, and *"M1.1's colour-blind check is re-run on the new art
+   * before 5.0/5 mounts it."* The table names the glyphs it measured as their
+   * drawing, so one measured on the SVGs they replaced fails here.
+   */
+  it('measured every glyph with a drawing as the drawing', () => {
+    const drawn = new Set(separation().drawn);
+    for (const glyph of GLYPHS.filter((entry) => glyphArtKey(entry.id) !== null)) {
+      expect(drawn, `${glyph.id} measured as its SVG; re-run the sheet`).toContain(glyph.id);
     }
   });
 

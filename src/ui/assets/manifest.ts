@@ -11,8 +11,28 @@
  * is a placeholder. **The nine battle backdrops are art since 5.0/2**
  * (`docs/spec/gymrun-stage5.0-battle-backdrops.md`), and **the eight map
  * backdrops since 5.0/4** (`docs/spec/gymrun-stage5.0-map-backdrops.md`),
- * converted from the author's paintings by `scripts/visual/backdrops.py`;
- * every other entry is a placeholder.
+ * converted from the author's paintings by `scripts/visual/backdrops.py`.
+ * **Every icon is art since 5.0/5** (`docs/spec/gymrun-stage5.0-rulings-stage5.md`),
+ * drawn on its native grid by `scripts/visual/icons.py`. No placeholder is
+ * left; each entry keeps its letter, which is what a file that fails to
+ * resolve shows in its place.
+ *
+ * ## Two tones
+ *
+ * A backdrop or a relic is a picture, drawn in its own colours (`colour`). A
+ * node, capability or currency mark, a nav icon and the wordmark are ink
+ * (`mask`): the file's opaque pixels are drawn in `currentColor` through a CSS
+ * mask, so they are monochrome and follow the theme like every glyph in the
+ * sheet, and colour stays secondary (bible section 2).
+ *
+ * ## The three glyph families
+ *
+ * The node, capability and currency marks are section 2 glyph families, so
+ * they are drawn by `glyphNode` and never by `assetIcon` (D61): the renderer
+ * asks `glyphArt` for the drawing and falls back to the sheet's SVG mark when
+ * there is none, so a family cannot be drawn without reporting itself. Their
+ * native size is 8, the one size that scales by whole multiples to both 16
+ * (the battle header) and 24 (the map node card).
  *
  * ## Where the art lives, and why there
  *
@@ -25,7 +45,8 @@
  * All of it is pixel art at a fixed native size, drawn at whole multiples of
  * one art pixel (`--art-px`, 2 CSS px) with `image-rendering: pixelated`. The
  * sizes are the 5.0/0 spike's
- * (`docs/visual/reports/5.0-stage0-spike.md`, section 2), except the battle
+ * (`docs/visual/reports/5.0-stage0-spike.md`, section 2), except the node mark,
+ * 8 since 5.0/5 where the spike said 16, by D61's ruling; and the battle
  * backdrop: 224x136 since 5.0/2, the stage's own 272px height and the widest
  * frame's width at 2 CSS px an art pixel, where the spike's 216x170 was sized
  * for a 340px stage; and the map backdrop, 272x408 since 5.0/4, 2:3 as the
@@ -56,12 +77,18 @@ export interface Placeholder {
   native: NativeSize;
 }
 
+/** How a drawing's pixels are painted: its own colours, or ink in `currentColor`. */
+export type Tone = 'colour' | 'mask';
+
 /** A drawing, committed under `src/ui/assets/`. */
 export interface ArtFile {
   kind: 'file';
   /** Relative to `src/ui/assets/`. */
   file: string;
   native: NativeSize;
+  tone: Tone;
+  /** What an icon shows if the file does not resolve. Backdrops show their tint. */
+  letter?: string;
 }
 
 export type Asset = Placeholder | ArtFile;
@@ -69,7 +96,7 @@ export type Asset = Placeholder | ArtFile;
 export const NATIVE = {
   mapBackdrop: { width: 272, height: 408 },
   battleBackdrop: { width: 224, height: 136 },
-  node: { width: 16, height: 16 },
+  node: { width: 8, height: 8 },
   capability: { width: 8, height: 8 },
   relic: { width: 16, height: 16 },
   nav: { width: 12, height: 12 },
@@ -109,13 +136,12 @@ const capabilityLetters = (capability: Capability): string =>
 const relicLetters = (name: string): string =>
   name.replace(/[^A-Za-z ]/g, '').split(' ').filter(Boolean).map((word) => word[0]?.toUpperCase() ?? '').join('').slice(0, 2);
 
-const placeholder = (letter: string, native: NativeSize): Placeholder => ({ kind: 'placeholder', letter, native });
-
 /** A battle backdrop's drawing. One file per locale and one for every gym. */
 const battleBackdrop = (id: LocaleId | 'gym'): ArtFile => ({
   kind: 'file',
   file: `backdrops/battle/${id}.png`,
   native: NATIVE.battleBackdrop,
+  tone: 'colour',
 });
 
 /** A map backdrop's drawing. One file per locale, since 5.0/4. */
@@ -123,6 +149,16 @@ const mapBackdrop = (id: LocaleId): ArtFile => ({
   kind: 'file',
   file: `backdrops/map/${id}.png`,
   native: NATIVE.mapBackdrop,
+  tone: 'colour',
+});
+
+/** An icon's drawing, since 5.0/5, with the letter it falls back to. */
+const icon = (file: string, native: NativeSize, tone: Tone, letter: string): ArtFile => ({
+  kind: 'file',
+  file,
+  native,
+  tone,
+  letter,
 });
 
 export type AssetKey =
@@ -143,17 +179,17 @@ function build(): ReadonlyMap<AssetKey, Asset> {
   }
   entries.push(['battle-backdrop:gym', battleBackdrop('gym')]);
   for (const [kind, letter] of Object.entries(NODE_LETTERS) as [NodeKind, string][]) {
-    entries.push([`node:${kind}`, placeholder(letter, NATIVE.node)]);
+    entries.push([`node:${kind}`, icon(`glyphs/node-${kind}.png`, NATIVE.node, 'mask', letter)]);
   }
   for (const capability of CAPABILITIES) {
-    entries.push([`capability:${capability}`, placeholder(capabilityLetters(capability), NATIVE.capability)]);
+    entries.push([`capability:${capability}`, icon(`glyphs/capability-${capability}.png`, NATIVE.capability, 'mask', capabilityLetters(capability))]);
   }
   for (const relic of RELICS) {
-    entries.push([`relic:${relic.id}`, placeholder(relicLetters(relic.name), NATIVE.relic)]);
+    entries.push([`relic:${relic.id}`, icon(`icons/relic-${relic.id}.png`, NATIVE.relic, 'colour', relicLetters(relic.name))]);
   }
-  for (const tab of NAV_TABS) entries.push([`nav:${tab}`, placeholder(NAV_LETTERS[tab], NATIVE.nav)]);
-  entries.push(['currency', placeholder('¢', NATIVE.currency)]);
-  entries.push(['wordmark', placeholder('GYMRUN', NATIVE.wordmark)]);
+  for (const tab of NAV_TABS) entries.push([`nav:${tab}`, icon(`icons/nav-${tab}.png`, NATIVE.nav, 'mask', NAV_LETTERS[tab])]);
+  entries.push(['currency', icon('glyphs/currency-coin.png', NATIVE.currency, 'mask', '¢')]);
+  entries.push(['wordmark', icon('icons/wordmark.png', NATIVE.wordmark, 'mask', 'GYMRUN')]);
   return new Map(entries);
 }
 
@@ -203,16 +239,39 @@ export function assetIcon(key: AssetKey): HTMLElement {
   icon.setAttribute('aria-hidden', 'true');
   icon.style.setProperty('--asset-w', String(asset.native.width));
   icon.style.setProperty('--asset-h', String(asset.native.height));
-  if (url) {
-    // A background, not an `<img>`: sprites are `ui/sprites.ts`'s alone, and
-    // this is decoration the caller names (`test/sprites.test.ts`).
-    icon.classList.add('asset--art');
-    icon.style.backgroundImage = `url(${url})`;
+  if (url && asset.kind === 'file') {
+    // A background or a mask, not an `<img>`: sprites are `ui/sprites.ts`'s
+    // alone, and this is decoration the caller names (`test/sprites.test.ts`).
+    icon.classList.add('asset--art', `asset--${asset.tone}`);
+    icon.style.setProperty('--asset-image', `url(${url})`);
   } else {
     icon.classList.add('asset--placeholder');
-    icon.textContent = asset.kind === 'placeholder' ? asset.letter : '';
+    icon.textContent = asset.letter ?? '';
   }
   return icon;
+}
+
+/**
+ * The manifest key holding a glyph's drawing, for the three glyph families
+ * that have one: node, capability and currency (D61). The band chevron is a
+ * capability glyph with no class C slot, and stays the sheet's mark.
+ */
+export function glyphArtKey(glyphId: string): AssetKey | null {
+  if (glyphId === 'currency-coin') return 'currency';
+  const [family, ...rest] = glyphId.split('-');
+  const name = rest.join('-');
+  const key = family === 'node' || family === 'capability' ? (`${family}:${name}` as AssetKey) : null;
+  return key && MANIFEST.has(key) ? key : null;
+}
+
+/**
+ * A glyph's drawing as a URL, or null to draw the sheet's mark. **Stage
+ * 5.0/5.** Read by `glyphNode` and nothing else.
+ */
+export function glyphArt(glyphId: string): string | null {
+  const key = glyphArtKey(glyphId);
+  const asset = key ? MANIFEST.get(key) : undefined;
+  return asset?.kind === 'file' ? assetUrl(asset) : null;
 }
 
 /**

@@ -53,13 +53,14 @@
  * simulations earn their keep on the two families that *are* coloured, type and
  * status, and those are judged from the pictures.
  */
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Browser, Page } from 'playwright';
 import { build } from 'vite';
 
 import { launch, serve } from './browser.mjs';
+import { MANIFEST, glyphArtKey } from '../../src/ui/assets/manifest';
 import { GLYPHS, GLYPH_FAMILIES, GLYPH_SIZES, GLYPH_VIEWBOX, type Glyph } from '../../src/ui/theme/glyphs';
 
 export const SHEET_DIR = join(process.cwd(), 'docs/visual');
@@ -92,8 +93,26 @@ export interface Separation {
   score: number;
 }
 
-/** One glyph as SVG markup, or its lettering. */
+/**
+ * A glyph's class C drawing as a data URL, or null. **Stage 5.0/5.**
+ *
+ * D61 ruled that the node, capability and currency art is re-measured here
+ * before it mounts, so a glyph with a drawing is measured *as the drawing*:
+ * the 8px PNG `glyphNode` masks, read off disk, never the SVG it replaced.
+ */
+export function drawingOf(glyph: Glyph): string | null {
+  const key = glyphArtKey(glyph.id);
+  const asset = key ? MANIFEST.get(key) : undefined;
+  if (asset?.kind !== 'file') return null;
+  return `data:image/png;base64,${readFileSync(join(process.cwd(), 'src/ui/assets', asset.file)).toString('base64')}`;
+}
+
+/** One glyph as SVG markup, its lettering, or its drawing as the game masks it. */
 function markup(glyph: Glyph, size: number): string {
+  const drawing = drawingOf(glyph);
+  if (drawing) {
+    return `<span class="glyph glyph--art" style="--glyph-size:${size}px;--glyph-art:url(${drawing})"></span>`;
+  }
   if (glyph.art.kind === 'text') {
     return `<span class="chip chip--status badge badge--status" data-status="${glyph.id.slice('status-'.length)}" style="font-size:${Math.round(size * 0.62)}px">${glyph.art.text}</span>`;
   }
@@ -194,6 +213,7 @@ async function measure(page: Page): Promise<Separation[]> {
   const payload = GLYPHS.map((glyph) => ({
     id: glyph.id,
     family: glyph.family as string,
+    png: drawingOf(glyph),
     svg:
       glyph.art.kind === 'markup'
         ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="${GLYPH_VIEWBOX}" fill="#000">${glyph.art.markup}</svg>`
@@ -209,17 +229,20 @@ async function measure(page: Page): Promise<Separation[]> {
       const context = canvas.getContext('2d', { willReadFrequently: true });
       if (!context) return [];
 
-      const pixelsOf = async (svg: string): Promise<Uint8ClampedArray> => {
+      // A drawing is scaled 2x with no smoothing, exactly as the mask draws it
+      // at 16; an SVG is rasterised as it always was.
+      const pixelsOf = async (svg: string, png: string | null): Promise<Uint8ClampedArray> => {
         const image = new Image();
-        image.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+        image.src = png ?? `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
         await image.decode();
         context.clearRect(0, 0, SIZE, SIZE);
+        context.imageSmoothingEnabled = png === null;
         context.drawImage(image, 0, 0, SIZE, SIZE);
         return context.getImageData(0, 0, SIZE, SIZE).data;
       };
 
       const raster = new Map<string, Uint8ClampedArray>();
-      for (const glyph of glyphs) raster.set(glyph.id, await pixelsOf(glyph.svg));
+      for (const glyph of glyphs) raster.set(glyph.id, await pixelsOf(glyph.svg, glyph.png));
 
       const simulate = (data: Uint8ClampedArray, m: readonly number[]): Float32Array => {
         const out = new Float32Array(data.length);
@@ -331,7 +354,10 @@ async function main(): Promise<number> {
       console.log(`  ${mark} ${row.family.padEnd(14)} ${row.score.toFixed(3)}  ${row.a} vs ${row.b} (${row.simulation})`);
     }
     if (write) {
-      writeFileSync(join(SHEET_DIR, 'm1.1-glyph-separation.json'), `${JSON.stringify({ floor: SEPARATION_FLOOR, worst, all: separations }, null, 1)}\n`);
+      // `drawn` names the glyphs measured as their class C drawing (5.0/5), so
+      // a table measured before the art went in cannot pass for one after.
+      const drawn = GLYPHS.filter((glyph) => drawingOf(glyph) !== null).map((glyph) => glyph.id);
+      writeFileSync(join(SHEET_DIR, 'm1.1-glyph-separation.json'), `${JSON.stringify({ floor: SEPARATION_FLOOR, drawn, worst, all: separations }, null, 1)}\n`);
       console.log(`\nwrote ${Object.keys(SIMULATIONS).length} sheets and the separation table to ${SHEET_DIR}`);
     }
     if (failures.length) {
