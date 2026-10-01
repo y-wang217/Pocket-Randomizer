@@ -23,7 +23,7 @@ the three density columns this table carried are one.
 
 | Surface | words | less shell | first run |
 |---|---:|---:|---:|
-| starter | 29 | 20 | 71 |
+| starter | 29 | 20 | 38 |
 | locale | 12 | 3 | 9 |
 | map | 18 | 9 | 23 |
 | battle | 15 | 6 | 27 |
@@ -70,6 +70,7 @@ budget is 0 or the component renders once.
 | map node card | 8 | 1 |
 | locale card | 0 | 0 |
 | starter card | 0 | 0 |
+| starter detail panel | 0 | 0 |
 | event choice | 40 | 13 |
 | app shell | 197 | 14 |
 | screen chrome (no component) | 767 | — |
