@@ -11953,7 +11953,7 @@ What the build found:
     press has everything), and a row under 42px draws a smaller ring round the
     same 24px mark. With the team off the map neither triggers at 390x844, at
     1366x768 or at 375x667 on the worst case; the floor is for anything
-    shorter.
+    shorter. **Wrong at 1366x768 and 375x667: see §91 item 3.**
 13. **The map's gallery fixture moved to the map's real worst case.**
     `deepMapState` (`ui/gallery-fixtures.ts`): the longest segment the seed
     draws, walked halfway, with the widest party. A segment-one map had
@@ -12017,3 +12017,30 @@ What the build found:
     ink (14.73). The same file's parallax case shortened the viewport to 480 so
     the map would scroll; the graph gives its rows back to a floor and fitted
     with 15px to spare, so it reads at 400, with a comment naming the plan.
+
+## 91. The type chips back over the contrast floor, and 5.0/4's report screenshots
+
+**2026-10-01**, on `claude/loving-darwin-lpx2r4` restarted from `main` after
+#80. Prompt: [`spec/gymrun-patch-type-chip-contrast-and-stage4-shots.md`](spec/gymrun-patch-type-chip-contrast-and-stage4-shots.md).
+No version axis moves; nothing under `core/` or `data/` changed.
+
+1. **`--chip-text` 40% to 30%** (`ui/theme/tokens.css`), one number for every
+   coloured chip, as its own history argues. CI's chip sweep had six light
+   type hues under `displayTuning.minChipContrastRatio` (4.5) on the light
+   surfaces it reaches (rock 3.91, ground 3.90, steel 4.03, grass 4.14, bug
+   4.34, electric 4.38, on the map heading, the summary and the party
+   screen), identically on #79's head and #80's merged head, so `main` had
+   been red since 5.0/3. The mix reproduces CI's six ratios exactly at 40%,
+   and puts the worst at 4.79 at 30%. The floor is not moved. Bible: section
+   2's *Type* row (colour secondary, the glyph primary) holds; no rule
+   changes.
+2. **The 5.0/4 report's screenshots are committed**: fourteen files in
+   `visual/reports/5.0-stage4/`, the six views the report names and the eight
+   painted backdrops. The report listed them at #80 and the folder never
+   landed.
+3. **§90 item 12 was wrong**, found by those screenshots. The pitch floor
+   does engage on the worst case at the two shorter frames: at 1366x768 the
+   rows other than the current step keep the mark alone, and at 375x667 they
+   also take the smaller ring. Only 390x844 shows every row's facts. That is
+   the floor doing what D63's ruling asked of it, and the report's table and
+   text are corrected to say so, with a dated note.

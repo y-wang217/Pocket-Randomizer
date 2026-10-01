@@ -245,10 +245,19 @@
    * dark hues off a dark card now has to hold the light hues on a light one:
    * at 60% the map's type chips read 3.86 and the battle panel's 4.20 on
    * every locale (`test/visual-v1.test.ts`).
+   *
+   * **And 40% to 30% after 5.0/4**, by `docs/spec/gymrun-patch-type-chip-contrast-and-stage4-shots.md`.
+   * At 40% six light hues sat under the floor on the light surfaces CI's
+   * sweep reaches: rock 3.91 and ground 3.90, steel 4.03, grass 4.14, bug
+   * 4.34, electric 4.38, on the map heading, the summary and the party
+   * screen, red on `main` since 5.0/3. 30% puts the worst of those, rock, at
+   * 4.79. Still one number: the fill and the outline keep the hue, so a chip
+   * still reads as its type, and the glyph is the primary channel anyway
+   * (bible section 2).
    */
   --chip-fill: 16%;
   --chip-line: 55%;
-  --chip-text: 40%;
+  --chip-text: 30%;
 
   /* ---------- faces ---------- */
   --font-mono-stack: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
