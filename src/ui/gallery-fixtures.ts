@@ -112,6 +112,41 @@ export function openingState(seed: string): RunState {
   return furnish({ ...state, party: worstCaseParty(state) });
 }
 
+/**
+ * The map's worst case since Stage 5.0/4: the longest segment the run draws,
+ * walked halfway, with the widest party. The graph draws every step of a
+ * segment at once, so the height it needs grows with the segment's length,
+ * and the chrome above it grows with the party; a segment-one map has neither.
+ * Every earlier segment is walked on its first option and its gym won, as in
+ * `lateState`, so the rail and the capacity read as they would that deep.
+ */
+export function deepMapState(seed: string): RunState {
+  const state = chooseLocale(chooseStarter(createRun(seed, DEFAULT_TUNING), 0), 0);
+  const party = worstCaseParty(state);
+  const length = (index: number): number => state.segments[index]?.routes[0]?.steps.length ?? 0;
+  let deepest = 0;
+  for (let index = 1; index < state.segments.length; index++) if (length(index) >= length(deepest)) deepest = index;
+  const walked = Math.floor(length(deepest) / 2);
+  const history: NodeVisit[] = [];
+  for (const [index, segment] of state.segments.entries()) {
+    if (index > deepest) break;
+    const steps = segment.routes[0]?.steps ?? [];
+    for (const step of index === deepest ? steps.slice(0, walked) : steps) {
+      const node = step.options[0];
+      if (node) history.push(visitOf(node, index, node.kind === 'rest' || node.kind === 'shop' || node.kind === 'event' ? null : 'won', party, []));
+    }
+    if (index < deepest) history.push(visitOf(segment.gym, index, 'won', party, []));
+  }
+  return furnish({
+    ...state,
+    party,
+    localeChoices: state.segments.map(() => 0),
+    currentSegment: deepest,
+    position: walked,
+    history,
+  });
+}
+
 /** Every relic, a backpack at capacity, and coins enough to buy the whole shelf. */
 function furnish(state: RunState): RunState {
   const capacity = backpackCapacity(partyCapacity(state), state.tuning);

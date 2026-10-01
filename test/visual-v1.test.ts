@@ -86,7 +86,14 @@ describe('data-locale', () => {
 });
 
 describe('locale cards', () => {
-  it('are identical in computed style except the swatch colours', async () => {
+  /*
+   * **The swatch is a crop since Stage 5.0/4** (D72,
+   * `docs/spec/gymrun-stage5.0-visual-redesign.md` Stage 4): a strip of the
+   * region's map backdrop where the three palette blocks stood. The claim is
+   * unchanged: one card style, one size for the region's own mark, and that
+   * mark different on every card.
+   */
+  it('are identical in computed style except the crop of the region', async () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
     await playUntil(page, (screen) => screen === 'locale');
     await page.mouse.move(0, 0);
@@ -95,12 +102,12 @@ describe('locale cards', () => {
       const keys = ['backgroundColor', 'borderTopColor', 'borderTopWidth', 'borderLeftWidth', 'boxShadow', 'fontSize', 'padding', 'gap', 'minHeight', 'borderRadius', 'color'];
       return [...globalThis.document.querySelectorAll(sel)].map((card) => {
         const style = globalThis.getComputedStyle(card);
-        const swatch = card.querySelector('.locale__swatch');
-        const swatchStyle = swatch ? globalThis.getComputedStyle(swatch) : null;
+        const crop = card.querySelector('.locale__crop');
+        const cropStyle = crop ? globalThis.getComputedStyle(crop) : null;
         return {
           card: keys.map((key) => `${key}=${style[key as keyof CSSStyleDeclaration]}`).join(' '),
-          swatchBox: swatchStyle ? `${swatchStyle.width} ${swatchStyle.height}` : null,
-          swatch: [...(swatch?.children ?? [])].map((block) => globalThis.getComputedStyle(block).backgroundColor).join('|'),
+          swatchBox: cropStyle ? `${cropStyle.width} ${cropStyle.height}` : null,
+          swatch: cropStyle ? `${cropStyle.backgroundColor} ${cropStyle.backgroundImage}` : '',
           height: card.getBoundingClientRect().height,
         };
       });
@@ -109,8 +116,8 @@ describe('locale cards', () => {
 
     expect(cards.length).toBeGreaterThan(1);
     expect(new Set(cards.map((c) => c.card)).size, 'one card style').toBe(1);
-    expect(new Set(cards.map((c) => c.swatchBox)).size, 'one swatch size').toBe(1);
-    expect(new Set(cards.map((c) => c.swatch)).size, 'swatches differ').toBe(cards.length);
+    expect(new Set(cards.map((c) => c.swatchBox)).size, 'one crop size').toBe(1);
+    expect(new Set(cards.map((c) => c.swatch)).size, 'crops differ').toBe(cards.length);
   }, 180_000);
 });
 

@@ -54,7 +54,7 @@ describe('the world', () => {
         continue;
       }
       if (screen === 'map' && !opened) {
-        await page.locator(`${visible('map')} .party__header .button`).click();
+        await page.locator('[data-nav="team"]').click();
         await page.waitForTimeout(50);
         opened = true;
         continue;
@@ -111,9 +111,11 @@ describe('the world', () => {
      * **A short viewport, since Stage 5.0/1.** The map fits a 390x844 frame
      * now and has nothing to scroll, and so does a party of one. At 480 tall
      * the map scrolls inside the frame, which is the scroll the parallax
-     * reads.
+     * reads. **400 since Stage 5.0/4** (`docs/spec/gymrun-stage5.0-visual-redesign.md`,
+     * Stage 4): the map's graph gives its rows back down to a floor, so at
+     * 480 the whole segment fitted with 15px to scroll, under the guard below.
      */
-    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24', { width: 390, height: 480 });
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24', { width: 390, height: 400 });
     await playUntil(page, (screen) => screen === 'map');
     /*
      * **Scroll as far as the map allows, rather than to a fixed 200.**
@@ -153,12 +155,23 @@ describe('the world', () => {
      * the condition costs nothing when the frame is prompt and does not lie
      * when it is late.
      */
+    /*
+     * **And for the layer to match the scroll as it stands, since Stage
+     * 5.0/4.** The map scrolls its current step into view on render, so the
+     * frame can still be settling after the `scrollTo` above; waiting for the
+     * layer to have moved at all read it one throttled frame behind (-19.6
+     * against a scroll that had reached 112). The condition is the ratio the
+     * assertions below check, on the far layer, at whatever the scroll is.
+     */
     await page.waitForFunction(
       () => {
         const far = globalThis.document.querySelector('.world__layer--far');
-        if (!far) return false;
+        const frame = globalThis.document.querySelector<HTMLElement>('.screens');
+        if (!far || !frame) return false;
         const matrix = globalThis.getComputedStyle(far).transform;
-        return matrix !== 'none' && !/^matrix\(1, 0, 0, 1, 0, -?0\)$/.test(matrix);
+        if (matrix === 'none' || /^matrix\(1, 0, 0, 1, 0, -?0\)$/.test(matrix)) return false;
+        const y = Number(matrix.replace(/^matrix\((.*)\)$/, '$1').split(',')[5]);
+        return Math.abs(y + frame.scrollTop * 0.2) < 1e-6;
       },
       { timeout: 10_000 },
     );

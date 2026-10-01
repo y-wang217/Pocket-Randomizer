@@ -35,11 +35,8 @@ export const STYLES = {
     ['.screen__blurb', 'map blurb'],
     ['.map__blurb', 'gym blurb'],
     ['.map__region-name', 'region name'],
-    ['.party__wallet-label', 'wallet label'],
-    ['.party__wallet-value', 'wallet value'],
-    ['.panel__name', 'party member name'],
-    ['.panel__hp-text', 'party hp text'],
-    ['.party__move', 'party move row'],
+    // The party HUD left the map in 5.0/4; the wallet stayed, in the heading.
+    ['.map__wallet', 'wallet'],
     ['.step--current .node__label', 'node label'],
     ['.step--current .node__detail', 'node detail'],
     ['.step--current .tier', 'tier chip'],

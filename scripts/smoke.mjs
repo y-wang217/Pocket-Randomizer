@@ -542,7 +542,7 @@ async function playRun(label) {
        * rendering it. Done once so the second run makes the same clicks.
        */
       if (nodes === 2 && partyVisits === 0) {
-        const manage = page.locator(`${visible('map')} .party__header .button`);
+        const manage = page.locator('[data-nav="team"]');
         if (await manage.count()) {
           await manage.click();
           await page.waitForTimeout(25);
@@ -699,15 +699,27 @@ async function chooseNode() {
   const options = page.locator(`${visible('map')} .node--current`);
   if ((await options.count()) === 0) return null;
 
-  const hpText = (await page.locator(`${visible('map')} .panel__hp-text`).first().textContent()) ?? '';
-  const [, current, max] = /(\d+)\s*\/\s*(\d+)/.exec(hpText) ?? [];
-  const fraction = current && max ? Number(current) / Number(max) : 1;
-
-  if (fraction < 0.95) {
-    const rest = page.locator(`${visible('map')} .node--current.node--rest`).first();
-    if (await rest.count()) return rest;
-  }
+  // The lead's HP from the party screen, through the Team tab: the map
+  // carries no team since 5.0/4 (`leadHpFraction` below).
+  const rest = page.locator(`${visible('map')} .node--current.node--rest`).first();
+  if ((await rest.count()) && (await leadHpFraction()) < 0.95) return rest;
   return options.first();
+}
+
+/**
+ * The lead's HP as a fraction, read off the party screen through the Team
+ * tab. **Stage 5.0/4**: the map carried the party until then. A readout: it
+ * submits nothing and draws nothing, so both runs stay the same walk. The
+ * same helper as `scripts/visual/browser.mjs`'s, on this file's own page.
+ */
+async function leadHpFraction() {
+  await page.locator('[data-nav="team"]').click();
+  await page.waitForSelector(visible('party'));
+  const hpText = (await page.locator(`${visible('party')} .party__member .panel__hp-text`).first().textContent()) ?? '';
+  await page.locator(`${visible('party')} .primary-action`).first().click();
+  await page.waitForSelector(visible('map'));
+  const [, current, max] = /(\d+)\s*\/\s*(\d+)/.exec(hpText) ?? [];
+  return current && max ? Number(current) / Number(max) : 1;
 }
 
 /** What the chain looked like partway through: done behind, current, upcoming ahead. */
@@ -1048,7 +1060,7 @@ phoneCheck(
  * And the same readout on the party screen, where it is open by default and is
  * the first thing under the heading.
  */
-await phone.locator(`${visible('map')} .party__header .button`).first().click().catch(() => undefined);
+await phone.locator('[data-nav="team"]').first().click().catch(() => undefined);
 await phone.waitForTimeout(50);
 if (await phone.locator(visible('party')).count()) {
   const partyMetrics = await phone.evaluate(() => {

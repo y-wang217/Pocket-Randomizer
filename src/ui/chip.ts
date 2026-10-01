@@ -378,6 +378,23 @@ export function capabilityBandChevron(band: string, label: string): HTMLElement 
   return node;
 }
 
+/**
+ * A coin amount that inspects, for the map. **Stage 5.0/4.** `coinAmount`
+ * below (5.0/3) is the mark and the number; this adds the `currency:` tip,
+ * because section 3's *Coin amount* row puts *"the word coins, and what the
+ * amount buys or pays"* on inspect and a map amount is a fact the player
+ * routes by. `context` picks that line (`payout` for what a node pays,
+ * `price` for a shelf's cheapest, `wallet` for the run's coins); the number
+ * rides on `data-value`, the way a stat label carries its value.
+ */
+export function currencyAmount(amount: number, context: 'payout' | 'price' | 'wallet'): HTMLElement {
+  const node = coinAmount(String(amount));
+  node.dataset['tip'] = `currency:${context}`;
+  node.dataset['value'] = String(amount);
+  node.setAttribute('aria-label', `${amount} coins`);
+  return node;
+}
+
 /** none, latent, known: the ladder the chevrons count along. */
 const CAPABILITY_BAND_STEPS: readonly string[] = ['none', 'latent', 'known'];
 

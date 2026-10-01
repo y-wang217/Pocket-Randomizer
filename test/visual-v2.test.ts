@@ -40,7 +40,7 @@ async function accentButtons(page: Page): Promise<string[]> {
 /** To the party screen from the first map, with the Release band open. */
 async function openReleaseBand(page: Page): Promise<void> {
   await playUntil(page, (screen) => screen === 'map');
-  await page.locator(`${visible('map')} .party__header .button`).click();
+  await page.locator('[data-nav="team"]').click();
   await page.waitForSelector(visible('party'));
   // A party of one cannot release, so the button is disabled on this seed at
   // this point; the band is opened through the button's own handler anyway.
@@ -130,7 +130,7 @@ describe('the corner stamps', () => {
         continue;
       }
       if (screen === 'map' && !opened) {
-        await page.locator(`${visible('map')} .party__header .button`).click();
+        await page.locator('[data-nav="team"]').click();
         await page.waitForTimeout(50);
         opened = true;
         continue;

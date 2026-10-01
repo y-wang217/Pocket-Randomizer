@@ -155,7 +155,7 @@ describe('a party of one at the gym', () => {
     }
     expect(await openScreen(page), 'never reached the map').toBe('map');
 
-    await page.locator(`${visible('map')} .party__header .button`).click();
+    await page.locator('[data-nav="team"]').click();
     for (let step = 0; step < 60 && (await openScreen(page)) !== 'party'; step++) await page.waitForTimeout(50);
     expect(await openScreen(page)).toBe('party');
 

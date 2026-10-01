@@ -186,7 +186,7 @@ describe('the move explanation, across every surface it reaches', () => {
       }
 
       if (screen === 'map' && !openedParty) {
-        await page.locator(`${visible('map')} .party__header .button`).click();
+        await page.locator('[data-nav="team"]').click();
         await page.waitForTimeout(150);
         openedParty = true;
         continue;

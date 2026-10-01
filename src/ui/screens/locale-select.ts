@@ -60,6 +60,7 @@ import type { GymDefinition } from '../../data/gyms';
 import { localeById, type LocaleId } from '../../data/locales';
 import { el, levelAria, levelText } from '../scene';
 import { typeChip } from './starter-select';
+import { applyBackdrop } from '../assets/manifest';
 import { abilityChip, monTypeChip } from '../chip';
 
 export interface LocaleSelect {
@@ -237,16 +238,22 @@ function renderCard(id: LocaleId, onPick: () => void): HTMLElement {
    */
 
   /*
-   * The palette swatch. Stage V1. Three blocks, deep, mid and glow, drawn
-   * from the card's own locale tokens (`theme/locales.css` declares each
-   * palette on the card class as well as on the page). A fact about the
-   * region, the same size on every card, and no more of one than a type chip.
+   * **A crop of the region's map, where the palette swatch stood. Stage
+   * 5.0/4, D72.** The swatch (Stage V1) was three blocks of the locale's
+   * tokens; the crop is the same fact drawn the way the map will draw it,
+   * through the manifest's `map-backdrop:` key, so the region the player
+   * picks here is the ground the graph stands on next. A placeholder until
+   * the art lands, tinted from the card's own locale tokens (`theme/locales.css`
+   * declares each palette on the card class), and the same size on every card.
+   *
+   * The segment's gym is not on the card: it is the rail's, once, because
+   * the gym belongs to the segment and not to the region (D72).
    */
-  const swatch = el('span', 'locale__swatch');
-  swatch.setAttribute('aria-hidden', 'true');
-  for (const tone of ['deep', 'mid', 'glow']) swatch.append(el('span', `locale__swatch-${tone}`));
+  const crop = el('span', 'locale__crop');
+  crop.setAttribute('aria-hidden', 'true');
+  applyBackdrop(crop, `map-backdrop:${id}`);
 
-  card.append(name, types, swatch);
+  card.append(name, types, crop);
   card.addEventListener('click', onPick);
   return card;
 }

@@ -18,12 +18,15 @@
  * between a choice and a coin flip: taking a fight now is a different decision
  * when you can see a rest two steps ahead.
  *
- * **The party panel is always on screen.** HP and PP are the resources a run
- * spends, and a rest node is only a real option if the cost of skipping it is
- * visible at the moment you skip it. From Stage 4 it is a *party* panel rather
- * than one Pokemon: every member, the lead marked, held items shown, and a way
- * into the party screen — because the lead decides who walks into the node you
- * are about to choose, which makes it a decision that belongs next to the map.
+ * **The party panel was always on screen, from Stage 4 to 5.0/4.** HP and PP
+ * are the resources a run spends, and the argument was that a rest node is only
+ * a real option if the cost of skipping it is visible when you skip it. The
+ * author took the team off the map in 5.0/4
+ * (`docs/spec/gymrun-stage5.0-rulings-map-without-team.md`) to give the whole
+ * segment the room: the team is one tap away on the Team tab, which from the
+ * map opens the writable party screen the Manage button opened, and beside the
+ * frame on a desktop. **The wallet stays**, in the heading, because a shop's
+ * price on the next step is only a decision with the coins in view.
  *
  * **Stage 3: every offered fight shows its tier and what it pays, before you
  * commit.** This is the most important pixel in the game. A tier that the
@@ -40,26 +43,22 @@
  * Tier and payout is the amount of information that leaves a judgement to make.
  */
 import type { NodeSpec, Segment } from '../../core/encounters';
-import { heldItem } from '../../core/items';
-import { FAINTED, hpState } from '../../core/hpCopy';
-import { hpFraction } from '../../core/party';
+import type { LocaleId } from '../../data/locales';
 import type { NodeVisit, RunState } from '../../core/run';
-import { gymsCleared, localeOf, partyCapacity, stepsOf } from '../../core/run';
+import { gymsCleared, localeOf, stepsOf } from '../../core/run';
 import { localeById } from '../../data/locales';
 import { resolveCapability, type CapabilityContext } from '../../core/capabilities';
 // The two label tables the event screen prints too, from one file (4.8.0.2).
 import { BAND_LABELS, CAPABILITY_LABELS, RARITY_LABELS } from '../../data/eventCopy';
 import { nodePayout } from '../../core/economy';
-import type { PokemonState } from '../../core/types';
 import { GYMS, gymForSegment } from '../../data/gyms';
 import { GLYPH_LABELS } from '../../data/glyphLabels';
 import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
-import { createBar } from '../bar';
-import { prose, type Prose } from '../dom';
-import { KIND_HINTS } from '../copy/screens';
-import { capabilityBandChevron, capabilityGlyph, neutralChip, nodeKindGlyph, statusChip, tierPips } from '../chip';
-import { hpTip } from '../member-card';
-import { el, levelAria, levelText } from '../scene';
+import { applyBackdrop } from '../assets/manifest';
+import { capabilityBandChevron, capabilityGlyph, currencyAmount, nodeKindGlyph, tierPips } from '../chip';
+import { slotX } from '../map-layout';
+import { trainerImg } from '../sprites';
+import { el } from '../scene';
 import { typeChip } from './starter-select';
 
 /**
@@ -82,17 +81,12 @@ const gymLeaderName = (segment: number): string => gymForSegment(segment).leader
 
 export interface RunMap {
   root: HTMLElement;
-  /** Redraw from state. `onChoose` fires with the index of a current option. */
   /**
-   * Draw the map. `onChoose` picks a node; `onManage` opens the party screen.
-   *
-   * Two callbacks rather than one because they are different *kinds* of thing:
-   * a node pick is a run decision that `playRun` is waiting on, and managing the
-   * party is not a decision at all — it edits state between them. Collapsing
-   * them into one handler would hide that difference from the one file that has
-   * to keep it straight.
+   * Draw the map. `onChoose` picks a node, with the index of a current option.
+   * The party screen is the Team tab's since 5.0/4, so the map no longer takes
+   * a second callback for it.
    */
-  render(state: RunState, onChoose: (index: number) => void, onManage: () => void): void;
+  render(state: RunState, onChoose: (index: number) => void): void;
 }
 
 /**
@@ -128,81 +122,35 @@ export function createRunMap(): RunMap {
 
   const heading = el('div', 'map__heading');
 
-  const chain = el('ol', 'chain');
-  chain.dataset['tutorial'] = 'chain';
-  const party = el('div', 'party');
+  // The segment, as a graph on the locale's map backdrop. Stage 5.0/4.
+  const graph = createMapGraph();
+  // The wallet, on the heading's first line: the one resource the map still shows.
+  const wallet = el('div', 'map__wallet');
 
-  /*
-   * Collapsed, and in a grid area of its own **below the chain**.
-   *
-   * The first version put it inside the party block, on the reasoning that the
-   * party block comes after `chain` in the DOM and therefore could not push the
-   * node cards down. `npm run smoke` measured that reasoning and it was wrong:
-   * at 390x844 the map's grid reorders to `rail heading party chain`, so on the
-   * one viewport Item F cares about the party block is *above* the cards.
-   * Opening the readout moved the decision point from y=683 to y=741 — still on
-   * screen, and still 58px of the thing the phone pass spent a stage
-   * reclaiming.
-   *
-   * So it gets an area, and the area is last on a phone and under the party
-   * column on a desktop. Now no open state can reach the cards at all, which is
-   * a stronger guarantee than shipping it closed and hoping.
-   *
-   * It is created once and moved rather than rebuilt, so a player who opens it
-   * finds it still open after the map redraws — which it does on every node,
-   * every rest and every flip of the Detail toggle.
-   */
-
-  root.append(rail, heading, chain, party);
+  root.append(rail, heading, graph.root);
 
   return {
     root,
-    render(state, onChoose, onManage) {
+    render(state, onChoose) {
       const segment = state.segments[state.currentSegment];
       if (!segment) return;
 
       rail.replaceChildren(...renderRail(state));
-      heading.replaceChildren(...renderHeading(state, segment));
+      // The heading is shared with the map overlay and Run Info; the wallet is
+      // this screen's own, appended after it.
+      heading.replaceChildren(...renderHeading(state, segment), wallet);
 
-      const locale = localeOf(state);
-      if (locale) {
-        // The ghosted watermark behind the chain. Stage V1. Text only, no
-        // layout, no interaction: the stylesheet draws it. It stays on the
-        // screen rather than moving into `renderHeading`, because it is this
-        // screen's own background treatment and not part of the readout — the
-        // map overlay shares the heading and wants no watermark.
-        root.dataset['watermark'] = localeById(locale).name;
-      } else {
-        delete root.dataset['watermark'];
-      }
-
-      chain.replaceChildren(...renderChain(state, segment, onChoose));
-      scrollToCurrentStep(chain);
-      // Coins live next to the party, with the other resources a run spends.
-      // A shop node saying "from 55" is only a decision if this is on screen.
       /*
-       * The party HUD, which is now a *party* rather than one Pokemon.
-       *
-       * The button to open the party screen lives here rather than in a menu,
-       * because reordering is how the battle lead is set and the lead only
-       * matters at the moment you are choosing which node to walk into. Putting
-       * it anywhere else would make it a setting instead of a decision.
+       * **No watermark since Stage 5.0/4.** The locale's name, ghosted behind
+       * the chain, was this screen's background treatment from Stage V1; the
+       * graph stands on the locale's own map backdrop now (D60's *Scene
+       * backdrop*), and the name is in the heading, where it always was.
        */
-      /*
-       * **The members go in their own grid. Stage 4.8, items 1 and 3.**
-       *
-       * Item 1 took the roster from three to six, and six of these cards stacked
-       * was 697px of a 844px phone — the party HUD alone pushed the one row the
-       * player can act on off the bottom of the screen. A wrapper to grid against
-       * is the smaller half of the fix; the card itself is the larger, below.
-       */
-      const members = el('div', 'party__members');
-      members.replaceChildren(...state.party.map((member, index) => renderMember(member, index)));
-      party.replaceChildren(
-        renderWallet(state),
-        renderPartyHeader(state.party.length, state, onManage),
-        members,
-      );
+      graph.render(state, segment, onChoose);
+      scrollToCurrentStep(graph.root);
+      // Coins, as the currency mark and a number (D54). A shop node saying
+      // "from 55" is only a decision if this is on screen.
+      wallet.replaceChildren(currencyAmount(state.currency, 'wallet'));
     },
   };
 }
@@ -301,434 +249,438 @@ export function renderRail(state: RunState): HTMLElement[] {
 }
 
 /**
- * The step chain. Exported for the map overlay, and `onChoose` is **optional**
- * so that overlay can render it as a readout.
+ * The segment as a graph. **Stage 5.0/4**, under the rulings on D63, D64 and
+ * D75 (`docs/spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md`).
  *
- * Omitting the callback is what makes the overlay safe rather than merely
- * careful: `renderNode` below already computes `const interactive =
- * Boolean(onChoose)` and only attaches a click handler when one was passed, so
- * a chain drawn without it is divs rather than buttons all the way down. The
- * map screen stays the single path by which a node is chosen — `CLAUDE.md`'s
- * Rewards rule — because there is structurally no other control to press.
+ * One row per step inside the locale's map backdrop, drawn bottom up: the
+ * entrance at the foot, the steps above it in order, the gym at the head. The
+ * whole segment is on screen at once, taken steps included, which is what
+ * retires 4.8's one-line summary of the past: that summary existed because a
+ * card per taken step pushed the decision down the page, and a row of marks
+ * does not.
+ *
+ * **Only the step being chosen from is a decision, and only it carries the
+ * whole card** (D63). Its nodes show the detail line: the payout as the
+ * currency mark and a number, the AI tier, a shop's shelf. Every other row
+ * carries the node mark, the tier pips and the capability glyph with its
+ * chevron, and the rest of the card is on the mark's long press, composed by
+ * `nodeDetailText` from the same functions the face uses. Where a row is too
+ * short for even that, the stylesheet keeps the mark alone (the pitch floor);
+ * the press still has everything.
+ *
+ * **A node's place is its option index** within its step, against the slot
+ * grid in `ui/map-layout.ts` (D75). Nothing is hashed and nothing is drawn:
+ * the same state lays out the same way on every device, and nothing under
+ * `core/` knows a position exists.
+ *
+ * **`onChoose` is optional so the map overlay can mount the same graph as a
+ * readout.** Only a node on the step being chosen from is ever a button, and
+ * only when a callback was passed; everything else is a `div`, so a graph
+ * drawn without one has no control to press. The map screen stays the single
+ * path by which a node is chosen, which is `CLAUDE.md`'s Rewards rule.
  */
-export function renderChain(
-  state: RunState,
-  segment: Segment,
-  onChoose?: (index: number) => void,
-): HTMLElement[] {
-  // The route the player committed to, which is empty until they pick a locale.
-  const steps = stepsOf(state);
-  // Only this segment's visits. History is the whole run now, so filtering by
-  // segment is what keeps step 1 of segment 4 from reading step 1 of segment 1's
-  // result — the bug the Stage 1 version would have had the moment there were
-  // two segments.
-  const visits = state.history.filter(
-    (visit) => visit.segment === state.currentSegment && visit.node.kind !== 'gym',
-  );
-
-  /*
-   * **The steps already taken are one line, not one row each. Stage 4.8, item 3.**
-   *
-   * This is the map redesign that item 3's UI checkpoint exists for, and the reason
-   * it is not a cosmetic pass. Before it, every taken step rendered a full card, so
-   * the *current* step — the only row the player can act on — was pushed further
-   * down the page the deeper into a segment they got. On a 390x844 phone it ended
-   * 25px below the fold at 4-5 steps a segment, which is the `xfail` this closes;
-   * at item 3's 6-7 steps it would have been far worse, and it would have got worse
-   * again with every future length.
-   *
-   * Collapsing the past into one summary row **bounds the decision's position
-   * regardless of how long a segment is**, which is the property the longest row of
-   * the curve needs and the flat version could never have. What is lost is the
-   * per-step card for nodes the player has already resolved; what that card showed
-   * is in the run summary, in full, where a finished node belongs.
-   *
-   * The route is still the route: one line saying how far in, then the choice, then
-   * what is ahead. "Where am I, what's next" is what a map owes a player, and a
-   * history of cards nobody can click is not part of it.
-   */
-  const taken = steps.filter((step) => visits[step.index] !== undefined);
-  const rows: HTMLElement[] = [];
-  if (taken.length > 0) rows.push(renderTakenSummary(taken.length, steps.length));
-
-  for (const step of steps) {
-    if (visits[step.index] !== undefined) continue;
-    if (step.index === state.position && !state.outcome) {
-      rows.push(renderStep(step.index, step.options, 'current', segment.index, state, undefined, onChoose));
-      continue;
-    }
-    rows.push(renderStep(step.index, step.options, 'upcoming', segment.index, state));
-  }
-
-  const gymVisit = state.history.find(
-    (visit) => visit.segment === state.currentSegment && visit.node.kind === 'gym',
-  );
-  const gymPhase = gymVisit ? 'done' : state.position >= steps.length ? 'current' : 'upcoming';
-  rows.push(renderStep(steps.length, [segment.gym], gymPhase, segment.index, state, gymVisit));
-  return rows;
-}
-
-/**
- * The steps behind, as one line. **Stage 4.8, item 3.**
- *
- * An attribute and nothing else: how many of this segment's steps are done. It
- * carries the `step--done` class so the one smoke check that counts done rows still
- * finds the past represented, and so the stylesheet's existing `done` treatment
- * applies without a new rule.
- *
- * Deliberately not a list of what was taken. That is the run summary's job and it
- * does it better, with the result of each node attached; repeating it here would
- * cost the decision the space it just reclaimed.
- */
-function renderTakenSummary(taken: number, total: number): HTMLElement {
-  const row = el('li', 'step step--done step--taken');
-  const marker = el('span', 'step__marker');
-  marker.textContent = '·';
-  const label = el('span', 'step__taken-label');
-  label.textContent = taken === 1 ? `1 of ${total} steps taken` : `${taken} of ${total} steps taken`;
-  row.append(marker, label);
-  return row;
+export interface MapGraph {
+  root: HTMLElement;
+  render(state: RunState, segment: Segment, onChoose?: (index: number) => void): void;
 }
 
 type Phase = 'done' | 'current' | 'upcoming';
 
-function renderStep(
+/** One end of an edge: the entrance, a node by step and option, or the gym. */
+type Anchor = 'entrance' | 'gym' | `${number}:${number}`;
+
+interface Edge {
+  from: Anchor;
+  to: Anchor;
+  kind: 'travelled' | 'next';
+}
+
+export function createMapGraph(): MapGraph {
+  const root = el('div', 'map-graph');
+  root.dataset['tutorial'] = 'chain';
+  const edges = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  edges.setAttribute('class', 'map-graph__edges');
+  edges.setAttribute('aria-hidden', 'true');
+  const rows = el('ol', 'chain map-graph__rows');
+  root.append(edges, rows);
+
+  /*
+   * The edges are the one thing here that needs a measurement: a line runs
+   * between two marks wherever the grid put them. Measured on every resize
+   * rather than on render alone, because the screen renders while hidden
+   * (every screen stays mounted) and a hidden graph measures zero. jsdom has
+   * no observer and no layout; there the lines exist with their ends named
+   * and no coordinates, which is all a structural test reads.
+   */
+  const layout = (): void => layoutEdges(root, edges);
+  if (typeof ResizeObserver === 'function') new ResizeObserver(layout).observe(root);
+
+  return {
+    root,
+    render(state, segment, onChoose) {
+      const plan = planGraph(state);
+      const locale = localeOf(state);
+      applyBackdrop(root, locale ? `map-backdrop:${locale}` : null);
+      root.dataset['steps'] = String(plan.steps.length);
+      // The step rows that take the smaller floor: all but the one being chosen from.
+      root.style.setProperty('--map-steps', String(plan.rows.filter((row) => row.kind === 'step' && row.track === 'step').length));
+
+      rows.style.gridTemplateRows = plan.rows.map((row) => `var(--map-row-${row.track})`).join(' ');
+      rows.replaceChildren(
+        ...plan.rows.map((row) => {
+          if (row.kind === 'entrance') return renderEntrance(plan.here === 'entrance');
+          if (row.kind === 'gym') return renderGymRow(state, segment, plan);
+          return renderStepRow(row.step, state, segment, plan, locale, onChoose);
+        }),
+      );
+
+      edges.replaceChildren(
+        ...plan.edges.map((edge) => {
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('class', `map-graph__edge map-graph__edge--${edge.kind}`);
+          line.dataset['from'] = edge.from;
+          line.dataset['to'] = edge.to;
+          return line;
+        }),
+      );
+      layout();
+    },
+  };
+}
+
+interface Plan {
+  steps: ReturnType<typeof stepsOf>;
+  /** Which option of each step was taken, or `undefined` for a step not yet walked. */
+  taken: (number | undefined)[];
+  phases: Phase[];
+  gymPhase: Phase;
+  gymVisit: NodeVisit | undefined;
+  visits: NodeVisit[];
+  /** Where the player is standing. */
+  here: Anchor;
+  /** Top to bottom, the order the grid lays them out in. */
+  rows: ({ kind: 'gym'; track: 'gym' } | { kind: 'step'; step: number; track: 'current' | 'step' } | { kind: 'entrance'; track: 'entrance' })[];
+  edges: Edge[];
+}
+
+/**
+ * What the graph shows, as data, before anything is drawn. Exported for the
+ * tests: the phases, the edges and the player's position are the claims the
+ * plan makes, and they are claims about state, not about pixels.
+ */
+export function planGraph(state: RunState): Plan {
+  const steps = stepsOf(state);
+  // Only this segment's visits. History is the whole run.
+  const visits = state.history.filter(
+    (visit) => visit.segment === state.currentSegment && visit.node.kind !== 'gym',
+  );
+  const taken = steps.map((step) => {
+    const visit = visits[step.index];
+    if (!visit) return undefined;
+    const option = step.options.findIndex((node) => node.id === visit.node.id);
+    return option >= 0 ? option : undefined;
+  });
+  const phases: Phase[] = steps.map((step) =>
+    visits[step.index] !== undefined ? 'done' : step.index === state.position && !state.outcome ? 'current' : 'upcoming',
+  );
+  const gymVisit = state.history.find(
+    (visit) => visit.segment === state.currentSegment && visit.node.kind === 'gym',
+  );
+  const gymPhase: Phase = gymVisit ? 'done' : state.position >= steps.length ? 'current' : 'upcoming';
+
+  // The travelled path: entrance, then every taken node in order.
+  const path: Anchor[] = ['entrance'];
+  steps.forEach((step, index) => {
+    const option = taken[index];
+    if (option !== undefined) path.push(`${step.index}:${option}`);
+  });
+  const here = path[path.length - 1] ?? 'entrance';
+  const edges: Edge[] = [];
+  for (let index = 1; index < path.length; index++) {
+    edges.push({ from: path[index - 1]!, to: path[index]!, kind: 'travelled' });
+  }
+  if (gymVisit) {
+    edges.push({ from: here, to: 'gym', kind: 'travelled' });
+  } else {
+    // Edges to the next choices, dashed. Later steps get none: the plan's
+    // "future nodes without edges", because any node leads to any node in
+    // the step after it and drawing that would be a mesh, not a map.
+    const current = steps.findIndex((_, index) => phases[index] === 'current');
+    if (current >= 0) {
+      steps[current]!.options.forEach((_, option) => edges.push({ from: here, to: `${steps[current]!.index}:${option}`, kind: 'next' }));
+    } else if (gymPhase === 'current') {
+      edges.push({ from: here, to: 'gym', kind: 'next' });
+    }
+  }
+
+  const rows: Plan['rows'] = [{ kind: 'gym', track: 'gym' }];
+  for (let index = steps.length - 1; index >= 0; index--) {
+    rows.push({ kind: 'step', step: index, track: phases[index] === 'current' ? 'current' : 'step' });
+  }
+  rows.push({ kind: 'entrance', track: 'entrance' });
+
+  return { steps, taken, phases, gymPhase, gymVisit, visits, here, rows, edges };
+}
+
+/** The foot of the segment, where the player stands before the first step. */
+function renderEntrance(here: boolean): HTMLElement {
+  const row = el('li', 'step step--entrance');
+  const spot = el('span', 'map-graph__entrance');
+  spot.dataset['anchor'] = 'entrance';
+  spot.setAttribute('aria-hidden', 'true');
+  row.append(spot);
+  if (here) row.append(renderPlayer(50));
+  return row;
+}
+
+/** The player's trainer, standing beside the node they last walked to. */
+function renderPlayer(x: number): HTMLElement {
+  const player = el('span', 'map-graph__player');
+  player.style.setProperty('--x', `${x}%`);
+  player.append(trainerImg());
+  return player;
+}
+
+function renderStepRow(
   index: number,
-  options: readonly NodeSpec[],
-  phase: Phase,
-  segment: number,
-  run: CapabilityContext,
-  visit?: NodeVisit,
+  state: RunState,
+  segment: Segment,
+  plan: Plan,
+  locale: LocaleId | null,
   onChoose?: (index: number) => void,
 ): HTMLElement {
+  const step = plan.steps[index]!;
+  const phase = plan.phases[index]!;
   const row = el('li', `step step--${phase}`);
+  row.dataset['step'] = String(step.index);
 
   const marker = el('span', 'step__marker');
-  marker.textContent = String(index + 1);
+  marker.textContent = String(step.index + 1);
+  marker.setAttribute('aria-label', `Step ${step.index + 1}`);
 
   const nodes = el('div', 'step__nodes');
   // The tutorial's anchors sit on the current step only: the decision, not the context.
   if (phase === 'current') nodes.dataset['tutorial'] = 'options';
+  const choose = phase === 'current' ? onChoose : undefined;
   nodes.append(
-    ...options.map((node, option) =>
-      renderNode(node, phase, segment, run, visit, onChoose ? () => onChoose(option) : undefined),
-    ),
+    ...step.options.map((node, option) => {
+      const walked = plan.taken[index];
+      const element = renderNode(node, phase, segment.index, state, {
+        full: phase === 'current',
+        visit: walked === option ? plan.visits[step.index] : undefined,
+        passed: phase === 'done' && walked !== option,
+        onChoose: choose ? () => choose(option) : undefined,
+      });
+      element.style.setProperty('--x', `${slotX(locale, step.index, step.options.length, option)}%`);
+      element.querySelector('.node__mark')?.setAttribute('data-anchor', `${step.index}:${option}`);
+      return element;
+    }),
   );
+  if (plan.here === `${step.index}:${plan.taken[index]}`) {
+    nodes.append(renderPlayer(slotX(locale, step.index, step.options.length, plan.taken[index]!)));
+  }
 
   row.append(marker, nodes);
   return row;
 }
 
-function renderNode(
-  node: NodeSpec,
-  phase: Phase,
-  segment: number,
-  run: CapabilityContext,
-  visit?: NodeVisit,
-  onChoose?: () => void,
-): HTMLElement {
-  const interactive = Boolean(onChoose);
-  const element = interactive ? document.createElement('button') : el('div', '');
-  if (element instanceof HTMLButtonElement) element.type = 'button';
-  element.className = `node node--${node.kind} node--${phase}${node.tier ? ` node--tier-${node.tier}` : ''}`;
-
-  const label = el('span', 'node__label');
-  if (phase === 'current') label.dataset['tutorial'] = 'kinds';
-  /*
-   * **The kind is a mark. Patch 4.10.1, D46.**
-   *
-   * A head, a bush, a tent, a badge, a bag or a question mark, at 24, where
-   * the word stood from Stage 3 to 4.10.1. The gym is still named beside its
-   * mark, and the rest are a kind and nothing more, because naming them would
-   * reveal what a node contains before the player has chosen it. A gym's team
-   * size is named too — see the heading.
-   */
-  label.append(nodeKindGlyph(node.kind, kindWord(node.kind), 24));
-  if (node.kind === 'gym') {
-    const size = node.encounter?.team.length ?? 0;
-    label.append(document.createTextNode(`${gymLeaderName(segment)}${size > 1 ? ` · ${size} Pokemon` : ''}`));
-  }
-
-  /*
-   * The tier, beneath the mark, on every step the player can still see. Not
-   * only the current one: taking a fight now is a different decision when you
-   * can see an elite two steps ahead. **Beneath since 4.10.1**: it shared the
-   * label line with the kind word, and the prompt's one instruction about it
-   * was *"the tier levels can remain as labels beneath"*, so the pips have a
-   * row of their own under the mark. A slot moved inside one component, on
-   * both of its call sites, which is what R1 permits.
-   *
-   * **Through `tierChip` directly since the R19 close-out.** It came through
-   * `tierBadge` in `screens/reward.ts`, which was the reward screen re-exporting
-   * a chip the map needed — and when the reward screen's badge stopped being a
-   * tier (a gym page prints `GYM`, see `OfferBadge`) the shared name stopped
-   * describing either caller. This one badges `node.tier`, which really is a
-   * tier and really is nullable, so it says so.
-   */
-  if (node.tier) {
-    /*
-     * **Pips, not the word. Milestone M5.2, section 3's Tier row.**
-     *
-     * `NORMAL` and `HARD` were two words naming a bracket; three pips filled
-     * to the tier say the same thing as a count. `tierPips` carries the same
-     * `tier:` tip the chip did, so the definition from `data/tierInfo.ts` —
-     * including what the tier *pays*, which is why there is no second strip
-     * (R3) — is one press away exactly as section 3's last column says.
-     */
-    const badge = tierPips(node.tier);
-    if (phase === 'current') badge.dataset['tutorial'] = 'tier';
-    const tier = el('span', 'node__tier');
-    tier.append(badge);
-    element.append(label, tier);
-  } else {
-    element.append(label);
-  }
-
-  const detail = el('span', 'node__detail');
-  if (visit?.result) {
-    // Past nodes name what was fought. That is information the player already
-    // has, and it turns the chain into a record of the run rather than a
-    // progress bar.
-    const turns = `${visit.result.turns} turn${visit.result.turns === 1 ? '' : 's'}`;
-    detail.textContent = node.encounter ? `${node.encounter.opponent} · ${turns}` : turns;
-  } else if (visit) {
-    detail.textContent = 'restored';
-  } else if (phase === 'current') {
-    /*
-     * The trade, spelled out before the click.
-     *
-     * The coin payout is exact rather than a range, because it *is* exact — a
-     * pure function of kind, tier and segment, computed by the same
-     * `nodePayout` that pays it out. Showing a number the player can plan
-     * against costs nothing in surprise and buys the whole decision.
-     */
-    const payout = nodePayout(node, segment);
-    // Numbers as text, prose in both of its forms (density modes patch): the
-    // tier sentence from `data/tierInfo.ts` and the kind's hint from
-    // `ui/copy/screens.ts`, separated by the same middle dot as before.
-    const parts: (string | Prose)[] = [];
-    if (payout > 0) parts.push(`${payout} coins`);
-    /*
-     * Who is across the field, on a fight node. **The AI tiers patch.**
-     *
-     * An attribute, not a verdict: the words name the opponent the way the
-     * kind names the node, and none of them says whether the fight is a good
-     * idea. This is the first thing on this card that describes how a fight
-     * will *play* rather than what it pays, and it is here for the reason the
-     * tier badge is — a risk gradient the player cannot see before the click
-     * is not a decision.
-     */
-    if (node.encounter) {
-      const tier = aiTierFor(node.kind, node.tier, segment);
-      // **One word in every density, and the sentence deliberately not here.**
-      // `AI_TIER_DETAIL` is what the opponent does, and it is worth reading —
-      // but it wraps this card to a second line, and the map's vertical budget
-      // is a gate that V5 spent three decisions to meet. The sentence lives on
-      // the battle panel, where the fight it describes is.
-      parts.push(AI_TIER_LABEL[tier]);
-    }
-    /*
-     * **The tier sentence is gone from the face. M5.2.**
-     *
-     * Section 3's Tier row puts the tier *definition* in the inspect column,
-     * and `TIER_INFO` is that definition — "What the segment fields, at its own
-     * level and band. Pays a move in its own band." It was the longest thing on
-     * this card and it is a sentence at rest, which R2 forbids on a card. The
-     * pips carry the fact and the `tier:` tip carries the sentence.
-     *
-     * An untiered node keeps its kind hint: it has no pips to read the fact
-     * off, and M5.2 does not name it.
-     */
-    if (!node.tier) parts.push(KIND_HINTS[node.kind]);
-    if (node.kind === 'shop' && node.shop) {
-      const cheapest = Math.min(...node.shop.items.map((item) => item.price));
-      parts.push(`${node.shop.items.length} on the shelf, from ${cheapest}`);
-    }
-    detail.replaceChildren(
-      ...parts.flatMap((part, index) => [
-        ...(index > 0 ? [document.createTextNode(' · ')] : []),
-        typeof part === 'string' ? document.createTextNode(part) : prose(part),
-      ]),
-    );
-  } else {
-    detail.textContent = '';
-  }
-
-  element.append(detail);
-
-  /*
-   * The requirement, and the band the run reads at for it.
-   *
-   * **Shown on every phase, not only the current step**, for the same reason
-   * the tier badge is: routing toward an event two steps ahead is only a plan
-   * if you can see what it asks for. What is *not* shown is the payout — the
-   * player learns that the gate exists and where they stand against it, and
-   * finds out what it was worth by walking into it.
-   *
-   * Two attributes and no verdict. "Requires Cut — your run: latent" is a
-   * pair of facts; "you should route here" would be the screen deciding.
-   */
-  if (node.event) {
-    const band = resolveCapability(run, node.event.requires);
-    const gate = el('span', `node__gate node__gate--${band}`);
-    if (phase === 'current') gate.dataset['tutorial'] = 'gate';
-    /*
-     * **Rarity joins the pair, because it now changes the payout.**
-     *
-     * The map already showed the requirement and the run's standing against it.
-     * Rarity is the third fact of the same kind: it scales which tier a Gamble
-     * or an Attune lands on, so a player routing toward one question mark
-     * rather than another deserves to know which one they are routing toward.
-     *
-     * A third attribute, not a verdict. "Rare" says which distribution this
-     * node draws on; it does not say the node is worth the detour, and the
-     * screen still never orders two nodes against each other.
-     */
-    /*
-     * **Section 3's capability row, mounted by M1.2.** The chip said what the
-     * gate asks for and nothing said what satisfies it, so a player who did
-     * not already know which types carry Surf had no way to find out from the
-     * screen that was gating them on it. The panel is two lookups — the name
-     * from `data/eventCopy.ts`, the types from `data/capabilities.ts` — and it
-     * writes nothing of its own.
-     */
-    /*
-     * **The glyph and the chevron, where three word chips used to be.
-     * Milestone M5.2, discrepancy D37.**
-     *
-     * Section 3 has asked for *"capability glyph plus band chevron (none,
-     * latent, known)"* on this row since Rev 1; section 2's roster did not
-     * carry the family, so what shipped was `Requires Cut`, `Latent` and a
-     * rarity word — six words for three facts that all have marks now.
-     *
-     * **Rarity goes to inspect**, ruled with D37. It is a third attribute of
-     * the same gate and it has no row in section 3, so it rides the
-     * capability panel rather than spending a word on every gated node on the
-     * map. The fact is not dropped: C2 is satisfied by the press, which is
-     * where the tier definition beside it already lives.
-     *
-     * Still two attributes and no verdict. A glyph and a part-filled chevron
-     * say what the gate asks and how far this run is from it; neither says the
-     * node is worth the detour.
-     */
-    const requirement = capabilityGlyph(node.event.requires, CAPABILITY_LABELS[node.event.requires]);
-    requirement.dataset['detail'] = RARITY_LABELS[node.event.rarity];
-    gate.append(requirement, capabilityBandChevron(band, BAND_LABELS[band]));
-    element.append(gate);
-  }
-
-  if (onChoose) element.addEventListener('click', onChoose);
-  return element;
-}
-
-function renderWallet(state: RunState): HTMLElement {
-  const card = el('div', 'party__wallet');
-  const label = el('span', 'party__wallet-label');
-  label.textContent = 'Coins';
-  const value = el('span', 'party__wallet-value');
-  value.textContent = String(state.currency);
-  card.append(label, value);
-  return card;
-}
-
-/**
- * The party's own heading, with the way into the party screen.
- *
- * **Reads the run's live slots. Stage 4.8, item 1.** A constant here would show
- * `3 / 3` to a player who has just been granted a fourth slot.
- *
- * The *next* unlock is not stated here yet, deliberately: item 1 asks for "Party
- * slots: 4. Next slot at Gym 6." on the map or the result screen, and that is a
- * new sentence on a screen rather than a call site reading the right number. The
- * patch's own order of work puts all UI in step 7, so `nextSlotUnlock` ships in
- * `data/partyTuning.ts` with its tests and nothing renders it until then.
- */
-function renderPartyHeader(size: number, state: RunState, onManage: () => void): HTMLElement {
-  const row = el('div', 'party__header');
-  const label = el('span', 'party__wallet-label');
-  label.textContent = `Party ${size} / ${partyCapacity(state)}`;
-  const manage = document.createElement('button');
-  manage.type = 'button';
-  manage.className = 'button button--small';
-  manage.textContent = 'Manage';
-  manage.addEventListener('click', () => onManage());
-  row.append(label, manage);
+function renderGymRow(state: RunState, segment: Segment, plan: Plan): HTMLElement {
+  const row = el('li', `step step--${plan.gymPhase} step--gym`);
+  const nodes = el('div', 'step__nodes');
+  // The gym is never a button here: it is entered from the pre-gym screen,
+  // which is where its lead is chosen.
+  const element = renderNode(segment.gym, plan.gymPhase, segment.index, state, {
+    full: false,
+    visit: plan.gymVisit,
+    passed: false,
+  });
+  element.style.setProperty('--x', '50%');
+  element.querySelector('.node__mark')?.setAttribute('data-anchor', 'gym');
+  nodes.append(element);
+  row.append(nodes);
   return row;
 }
 
 /**
- * One party member, as the **map** shows them.
+ * The detail line's facts, for a node that has not been walked. One function
+ * for the face (the step being chosen from) and the press (every node), so
+ * the two cannot disagree about what a node pays or who is across it.
  *
- * **Stage 4.8, items 1 and 3: this card lost its moveset and its ability.**
+ * The coin payout is exact rather than a range, because it *is* exact: a pure
+ * function of kind, tier and segment, computed by the same `nodePayout` that
+ * pays it out. The AI tier names the opponent the way the kind names the
+ * node, and says nothing about whether the fight is a good idea: an
+ * attribute, not a verdict. A shop's shelf is how many items and the
+ * cheapest price.
  *
- * It carried four move rows with PP and the ability name, which at three members
- * was a 291px panel and at item 1's six was 697px — more than three quarters of a
- * 390x844 phone, above the chain, pushing the current step's cards off the bottom
- * of the screen. That is the `xfail` item 3's UI checkpoint had to close, and no
- * amount of work on the chain below could have closed it while the HUD above was
- * growing with the roster.
- *
- * What stays is what a *routing* screen owes the player: who is in the party, who
- * leads, how hurt they are, what they are holding, what is wrong with them. PP and
- * abilities are a different question — "can this Pokemon still fight" rather than
- * "which road do I take" — and both are one tap away in the party drawer, which is
- * reachable from this screen and every other, and on the party screen itself.
- *
- * The alternative was keeping the detail and scrolling the map, which trades a
- * decision the player can see for one they have to go looking for.
+ * **No kind hint since D77.** M5.2 kept an untiered node's hint at rest, on
+ * the reading that it had no pips to read the fact off; section 3 puts the
+ * hint on the kind glyph's inspect, the `node:` tip carries it there, and the
+ * census counted it as words on a card budgeted at 1.
  */
-function renderMember(member: PokemonState, index: number): HTMLElement {
-  const card = el('div', 'party__member');
-  // The lead is marked on the map, not only on the party screen: it is the
-  // Pokemon that walks into whichever node you are about to pick.
-  if (index === 0) card.classList.add('party__member--lead');
-  if (member.fainted) card.classList.add('party__member--fainted');
+function nodeFacts(node: NodeSpec, segment: number): { payout: number; tier: string | null; shelf: { count: number; cheapest: number } | null } {
+  const payout = nodePayout(node, segment);
+  const tier = node.encounter ? AI_TIER_LABEL[aiTierFor(node.kind, node.tier, segment)] : null;
+  const shelf =
+    node.kind === 'shop' && node.shop && node.shop.items.length > 0
+      ? { count: node.shop.items.length, cheapest: Math.min(...node.shop.items.map((item) => item.price)) }
+      : null;
+  return { payout, tier, shelf };
+}
 
-  const header = el('div', 'panel__header');
-  const name = el('span', 'panel__name');
-  name.textContent = member.spec.species;
-  const level = el('span', 'panel__level');
-  level.textContent = levelText(member.spec.level);
-  level.setAttribute('aria-label', levelAria(member.spec.level));
-  header.append(name, level);
+/**
+ * The same facts as one line of words, for the press: the rest of the card on
+ * a row that does not show it, and the shelf's words on the row that does.
+ */
+function nodeDetailText(node: NodeSpec, segment: number, visit?: NodeVisit): string {
+  if (visit) return visitText(node, visit);
+  const { payout, tier, shelf } = nodeFacts(node, segment);
+  return [
+    ...(payout > 0 ? [`${payout} coins`] : []),
+    ...(tier ? [tier] : []),
+    ...(shelf ? [`${shelf.count} on the shelf, from ${shelf.cheapest}`] : []),
+  ].join(' · ');
+}
+
+/**
+ * What a walked node was. Information the player already has, which turns the
+ * graph into a record of the run rather than a progress bar; on the press,
+ * since D63, rather than on the face.
+ */
+function visitText(node: NodeSpec, visit: NodeVisit): string {
+  if (!visit.result) return 'restored';
+  const turns = `${visit.result.turns} turn${visit.result.turns === 1 ? '' : 's'}`;
+  return node.encounter ? `${node.encounter.opponent} · ${turns}` : turns;
+}
+
+interface NodeOptions {
+  /** The whole card, detail line included: the step being chosen from. */
+  full: boolean;
+  visit: NodeVisit | undefined;
+  /** A node on a walked step that was not the one taken. */
+  passed: boolean;
+  onChoose?: () => void;
+}
+
+function renderNode(node: NodeSpec, phase: Phase, segment: number, run: CapabilityContext, options: NodeOptions): HTMLElement {
+  const interactive = Boolean(options.onChoose);
+  const element = interactive ? document.createElement('button') : el('div', '');
+  if (element instanceof HTMLButtonElement) element.type = 'button';
+  element.className = [
+    'node',
+    `node--${node.kind}`,
+    `node--${phase}`,
+    node.tier ? `node--tier-${node.tier}` : '',
+    options.full ? 'node--full' : 'node--compact',
+    options.visit ? 'node--visited' : '',
+    options.passed ? 'node--passed' : '',
+  ].filter(Boolean).join(' ');
 
   /*
-   * The `Lead` chip stays on this rail, and M3.2 took it off and put it back.
-   *
-   * On a party card the chip is the slot number said twice — `isLead` is
-   * `index === 0` and the card draws `slotNumber` — so R3 deletes it there.
-   * **This rail draws no slot number**, so the chip is the only channel and
-   * deleting it needs a replacement rather than nothing.
-   *
-   * Adding the number was that replacement and it cost a line: the rail's
-   * header wrapped from two to three at 390 wide, which moved the map's
-   * `decisionTop` 23.5px down the screen and failed the height baseline on
-   * every guarded mode. A decision point pushed down the phone is a worse
-   * trade than one word on one card, so the word stays.
-   *
-   * The rail is a sixth hand-rolled party row, which is the section 5 defect
-   * D20 is about; folding it into the component would give it the slot number
-   * for free. That is M5.2's, which owns this screen.
+   * **The kind is a mark** (patch 4.10.1, D46), inside the node's disc. A gym
+   * is named beside its mark by its leader, with its team size; the rest are
+   * a kind and nothing more, because naming them would reveal what a node
+   * contains before it is chosen.
    */
-  if (index === 0) header.append(neutralChip('Lead', 'lead'));
+  const mark = el('span', 'node__mark');
+  const label = el('span', 'node__label');
+  if (phase === 'current') label.dataset['tutorial'] = 'kinds';
+  const kind = nodeKindGlyph(node.kind, kindWord(node.kind), 24);
+  const said = nodeDetailText(node, segment, options.visit);
+  if (said) kind.dataset['detail'] = said;
+  label.append(kind);
+  mark.append(label);
+  element.append(mark);
 
+  if (node.kind === 'gym') {
+    const size = node.encounter?.team.length ?? 0;
+    const name = el('span', 'node__name');
+    name.textContent = `${gymLeaderName(segment)}${size > 1 ? ` · ${size} Pokemon` : ''}`;
+    element.append(name);
+  }
 
-  const bar = createBar();
-  bar.set(hpFraction(member));
-  const track = bar.root;
+  /*
+   * The facts beneath the mark: the tier pips and, on an event, the
+   * requirement and the run's band against it. On every row, not only the
+   * current one: routing toward an elite fight or an event two steps ahead is
+   * only a plan if you can see it (M5.2, D37, and D63 keeps both).
+   */
+  const facts = el('span', 'node__facts');
+  if (node.tier) {
+    // Pips, not the word (M5.2). The `tier:` tip carries the definition,
+    // including what the tier pays, which is why there is no second strip.
+    const pips = tierPips(node.tier);
+    if (phase === 'current') pips.dataset['tutorial'] = 'tier';
+    const tier = el('span', 'node__tier');
+    tier.append(pips);
+    facts.append(tier);
+  }
+  if (node.event) {
+    /*
+     * The requirement and the band the run reads at for it: a glyph and a
+     * part-filled chevron (M5.2, D37), three states since D64 kept them
+     * three. Rarity rides the capability panel, because it scales which
+     * tier an outcome lands on and has no row in section 3.
+     */
+    const band = resolveCapability(run, node.event.requires);
+    const gate = el('span', `node__gate node__gate--${band}`);
+    if (phase === 'current') gate.dataset['tutorial'] = 'gate';
+    const requirement = capabilityGlyph(node.event.requires, CAPABILITY_LABELS[node.event.requires]);
+    requirement.dataset['detail'] = RARITY_LABELS[node.event.rarity];
+    gate.append(requirement, capabilityBandChevron(band, BAND_LABELS[band]));
+    facts.append(gate);
+  }
+  if (facts.childElementCount > 0) element.append(facts);
 
-  const meta = el('div', 'panel__meta');
-  const hp = el('span', 'panel__hp-text');
-  hp.textContent = member.fainted ? FAINTED : hpState(member.hp, member.maxHp);
-  if (member.fainted) hp.dataset['fainted'] = 'true';
-  hpTip(track, hp.textContent);
-  meta.append(hp);
-  // What they are holding, because Stage 4 lets the player choose who holds
-  // what and a targeting decision you cannot audit is one you cannot learn from.
-  const item = heldItem(member);
-  if (item) meta.append(neutralChip(item.name, 'item'));
-  if (member.status) meta.append(statusChip(member.status));
+  if (options.full) {
+    /*
+     * The detail line: the payout as a coin amount, the AI tier, and a shop's
+     * shelf as a count and the cheapest price as a coin amount (D77). Nothing
+     * else, so a node with none of the three carries no line at all.
+     */
+    const { payout, tier, shelf } = nodeFacts(node, segment);
+    const parts: Node[] = [];
+    if (payout > 0) parts.push(currencyAmount(payout, 'payout'));
+    if (tier) parts.push(document.createTextNode(tier));
+    if (shelf) {
+      const count = el('span', 'node__shelf-count');
+      count.textContent = String(shelf.count);
+      parts.push(count, currencyAmount(shelf.cheapest, 'price'));
+    }
+    if (parts.length > 0) {
+      const detail = el('span', 'node__detail');
+      detail.replaceChildren(...parts.flatMap((part, index) => (index > 0 ? [document.createTextNode(' · '), part] : [part])));
+      element.append(detail);
+    }
+  }
 
-  card.append(header, track, meta);
-  return card;
+  if (options.onChoose) element.addEventListener('click', options.onChoose);
+  return element;
+}
+
+/**
+ * Lay the edges over the grid, mark centre to mark centre, in the graph's
+ * own pixels. A line whose end has no box (a hidden screen) is left where it
+ * was; the observer runs again when the graph gets a size.
+ */
+function layoutEdges(root: HTMLElement, edges: SVGSVGElement): void {
+  const box = root.getBoundingClientRect();
+  if (box.width === 0 || box.height === 0) return;
+  edges.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
+  const centre = (anchor: string): { x: number; y: number } | null => {
+    const target = root.querySelector(`[data-anchor="${anchor}"]`);
+    if (!target) return null;
+    const rect = target.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return null;
+    return { x: rect.left + rect.width / 2 - box.left, y: rect.top + rect.height / 2 - box.top };
+  };
+  for (const line of edges.querySelectorAll<SVGLineElement>('line')) {
+    const from = centre(line.dataset['from'] ?? '');
+    const to = centre(line.dataset['to'] ?? '');
+    if (!from || !to) continue;
+    line.setAttribute('x1', from.x.toFixed(1));
+    line.setAttribute('y1', from.y.toFixed(1));
+    line.setAttribute('x2', to.x.toFixed(1));
+    line.setAttribute('y2', to.y.toFixed(1));
+  }
 }

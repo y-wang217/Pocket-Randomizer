@@ -126,7 +126,7 @@ function mount(screen: TutorialScreen): Mounted {
     }
     case 'map': {
       const map = createRunMap();
-      map.render(onMap(), fire, fire);
+      map.render(onMap(), fire);
       root = map.root;
       break;
     }

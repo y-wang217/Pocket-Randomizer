@@ -235,13 +235,19 @@ describe('the party surfaces', () => {
     noNickname(screen.root, 'the starter select');
   });
 
-  it('map party cards, on a generated run whose starter carries a drawn name', () => {
+  /*
+   * **The map carries no party cards since Stage 5.0/4**
+   * (`docs/spec/gymrun-stage5.0-rulings-map-without-team.md`); the team is the
+   * Team tab's. What this case held for the map still holds, and more
+   * simply: no drawn name reaches the map's face.
+   */
+  it('the map, on a generated run whose starter carries a drawn name', () => {
     const state = chooseStarter(createRun('LABEL-MAP', DEFAULT_TUNING), 0);
     const starter = state.party[0]!;
     expect(starter.spec.nickname, 'generation names the starter').toBeDefined();
     const map = createRunMap();
-    map.render(state, () => undefined, () => undefined);
-    expect(texts(map.root, '.panel__name')[0]).toBe(starter.spec.species);
+    map.render(state, () => undefined);
+    expect(map.root.querySelector('.party__member'), 'the map carries no team').toBeNull();
     expect(map.root.textContent).not.toContain(starter.spec.nickname!);
   });
 });

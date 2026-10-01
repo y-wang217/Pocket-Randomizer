@@ -50,7 +50,7 @@ import { createDrawer } from './drawer';
 import { createMapDrawer } from './map-drawer';
 import { createNav } from './nav';
 import { presentAsScreen } from './overlay';
-import { anyShop, finishedResult, incomingMove, lateState, openingState, relicOffer, relicShop, targetedReward, wordiestEvent } from './gallery-fixtures';
+import { anyShop, deepMapState, finishedResult, incomingMove, lateState, openingState, relicOffer, relicShop, targetedReward, wordiestEvent } from './gallery-fixtures';
 import { GALLERY_SURFACES, type GallerySurface } from './gallery-surfaces';
 import { labelExposures } from './exposure-labels';
 import { createHeader } from './header';
@@ -214,8 +214,10 @@ async function main(): Promise<void> {
     case 'map':
     case 'drawer':
     case 'map-drawer': {
-      const state = openingState(seed);
-      mapScreen.render(state, noop, noop);
+      // The map's worst case is deep in the run since 5.0/4 (`deepMapState`);
+      // the party drawer's is the opening map's widest party, as before.
+      const state = surface === 'drawer' ? openingState(seed) : deepMapState(seed);
+      mapScreen.render(state, noop);
       applyLocale(localeOf(state));
       stamp(state);
       show('map');

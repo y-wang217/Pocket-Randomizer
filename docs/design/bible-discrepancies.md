@@ -76,10 +76,10 @@ which blocks everything.
 | D58 | 5.0/2 | The battle header, the turn header and the flags have no place in Stage 2's layout | **2026-09-30**, option 1: the header row above the stage |
 | D59 | 5.0/2 | The log behind "Info" reverses D26, and "Info" is a word and possibly a help button | **2026-09-30**, option 1: D26 stands, no Info button |
 | D60 | 5.0/2, 5.0/4, 5.0/5 | Painted backdrops replace the World component, and the plan does not say where the weather goes | **2026-09-30**, neither option: the World stays behind the frame, the backdrop is the scene inside it, the wash on the battle backdrop |
-| D61 | 5.0/1's manifest, 5.0/4, 5.0/5 | Class C node and capability art redraws two section 2 families outside the glyph renderer | **open** |
+| D61 | 5.0/1's manifest, 5.0/4, 5.0/5 | Class C node and capability art redraws two section 2 families outside the glyph renderer | **2026-09-30**, option 1: art through `glyphNode` at 8px native; trainer sprites for the player marker only |
 | D62 | 5.0/1 to 5.0/4 | Class B marks drawn in CSS must stay section 2's shapes and pass through the glyph renderer | **2026-09-30**, option 1 everywhere: a type is the icon chip, never a word badge |
-| D63 | 5.0/4 | The node on the graph drops the payout, the AI tier and the reward-tier pips | **open** |
-| D64 | 5.0/4 | "Held or not-held" collapses the capability's three bands to two | **open** |
+| D63 | 5.0/4 | The node on the graph drops the payout, the AI tier and the reward-tier pips | **2026-09-30**, neither option: the step being chosen from carries the whole card, other rows the mark, tier and capability; the rest on long press |
+| D64 | 5.0/4 | "Held or not-held" collapses the capability's three bands to two | **2026-09-30**, option 1: the chevron keeps three states |
 | D65 | 5.0/3 | Capability glyphs on relic cards put at rest what section 3 puts on inspect | **open** |
 | D66 | 5.0/3 | Stage 3's card face carries the name and an effect line, which section 3 and D36 put on inspect | **open** |
 | D67 | 5.0/3 | Stage 3's card gives a move kind "band pips" where section 5 gives it the move card | **open** |
@@ -87,11 +87,12 @@ which blocks everything.
 | D69 | 5.0/3 | The selection cursor and confirm-to-claim: a resting cursor is emphasis, and a claim confirm is a confirm band the canon does not list | **open** |
 | D70 | 5.0/3 | The capture card in the one card component, and "the coverage line" | **open** |
 | D71 | 5.0/3, 5.0/5 | TM discs coloured by type draw the type twice on a TM card | **open** |
-| D72 | 5.0/4 | The locale card's gym identity repeats one segment fact on every card | **open** |
+| D72 | 5.0/4 | The locale card's gym identity repeats one segment fact on every card | **2026-09-30**, option 1: the gym in the rail once; a backdrop crop replaces the swatch |
 | D73 | 5.0/1's tests | Test 2's fit gate has no exemption, and D45 gave starter select one | **2026-09-30**, option 1: the existing gate, D45 exemption inherited |
 | D74 | every 5.0 stage | The plan carries no census gate, and the standing gate names three density modes | **2026-09-30**, option 1: census per stage |
-| D75 | 5.0/4 | Node positions from a hash of the node id, against "all randomness comes from core/rng.ts" | **open** |
+| D75 | 5.0/4 | Node positions from a hash of the node id, against "all randomness comes from core/rng.ts" | **2026-09-30**, option 1: a slot by option index, no hash |
 | D76 | 5.0/0, 5.0/1 | 5.0 lands on top of an open Tier 7: which face M7.1 tests, and which items it redoes | **2026-09-30**, option 1: 5.0 before M7.1 |
+| D77 | 5.0/4's census, then 5.0/3 or M7.2 | The map node card's current step prints an untiered node's hint and a shop's shelf in words: 7 against a budget of 1 | **2026-09-30**, option 1: the hint to inspect, the shelf a count and a coin amount |
 
 ## Rulings, 2026-09-19
 
@@ -3537,6 +3538,7 @@ owns, and close on a one-line ruling that the component is mounted unchanged.
 | D74 | every stage | The census leg per stage |
 | D75 | 5.0/4 | None under option 1; a CLAUDE.md note under option 2 |
 | D76 | 5.0/0, 5.0/1 | An order for M7.1 against 5.0 |
+| D77 | 5.0/4's census | Section 5's detail line, or two section 4 words |
 
 ---
 
@@ -4456,6 +4458,45 @@ the face that section 9's family-size hypothesis now describes"* (lines
 
 ---
 
+## D77. The map node card prints an untiered node's hint and a shop's shelf in words
+
+**Filed 2026-09-30, in 5.0/4, by its census. Ruled the same day, option 1**
+([`../spec/gymrun-stage5.0-rulings-d77.md`](../spec/gymrun-stage5.0-rulings-d77.md)),
+and built in 5.0/4.
+
+The census's worst instance for the map node card is **7** against section 4's
+budget of **1** (*"AI tier. The payout's unit is the currency glyph"*): a shop
+on the step being chosen from reads `Items, healing, moves. · 7 on the shelf,
+from 72`. A rest reads `Full restore.` (2) and an event `Something happens.`
+(2). A fight reads 1, the AI tier, since 5.0/4 drew the currency mark.
+
+- **It predates 5.0/4.** The same words were on the current-step card since
+  M5.2 kept the kind hint on untiered nodes (*"it has no pips to read the fact
+  off, and M5.2 does not name it"*) and since the shelf line was written. The
+  census never saw them because the map fixture was a segment-one map with no
+  shop, rest or event on its current step. 5.0/4 moved the fixture to the
+  map's worst case (`deepMapState`) and the words were there.
+- **Section 3 already puts the hint on inspect.** Its *Node kind* row: at
+  rest, the kind glyph; on inspect, *"the kind's hint, from `KIND_HINTS`"*. The
+  `node:` tip on the mark carries it today.
+- **The shelf line is two facts**: how many items and the cheapest price. The
+  price is decision-relevant (can the run afford anything?), and a bare
+  currency amount on a shop would read as a payout.
+
+**Options.**
+
+1. **The hint leaves the face; the shelf becomes a count and a price with the
+   currency mark** (`7 · from ¢72` reduced to marks: a bag count and the
+   currency amount), the words on the mark's press. Section 4 holds at 1; the
+   shelf's re-encoding needs one line in section 3.
+2. **Section 4 names the shelf as surviving words**, and the hint leaves the
+   face. The row goes 1 to 5.
+3. **Leave both**, and the row's figure moves to 7.
+
+**Recommendation: 1.**
+
+---
+
 ## Rulings, 2026-09-30, opening 5.0/1
 
 The author answered the 5.0/0 report on the five rows it named as blocking
@@ -4529,3 +4570,30 @@ The bible goes to Rev 17.
 
 **Still open after these seven:** D61, D63, D64, D72 and D75, all 5.0/4's or
 5.0/5's, and D38.
+
+---
+
+## Rulings, 2026-09-30, opening 5.0/4
+
+The session listed what had to be decided before 5.0/4, with a recommendation
+for each, and the author answered *"go with your recommendations for all
+items"*, filed verbatim as
+[`../spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md`](../spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md).
+The bible goes to Rev 18.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D61 | **Option 1.** Class C node and capability art enters the sheet as glyph entries drawn by `glyphNode`, native 8px, the six named marks kept, M1.1's colour-blind check re-run before 5.0/5 mounts it. Trainer sprites are the player marker only. 5.0/4 draws today's SVG marks. | No bible change. `../generation.md` §90 |
+| D63 | **Neither option as written.** 5.0/0 measured that option 1 does not fit: one spare line under a node at 390x844, none at the desktop's pitch. The step being chosen from carries the whole card, detail line included; every other row carries the mark, the tier pips and the capability glyph with its chevron, and the rest is on the mark's long press. Below the pitch those need, the other rows keep the mark alone. Every node inspects; only the step being chosen from commits. | Bible section 5, *Map node card*; section 9 gains the bet. `../generation.md` §90 |
+| D64 | **Option 1.** The chevron keeps none, latent and known. "Held" is `known`. | No bible change |
+| D72 | **Option 1.** The gym stays in the rail, once. The crop replaces the swatch; the type badges are type chips (D62). | Bible section 5, *Locale card*. `../generation.md` §90 |
+| D75 | **Option 1.** A node's place is its option index within the step against the backdrop's slot grid. No hash, no CLAUDE.md note. | No bible change. `../generation.md` §90 |
+
+Three more items were ruled in the same answer and have no row: the map
+backdrops ship as placeholders; the pitch floor above; the commit stays one tap
+with no confirm. 5.0/4 runs before 5.0/3.
+
+**Still open after these five:** D51, which closes with 5.0/1's merge, and D38.
+D65 to D71 were ruled for 5.0/3, which merged first (the section above). D77,
+filed by this stage's census, was ruled option 1 the same day and built in
+5.0/4.

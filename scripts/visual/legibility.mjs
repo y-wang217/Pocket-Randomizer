@@ -22,7 +22,7 @@ try {
   for (const scale of [1, 2]) {
     const { page, context } = await openApp(browser, server.url, 'SMOKE24', { width: 390, height: 844 }, { deviceScaleFactor: scale });
     await playUntil(page, (screen) => screen === 'map');
-    await page.locator(`${visible('map')} .party__header .button`).click();
+    await page.locator('[data-nav="team"]').click();
     await page.waitForSelector(visible('party'));
     await page.waitForTimeout(300);
     await page.locator(`${visible('party')} .party__member .stats`).first().screenshot({ path: join(out, `six-stat-block@${scale}x.png`) });

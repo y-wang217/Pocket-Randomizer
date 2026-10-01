@@ -11867,3 +11867,153 @@ Stage 3, recorded here rather than edited into the prompt:
     completes, after the capture, and QA-006's replay hands the unanswered review
     back to the live player. Nothing is duplicated. Recorded, not changed: moving
     where `core/` records the pick is a run log question.
+
+## 90. Stage 5.0/4: the map as a graph, the author's rulings on D61 to D75, and the team off the map
+
+**2026-09-30**, on `claude/loving-darwin-lpx2r4`. Two rulings files:
+[`spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md`](spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md)
+(the author took every recommendation in the session's list of decisions) and
+[`spec/gymrun-stage5.0-rulings-map-without-team.md`](spec/gymrun-stage5.0-rulings-map-without-team.md)
+(sent mid-stage). Bible Rev 18 (5.0/3 merged first and took Rev 17 and §89). Report:
+[`visual/reports/5.0-stage4.md`](visual/reports/5.0-stage4.md). **No version
+axis moves** and `contentHash` holds: nothing under `core/` changed, and the
+one `data/` file touched, `data/tutorial.ts`, is on the exclusion list. The
+glyph roster (`data/glyphFamilies.ts`) and labels (`data/glyphLabels.ts`) gain
+the currency family and are excluded too.
+
+Deviations from Stage 4 of
+[`spec/gymrun-stage5.0-visual-redesign.md`](spec/gymrun-stage5.0-visual-redesign.md),
+recorded here rather than edited into the prompt:
+
+1. **Only the step being chosen from carries the whole node card (D63).** The
+   prompt asks each node to show *"its type icon, tier as pips, and for events
+   the capability glyph"*, which drops the payout and the AI tier the card
+   carried. The register recommended the full card on every node; 5.0/0 had
+   measured that it does not fit. The ruling: the current step's nodes show
+   the detail line (payout, AI tier, a shop's shelf, an untiered node's hint);
+   every other node shows the mark, the tier pips and the capability glyph with
+   its chevron, and carries the rest of the card on the mark's long press
+   (`data-detail` on the `node:` tip, composed by `nodeDetailText` from the same
+   functions as the face). A walked node's press says what it was (the
+   opponent and turns, or `restored`), which the map printed until 4.8 and the
+   summary has printed since.
+2. **The chevron keeps three states (D64).** The prompt's *"held or not-held"*
+   would merge latent into none, which `core/events.ts` pays differently.
+3. **Positions come from the option index, not a hash (D75).** `ui/map-layout.ts`:
+   a slot grid by node count (32/68 for two, 20/50/80 for three), leaning ±4%
+   by step parity so rows read as a route. `BACKDROP_GRIDS` is empty until
+   5.0/5 tunes it against art. CLAUDE.md needs no note.
+4. **Node art stays the SVG marks (D61).** Class C art enters through
+   `glyphNode` at 8px native when it exists; M1.1's colour-blind sheet is
+   re-run then. Trainer sprites are the player's marker only.
+5. **The team is off the map**, by the second ruling. The prompt kept the map's
+   layout above the graph; the author took the party HUD and its Manage button
+   off to give the segment the room. **This supersedes Stage 4's argument** in
+   `run-map.ts`'s header (*"a rest node is only a real option if the cost of
+   skipping it is visible at the moment you skip it"*), which is kept there as
+   the record. The Team tab opened from the map already reached the writable
+   party screen (`openPartyRoute`, `ui/app.ts`) and disarms the teach boundary
+   as Manage did; `test/teach-boundary.test.ts` now asserts it there. The
+   wallet stays, on the heading's first line.
+6. **The payout, the shelf's price and the wallet wear the currency mark
+   (D54).** Rev 15 budgeted the map node card at 1 on the strength of it.
+   This branch drew the family's mark on its own before 5.0/3 merged; 5.0/3
+   (§89) drew it first on `main`, as `currency-coin` (three stacked coins: its
+   note records that a slotted disc, which is what this branch had drawn, read
+   as an info mark at 16px), with `coinAmount` in `ui/chip.ts`. **The merge
+   took 5.0/3's mark and helper and dropped this branch's.** What 5.0/4 adds
+   is `currencyAmount`, `coinAmount` with a `currency:` tip, whose panel names
+   the word *coins* and what the amount is (`CURRENCY_COPY`: a payout, a
+   shelf's price, the wallet), because section 3 puts that on inspect and a map
+   amount is a fact the player routes by. Thirteen glyph families either way.
+7. **The locale card's swatch is a crop of the map backdrop (D72).** The gym
+   stays in the rail, once, and the type badges were already the type chip.
+8. **The current commit behaviour is unchanged, as the prompt asked, and is
+   recorded:** one tap on a current-step node commits at once through
+   `nodePick.submit`, with no confirm (`ui/app.ts`). Long press inspects any
+   node (D52).
+9. **Placeholders for the eight map backdrops**, by ruling: a flat tint of the
+   locale's glow token, through `applyBackdrop` and the existing
+   `map-backdrop:<locale>` keys. A file dropped into the manifest replaces it
+   with no code change, anchored to the graph's foot where the entrance is.
+
+What the build found:
+
+10. **A grid of weighted rows sized to its content grows every row to the
+    largest floor-to-weight ratio.** The first graph was a flex child whose
+    rows were `minmax(floor, weight fr)`, and its intrinsic height came out 87px
+    taller than the sum of its floors, which was exactly the room the chrome
+    needed. The graph's floor is now stated in CSS from `--map-steps` (the
+    rows that are not the current one) and the rows fill it absolutely.
+11. **An absolutely placed node shrink-wraps to the room between its left edge
+    and the frame**, which squeezed a right-hand shop's detail to five lines.
+    `width: max-content` on the node.
+12. **The pitch floor is per row, in CSS.** Each row is a size container; a
+    row under 58px hides the facts of its compact nodes (the mark stays, the
+    press has everything), and a row under 42px draws a smaller ring round the
+    same 24px mark. With the team off the map neither triggers at 390x844, at
+    1366x768 or at 375x667 on the worst case; the floor is for anything
+    shorter.
+13. **The map's gallery fixture moved to the map's real worst case.**
+    `deepMapState` (`ui/gallery-fixtures.ts`): the longest segment the seed
+    draws, walked halfway, with the widest party. A segment-one map had
+    neither length nor depth. The census and the exposure walk read it.
+14. **The census found a breach that predates this stage**, filed as **D77**
+    and ruled the same day ([`spec/gymrun-stage5.0-rulings-d77.md`](spec/gymrun-stage5.0-rulings-d77.md)):
+    the map node card's worst instance was 7 words against a budget of 1, a
+    shop on the current step (`Items, healing, moves. · 7 on the shelf, from
+    72`). The old fixture never had a shop on its current step. Built as
+    option 1: **the kind hint leaves every face** (section 3 already put it on
+    the glyph's inspect), superseding M5.2's choice to keep it at rest on an
+    untiered node; **the shelf is a count and a coin amount** (`7 · ¢72`, the
+    price's `currency:price` tip naming it), with `7 on the shelf, from 72` on
+    the mark's press. The press now carries the detail line's words on every
+    node, the current step's included. Worst instance **1**, the AI tier (the
+    old worst, 2, was `coins Rookie`); the map screen 16 words to 9, shell
+    excluded. A current rest or event has no detail line at all.
+15. **The smoke bot reads the lead's HP through the Team tab**, and only when a
+    rest is on offer (`leadHpFraction`, in `scripts/smoke.mjs` and
+    `scripts/visual/browser.mjs`). A readout: it submits nothing and draws
+    nothing, so both runs are the same walk. Every tool that opened the party
+    screen with the map's Manage button presses `[data-nav="team"]`.
+16. **Tests rewritten, each with a comment naming the plan:** `map-fold`'s
+    collapse case (taken steps are rows of marks now, one per step) and its
+    party case (the map carries no member card); `species-label`'s map case;
+    `visual-v1`'s swatch case (the crop). New: `test/map-graph.test.ts`,
+    fifteen cases on the plan, the nodes and the slot grid.
+17. **The tutorial's map mark said the past was above.** The graph is drawn
+    bottom up, so it reads *"Steps below are done; steps above are still to
+    come, up to the gym."* `data/tutorial.ts` is excluded from `contentHash`.
+18. **Heights re-recorded once, at the end**: the map's decision point ends at
+    686 against the 740 line (it was 389 on a top-down chain; a bottom-up graph
+    puts step one near the foot, and the entrance row takes a step's weight so
+    it keeps room under it).
+19. **All eight map backdrops are art** (`docs/spec/gymrun-stage5.0-map-backdrops.md`),
+    brought forward from 5.0/5 at the author's request, in two messages: city,
+    summit, shore, cave and marsh, then forest, ruins and badlands. Every
+    `map-backdrop:` key in the manifest is a file now, as every battle
+    backdrop is; the placeholder tint stays under each as the fallback.
+    Converted by `scripts/visual/backdrops.py --map` (area downscale,
+    48-colour palette, no dither), 49 to 69 KB each, 485 KB for the eight.
+20. **The map backdrop's native size is 272x408, not the spike's 216x432.** The
+    paintings are 2:3, and the spike's 1:2 would have cut a quarter of each
+    composition. At 2 CSS px an art pixel, 544x816 covers the map area at every
+    plan size: it runs from 504px tall (1366x768) to 816 (1920x1080), and the
+    frame is capped at 480 wide. A phone shows the middle two thirds of the
+    width, which is each painting's clearing.
+21. **The drawing is lowered on short frames, up to 88px.** Each painting
+    stands an entrance building just above its foot. Anchored to the foot, a
+    phone (which shows the drawing's lower three quarters) put that building
+    under steps one and two, with nodes standing on its roof. The drawing
+    sits on the graph's own `::before` and drops by however much shorter the
+    graph is than the drawing (`100cqh`, the graph being a size container),
+    capped at `--map-art-lift`: on a phone the door is at the entrance row
+    where the trainer starts, and a frame as tall as the drawing is unchanged.
+    `BACKDROP_GRIDS` stays empty: in all five the default slot grid already
+    stands every node in the clearing.
+22. **Two browser assertions moved with the graph.** `visual-v3`'s contrast
+    sweep read the step marker at 4.19 against the 4.5 floor: the chain's
+    faint marker ink on the graph's raised marker. The marker takes the text
+    ink (14.73). The same file's parallax case shortened the viewport to 480 so
+    the map would scroll; the graph gives its rows back to a floor and fitted
+    with 15px to spare, so it reads at 400, with a comment naming the plan.

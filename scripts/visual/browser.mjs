@@ -258,14 +258,28 @@ async function hardestMove(page) {
 async function chooseNode(page) {
   const options = page.locator(`${visible('map')} .node--current`);
   if ((await options.count()) === 0) return null;
-  const hpText = (await page.locator(`${visible('map')} .panel__hp-text`).first().textContent()) ?? '';
-  const [, current, max] = /(\d+)\s*\/\s*(\d+)/.exec(hpText) ?? [];
-  const fraction = current && max ? Number(current) / Number(max) : 1;
-  if (fraction < 0.95) {
-    const rest = page.locator(`${visible('map')} .node--current.node--rest`).first();
-    if (await rest.count()) return rest;
-  }
+  const rest = page.locator(`${visible('map')} .node--current.node--rest`).first();
+  if ((await rest.count()) && (await leadHpFraction(page)) < 0.95) return rest;
   return options.first();
+}
+
+/**
+ * The lead's HP as a fraction, read off the party screen. **Stage 5.0/4.**
+ *
+ * The map carried the party until 5.0/4 and the bot read the lead's HP there;
+ * the team is the Team tab's now, so the bot looks the way a player would:
+ * the tab, the lead's card, and back to the map. Asked only when a rest is on
+ * offer, which is the only time the answer changes a pick. A readout: it
+ * submits nothing and draws nothing, so a seeded walk is the same walk.
+ */
+export async function leadHpFraction(page) {
+  await page.locator('[data-nav="team"]').click();
+  await page.waitForSelector(visible('party'));
+  const hpText = (await page.locator(`${visible('party')} .party__member .panel__hp-text`).first().textContent()) ?? '';
+  await page.locator(`${visible('party')} .primary-action`).first().click();
+  await page.waitForSelector(visible('map'));
+  const [, current, max] = /(\d+)\s*\/\s*(\d+)/.exec(hpText) ?? [];
+  return current && max ? Number(current) / Number(max) : 1;
 }
 
 /**
