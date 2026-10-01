@@ -322,6 +322,18 @@ export const GLYPH_SLOTS: readonly { selector: string; why: string }[] = [
   },
 ];
 
+/**
+ * R13's vital facts, which section 4 does not count (Bible Rev 20, D81). The
+ * stats are numbers and glyphs and need no entry; a carried item's effect line
+ * is words, so the bag's two effect lines are named here and nothing else is.
+ * Adding a selector to this list is adding a fact to R13's vital list, which
+ * is an amendment.
+ */
+export const VITAL_SLOTS: readonly { selector: string; why: string }[] = [
+  { selector: '.backpack__effect', why: "R13: a carried item's effect line, on the party screen's bag." },
+  { selector: '.drawer__item-effect', why: "R13: a carried item's effect line, on the read-only bag." },
+];
+
 /** Every capitalised name this repo knows, lowercased. */
 export function properNouns(): Set<string> {
   const names = [
@@ -491,7 +503,7 @@ async function censusAll(url: string, browser: Browser): Promise<{ records: Reco
 
       if (exposure === 'exhausted') for (const id of await presentOn(page, COMPONENTS)) present.add(id);
 
-      const nodes = await readSurface(page, COMPONENTS, GLYPH_SLOTS.map(({ selector }) => selector));
+      const nodes = await readSurface(page, COMPONENTS, [...GLYPH_SLOTS, ...VITAL_SLOTS].map(({ selector }) => selector));
       for (const { component, instance, text } of nodes) {
         const words = tokenise(text).filter((token) => {
           if (isBareNumber(token)) return false;

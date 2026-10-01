@@ -553,6 +553,21 @@ function visitText(node: NodeSpec, visit: NodeVisit): string {
   return node.encounter ? `${node.encounter.opponent} · ${turns}` : turns;
 }
 
+/**
+ * What a later row's face leaves out, as words for the kind glyph's press.
+ * **Bible Rev 20, D85.** The tier the pips would draw and, on an event, the
+ * requirement and the run's band against it, in the chevron's own words.
+ */
+function laterFacts(node: NodeSpec, run: CapabilityContext): string[] {
+  const facts: string[] = [];
+  if (node.tier) facts.push(`${node.tier[0]!.toUpperCase()}${node.tier.slice(1)} tier`);
+  if (node.event) {
+    const band = resolveCapability(run, node.event.requires);
+    facts.push(`${CAPABILITY_LABELS[node.event.requires]}: ${BAND_LABELS[band]}`);
+  }
+  return facts;
+}
+
 interface NodeOptions {
   /** The whole card, detail line included: the step being chosen from. */
   full: boolean;
@@ -586,7 +601,9 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
   const label = el('span', 'node__label');
   if (phase === 'current') label.dataset['tutorial'] = 'kinds';
   const kind = nodeKindGlyph(node.kind, kindWord(node.kind), 24);
-  const said = nodeDetailText(node, segment, options.visit);
+  const said = [nodeDetailText(node, segment, options.visit), ...(phase === 'upcoming' ? laterFacts(node, run) : [])]
+    .filter(Boolean)
+    .join(' · ');
   if (said) kind.dataset['detail'] = said;
   label.append(kind);
   mark.append(label);
@@ -601,10 +618,16 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
 
   /*
    * The facts beneath the mark: the tier pips and, on an event, the
-   * requirement and the run's band against it. On every row, not only the
-   * current one: routing toward an elite fight or an event two steps ahead is
-   * only a plan if you can see it (M5.2, D37, and D63 keeps both).
+   * requirement and the run's band against it. On the row being chosen from
+   * and on walked rows, **not on a later row since Bible Rev 20, D85**: the
+   * author asked for the kind and *"not the sub heading, which will be
+   * revealed once it's time to make a decision in that node"*. A later row's
+   * pips and chevron are words on the kind glyph's press instead
+   * (`laterFacts`), so C2 holds by inspect: routing two steps ahead is still
+   * a plan a long press can check. A later row is never the step being
+   * chosen from, so it is never a button either, and it ends here.
    */
+  if (phase === 'upcoming') return element;
   const facts = el('span', 'node__facts');
   if (node.tier) {
     // Pips, not the word (M5.2). The `tier:` tip carries the definition,

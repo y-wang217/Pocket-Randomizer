@@ -116,10 +116,16 @@ describe('the floating panel', () => {
     }
   });
 
-  it('carries no six-stat block, and says the stages as V2 chips instead', () => {
+  /**
+   * **Rewritten at Bible Rev 20, D83.** The panel carried no stat block from
+   * V5 to Rev 19; the player's side carries one now, at rest, because the
+   * stats are vital (R13). The foe's keeps its long press (D18) and no block.
+   */
+  it("carries the player's six numbers and no foe block, and says the stages as V2 chips", () => {
     const { scene } = sceneFor();
-    expect(scene.root.querySelectorAll('.stats')).toHaveLength(0);
-    expect(scene.root.querySelectorAll('.stat__label')).toHaveLength(0);
+    expect(panelOf(scene, 'me').querySelectorAll('.panel__stats .stats .stat')).toHaveLength(6);
+    expect(panelOf(scene, 'me').querySelectorAll('.stat__value')).toHaveLength(6);
+    expect(panelOf(scene, 'foe').querySelectorAll('.stats')).toHaveLength(0);
 
     // Nothing has moved a stage yet, so there is nothing to say and the row
     // holds no chip at all — the same rule the flag strip follows one band

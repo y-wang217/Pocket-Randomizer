@@ -17,8 +17,11 @@ word, and a carried item's name and effect line by the session's reading,
 which a later ruling can take back alone. **D82**: the bars are retired
 (*"bars suck"*). The stat block is glyph and number, and R10 reads *numbers*
 where it read *bars*. **D83**: the party row's stat block is at rest, out of
-the fold, and the battle panel on the player's side carries it; the
-opponent's does not, because its numbers are not facts the player holds.
+the fold, and the battle panel on the player's side carries it. The opponent's
+keeps its six on the panel's long press (D18), the one surface R13 leaves a
+vital fact behind a press: the stage has room over the bodies for one stat
+row, and the one the author asked for is the player's own. Section 9 carries
+the bet.
 **D84**: on a swap, the capture card's party list carries each member's stat
 block with the signed difference the swap would make, green up and red down,
 all six, never one: section 3 gains a *Stat change* row, R10 permits it, and
@@ -376,6 +379,7 @@ Forbids: adding a sentence to a card because the concept was hard to draw.
 Enforce: the amendment process. A proposed sentence at rest is an amendment, not a patch.
 
 **R13. Vital information is shown, not budgeted** (2026-10-01, D81). Words stay limited as section 4 says, **except for vital information**. A vital fact is on the face at rest, on every surface that carries it, as numbers where it is a number, and never behind a fold, a setting or a press. It is never counted against a section 4 budget, and a surface's budget binds only the words that are not vital.
+One exception, named here so no other is read into it: the opposing battle panel's six stay on its long press (D83).
 Vital today: **the six stats** (the author's word, 2026-10-01), and **a carried item's name and effect line in the bag** (the session's reading of *"the click to open sucks"*, recorded as a reading so a later ruling can take it back without touching the stats).
 Forbids: folding a vital fact; a vital fact as a bar or any other shape that cannot be read to its number; adding a fact to the vital list by a patch.
 Does not permit: a verdict. C1 and C2 outrank this rule. A vital number is an attribute, and nothing about being vital lets a surface rank, sort or emphasise it.
@@ -695,6 +699,7 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | R5, the docked sheet reads as dismissable (2026-09-25) | A tester holds, releases, and is stuck with the sheet up, or taps a move to close it and is surprised that nothing was chosen | The scrim dims, so the sheet reads as modal; a second failure returns a visible "tap anywhere to close" line under the text budget |
 | R6, one face loses nothing (Simple and Detailed retired 2026-09-30, D50) | A tester asks for all numbers always visible | A single "numbers on stats" setting returns, not a global mode. **Observed on the starter screen 2026-10-01**: the numbers went to rest on that one surface (D79). **Observed again the same day on every surface**: the author took R13 rather than the setting (D81), so for the stats the row is closed |
 | R13, the vital list stays short (2026-10-01, D81) | A surface reaches its budget only by calling a fact vital, or a tester cannot find the decision on a screen the vital facts fill | The list is cut back to the stats, and the fact that crowded the screen goes to a press |
+| The foe's stats on the press are enough (2026-10-01, D83) | A tester long-presses the opposing panel most turns, or asks what the opponent's Speed is before a move | The foe's panel carries the same stat row at rest, and the stage gives up a line for it |
 | The stat change reads as a fact, not a pick (2026-10-01, D84) | A tester releases the member with the most green, or says the colours told them who to drop | The colours go and the signs stay, as the coverage rows' do |
 | The map's later rows lose nothing at the glyph alone (2026-10-01, D85) | A tester routes toward a node two or more steps ahead and is surprised by its tier or its requirement, or long-presses most later nodes before every pick | The tier pips return to later rows, and the chevron stays on the press |
 | The starter coverage rows read as facts, not a pick (2026-10-01, D80) | A tester says a starter is the one to take because its row is longer, or picks by row length into a gym it loses to | The rows move to the type chips' inspect, and the panel keeps the stat block alone |

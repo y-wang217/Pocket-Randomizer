@@ -57,8 +57,8 @@ describe('a tap', () => {
     expect(detail.hidden).toBe(false);
 
     const card = describeSpecCard(options[1]!);
-    const stats = detail.querySelector('.stats--numbers');
-    expect(stats, 'the stat block with its numbers at rest (D79)').not.toBeNull();
+    const stats = detail.querySelector('.stats');
+    expect(stats, 'the stat block with its numbers at rest (D79; every call site since D82)').not.toBeNull();
     const values = Object.fromEntries(
       [...stats!.querySelectorAll<HTMLElement>('.stat')].map((row) => [row.dataset['row'], row.querySelector('.stat__value')?.textContent]),
     );

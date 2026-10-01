@@ -67,30 +67,22 @@ async function partyScreen(): Promise<{ page: Page; close: () => Promise<void> }
 }
 
 describe('the one face', () => {
-  it('six bars per block and no number on screen', async () => {
+  /**
+   * **Six numbers per block, on the card's head, and no bar. Bible Rev 20,
+   * R13, D82 and D83.** This was "six bars per block and no number on
+   * screen" from the one-face stage to Rev 19; the stats are vital now, so
+   * every card paints its six numbers without a tap, and the label is still
+   * the glyph (R2).
+   */
+  it('six numbers per block on every card, unopened, and no bar', async () => {
     const { page, close } = await partyScreen();
     const cards = await paintedCount(page, '.screen--party .party__member');
     expect(cards).toBeGreaterThan(0);
-    // The body folds in Pocket; open the first card to reach its stat block.
-    await page.locator(`${visible('party')} .party__member-toggle`).first().click();
-    await page.waitForTimeout(150);
-    /*
-     * Scoped to the party screen since bible Rev 19 (D79): the starter detail
-     * panel's block wears `stats--grid` with its numbers at rest, and the
-     * starter screen stays in the document, hidden, after the pick.
-     */
     const party = visible('party');
-    expect(await paintedCount(page, `${party} .stats--grid .stat__value`)).toBe(0);
-    expect(await paintedCount(page, `${party} .stats--grid .stat__bar-fill`), 'the opened card shows all six bars').toBe(6);
-    /*
-     * **The label is the glyph in Pocket. M3.2.** Section 3's Six stats row is
-     * "glyph, bar, number" and R2 forbids the word at rest, so the mark from
-     * M1.1's sheet carries the stat and the two word forms are hidden — the
-     * same shape D16 ruled for the type chip's word, and reversed by the same
-     * item that reverses that one, M6.4.
-     */
+    expect(await paintedCount(page, `${party} .party__member .stats .stat__value`)).toBe(cards * 6);
+    expect(await paintedCount(page, `${party} .stat__bar, ${party} .stat__bar-fill`)).toBe(0);
     expect(await visibleText(page, `${party} .stats--grid .stat__label`)).toBe('');
-    expect(await paintedCount(page, `${party} .stats--grid .stat__label .glyph`)).toBe(6);
+    expect(await paintedCount(page, `${party} .stats--grid .stat__label .glyph`)).toBe(cards * 6);
     await close();
   }, 600_000);
 

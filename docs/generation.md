@@ -12234,3 +12234,75 @@ What the checks found:
     ([`spec/gymrun-stage5.0-rulings-stage5.md`](spec/gymrun-stage5.0-rulings-stage5.md)
     and [`spec/gymrun-stage5.0-rulings-slot-grids.md`](spec/gymrun-stage5.0-rulings-slot-grids.md))
     say §92 and are left as filed; they mean this section.
+
+## 94. Stats at rest, the map's later rows, the locale card as a peek
+
+**2026-10-01.** [`spec/gymrun-patch-r22-stats-at-rest-and-map.md`](spec/gymrun-patch-r22-stats-at-rest-and-map.md),
+bible Rev 20 (D81 to D86), on `claude/sleepy-dijkstra-tp2176`. The author's
+observation is in [`design/playtest-log.md`](design/playtest-log.md). No version
+axis moves and no seeded output changes: nothing under `core/` or `data/` is
+touched, so `contentHash` is unchanged. `STAT_BAR_CEILING` in
+`data/statInfo.ts` has no reader now; it is left in place because deleting it
+would move `contentHash` for a dead constant, and goes with the next data pass.
+
+The author took no questions on this one. Where the build reads the message
+rather than following it, the reading is in the spec file and here:
+
+1. **R13 is a carve-out, not a repeal.** Words stay budgeted as section 4
+   says; the six stats are vital by the author's word, and a carried item's
+   name and effect line by the session's reading of *"the click to open
+   sucks"*, recorded as a reading in R13 so a ruling can take it back alone.
+2. **The bars are gone from the component, not hidden.** `statBlock` draws
+   the mark and the number and nothing else, at every call site; the starter
+   panel's `numbers` option (D79) went with them, and the panel draws the same
+   cells a size up.
+3. **The foe's battle panel keeps its six on the long press (D18).** The
+   message asked for Litten's stats on the battle screen; the stage has room
+   over the bodies for one stat row, and the foe's numbers were already a
+   press away. R13 names this as its one exception and section 9 carries the
+   bet.
+4. **The swap's stat change is on every member card, not on the offer.** At a
+   full party the offer could replace any of six, so the change is drawn on
+   each member card: that member's six numbers, and beside each the signed
+   difference the incoming Pokemon would make in that slot, green up, red
+   down, zero unmarked. The archetype chip leaves those cards with the
+   numbers' arrival, as section 3's Archetype row says. With room to spare
+   nothing is replaced and nothing is drawn.
+5. **Later map rows keep their facts on the press, not nowhere.** *"Revealed
+   once it's time to make a decision in that node"* read literally would take
+   the tier and requirement off the long press too. That is the first fact the
+   UI would withhold after the run has drawn it, which is C2 and a CLAUDE.md
+   invariant, so it is the author's ruling to make, not a reading. The kind
+   glyph's press on a later row says the tier and the requirement in words.
+6. **"The map buttons ... ideally hidden"** is read as the nodes' chrome: the
+   heavy black ring is gone, the disc is a soft token with a shadow, a size
+   down on later and walked rows, and the row being chosen from is the one
+   with a ring, in the selection colour with a glow. The gym rail keeps its
+   sideways scroll and draws no scrollbar. The step numbers stay, lighter.
+7. **The bag's controls are one tap away, the item is not.** The party
+   screen's backpack rows are tiles: sprite, name and effect line at rest, two
+   to a line. A tap on the item opens its give and discard controls, one row
+   at a time; at rest, six species names on each of eight rows was a screen of
+   buttons (measured at the worst case: the backpack alone ran past 1,200px).
+   The read-only bag (the Bag tab, and the Team tab mid-fight) lists each item
+   under the hotbar with the same three facts.
+8. **The locale card is the crop, full-bleed**, the name and the four chips
+   each on a plate of the raised surface at 78%.
+9. **The drawer's member cards go two-up**, as the party screen's have since
+   the density patch. Six single-column heads, each with its stat row, ran the
+   drawer's sheet to 966px inside 796 at the worst case; two-up it is 796 in
+   796, and `test/visual-pocket.test.ts`'s overlay gate holds unchanged.
+10. **The stat mark is `--text-dim`, a step darker than the faint label it
+    was beside a bar.** The cell's own tint is a step darker than the card,
+    and the battle panel's stat label read 3.35 against the 3.56 floor on
+    every locale (`visual-v1`, `visual-v3`). No floor moved.
+11. **The current map node's token is 40px**, the disc's old outer size, so
+    the map's decision row is where `docs/visual/baseline/heights.json`
+    recorded it; a 42px first cut moved both edges by a pixel.
+12. **`test/visual-stat-bars.test.ts` is deleted**, with the bars it measured.
+    Its promise was that each bar painted at its number's share; there is no
+    bar. The painted numbers are `test/visual-one-face.test.ts`'s first case,
+    rewritten from *"six bars per block and no number on screen"* to six
+    numbers per card, unopened, and no bar. `test/party-stats.test.ts` swaps
+    its two bar-width cases for the head-not-fold case and the swap's sign
+    case.

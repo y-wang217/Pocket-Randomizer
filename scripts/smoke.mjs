@@ -957,8 +957,8 @@ const phoneCheck = (label, ok, detail) => {
  */
 await phone.locator('.starter').first().click();
 // The selected starter's stats, numbers at rest, in the detail panel since
-// bible Rev 19 (D79); on each card under D40.
-const starterStats = await phone.locator('.starter-detail .stats--numbers .stat__value:visible').count();
+// bible Rev 19 (D79); on each card under D40. Every call site since Rev 20 (D82).
+const starterStats = await phone.locator('.starter-detail .stats .stat__value:visible').count();
 phoneCheck('the selected starter shows its six stats as numbers', starterStats === 6, `${starterStats} numbers`);
 
 await phone.locator('.starter-select__choose').click();

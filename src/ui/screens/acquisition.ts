@@ -39,7 +39,6 @@
  */
 import { describeOffer, joiningSpec, type AcquisitionDecision, type AcquisitionOffer } from '../../core/acquisition';
 import { describeSpecCard } from '../../core/battle/driver';
-import { archetypeChip } from '../archetype-chip';
 import { createBar } from '../bar';
 import { coverageAfterSwap, coverageDelta, offensiveCoverage } from '../../core/coverage';
 import { hpState, ppState } from '../../core/hpCopy';
@@ -48,7 +47,7 @@ import { createPartyMember, hpFraction, ppTotals } from '../../core/party';
 import type { PokemonSpec, PokemonState } from '../../core/types';
 
 import { el, levelAria, levelText, movePower } from '../scene';
-import { statBlock } from '../stat-block';
+import { statBlock, type StatValues } from '../stat-block';
 import { prose } from '../dom';
 import { CAPTURE_FULL, CAPTURE_SOURCE, RELEASE_LABEL, RETURNS_TO_BAG } from '../copy/screens';
 import { hpTip } from '../member-card';
@@ -167,7 +166,16 @@ export function renderCaptureOffer(
     : `Your party (${party.length} of ${capacity})`;
 
   const list = el('div', 'party party--compare');
-  list.replaceChildren(...party.map((member, index) => renderExisting(member, index, full, onDecide)));
+  /*
+   * **The swap's stat change. Bible Rev 20, D84.** At a full party every
+   * member card carries its six numbers and, beside each, what the incoming
+   * Pokemon would put in that slot instead, signed and coloured by its sign.
+   * All six on every card, in party order: R10's permit, never a marker on
+   * the member to drop. With room to spare nothing is replaced, so no change.
+   */
+  const incoming = describeSpecCard(joining.spec);
+  const against = full ? { ...incoming.baseStatsAtLevel, hp: incoming.maxHp } : undefined;
+  list.replaceChildren(...party.map((member, index) => renderExisting(member, index, full, onDecide, against)));
 
   const actions = el('div', 'acquire__actions');
   const decline = document.createElement('button');
@@ -376,6 +384,7 @@ function renderExisting(
   index: number,
   full: boolean,
   onDecide: (decision: AcquisitionDecision) => void,
+  against?: StatValues,
 ): HTMLElement {
   const card = el('div', 'party__member');
   const detail = describeSpecCard(member.spec);
@@ -390,7 +399,9 @@ function renderExisting(
   // in for the result screen's slot row in Pocket, where that row is off
   // screen, and a slot is the one fact the row had that the card did not.
   // Density modes patch, Part 4.
-  header.append(slotNumber(index), name, level, archetypeChip(detail.baseStats), ...detail.types.map(monTypeChip));
+  // No archetype chip: the six numbers are on this card now (D84), and
+  // section 3 draws the label nowhere the numbers already are.
+  header.append(slotNumber(index), name, level, ...detail.types.map(monTypeChip));
 
   const bar = createBar();
   bar.set(hpFraction(member));
@@ -422,7 +433,14 @@ function renderExisting(
   }
 
   // The body, phased by slot as the party screen's cards are. Idle-sprites patch.
-  card.append(spriteFigure(detail.species, { phase: index }), header, track, meta);
+  // The six numbers at rest (R13), with the swap's change on a full party (D84).
+  card.append(
+    spriteFigure(detail.species, { phase: index }),
+    header,
+    track,
+    meta,
+    statBlock({ ...detail.baseStatsAtLevel, hp: member.maxHp }, { layout: 'row', against }),
+  );
 
   if (full) {
     const release = document.createElement('button');

@@ -1202,7 +1202,6 @@ body {
 .stats--row .stat__label { min-width: 0; font-size: var(--fs-xs); }
 .stats--row .stat__label-long { display: none; }
 .stats--row .stat__value { min-width: 0; text-align: left; font-size: var(--fs-md); color: var(--text); }
-.stats--row .stat__bar { min-width: 0; flex: none; }
 
 /* The stat mark, from M1.1's sheet. **M3.2.** Section 3: glyph, bar, number.
    Which of the mark and the words is shown is decided with the rest of the
@@ -1292,58 +1291,6 @@ body {
 .stat[data-stat="hp"] { grid-column: 1 / -1; }
 .stat[data-stat="spe"] { grid-column: 1 / -1; }
 
-/*
- * The bar, shown in both modes. **Patch 4.7.2, ruling 3.**
- *
- * Through V5 the bar and the number were swapped by `hidden` and never both
- * shown, so Detailed was the number alone. Ruling 3 is that Detailed shows the
- * pair and Simple the bar alone — a change to Detailed, not only to Simple —
- * so the component now renders both and the two rules at the end of this block
- * decide what is visible.
- *
- * `flex: 1` rather than a fixed width so the bar fills whatever the label and
- * the number leave, which keeps the two halves of a stat pair the same length
- * and therefore comparable at a glance. The number's box is reserved at `3ch`
- * (see `.stat__value`), so the bar starts at the same x on all six rows and
- * flipping the mode cannot reflow the row under the reader.
- */
-.stat__bar {
-  flex: 1;
-  height: 6px;
-  min-width: 40px;
-  border-radius: var(--radius-chip);
-  background: var(--bg-sunken);
-  overflow: hidden;
-}
-
-/*
- * **`display: block` is the whole of the stat-bar fix, and it is here rather
- * than as a `div` in the component. Patch 4.7.2.**
- *
- * This rule shipped without it, on an `el('span', …)`, and `width` and `height`
- * do not apply to a non-replaced *inline* box — so the fill computed to 0x0 and
- * was never painted, whatever percentage the component wrote onto it. Measured
- * on the real party screen: `width: 47%` set, `getBoundingClientRect()` 0x0.
- * What the player saw was the track alone, a flat dark line, on all six rows.
- * `.hp__fill` escaped the identical bug only by being a `div`.
- *
- * Fixed on the rule and not on the tag deliberately: the rule is the thing that
- * asks for a width, so the rule is the thing that has to make the width mean
- * something. A component that later swaps the element cannot reintroduce it,
- * and `test/visual-inline-box.test.ts` now fails the whole class of bug.
- */
-.stat__bar-fill {
-  display: block;
-  height: 100%;
-  border-radius: var(--radius-chip);
-  background: var(--text-faint);
-  transition: width 120ms ease-out;
-}
-
-/* A boosted row colours its bar, exactly as it colours its number. Hiding the
-   digits must not hide that something changed them. */
-.stat[data-stage="up"] .stat__bar-fill { background: var(--stage-up); }
-.stat[data-stage="down"] .stat__bar-fill { background: var(--stage-down); }
 
 /* ---------- the one face ---------- */
 
@@ -1380,21 +1327,46 @@ body {
 .stat__label-long { display: none; }
 .stat__label-short { display: none; }
 
-/* The stat block's numbers, in Detailed and Simple; bars in Pocket, six in a
-   row, the number one tap away on the label. All six together. */
-.stat__value { display: none; }
+/* The stat block: six cells across, the mark over the number, at rest on
+   every call site. Bible Rev 20: the stats are vital (R13, D81) and the bar
+   is retired (D82), so a cell is the glyph and the number, all six together. */
 .stats {
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: var(--space-1);
 }
 .stat {
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   gap: var(--space-h);
-  line-height: 1.2;
+  padding: var(--space-h) 0;
+  border-radius: var(--radius-chip);
+  background: color-mix(in srgb, var(--bg-sunken) 70%, transparent);
+  line-height: 1.1;
 }
-.stat__label { min-width: 0; font-size: var(--fs-xs); }
-.stat__bar { min-width: 0; flex: none; }
+/* The mark a step darker than the faint label it was beside a bar: the cell's
+   own tint is a step darker than the card under it, and the floor holds. */
+.stat__label { min-width: 0; font-size: var(--fs-xs); color: var(--text-dim); }
+.stat .stat__value {
+  display: block;
+  min-width: 0;
+  text-align: center;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* The swap's stat change (D84): the signed difference under the number,
+   green up and red down, the colour saying the sign again. */
+.stat__delta {
+  font-family: var(--font-numeral);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+.stat__delta--up { color: var(--stage-up); }
+.stat__delta--down { color: var(--stage-down); }
+.stat[data-change="up"] { box-shadow: inset 0 calc(-1 * var(--space-h)) 0 color-mix(in srgb, var(--stage-up) 55%, transparent); }
+.stat[data-change="down"] { box-shadow: inset 0 calc(-1 * var(--space-h)) 0 color-mix(in srgb, var(--stage-down) 55%, transparent); }
 
 
 /*
@@ -1474,10 +1446,10 @@ body {
    at a second size — slot, species, item — and the cards and rows below carry
    every fact they do. Two rows of backpack items rather than one. */
 .screen--party .slots { display: none; }
-.backpack__list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
+/* Backpack tiles, two to a line (Bible Rev 20, D81): the sprite, the name
+   and the effect line at rest; a tapped tile takes the whole line for its
+   give and discard controls. */
+.backpack__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .backpack__item[data-expanded="true"] { grid-column: 1 / -1; }
 
 /* The threat readout's counts: beside the chip in Detailed and Simple, on the
@@ -1643,10 +1615,9 @@ body {
 .step--upcoming .node__detail:empty { display: none; }
 .step--upcoming .node { padding: var(--space-h) var(--space-1h); }
 
-/* Backpack rows in Pocket: the slot, the item and a compact fold control on
-   one line, two rows to a line. */
-.backpack__item { gap: var(--space-1); }
-.backpack__item > .collapse__toggle,
+/* Backpack tiles: the slot, then the item as one tap target (R13, D81). */
+.backpack__item { gap: var(--space-1); align-items: flex-start; flex-wrap: nowrap; }
+.backpack__item[data-expanded="true"] { flex-wrap: wrap; }
 .collapse__toggle.party__member-toggle { padding: 0 var(--space-1h); }
 
 /* Relics in Pocket: the list folds behind the title, which carries the count
@@ -1857,9 +1828,9 @@ body {
 }
 
 .backpack__effect {
-  flex: 1;
-  min-width: 180px;
-  font-size: var(--fs-md);
+  min-width: 0;
+  font-size: var(--fs-xs);
+  line-height: 1.3;
   color: var(--text-dim);
 }
 
@@ -1868,6 +1839,32 @@ body {
   gap: var(--space-1h);
   flex-wrap: wrap;
 }
+
+.backpack__pick {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-1h);
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.backpack__pick:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
+.backpack__icon { grid-row: span 2; display: inline-flex; line-height: 0; }
+.backpack__name { font-weight: 700; font-size: var(--fs-sm); }
+.backpack__item[data-expanded="true"] { outline: var(--hairline) solid var(--selected); }
+.backpack__controls {
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: var(--space-1h);
+}
+.backpack__item[data-expanded="true"] > .backpack__controls { display: flex; }
 
 .backpack__empty,
 .backpack__discarded {
@@ -3025,32 +3022,10 @@ body {
 .starter-detail__label { font-size: var(--fs-md); font-weight: 700; color: var(--text-dim); }
 .starter-detail__types { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 
-/* The numbers at rest, D79: one row per stat, glyph, bar, number, as the
-   mockup draws it. The one-face block hides `.stat__value` everywhere else. */
-.stats.stats--numbers {
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-1);
-  border-top: 0;
-  padding-top: 0;
-}
-.stats--numbers .stat {
-  display: grid;
-  grid-template-columns: var(--space-6) minmax(0, 1fr) 3ch;
-  align-items: center;
-  gap: var(--space-2);
-}
-.stats--numbers .stat__label { order: 0; }
-.stats--numbers .stat__bar { order: 1; height: 10px; border: var(--hairline) solid var(--border-heavy); }
-.stats--numbers .stat__bar-fill { background: var(--selected); }
-.stats--numbers .stat__value {
-  order: 2;
-  display: inline;
-  text-align: right;
-  font-family: var(--font-numeral);
-  font-size: var(--fs-lg);
-  font-weight: 700;
-  color: var(--text);
-}
+/* The numbers at rest, D79, in the detail panel: the same six cells as
+   every other call site since D82, a size up because the pick turns on them. */
+.starter-detail .stats { border-top: 0; padding-top: 0; }
+.starter-detail .stat .stat__value { font-size: var(--fs-lg); }
 
 .starter-select__choose {
   display: block;
@@ -3276,8 +3251,11 @@ body {
   display: flex;
   gap: calc(var(--space-1h) * var(--chrome-gap));
   overflow-x: auto;
-  scrollbar-width: thin;
+  /* Scrolls, with no scrollbar drawn (the author's *"the map buttons look
+     awful"*, 2026-10-01): the cut-off gym at the edge says there is more. */
+  scrollbar-width: none;
 }
+.rail::-webkit-scrollbar { display: none; }
 
 .rail__gym {
   /* Two rows per gym — number and leader above, type below — rather than one
@@ -5463,12 +5441,30 @@ button,
 /* The crop of the region's map backdrop, where the swatch stood. Stage
    5.0/4, D72. The map graph's own two layers, the drawing over the flat tint,
    cut to a strip from the drawing's lower middle, where the paths start. */
-.locale__crop {
-  display: block;
-  height: var(--space-6);
-  width: 100%;
-  border: var(--hairline) solid var(--border-heavy);
+/* **The crop is the card's whole face since Bible Rev 20, D86**: the peek
+   into the map, under the name and the chips, which each sit on a plate. */
+.locale {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 132px;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+.locale__name,
+.locale__types {
+  position: relative;
+  padding: var(--space-h) var(--space-2);
   border-radius: var(--radius-chip);
+  background: color-mix(in srgb, var(--bg-raised) 78%, transparent);
+  box-shadow: 0 var(--space-h) var(--space-2) color-mix(in srgb, var(--border-heavy) 25%, transparent);
+}
+.locale__types { padding: var(--space-1); }
+.locale__crop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: block;
   background:
     var(--backdrop-image, none) center 80% / calc(var(--backdrop-w, 0) * var(--art-px)) calc(var(--backdrop-h, 0) * var(--art-px)) no-repeat,
     color-mix(in srgb, var(--locale-glow) 38%, var(--bg-raised));
@@ -6608,11 +6604,15 @@ button,
 .drawer__note { margin: 0; color: var(--text-faint); font-size: var(--fs-sm); }
 .drawer__section { margin: var(--space-1h) 0 0; font-size: var(--fs-md); color: var(--text-dim); }
 
+/* Two-up since Bible Rev 20 (D83), as the party screen draws them: the six
+   numbers are on every card's head, and six single-column heads ran the
+   sheet past the window. An opened card takes both columns. */
 .drawer__members {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-1);
 }
+.drawer__members > .party__member[data-expanded="true"] { grid-column: 1 / -1; }
 
 .drawer__relic-list {
   display: flex;
@@ -7112,6 +7112,21 @@ button,
 
 .drawer__tms { margin: var(--space-1) 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-1); font-size: var(--fs-sm); }
 .drawer__tm { padding: var(--space-h) var(--space-1h); border: var(--hairline) solid var(--border); border-radius: var(--radius-chip); }
+/* The read-only bag's list (Bible Rev 20, R13, D81): sprite, name and effect
+   line per item, at rest, under the hotbar. */
+.drawer__items { margin: var(--space-1) 0 0; padding: 0; list-style: none; display: grid; gap: var(--space-1); }
+.drawer__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-card);
+  background: var(--bg-sunken);
+}
+.drawer__item-icon { grid-row: span 2; line-height: 0; }
+.drawer__item-name { font-weight: 700; font-size: var(--fs-md); }
+.drawer__item-effect { font-size: var(--fs-sm); color: var(--text-dim); }
 
 .settings-sheet__replay { align-self: flex-start; }
 
@@ -7159,7 +7174,8 @@ button,
     'header roster'
     'hp hp'
     'meta meta'
-    'chips chips';
+    'chips chips'
+    'stats stats';
   align-items: center;
   gap: var(--space-h) var(--space-2);
   padding: var(--space-1h) var(--space-2);
@@ -7181,6 +7197,13 @@ button,
 }
 .screen--battle .stage .panel__hp-text { color: var(--text); font-weight: 600; }
 .screen--battle .stage .panel__chips { grid-area: chips; }
+/* The player's six numbers (Bible Rev 20, D83), one compact row under the
+   chips; the foe's panel keeps its press and draws no row. */
+.screen--battle .stage .panel__stats { grid-area: stats; min-width: 0; }
+.screen--battle .stage .panel__stats[hidden] { display: none; }
+.screen--battle .stage .panel__stats .stats { margin: 0; padding: 0; border: 0; gap: var(--space-h); }
+.screen--battle .stage .panel__stats .stat { padding: 0; }
+.screen--battle .stage .panel__stats .stat .stat__value { font-size: var(--fs-sm); }
 
 /* The move button (D57): the full move card, in a window. The name on the
    top line, whole: it wraps rather than truncating, because a cut name is a
@@ -7366,7 +7389,7 @@ button,
   font-size: var(--fs-xs);
   border-color: var(--border-heavy);
 }
-.map-graph .step:not(.step--current) .step__marker { background: var(--bg-raised); color: var(--text); }
+.map-graph .step:not(.step--current) .step__marker { background: color-mix(in srgb, var(--bg-raised) 82%, transparent); color: var(--text); border-color: transparent; }
 
 /* A node: a disc with the kind's mark in it, the facts beneath. */
 .map-graph .node {
@@ -7391,22 +7414,30 @@ button,
   text-align: center;
   opacity: 1;
 }
+/* The mark is a token, not a button (Bible Rev 20, D85): the heavy black
+   ring is gone, and the disc is a soft round token on the painting with a
+   shadow under it. The kind chip inside keeps the one neutral chip style
+   (`visual-v2`: every neutral chip shares one colour, fill and outline). A
+   later row draws the token a size down. */
 .map-graph .node__mark {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: var(--bg-raised);
-  border: var(--rule-heavy) solid var(--border-heavy);
+  background: color-mix(in srgb, var(--bg-raised) 90%, transparent);
+  border: 0;
+  box-shadow:
+    0 var(--space-h) 0 color-mix(in srgb, var(--border-heavy) 45%, transparent),
+    0 0 var(--space-2) color-mix(in srgb, var(--border-heavy) 30%, transparent);
+  transition: box-shadow 120ms ease;
 }
-.map-graph .node--compact .node__mark { width: 36px; height: 36px; }
+.map-graph .node--upcoming .node__mark { width: 30px; height: 30px; }
 .map-graph .node__label { gap: 0; }
-/* The kind chip keeps the one neutral chip style (`visual-v2`: every
-   neutral chip shares one colour, fill and outline) and takes the disc's
-   shape, so it reads as a ring inside the disc rather than a square. */
-.map-graph .node__kind { display: grid; place-items: center; width: 80%; height: 80%; padding: 0; border-radius: 50%; }
-.map-graph .node--gym .node__mark { border-radius: var(--radius-card); }
+.map-graph .node__kind { display: grid; place-items: center; width: 84%; height: 84%; padding: 0; border-radius: 50%; }
+.map-graph .node--gym .node__mark,
+.map-graph .node--gym .node__kind { border-radius: var(--radius-card); }
+.map-graph .node--gym .node__mark { width: 40px; height: 40px; }
 
 .map-graph .node__facts {
   display: inline-flex;
@@ -7445,15 +7476,26 @@ button,
 /* The coin amount (5.0/3's `coinAmount`), on the detail line's baseline. */
 .map-graph .coin-amount { vertical-align: middle; }
 
-/* The step being chosen from: the only buttons on the map. */
+/* The step being chosen from: the only buttons on the map, a size up, in a
+   ring of the selection colour with a soft glow round it. */
 .map-graph .node--current { cursor: pointer; }
+/* 40px, the disc's old size, so the decision row's measured edges are where
+   `heights.json` recorded them. */
 .map-graph .node--current .node__mark {
+  width: 40px;
+  height: 40px;
   background: color-mix(in srgb, var(--highlight) 28%, var(--bg-raised));
-  border-color: var(--selected);
-  box-shadow: 0 0 0 var(--rule-heavy) var(--bg-raised);
+  box-shadow:
+    0 0 0 var(--rule-heavy) var(--selected),
+    0 0 var(--space-3) var(--space-h) color-mix(in srgb, var(--selected) 55%, transparent),
+    0 var(--space-1) 0 color-mix(in srgb, var(--border-heavy) 45%, transparent);
 }
 .map-graph .node--current:hover { transform: translate(-50%, calc(-50% - 1px)); }
-.map-graph .node--current:hover .node__mark { border-color: var(--emphasis); }
+.map-graph .node--current:hover .node__mark {
+  box-shadow:
+    0 0 0 var(--rule-heavy) var(--emphasis),
+    0 0 var(--space-3) var(--space-1) color-mix(in srgb, var(--emphasis) 55%, transparent);
+}
 .map-graph .node--current:focus-visible { outline: none; }
 .map-graph .node--current:focus-visible .node__mark { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
 
@@ -7461,11 +7503,12 @@ button,
    stays beneath and the marks still clear the contrast floor. The node taken
    is solid; the ones passed over are dashed. */
 .map-graph .node--done .node__mark {
+  width: 30px;
+  height: 30px;
   background: color-mix(in srgb, var(--bg-raised) 55%, var(--locale-glow));
-  border-color: color-mix(in srgb, var(--border-heavy) 65%, var(--locale-glow));
   color: var(--text-dim);
 }
-.map-graph .node--passed .node__mark { border-style: dashed; }
+.map-graph .node--passed .node__mark { outline: var(--hairline) dashed var(--border-heavy); box-shadow: none; }
 .map-graph .node--passed .node__facts { opacity: 0.7; }
 
 /* The pitch floor (D63). A row shorter than a mark and its facts keeps the
@@ -7476,7 +7519,7 @@ button,
 /* And a row shorter than the disc draws a smaller disc round the same mark
    at the same 24: the mark never shrinks, only the ring around it. */
 @container map-row (max-height: 42px) {
-  .map-graph .node--compact .node__mark { width: 28px; height: 28px; border-width: var(--hairline); }
+  .map-graph .node--compact .node__mark { width: 28px; height: 28px; }
   .map-graph .step__marker { width: 16px; height: 16px; }
 }
 

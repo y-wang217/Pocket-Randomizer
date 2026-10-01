@@ -62,6 +62,7 @@ import { spriteFigure, spriteImg, spriteUrl } from './sprites';
 import { itemIcon, pokeballSprite } from './slots';
 import { SCENES } from './theme/scenes';
 import { glyphNode } from './theme/glyph';
+import { statBlock } from './stat-block';
 import type { MoveTag } from '../data/moveTags';
 import { MOVE_FACT_COLUMN, MOVE_FACT_COLUMNS, MOVE_FACT_INFO, MOVE_FACT_OWN_SLOT, moveFactAriaLabel, type StripFactId } from '../data/moveFactInfo';
 import type { MoveFact } from '../core/moveFacts';
@@ -135,6 +136,15 @@ interface SidePanel {
   root: HTMLElement;
   name: HTMLElement;
   level: HTMLElement;
+  /**
+   * The six stats, at rest, on the player's side only. **Bible Rev 20, D83.**
+   *
+   * The stats are vital (R13), and the author asked for them *"ideally in the
+   * battle screen too"*. Empty and hidden on the foe's panel, whose numbers
+   * stay on its long press (D18): the stage has room for one stat row over
+   * the bodies, and the one asked for is the player's own.
+   */
+  stats: HTMLElement;
   /**
    * How much of this side is still standing, on the foe panel only.
    *
@@ -914,8 +924,11 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   root.tabIndex = 0;
   root.setAttribute('role', 'button');
 
-  root.append(roster, header, hp.root, meta, chips);
-  return { root, name, level, roster, priority, types, hp, hpText, status, volatiles, traits, item, itemGhost, stages };
+  const stats = el('div', 'panel__stats');
+  stats.hidden = kind === 'foe';
+
+  root.append(roster, header, hp.root, meta, chips, stats);
+  return { root, name, level, stats, roster, priority, types, hp, hpText, status, volatiles, traits, item, itemGhost, stages };
 }
 
 /**
@@ -1084,7 +1097,17 @@ function updateSidePanel(
     `${isFoe ? 'Opposing ' : ''}${active.species}, ${levelAria(active.level, active.gender)}`,
   );
   panel.root.dataset['tip'] = `stats:${active.species}`;
-  panel.root.dataset['detail'] = statDetail(active);
+  const detail = statDetail(active);
+  /*
+   * The player's six numbers at rest (D83), redrawn only when the body or its
+   * numbers change: a level-up mid-run and a switch are the two that do.
+   */
+  if (!isFoe && panel.root.dataset['detail'] !== detail) {
+    const values: Record<string, number> = { hp: active.hp.max };
+    for (const stat of BOOSTABLE_STATS) values[stat] = active.stats[stat].base;
+    panel.stats.replaceChildren(statBlock(values, { layout: 'row' }));
+  }
+  panel.root.dataset['detail'] = detail;
 
   panel.types.replaceChildren(...active.types.map((type) => panelTypeChip(type)));
 
