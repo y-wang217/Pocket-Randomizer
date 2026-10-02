@@ -12663,4 +12663,8 @@ before and after this patch and are not its own:
 `test/visual-backdrop-contrast.test.ts`'s *HP boxes distinct from all nine
 backdrops* under `weather=none` and under `terrain=misty`, which fail
 identically on `main` at `c1d527d` in a clean worktree, and which no file this
-patch touches can reach. Left open for whoever owns the stage.
+patch touches can reach. Left open for whoever owns the stage. A third,
+`test/visual-chips.test.ts`, never left its setup in this container: ten
+minutes alone on the CPU with no case reported, and on `main` in the same
+worktree its setup fails and all seventeen cases skip. Environmental here,
+not this patch's; it is the one browser file this branch has no reading for.
