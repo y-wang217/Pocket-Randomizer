@@ -12654,3 +12654,13 @@ because the canon would otherwise be silent on a face the tree draws.
 The benchmark row is in [`balance.md`](balance.md) section 0, stamped
 `randomizer-23` · `d8e4e4`, RETUNE, 400 seeds, `table` AI, read against the
 `randomizer-22` · `715122` row on the same prefix. **Recorded, not chased.**
+
+### The gate, in the container that built it
+
+Types, lint, build, smoke, the Node half of the suite and the browser half
+were run; the strict-trim leg was run after them. Two browser cases were red
+before and after this patch and are not its own:
+`test/visual-backdrop-contrast.test.ts`'s *HP boxes distinct from all nine
+backdrops* under `weather=none` and under `terrain=misty`, which fail
+identically on `main` at `c1d527d` in a clean worktree, and which no file this
+patch touches can reach. Left open for whoever owns the stage.
