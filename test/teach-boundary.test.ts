@@ -91,7 +91,7 @@ describe('the Teach control is offered only where the teach is spent', () => {
      * where the boundary has to be disarmed now.
      */
     const tabRoute = /openPartyRoute = \(bag\) => \{[\s\S]*?\n {4}\};/.exec(APP)?.[0] ?? '';
-    expect(tabRoute, 'the Team tab no longer reaches the party screen through openPartyRoute').toContain("showParty(name)");
+    expect(tabRoute, 'the Team tab no longer reaches the party screen through openPartyRoute').toContain('showParty(name, ');
     expect(tabRoute, "the Team tab's route to the party screen does not disarm the boundary").toContain('atTeachBoundary = false');
   });
 });

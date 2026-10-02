@@ -74,7 +74,7 @@ and a ceiling on a region with a floor under its fights.** Branch
 [`spec/gymrun-patch-toll-affordability-gate.md`](spec/gymrun-patch-toll-affordability-gate.md)
 and
 [`spec/gymrun-patch-region-node-composition.md`](spec/gymrun-patch-region-node-composition.md),
-records [`generation.md`](generation.md) sections 98 and 99.
+records [`generation.md`](generation.md) sections 99 and 100.
 
 Both were built on 2026-09-19 against a tree cut at `970c2a2` and **reapplied
 rather than rebased**, because `main` had moved 260 commits and taken
@@ -1312,7 +1312,7 @@ One line each. The analysis lives where the pointer goes, not here.
     back, lower the evolution thresholds so a fork lands before the first gym,
     or move the fork off the gym clear entirely. **Filed, not fixed** — it is a
     difficulty decision and the standing policy forbids retuning between
-    checkpoints. `generation.md` section 99.8.
+    checkpoints. `generation.md` section 100.8.
 
 0. **The design bible is live and nothing has been built against it yet.**
    [`design/design-bible.md`](design/design-bible.md) landed 2026-09-19 as a

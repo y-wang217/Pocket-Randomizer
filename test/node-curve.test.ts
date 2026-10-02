@@ -135,7 +135,7 @@ describe('the rest floor', () => {
    * `kindCapPerRoute` now exists to make rare. A floor that mandates what a
    * ceiling forbids is not a tuning disagreement, so the density went and the
    * guarantee stayed. The two tests that pinned the density are replaced by
-   * the one below that pins its absence; `generation.md` section 99.
+   * the one below that pins its absence; `generation.md` section 100.
    */
   it('is the guarantee, at every length, and nothing more', () => {
     for (let steps = 1; steps <= 12; steps++) {

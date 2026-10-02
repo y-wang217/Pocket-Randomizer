@@ -374,7 +374,7 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * it hands out, so every recorded map moves — the routes and the tiers on
  * them, and through the tiers the contents. `contentHash` moves beside it for
  * the table. `RUN_LOG_VERSION` holds: a step is still a step and a node is
- * still picked by index. `docs/generation.md` section 99.
+ * still picked by index. `docs/generation.md` section 100.
  */
 export const RANDOMIZER_VERSION = 'gymrun-randomizer-23';
 

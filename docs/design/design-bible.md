@@ -1,6 +1,41 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 22, Oct 1, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 23, Oct 2, 2026.
+
+**Rev 23** carries five amendments, D94 to D98, from the author's message of
+2026-10-02 against production R22 on an iPhone
+([`../spec/gymrun-patch-tabs-writable-and-stage-cells.md`](../spec/gymrun-patch-tabs-writable-and-stage-cells.md)),
+recorded in [`playtest-log.md`](playtest-log.md) the same day, with the
+author's answers to four questions put in the same session. **D94**: outside a
+battle, the Team and Bag tabs open the writable screen from every surface, and
+an item layout composed there reaches the next fight (*"We currently dont have
+a way to change items as hoc"*). A layout made between nodes is applied and
+logged when the next question is answered; one made while a node is still
+resolving rides that node's boundary, which comes before the next fight either
+way. Reorder and release stay between nodes, where the party is not mid-merge.
+In a battle both tabs are the readout with no editing control on them (*"in
+battle, remove the editing buttons to cement it as read only"*). D53's
+readout property is narrowed to the battle accordingly. **D95**: Team and Bag
+are two screens with two subjects (*"party should be different focus from
+items"*): Team carries the party, Bag carries what it holds and what it
+carries. **D96**: the Team screen has three views, chosen by a segmented
+control and never combined: *Stats*, the six numbers per member as a table
+whose columns the player may sort by; *Moves*, one row per member of its four
+moves as move chips with PP; *Coverage*, the summary's coverage wheel over the
+party as it stands. The sort is the player's and starts in party order, so R10
+gains a permit; no column is ever sorted, highlighted or marked by the UI.
+**D97**: the Bag screen lists each member's held item at rest, and swapping is
+two taps, the thing then where it goes, between members as well as to and
+from the bag. **D98**: in battle, a stat stage is drawn in that stat's cell of
+the player's stat block: the number becomes the stat as the stage makes it,
+with the stage count beneath, both green for up and red for down (*"the
+battle stat change/boost should show in the actual block of that stat with
+green being boosted and red being reduced"*; the author chose the effective
+number over the multiplier). The base number, the multiplier and the ladder
+go to the cell's press, and the chip row's stage marker goes for the five
+stats the block carries, because two channels for one stage is R3. Accuracy
+and evasion have no cell and keep their chips. The foe's stages stay on its
+panel's chip row, because its six stay on the press (D83).
 
 **Rev 22** carries three amendments, D91 to D93, from the author's message of
 2026-10-01
@@ -421,7 +456,7 @@ Enforce: the mapper returns a list; the renderer takes the first by precedence. 
 
 **R10. Numbers compare members, never options.** Six stats as glyph and number across party members is an attribute readout. Emphasising the stat that matches the current decision is a verdict.
 Forbids: highlighting Atk because the incoming move is Physical; sorting recipients by fit; projected damage on a recipient card.
-Permits: on a swap, every stat's signed difference between the incoming Pokemon and the member it would replace, coloured by its sign, all six on every member card, never one (2026-10-01, D84). The colour says which way a number moved, the same fact the sign says; it never says which member to release.
+Permits: on a swap, every stat's signed difference between the incoming Pokemon and the member it would replace, coloured by its sign, all six on every member card, never one (2026-10-01, D84). The colour says which way a number moved, the same fact the sign says; it never says which member to release. And on the Team screen's *Stats* view, a sort by any one of the six, chosen by the player and starting in party order (2026-10-02, D96). The order is the player's question answered, never one the UI asks: no column starts sorted, none is highlighted, and the sort is not remembered past the screen.
 Enforce: the recipient and teach screens mount the party stat component unchanged, in party order.
 Amended 2026-10-01 (D82): this rule read *"Bars compare members"*, and the stat block drew glyph, bar and number. The bars are retired by the author's directive, and the rule's substance is unchanged. The banded bar returned the same day (D88); it is measured against the band at the Pokemon's own level, never against the other options on the screen, so it compares a number with what that stat can be and not one option with another.
 
@@ -458,7 +493,7 @@ Thirteen glyph families (2026-09-30, D54; twelve under D47, 2026-09-25; eleven u
 | Priority | Up or down chevron beside the move name, nonzero only. Same chevron on the panel when a bracket decided the turn | Neutral |
 | Effectiveness | Coloured left edge on the button plus the multiplier as a fraction or numeral (¼, ½, 2, 4). Neutral shows nothing. The same colour on the feedback flag. While a super effective move is on the bar, it is lit and the damaging moves that are not are greyed (2026-10-01, D91) | Red/green family, colour-blind checked |
 | Status | Three-letter chip: BRN, PAR, PSN, TOX, SLP, FRZ. Fixed colour each. One per volatile condition on the same pattern, and **not a tenth family** (2026-09-21, D19): a volatile is a thing happening to this Pokemon right now, which is what this family already means, and it takes the same shape, the same slot rule and the same inspect text | Genre-standard |
-| Stat | Six stat glyphs. Stage as multiplier plus ladder bar (shipped in 4.8.0.3), nonzero only | Neutral |
+| Stat | Six stat glyphs. In battle, a stage is the cell's own number, green up and red down, with the stage count beneath (2026-10-02, D98; a multiplier plus ladder bar on the chip row from 4.8.0.3 until then), nonzero only | Neutral; the stage colours are the stat change's (D84) |
 | Capability | One glyph per capability, plus a band chevron filled to the run's reach — none, latent, known (2026-09-22, D37) | Neutral |
 | Node | One glyph per node kind: a head (trainer), a bush (wild), a tent (rest), a badge (gym), a bag (shop), a question mark (event). On the map node card at 24, on the battle screen header at 16 (2026-09-25, D46) | Neutral |
 | Field | Nine glyphs for the state of the board: rain, sun, sand, snow, strong winds, and the four terrains. Heavy rain and Extreme sun wear the rain and sun marks and differ on inspect. At 16 in a fixed slot on the battle screen header, dimmed while an ability suppresses the weather. The battle backdrop behind the stage carries the same state as a wash and a terrain tint, colour secondary to the glyph (2026-09-25, D47; on the backdrop, not the world, 2026-09-30, D60) | Neutral glyph; the wash and tint are global tokens mixed into the backdrop's own |
@@ -486,7 +521,7 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Status | Three-letter chip | None | Full name, effect |
 | Volatile condition | Three-letter chip, same family and same slot rule as Status, one per condition | None | Full name, effect, from `statusInfo` (2026-09-21, D19) |
 | Ability | Name, in a fixed slot. The one attribute with no glyph and no shorthand: abilities are a pool, not a family | Absent. An unrevealed opponent's renders a `?` in the slot rather than nothing, because held-and-unknown is not the same fact as none | Full text, from `abilityOverrides` (2026-09-21, D19) |
-| Stat stages | Multiplier plus ladder, nonzero only | 0 | Stage count, source |
+| Stat stages | On the player's battle panel, in the stat's own cell: the number as the stage makes it and the signed stage count beneath, both green for up and red for down. Accuracy and evasion, and every foe stage, keep the multiplier chip with its ladder (2026-10-02, D98) | 0 | Base number, multiplier, stage count, source |
 | Six stats | Glyph, number and band bar, at rest on every surface that carries them (R13). Always all six. Party order. The bar is empty at the band's floor and full at its ceiling: the lowest and highest value the stat takes at this Pokemon's level across the species the randomizer may field there. One neutral colour, never a colour by fraction (2026-10-01, D88; glyph and number under D81 and D82; glyph, bar against a flat ceiling, number from Rev 1 to Rev 19) | Never hidden | Stat definition, and the band at this level |
 | Stat change (capture card, on a swap) | On each member card, beside each of the six numbers, the signed difference the incoming Pokemon would make in that slot, green when it rises, red when it falls. All six, every member, party order (2026-10-01, D84) | Zero renders nothing; no swap (room in the party) renders no row | The stat's definition, and both numbers |
 | Held item | Item sprite in a fixed slot. In the bag's list, the sprite, the name and the effect line, at rest (R13, 2026-10-01, D81) | Empty slot renders nothing | Name, one effect line |
@@ -640,9 +675,9 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Component | Owns | Call sites today |
 |---|---|---|
 | Move card | Name, type chip, category glyph, BP, PP, band pips, accuracy, priority, describeMove icon strip | `moveFacts` (seven card surfaces; starter select added 2026-09-23, D40) and `renderMove` (battle button). Two call sites is the accepted shape; a third is an amendment |
-| Move chip | Name, type chip, category glyph, BP | Replacement and teach lists, and the starter card (2026-10-01, D78) |
-| Stat block | Six cells of glyph, number and band bar, at rest (2026-10-01, D88; no bar under D82; glyph, bar against a flat ceiling, number until then). The band is the Pokemon's level's, read off the species pool and the stat formula, never drawn. On a swap, each cell carries the stat change beside its number (D84) | Party row (out of the fold, D83), recipient, capture (the offered card, and every member card on a swap, D84), pre-gym, the starter detail panel (D79), and the battle panel on the player's side (D83) |
-| Pokemon panel | Name, level, gender, HP bar and number, status chips, volatile chips, ability name, stat stage ladder, item sprite, priority chevron (2026-09-19, D6; volatiles and ability 2026-09-21, D19), and on the player's side the stat block (2026-10-01, D83) | Battle |
+| Move chip | Name, type chip, category glyph, BP | Replacement and teach lists, the starter card (2026-10-01, D78), and the Team screen's *Moves* view, where each chip carries its PP beside it (2026-10-02, D96) |
+| Stat block | Six cells of glyph, number and band bar, at rest (2026-10-01, D88; no bar under D82; glyph, bar against a flat ceiling, number until then). The band is the Pokemon's level's, read off the species pool and the stat formula, never drawn. On a swap, each cell carries the stat change beside its number (D84). In battle on the player's panel, a cell with a stage carries the stage instead: its number as the stage makes it, the stage count beneath, coloured by sign (2026-10-02, D98) | Party row (out of the fold, D83), recipient, capture (the offered card, and every member card on a swap, D84), pre-gym, the starter detail panel (D79), the battle panel on the player's side (D83), and the Team screen's *Stats* view as one row per member (2026-10-02, D96) |
+| Pokemon panel | Name, level, gender, HP bar and number, status chips, volatile chips, ability name, stat stage ladder (the foe's, and accuracy and evasion on the player's; the player's five ride the stat block from 2026-10-02, D98), item sprite, priority chevron (2026-09-19, D6; volatiles and ability 2026-09-21, D19), and on the player's side the stat block (2026-10-01, D83) | Battle |
 | Party row | Species, level, gender, HP bar and number, status chips, ability name, item sprite, the stat block at rest (2026-10-01, D83), four move cards, which fold | Drawer, party screen, pre-gym, teach target, **capture card** (call sites corrected 2026-09-21; ability, gender and the block, D19 and M3.2; **cards not chips**, D21a re-ruled 2026-09-21; capture added 2026-09-22, D29, and M5.4 is the item that makes it true; the map rail call site removed with the map's party HUD, 2026-09-30) |
 | Type chip | Glyph in colour | Everywhere a type appears |
 | Inspect layer | The full explanation of whatever was long-pressed | One mechanism, mounted at the shell |
@@ -651,7 +686,7 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | World | The locale's three layers and drift, behind the game frame (2026-09-25, D47; the field state moved to the scene backdrop, 2026-09-30, D60). Before the first region, on the starter screen and the region picker, the opening painting from the asset manifest in their place, and nothing else (2026-10-01, D87) | Every screen, mounted once by `app.ts`, outside the frame |
 | Scene backdrop | The game screen's painted scene inside the frame, from the asset manifest: the locale's battle backdrop, or the gym's, behind the battle stage; the locale's map backdrop behind the map. During a battle, the field state as a weather wash and a terrain tint over it, global tokens mixed into the backdrop's own. A missing file is the manifest's placeholder at the correct size (2026-09-30, D60) | The battle stage and the map, inside the frame. Never outside it: that is the World's |
 | Reward card | The item or berry sprite in a fixed slot, a relic's icon and the capability glyph it satisfies (2026-09-30, D65 and D66), the boosted type chip, the move card on a move kind, with no TM disc (D67 and D71), `+N` beside the currency glyph on coins and `+N%` beside a bar on a restore (D66), and the shop's price beside the currency glyph (2026-09-22, D29 and D36). Three across where they fit, stacked where they do not. **Selected only after a tap**: no card carries the selected state before the player puts it there, and the claim is the Confirm band's commit (2026-09-30, D69) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |
-| Shell nav | Five tabs, each a word and a control icon: Map, Team, Bag, Run Info, Settings. **A tab opens a screen, not an overlay** (2026-09-30, D53). Opened while a decision is pending elsewhere, the screen is a readout: it never advances run state, never submits, never consumes RNG, and closing it returns to the pending decision, which is the §12 standing rule's three properties carried from the drawer to the screen. Map from anywhere but the map is the chain without its picker, so there is still exactly one path by which a node completes | The shell, every viewport. Replaces the drawer triggers |
+| Shell nav | Five tabs, each a word and a control icon: Map, Team, Bag, Run Info, Settings. **A tab opens a screen, not an overlay** (2026-09-30, D53). Opened while a decision is pending elsewhere, the screen is a readout: it never advances run state, never submits, never consumes RNG, and closing it returns to the pending decision, which is the §12 standing rule's three properties carried from the drawer to the screen. Map from anywhere but the map is the chain without its picker, so there is still exactly one path by which a node completes. **Narrowed 2026-10-02 (D94, D95):** the readout property holds in a battle only. Outside one, Team opens the writable party screen and Bag the writable bag screen from every surface; neither submits the pending decision, and an item layout made there is applied at the next question (between nodes) or at the resolving node's boundary (while one is open), so it always reaches the next fight. Reorder and release are offered between nodes only. In a battle both are the readout, with no editing control drawn | The shell, every viewport. Replaces the drawer triggers |
 | Run Info screen | The decision feed, newest first, and the run's position: gym rail, locale, seed (2026-09-30, D53 and D55) | The Run Info tab. The desktop sidebar mounts the same feed |
 | Map node card | Node glyph at 24 with the leader's name on a gym, then beneath it the tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29; the glyph exists and the pips sit beneath it since 2026-09-25, D46). **On the map screen's graph, the step being chosen from carries the whole card, its detail line included** (the payout as the currency glyph and a number, the AI tier, a shop's shelf as a count and a coin amount; never the kind's hint, which is the glyph's inspect, D77). **Every other row carries the node glyph (and a gym's leader), the tier pips and the capability glyph with its chevron, and nothing else at rest**; the rest of the card is on the node glyph's long press. Where the frame is too short for even that, those rows keep the glyph alone, with the rest on the same press. **Since 2026-10-01 (D85) a later row, one not yet reached, keeps the glyph alone at every height**: the tier pips and the capability chevron join the rest of the card on the press, and only the row being chosen from and the walked rows carry them at rest. Off the chosen row the disc has no ring; the glyph sits on a soft token over the painting A node's place on the graph is its option index within its step against the scene backdrop's slot grid, never a hash or a draw (2026-09-30, D63 and D75) | The map screen and the map drawer |
 | Locale card | Locale name, four type chips, and a crop of the locale's map backdrop where the palette swatch stood. **Since 2026-10-01 (D86) the crop is the card's whole face**, and the name and the chips each sit on a semi-opaque plate over it. The segment's gym is not on the card: it is shown once, in the screen's rail, because the gym belongs to the segment and not to the locale (2026-09-22, D29; the crop and the gym, 2026-09-30, D72) | The locale screen |
@@ -701,7 +736,7 @@ In resolution order, on a 390x844 phone. Timings are the numbers already in `dat
 6. Status chip appears on the panel the moment it is inflicted. Nothing written.
 7. Berry fires: sprite pops, flag names it, sprite disappears.
 8. Second actor. Steps 2 to 7.
-9. Stat stage change: ladder moves with a short pulse. No words.
+9. Stat stage change: the stat's cell pulses once as its number changes; on the chip row, the ladder moves with a short pulse (2026-10-02, D98). No words.
 
 Steps 3 and 4 run on the opening batch too, before "Turn 1": over half of all field starts and nearly half of all ability announcements land there (2026-09-25, D47 and D48, from the Tier 0 census).
 
@@ -762,6 +797,8 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | The band bar reads as a fact, not a rating (2026-10-01, D88) | A tester picks the starter or keeps the member with the fullest bars and says the bars told them to, or reads a full bar as "best" rather than as the top of what that stat can be at this level | The bars go and the numbers stay, as under D82, and the band moves to the stat glyph's inspect |
 | The starter detail over the moves loses nothing (2026-10-01, D89) | A tester commits a starter without having seen its moves after selecting it, or asks where the moves went | The panel returns below the cards, and the screen gives up the no-scroll goal (D90) for it |
 | The starter coverage rows read as facts, not a pick (2026-10-01, D80) | A tester says a starter is the one to take because its row is longer, or picks by row length into a gym it loses to | The rows move to the type chips' inspect, and the panel keeps the stat block alone |
+| The Team screen's sort reads as the player's, not a ranking (2026-10-02, D96) | A tester says the sorted order told them who to lead with or who to release, or leaves a sort on and reads the top row as the best member | The sort goes, and the *Stats* view keeps party order |
+| The stage in the cell reads as the stat now, not a second stat (2026-10-02, D98) | A tester reads the boosted number as the Pokemon's permanent stat, or asks where the boost went | The base number returns at rest beside the effective one, small and dim |
 | Event screen holds at 59 words (2026-09-22, D33; was 40) | Rejigged events with four reward tiers need more than two lines to state requirement and choice | Requirement moves to the map node glyph; prompt shrinks |
 | The map's later rows lose nothing (2026-09-30, D63; the pips and chevron off later rows 2026-10-01, D85) | A tester routes toward a node two or more steps ahead and is surprised by what it paid or how its opponent played, or long-presses more than half the later nodes before every pick | The detail line returns to every row that fits it, and the map drops a row of chrome to make the room |
 | Six-word hints carry the shape of a risk (2026-09-22, D33) | A tester cannot say which of two options is the variable one, or presses a button expecting no cost and is charged | The hints go back up, and the row rises with them rather than the hints being dropped |

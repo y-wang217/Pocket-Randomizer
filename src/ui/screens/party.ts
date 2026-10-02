@@ -57,9 +57,13 @@ import type { Tuning } from '../../data/tuning';
 import { openBand } from '../band';
 import { neutralChip } from '../chip';
 import { collapsible } from '../collapse';
-import { el } from '../scene';
+import { el, moveChip } from '../scene';
+import { describeSpecCard } from '../../core/battle/driver';
+import { STAT_ORDER, statInfo } from '../../data/statInfo';
+import { glyphNode } from '../theme/glyph';
+import { coverageWheel } from '../coverage-wheel';
 import { setProse } from '../dom';
-import { PARTY_COPY } from '../copy/screens';
+import { PARTY_COPY, PARTY_LABELS } from '../copy/screens';
 import { itemIcon, renderSlots, slotNumber } from '../slots';
 
 import { createThreatReadout } from './threats';
@@ -154,7 +158,23 @@ export interface PartyView {
    * a first visit and immediately after a boundary spends a plan.
    */
   plan: ItemPlan | null;
+  /**
+   * Which of the two screens this is. **Bible Rev 23, D95.** The Team tab
+   * draws the party, the Bag tab what it holds and carries. One working copy
+   * behind both, so a layout made on the Bag survives a look at the Team.
+   * Defaults to the Team.
+   */
+  focus?: PartyFocus;
+  /**
+   * Whether reorder and release are offered. **D94.** True between nodes; false
+   * on a result, a shop or an event, where the node has not resolved and a
+   * changed slot would fold the fight onto the wrong member. Defaults to true.
+   */
+  canEditParty?: boolean;
 }
+
+export type PartyFocus = 'team' | 'bag';
+type TeamView = keyof typeof PARTY_LABELS.views;
 
 export function createPartyScreen(): PartyScreen {
   const root = el('section', 'screen screen--party');
@@ -176,14 +196,28 @@ export function createPartyScreen(): PartyScreen {
    */
   const threats = createThreatReadout();
 
-  // The hotbar: one slot per party position, the held item as an icon in
-  // its member's slot. Stage V2. Above the cards, which carry the same
-  // numbers, so the two read as one collection seen at two sizes.
-  const partySlots = el('div', 'party__slots');
+  /*
+   * **Two screens over one working copy. Bible Rev 23, D95.**
+   *
+   * The Team half: the threats line, then three views of the party behind a
+   * segmented switch, never combined (D96). The Bag half: who holds what, the
+   * backpack, the TMs and the relics (D97). The hotbar that stood above the
+   * cards is gone from here: the Bag's held list names the same items at
+   * rest, and two channels for one fact on one surface is R3.
+   */
+  const team = el('section', 'party__team');
+  const switcher = el('div', 'party__views');
+  switcher.setAttribute('role', 'tablist');
+  const viewHost = el('div', 'party__view');
   const list = el('div', 'party party--manage');
+  team.append(threats.root, switcher, viewHost);
+
+  const bagHalf = el('section', 'party__bag');
+  const heldList = el('section', 'held');
   const bag = el('section', 'backpack');
   const tmPanel = el('section', 'tms');
   const relics = el('section', 'relics');
+  bagHalf.append(heldList, bag, tmPanel, relics);
 
   const done = document.createElement('button');
   done.type = 'button';
@@ -191,7 +225,16 @@ export function createPartyScreen(): PartyScreen {
   // Text set per render, from `view.backTo`: the screen has two entrances and a
   // label naming the wrong one is the softlock told to the player in advance.
 
-  root.append(title, blurb, threats.root, partySlots, list, bag, tmPanel, relics, done);
+  root.append(title, blurb, team, bagHalf, done);
+
+  // Which Team view is up, and the player's sort on the Stats view. Held for
+  // the visit: reset by `render`, never persisted, and the sort starts in
+  // party order (D96).
+  let teamView: TeamView = 'stats';
+  let sortBy: string | null = null;
+  // The item picked for a two-tap move on the Bag (D97): a held one by slot,
+  // or a loose one by its index in the backpack.
+  let picked: { from: 'held'; slot: number } | { from: 'bag'; index: number } | null = null;
 
   let onDone: () => void = () => undefined;
   done.addEventListener('click', () => onDone());
@@ -225,6 +268,16 @@ export function createPartyScreen(): PartyScreen {
     render(view, handlers) {
       onDone = handlers.onDone;
       done.textContent = view.backTo;
+      const focus: PartyFocus = view.focus ?? 'team';
+      const canEditParty = view.canEditParty ?? true;
+      root.dataset['focus'] = focus;
+      title.textContent = focus === 'bag' ? PARTY_LABELS.bagTitle : PARTY_LABELS.teamTitle;
+      // The lead and release sentence belongs to the half that has them.
+      blurb.hidden = focus !== 'team' || !canEditParty;
+      team.hidden = focus !== 'team';
+      bagHalf.hidden = focus !== 'bag';
+      sortBy = null;
+      picked = null;
       /*
        * Seed from the unspent plan if there is one, and from the run otherwise.
        *
@@ -287,31 +340,63 @@ export function createPartyScreen(): PartyScreen {
          * here changes the answer and has to redraw with everything else.
          */
         threats.render(shown);
-        partySlots.replaceChildren(
-          renderSlots(
-            'party',
-            shown.map((member, slot) => ({
-              label: member.spec.species,
-              item: held[slot] ?? null,
-              tip: held[slot] ? `item:${held[slot]}` : undefined,
-            })),
-            view.slots,
-          ),
-        );
-        list.replaceChildren(
-          ...shown.map((member, index) =>
-            renderManaged(member, index, shown.length, held[index] ?? null, view.tuning, {
-              ...handlers,
-              onUnequip: () => {
-                const item = held[index];
-                if (!item) return;
-                held[index] = null;
-                loose.push(item);
-                commit();
-              },
-            }),
-          ),
-        );
+        drawSwitcher();
+        if (teamView === 'stats') {
+          const order = shown.map((_, index) => index);
+          if (sortBy) {
+            const key = sortBy;
+            const value = (member: PokemonState): number => {
+              const card = describeSpecCard(member.spec);
+              return key === 'hp' ? member.maxHp : (card.baseStatsAtLevel as Record<string, number>)[key] ?? 0;
+            };
+            // Highest first; ties keep party order, so the sort never invents
+            // an order between two equal numbers.
+            order.sort((a, b) => value(shown[b]!) - value(shown[a]!) || a - b);
+          }
+          list.replaceChildren(
+            ...order.map((index) =>
+              renderManaged(shown[index]!, index, shown.length, held[index] ?? null, view.tuning, canEditParty, handlers),
+            ),
+          );
+          viewHost.replaceChildren(sortBar(), list);
+        } else if (teamView === 'moves') {
+          viewHost.replaceChildren(movesGrid(shown));
+        } else {
+          viewHost.replaceChildren(coverageWheel(shown));
+        }
+        renderHeld(heldList, shown, held, picked, {
+          onPick: (slot) => {
+            picked = picked?.from === 'held' && picked.slot === slot ? null : { from: 'held', slot };
+            draw();
+          },
+          onDrop: (slot) => {
+            const from = picked;
+            picked = null;
+            if (!from) return;
+            if (from.from === 'held') {
+              // A swap between two members: each takes what the other held.
+              const theirs = held[slot] ?? null;
+              held[slot] = held[from.slot] ?? null;
+              held[from.slot] = theirs;
+            } else {
+              const item = loose[from.index];
+              if (item === undefined) return;
+              loose.splice(from.index, 1);
+              const displaced = held[slot] ?? null;
+              held[slot] = item;
+              if (displaced) loose.push(displaced);
+            }
+            commit();
+          },
+          onUnequip: (slot) => {
+            picked = null;
+            const item = held[slot];
+            if (!item) return;
+            held[slot] = null;
+            loose.push(item);
+            commit();
+          },
+        });
         renderRelics(relics, view.relics);
         renderTms(tmPanel, view, carried, teaches, {
           onTeach: (move) => {
@@ -332,24 +417,82 @@ export function createPartyScreen(): PartyScreen {
             commit();
           },
         });
-        renderBackpack(bag, view, loose, discarded, {
-          onEquip: (item, slot) => {
-            const displaced = held[slot] ?? null;
-            const from = loose.indexOf(item);
-            if (from === -1) return;
-            loose.splice(from, 1);
-            held[slot] = item;
-            if (displaced) loose.push(displaced);
+        renderBackpack(bag, view, loose, discarded, picked?.from === 'bag' ? picked.index : null, {
+          onPick: (index) => {
+            picked = picked?.from === 'bag' && picked.index === index ? null : { from: 'bag', index };
+            draw();
+          },
+          onPutAway: () => {
+            if (picked?.from !== 'held') return;
+            const slot = picked.slot;
+            picked = null;
+            const item = held[slot];
+            if (!item) return;
+            held[slot] = null;
+            loose.push(item);
             commit();
           },
-          onDiscard: (item) => {
-            const from = loose.indexOf(item);
-            if (from === -1) return;
-            loose.splice(from, 1);
-            discarded.push(item);
+          onDiscard: (index) => {
+            picked = null;
+            if (loose[index] === undefined) return;
+            const [item] = loose.splice(index, 1);
+            if (item) discarded.push(item);
             commit();
           },
+          holding: picked?.from === 'held',
         });
+      };
+
+      const drawSwitcher = (): void => {
+        switcher.replaceChildren(
+          ...(Object.keys(PARTY_LABELS.views) as TeamView[]).map((key) => {
+            const tab = document.createElement('button');
+            tab.type = 'button';
+            tab.className = 'party__view-tab';
+            tab.dataset['view'] = key;
+            tab.setAttribute('role', 'tab');
+            tab.setAttribute('aria-selected', String(teamView === key));
+            tab.textContent = PARTY_LABELS.views[key];
+            tab.addEventListener('click', () => {
+              teamView = key;
+              draw();
+            });
+            return tab;
+          }),
+        );
+      };
+
+      /*
+       * The sort, the player's and nobody else's (D96). Six stat marks and a
+       * way back to party order. The active sort is shown as pressed, which
+       * says what the player asked for; nothing marks a stat or a member the
+       * UI would pick.
+       */
+      const sortBar = (): HTMLElement => {
+        const bar = el('div', 'party__sort');
+        const label = el('span', 'party__sort-label');
+        label.textContent = PARTY_LABELS.sortBy;
+        const button = (key: string | null, content: Node | string, name: string): HTMLButtonElement => {
+          const control = document.createElement('button');
+          control.type = 'button';
+          control.className = 'party__sort-key';
+          control.dataset['sort'] = key ?? 'party';
+          control.setAttribute('aria-pressed', String(sortBy === key));
+          control.setAttribute('aria-label', name);
+          control.append(content);
+          control.addEventListener('click', () => {
+            sortBy = key;
+            draw();
+          });
+          return control;
+        };
+        bar.append(label, button(null, PARTY_LABELS.partyOrder, PARTY_LABELS.partyOrder));
+        for (const stat of STAT_ORDER) {
+          const info = statInfo(stat);
+          const mark = glyphNode(`stat-${stat}`, { label: info?.label ?? stat });
+          bar.append(button(stat, mark ?? info?.abbreviation ?? stat, `${PARTY_LABELS.sortBy} ${info?.label ?? stat}`));
+        }
+        return bar;
       };
 
       const commit = (): void => {
@@ -362,6 +505,7 @@ export function createPartyScreen(): PartyScreen {
         draw();
       };
 
+      teamView = 'stats';
       draw();
     },
   };
@@ -516,30 +660,21 @@ function renderManaged(
   size: number,
   holding: ItemId | null,
   tuning: Tuning,
+  canEditParty: boolean,
   handlers: {
     onReorder: (from: number, to: number) => void;
     onRelease: (slot: number) => void;
-    onUnequip: () => void;
   },
 ): HTMLElement {
   const card = memberCardContents(member, { holding, tuning, isLead: index === 0, index });
-
+  card.dataset['slot'] = String(index);
   /*
-   * The "to bag" control, added onto the shared card's item row.
-   *
-   * Appended rather than passed in, because the shared card is read-only by
-   * construction: a card component that took an optional write handler would be
-   * one refactor away from the drawer passing one.
+   * **No item control here any more. Bible Rev 23, D95.** The held item is a
+   * fact on the card; moving it is the Bag's. And no lead or release while a
+   * node is resolving (D94): the run folds the fight onto members by slot, so
+   * the controls are not drawn rather than drawn dead.
    */
-  const itemRow = card.querySelector('.party__item');
-  if (holding && itemRow instanceof HTMLElement) {
-    const off = document.createElement('button');
-    off.type = 'button';
-    off.className = 'button button--small';
-    off.textContent = 'To bag';
-    off.addEventListener('click', () => handlers.onUnequip());
-    itemRow.append(off);
-  }
+  if (!canEditParty) return card;
 
   const actions = el('div', 'party__actions');
 
@@ -573,12 +708,118 @@ function renderManaged(
   );
 
   actions.append(lead, release);
-  // Into the card's fold (density modes patch): on screen in Detailed and
-  // Simple exactly where they were, one tap behind the head in Pocket with
-  // the stats and moves the decision is made on. Controls, not facts.
+  // Into the card's fold, with the stats and moves the decision is made on.
   (card.querySelector('.collapse__body') ?? card).append(actions);
-  card.dataset['slot'] = String(index);
   return card;
+}
+
+/**
+ * The Team screen's *Moves* view: one row per member, its four moves as move
+ * chips with PP. **Bible Rev 23, D96.** Party order, always: this view has no
+ * sort, and the chips are readouts (`pickable: false`) with their inspect
+ * trigger, so a long press opens the full card as everywhere else.
+ */
+function movesGrid(party: readonly PokemonState[]): HTMLElement {
+  const grid = el('div', 'moves-grid');
+  party.forEach((member, slot) => {
+    const spec = describeSpecCard(member.spec);
+    const row = el('div', 'moves-grid__row');
+    row.dataset['slot'] = String(slot);
+    const who = el('div', 'moves-grid__who');
+    const name = el('span', 'moves-grid__name');
+    name.textContent = spec.species;
+    who.append(slotNumber(slot), name);
+    const moves = el('div', 'moves-grid__moves');
+    member.moves.forEach((move, index) => {
+      const facts = spec.moves[index];
+      moves.append(
+        moveChip({
+          id: move.name,
+          name: move.name,
+          type: facts?.type ?? 'Normal',
+          category: facts?.category ?? 'Physical',
+          basePower: facts?.basePower ?? 0,
+          ppCounter: { remaining: move.pp, max: move.maxPp },
+          pickable: false,
+        }),
+      );
+    });
+    row.append(who, moves);
+    grid.append(row);
+  });
+  return grid;
+}
+
+/**
+ * Who holds what, at rest. **Bible Rev 23, D97.** One row per member: the
+ * item's sprite, name and effect line (R13: a carried item's name and effect
+ * are vital), or that the hand is empty.
+ *
+ * **Two taps to move anything.** Tap a held item to pick it up, then tap
+ * another member to swap the two, or *To bag* to put it away; tap a backpack
+ * item, then a member, to give it. The picked row is marked as picked, and
+ * that is the player's own act shown back to them, not a suggestion: no
+ * member is ever marked as the place an item should go.
+ */
+function renderHeld(
+  host: HTMLElement,
+  party: readonly PokemonState[],
+  held: readonly (ItemId | null)[],
+  picked: { from: 'held'; slot: number } | { from: 'bag'; index: number } | null,
+  handlers: {
+    onPick: (slot: number) => void;
+    onDrop: (slot: number) => void;
+    onUnequip: (slot: number) => void;
+  },
+): void {
+  const heading = el('h3', 'held__title');
+  heading.textContent = PARTY_LABELS.held;
+  const rows = el('ul', 'held__list');
+  if (picked) host.dataset['picking'] = picked.from;
+  else delete host.dataset['picking'];
+
+  party.forEach((member, slot) => {
+    const item = held[slot] ?? null;
+    const entry = item ? itemById(item) : undefined;
+    const row = el('li', 'held__item');
+    row.dataset['slot'] = String(slot);
+    const isPicked = picked?.from === 'held' && picked.slot === slot;
+    if (isPicked) row.dataset['picked'] = 'true';
+
+    const pick = document.createElement('button');
+    pick.type = 'button';
+    pick.className = 'held__pick';
+    const name = el('span', 'held__member');
+    name.textContent = member.spec.species;
+    const icon = el('span', 'held__icon');
+    icon.setAttribute('aria-hidden', 'true');
+    if (entry) icon.append(itemIcon(entry.id));
+    const what = el('span', 'held__name');
+    what.textContent = entry ? entry.name : PARTY_LABELS.nothingHeld;
+    if (!entry) row.classList.add('held__item--empty');
+    const effect = el('span', 'held__effect');
+    effect.textContent = entry ? (entry.consumable ? `${itemCopy(entry.id)} Used up when it fires.` : itemCopy(entry.id)) : '';
+    pick.append(slotNumber(slot), name, icon, what, effect);
+    pick.setAttribute('aria-pressed', String(isPicked));
+    pick.addEventListener('click', () => {
+      // With something picked, a member is where it goes; with nothing
+      // picked, a member holding something is what gets picked up.
+      if (picked && !isPicked) handlers.onDrop(slot);
+      else if (item || isPicked) handlers.onPick(slot);
+    });
+    row.append(pick);
+
+    if (isPicked) {
+      const away = document.createElement('button');
+      away.type = 'button';
+      away.className = 'button button--small held__away';
+      away.textContent = PARTY_LABELS.toBag;
+      away.addEventListener('click', () => handlers.onUnequip(slot));
+      row.append(away);
+    }
+    rows.append(row);
+  });
+  host.replaceChildren(heading, rows);
 }
 
 function renderRelics(root: HTMLElement, held: readonly RelicId[]): void {
@@ -637,9 +878,13 @@ function renderBackpack(
   view: PartyView,
   loose: readonly ItemId[],
   discarded: readonly ItemId[],
+  pickedIndex: number | null,
   handlers: {
-    onEquip: (item: ItemId, slot: number) => void;
-    onDiscard: (item: ItemId) => void;
+    onPick: (index: number) => void;
+    onPutAway: () => void;
+    onDiscard: (index: number) => void;
+    /** A held item is picked up, so the backpack is a place it can go. */
+    holding: boolean;
   },
 ): void {
   const capacity = backpackCapacity(view.slots, view.tuning);
@@ -716,22 +961,10 @@ function renderBackpack(
         : '';
       pick.append(icon, name, effect);
 
-      const give = el('span', 'backpack__give');
-      view.party.forEach((member, slot) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'button button--small';
-        // Named rather than numbered: "Give to Squirtle" is a sentence and
-        // "Slot 2" is a thing to look up.
-        button.textContent = member.spec.species;
-        button.addEventListener('click', () => handlers.onEquip(id, slot));
-        give.append(button);
-      });
-
       const drop = document.createElement('button');
       drop.type = 'button';
       drop.className = 'button button--small button--danger';
-      drop.textContent = 'Discard';
+      drop.textContent = PARTY_LABELS.discard;
       // Confirmed through the band, like Release, and for the same reason: a
       // discard is the one irreversible thing on this screen.
       drop.addEventListener('click', () =>
@@ -740,30 +973,39 @@ function renderBackpack(
           detail: 'For good. It leaves the run.',
           confirm: 'Discard',
           cancel: 'Keep',
-          onConfirm: () => handlers.onDiscard(id),
+          onConfirm: () => handlers.onDiscard(index),
         }),
       );
 
-      const controls = el('div', 'backpack__controls collapse__body');
-      controls.append(give, drop);
-      row.dataset['collapsible'] = 'true';
-      pick.setAttribute('aria-expanded', 'false');
-      pick.addEventListener('click', () => {
-        const open = row.dataset['expanded'] !== 'true';
-        // One row's controls at a time: opening this one closes the others.
-        for (const other of rows.querySelectorAll<HTMLElement>('.backpack__item[data-expanded="true"]')) {
-          other.dataset['expanded'] = 'false';
-          other.querySelector('.backpack__pick')?.setAttribute('aria-expanded', 'false');
-        }
-        row.dataset['expanded'] = String(open);
-        pick.setAttribute('aria-expanded', String(open));
-      });
+      /*
+       * **A tap picks the item up. Bible Rev 23, D97.** It used to open a row
+       * of give buttons, one per species; the Bag's held list is now where it
+       * goes, one tap away, and a picked item's own row carries the one act
+       * that does not need a destination, the discard.
+       */
+      const controls = el('div', 'backpack__controls');
+      const isPicked = pickedIndex === index;
+      if (isPicked) {
+        row.dataset['picked'] = 'true';
+        controls.append(drop);
+      }
+      pick.setAttribute('aria-pressed', String(isPicked));
+      pick.addEventListener('click', () => handlers.onPick(index));
       row.append(pick, controls);
       return row;
     }),
   );
 
   const children: HTMLElement[] = [heading, count, slots, rows];
+  // With a held item picked up, the backpack is one of the places it can go.
+  if (handlers.holding) {
+    const away = document.createElement('button');
+    away.type = 'button';
+    away.className = 'button button--small backpack__put-away';
+    away.textContent = PARTY_LABELS.toBag;
+    away.addEventListener('click', () => handlers.onPutAway());
+    children.splice(1, 0, away);
+  }
   if (loose.length === 0) {
     const empty = el('p', 'backpack__empty');
     setProse(empty, PARTY_COPY.emptyBag);

@@ -91,6 +91,15 @@ export interface StatBlockOptions {
    * passes it; without one the cell is the glyph and the number alone.
    */
   level?: number;
+  /**
+   * The battle's stat stages, per stat, on the player's panel. **Bible Rev 23,
+   * D98.** A cell with a stage draws the stat as the stage makes it, with the
+   * signed stage count beneath, and `data-stage` up or down colours both. The
+   * base number, the multiplier and the count ride on the label's press.
+   * Absent everywhere but the battle panel, and a zero stage draws nothing
+   * (R4).
+   */
+  stages?: Readonly<Record<string, { stage: number; effective: number; multiplier: string }>>;
 }
 
 /**
@@ -151,10 +160,25 @@ export function statBlock(values: StatValues, options: StatBlockOptions = {}): H
     label.tabIndex = 0;
     label.setAttribute('role', 'button');
 
-    // The number, at rest (R13).
+    // The number, at rest (R13). On a staged cell, the stat as it stands
+    // (D98): the number the fight is using.
+    const staged = options.stages?.[stat];
+    const shown = staged && staged.stage !== 0 ? staged.effective : value;
     const number = el('span', 'stat__value');
-    number.textContent = String(value);
+    number.textContent = String(shown);
     row.append(label, number);
+    if (staged && staged.stage !== 0) {
+      const up = staged.stage > 0;
+      row.dataset['stage'] = up ? 'up' : 'down';
+      const count = el('span', `stat__stage stat__stage--${up ? 'up' : 'down'}`);
+      count.textContent = up ? `+${staged.stage}` : `\u2212${-staged.stage}`;
+      count.setAttribute('aria-label', `${info?.label ?? stat} stage ${up ? '+' : '-'}${Math.abs(staged.stage)}, ${staged.multiplier}`);
+      row.append(count);
+      label.dataset['value'] = String(staged.effective);
+      label.dataset['base'] = String(value);
+      label.dataset['stage'] = up ? `+${staged.stage}` : `-${-staged.stage}`;
+      label.dataset['multiplier'] = staged.multiplier;
+    }
 
     /*
      * The bar against the band (D88). Decorative to a reader, because the
@@ -163,7 +187,7 @@ export function statBlock(values: StatValues, options: StatBlockOptions = {}): H
      */
     const range = band?.[stat as keyof StatBand];
     if (range) {
-      const fraction = bandFraction(value, range);
+      const fraction = bandFraction(shown, range);
       const bar = el('span', 'stat__bar');
       bar.setAttribute('aria-hidden', 'true');
       const fill = el('span', 'stat__bar-fill');

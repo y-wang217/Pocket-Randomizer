@@ -42,7 +42,7 @@
  * leaving before they press. Both read `core/events.ts` — the gate *is* the
  * fold, and the named item is the fold's own walk — so neither can drift into
  * describing a charge that does not happen. `CLAUDE.md`'s Prices section is
- * the rule; `docs/generation.md` section 98 is the account.
+ * the rule; `docs/generation.md` section 99 is the account.
  */
 import {
   concreteOutcome,

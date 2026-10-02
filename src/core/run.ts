@@ -401,7 +401,21 @@ import { DEFAULT_TUNING, type NodeKind, type Tuning } from '../data/tuning';
  * `RANDOMIZER_VERSION` and `contentHash` hold: an edit draws nothing and no
  * table is touched. `docs/spec/gymrun-patch-opening-playtest-qa.md`.
  */
-export const RUN_LOG_VERSION = `gymrun-run-21/${ENGINE_VERSION}`;
+/*
+ * ## `-22`: an item layout is a party edit, applied when it is made
+ *
+ * **A party edit kind is added**, `{ kind: 'items', plan }`. A layout composed
+ * on the party screen between nodes was held and spent at the boundary *after*
+ * the next node, so an item moved on the map was not held in the fight it was
+ * moved for. It is now applied, through the party editor, when the next
+ * question is answered, and sits in the log just before that answer, exactly
+ * where a reorder does. A `-21` reader meets an edit kind it does not know, so
+ * the axis moves. Bible Rev 23, D94.
+ *
+ * `RANDOMIZER_VERSION` and `contentHash` hold: the edit draws nothing and no
+ * table is touched. `docs/spec/gymrun-patch-tabs-writable-and-stage-cells.md`.
+ */
+export const RUN_LOG_VERSION = `gymrun-run-22/${ENGINE_VERSION}`;
 
 /**
  * The node kinds at which a **stored** TM may be spent. **Rest and shop only.**
@@ -908,6 +922,9 @@ export function chooseLocale(state: RunState, index: number): RunState {
 /** Why a party edit is illegal against this party, or null. QA-001. */
 export function partyEditRefusal(party: readonly PokemonState[], edit: PartyEdit): string | null {
   const inRange = (slot: number): boolean => Number.isInteger(slot) && slot >= 0 && slot < party.length;
+  // An item layout is checked where it is applied, by `applyItemPlan`, which
+  // needs the bag and the capacity this function is not given.
+  if (edit.kind === 'items') return null;
   if (edit.kind === 'reorder') {
     return inRange(edit.from) && inRange(edit.to) ? null : `reorder ${edit.from} to ${edit.to} outside a party of ${party.length}`;
   }
@@ -1761,6 +1778,28 @@ export async function playRun(
   const editParty = (edit: PartyEdit): void => {
     const refusal = partyEditRefusal(state.party, edit);
     if (refusal) throw new RangeError(`Party edit refused: ${refusal}`);
+    if (edit.kind === 'items') {
+      /*
+       * **Applied in place and before it is recorded. Bible Rev 23, D94.** The
+       * same call and the same two arguments as the boundary's plan, so an
+       * ad hoc layout is legal exactly where a boundary's would be; a TM is
+       * spent only where `teachableNow` already allows it. Applied first so a
+       * refused layout never reaches the log: `applyItemPlan` throws on one,
+       * and the composer reconciles before it calls, as at the boundary.
+       */
+      const applied = applyItemPlan(
+        state,
+        edit.plan,
+        backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics)),
+        teachableNow(state),
+      );
+      record({ kind: 'party', edit: { kind: 'items', plan: clonePlan(edit.plan) } });
+      state.party = applied.party;
+      state.backpack = applied.backpack;
+      state.tms = applied.tms;
+      options.onState?.(state);
+      return;
+    }
     record({ kind: 'party', edit: { ...edit } });
     if (edit.kind === 'reorder') {
       state.party = reorderParty(state.party, edit.from, edit.to);

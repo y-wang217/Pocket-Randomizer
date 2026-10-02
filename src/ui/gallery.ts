@@ -353,9 +353,14 @@ async function main(): Promise<void> {
           slots: partyCapacity(state),
           backTo: 'Back to the map',
           plan: null,
+          // `focus=bag` draws the Bag tab's screen, and `view=` picks the
+          // Team screen's view (bible Rev 23, D95 and D96).
+          focus: params.get('focus') === 'bag' ? 'bag' : 'team',
         },
         { onReorder: noop, onRelease: noop, onPlan: noop, onTeach: noop, onDone: noop },
       );
+      const view = params.get('view');
+      if (view) partyScreen.root.querySelector<HTMLElement>(`.party__view-tab[data-view="${view}"]`)?.click();
       applyLocale(localeOf(state));
       stamp(state);
       show('party');

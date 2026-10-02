@@ -12456,8 +12456,7 @@ moves (the bible names neither the palette nor the PP glyph's drawing).
    on, the round is a 24-by-9 sliver at 16px; upright it fills the cell and
    reads as a round beside the number. Same id, family, label and slot. The
    M1.1 glyph sheets are regenerated.
-4. **A test rule narrowed.** `test/visual-v1.test.ts` and
-   `test/visual-v3.test.ts` held a
+4. **A test rule narrowed.** `test/visual-v1.test.ts` and `test/visual-v3.test.ts` held a
    style on an unchanged surface to *equal* its V0 contrast. The dark palette
    put the map node's detail line, its type chip and the battle panel's HP
    text back on V0's surfaces, where 5.0's heavier text reads 13.56, 8.07 and
@@ -12467,19 +12466,92 @@ moves (the bible names neither the palette nor the PP glyph's drawing).
    files, 2,000 tests). Browser half: everything else passes after items 2
    and 4; `test/visual-chips.test.ts` is reported in the PR.
 
-> **Sections 98 and 99 were renumbered on 2026-10-02.** Both were written as 51
-> and 52 on a branch cut at `970c2a2`, and reapplied onto a `main` that had
-> reached section 97 in the meantime. The numbers are positions in this file,
-> not names, so they moved; the accounts are unchanged except for the
-> cross-references, and for the version numbers and the benchmark row that the
-> reapplication itself moved — each noted where it appears.
+## 98. Writable tabs, Team and Bag, the stage in the stat cell
 
-## 98. A price that charged nothing, and the rule that outlives it
+2026-10-02. Bible Rev 23, D94 to D98, from
+[`spec/gymrun-patch-tabs-writable-and-stage-cells.md`](spec/gymrun-patch-tabs-writable-and-stage-cells.md).
+`RUN_LOG_VERSION` moves to `-22`; `RANDOMIZER_VERSION`, `AI_VERSION` and
+`contentHash` hold.
+
+1. **An item layout made between nodes was not held in the next fight.**
+   The party screen held the layout it was left with (`pendingPlan`), and
+   `chooseItemPlan` spent it at the boundary *after* the next node, so an item
+   moved on the map took effect one fight late. The fix is in `core/`: a party
+   edit kind, `{ kind: 'items', plan }`, applied by `playRun`'s party editor in
+   place through `applyItemPlan` with the boundary's own capacity and
+   `teachableNow`, and recorded only once applied, so a refused layout never
+   reaches the log. Replay applies it where the log holds it, before the next
+   answer, exactly as a reorder. `test/item-edit-ad-hoc.test.ts`.
+2. **The boundary that follows no longer re-equips what the player put
+   away.** `run.defaultItemPlan` fills every empty hand; with the layout
+   already applied, that would undo an unequip. The app answers the boundary
+   with `items.keepLayoutPlan`: the current layout, an empty hand filled only
+   from `items.arrivedItems` (what the node put in the bag). Headless policies
+   keep `defaultItemPlan`, so no balance figure moves; the sim fixture's diff
+   is the version line alone.
+3. **The app applies the held layout as the next question is answered.**
+   `src/ui/app.ts`, `flushedBefore`: the answers to `chooseLocale`, `chooseNode`
+   and `chooseLead` first hand `pendingPlan` to the party editor, reconciled
+   as the boundary reconciles, and skip it when it would change nothing, so
+   the log gains one entry per committed layout. At a teach boundary the
+   screen still answers `chooseItemPlan` itself. A layout made while a node is
+   resolving (result, shop, event) is still answered at that node's boundary,
+   which comes before the next fight. The boundary with nothing held answers
+   `keepLayoutPlan(state, nodeArrived)`, where `nodeArrived` is read off
+   `onNodeResolved`, which a resume's replay fires too.
+4. **The tabs are writable outside a battle** (D94). `src/ui/screens/router.ts`
+   gains `PARTY_EDIT_SURFACES` (map, pre-gym, locale) and
+   `WRITABLE_TAB_SURFACES` (those, plus result, shop and event). Team and Bag
+   open the party screen from any of the second list; reorder and release are
+   drawn only on the first, because the run folds a fight onto the party by
+   slot. Mid-node the screen shows the projected party, so a plan names the
+   slots the boundary will read. The teach screens stay readouts, since the
+   party screen is waiting on their answer. The teach boundary opens on the
+   Bag, where the TMs are. In a battle the readout draws no editing control:
+   its fold is a disclosure chevron (`collapsible`'s `readout` option), not
+   `+`.
+5. **Team and Bag are two screens over one working copy** (D95 to D97).
+   `src/ui/screens/party.ts` takes a `focus`. Team: the threats line, then Stats
+   (the member cards with a player-chosen sort that starts in party order and
+   is not remembered), Moves (`moveChip` rows with PP) and Coverage (the
+   summary's wheel, moved to `src/ui/coverage-wheel.ts` so both call it). Bag:
+   the held list, the backpack, TMs and relics; any item is moved in two
+   taps, member to member included. The party hotbar left the screen (R3
+   with the held list) and the per-species give buttons with it. The drawer
+   follows the same split.
+6. **The stage is in its stat cell** (D98). `statBlock` takes `stages`; on
+   the player's panel a staged cell draws the effective stat with the signed
+   count beneath, `data-stage` colours both through the rule the stylesheet
+   has carried unused since V5, and the label's press adds base, stage and
+   multiplier. The player's five leave the chip row and its marker; accuracy,
+   evasion and every foe stage keep them. **Deviation from the bible's
+   section 6 step 9 as amended:** the cell pulses on every redraw that
+   carries a stage, not only on the turn the stage changes, because the
+   block is rebuilt rather than patched. Its length is three motion beats,
+   `--motion-duration` derived, so `test/visual-tokens.test.ts` stays at 17.
+7. **Re-recorded with the version.** `docs/visual/baseline/` and
+   `test/fixtures/sim-report.json` move by the `runLog` string alone; every
+   decision, outcome and protocol in them is byte identical.
+8. **Renumbered on merge, 2026-10-02.** PR #88 reached `main` first with its
+   own bible Rev 22, D91 to D93 (the effectiveness emphasis). This work is
+   **Rev 23, D94 to D98**, placed above it; every citation in the tree was
+   moved. The branch's earlier commit messages still say *Rev 22, D91 to
+   D95*, and mean these five.
+
+> **Sections 99 and 100 were renumbered twice.** They were written as 51 and 52
+> on a branch cut at `970c2a2`, became 98 and 99 when that branch was reapplied
+> onto a `main` that had reached 97, and moved again when PR #89 reached `main`
+> first and took 98 for itself. The numbers are positions in this file, not
+> names. The accounts are unchanged except for the cross-references, and for
+> the version numbers and the benchmark row that the reapplication itself
+> moved — each noted where it appears.
+
+## 99. A price that charged nothing, and the rule that outlives it
 
 **2026-09-19**, on `claude/t2-berry-inventory-gating-7gvcye`. Prompt:
 [`spec/gymrun-patch-toll-affordability-gate.md`](spec/gymrun-patch-toll-affordability-gate.md).
 
-### 98.1 The report
+### 99.1 The report
 
 > New bug i can pick the t2 result even when i didnt have a berry in inventory.
 
@@ -12488,7 +12560,7 @@ The screenshot is a `cave`-family event at `neither`, its Toll labelled
 reveal printed `Paid: A berry` in red and `Quick Attack` in green. Nothing was
 taken and the `T2` was paid in full.
 
-### 98.2 What was actually broken, which is not the berry
+### 99.2 What was actually broken, which is not the berry
 
 `applyEffect`'s `loseItem` branch ended `if (index < 0) return state`, which is
 correct — of a **drawn** cost. A `T0` consolation that takes a berry from a bag
@@ -12514,7 +12586,7 @@ So the patch is defined over `TollPrice` and not over berries. A rule that said
 a price must be charged, and then exempted the kinds that had not yet been
 reported, would be a rule already being violated on the day it was written.
 
-### 98.3 The gate is the fold
+### 99.3 The gate is the fold
 
 `pricePayable(state, toll)` answers *would charging this take anything* by
 **charging it** — `applyToll` against a throwaway state, then a comparison of
@@ -12533,7 +12605,7 @@ has to name the berry it is about to take, and a second walk written beside the
 fold is a second walk that can disagree with it. So there is one walk, and
 `applyEffect` and `describePrice` both read it.
 
-### 98.4 Dimmed, not withdrawn
+### 99.4 Dimmed, not withdrawn
 
 The Attune gate removes an option, because Attune is a thing the run does not
 have. A Toll is a thing the run cannot afford **yet**, so it stays on the menu,
@@ -12544,7 +12616,7 @@ where there were four learns nothing at all.
 `presentedOptions` is untouched, so the list is still three long without the
 relic and four with, and `test/event-bands.test.ts` reads the same as it did.
 
-### 98.5 The price names its victim
+### 99.5 The price names its victim
 
 `describeToll` says `A berry`, because a `TollPrice` genuinely does not know
 which one. `describePrice` says `Sitrus Berry`, because the bag is standing
@@ -12562,14 +12634,14 @@ always sat on: it states what the button costs, which is an attribute of the
 button, against a bag that does not move while the screen is open. It ranks
 nothing and forecasts nothing.
 
-### 98.6 Two layers, because a log is not a screen
+### 99.6 Two layers, because a log is not a screen
 
 The screen dims the button. `playRun` refuses the archetype, in the shape the
 `attune` refusal already had, because a decision log can reach a button a
 screen cannot — and a decision the run would not present is not a decision the
 run may replay.
 
-### 98.7 No axis moves, and what follows from that
+### 99.7 No axis moves, and what follows from that
 
 - `RANDOMIZER_VERSION` — no draw is added, removed or relocated, and no drawn
   value changes. Every option is still built for every run, Attune included.
@@ -12586,7 +12658,7 @@ an unpayable Toll now fails loudly on replay instead of replaying a free `T2`.**
 That is the correct end state under "never silently reinterpret a seed" — the
 old reading was the bug, and reproducing it faithfully would mean keeping it.
 
-### 98.8 What the simulator's numbers now mean
+### 99.8 What the simulator's numbers now mean
 
 `scripts/sim.ts` scores over the payable options rather than the presented
 ones, so the scored policy no longer counts a free `T2` among its candidates.
@@ -12594,7 +12666,7 @@ ones, so the scored policy no longer counts a free `T2` among its candidates.
 The event columns of a report run after this patch are not comparable across
 it. **Balance is not a gate**: the number is recorded and the work continues.
 
-### 98.9 One fixture was a run no player can be in
+### 99.9 One fixture was a run no player can be in
 
 `test/event-screen.test.ts` built its state with no party below `latent`, an
 empty bag and no coins, and clicked every button on it. That was harmless
@@ -12610,13 +12682,13 @@ than the backdrop of a screen test. The two played-run policies that answered
 a bare `'toll'` fall back to Safe where the price cannot be paid, which is what
 a player faces.
 
-## 99. A ceiling on a region, and a floor under its fights
+## 100. A ceiling on a region, and a floor under its fights
 
 **2026-09-19**, on `claude/t2-berry-inventory-gating-7gvcye`. Prompt and report:
 [`spec/gymrun-patch-region-node-composition.md`](spec/gymrun-patch-region-node-composition.md).
 Checkpoint 1 of two.
 
-### 99.1 What the census found, which is not what the brief assumed
+### 100.1 What the census found, which is not what the brief assumed
 
 The brief asked for a cap on rests and shops per region and, before any code,
 for the current limit. **There was no ceiling anywhere in the generator — only
@@ -12632,7 +12704,7 @@ It contradicted one. That is a design call and it was put to the author rather
 than resolved in code: the answer was **cap 2, floor 1** — a second rest
 becomes a thing a route may offer and never a thing it must.
 
-### 99.2 The measurement, before and after
+### 100.2 The measurement, before and after
 
 400 seeds, 998 routes per segment, `DEFAULT_TUNING`.
 
@@ -12651,7 +12723,7 @@ becomes a thing a route may offer and never a thing it must.
 | greedy walk: shops taken in a run | 16.2 | 10.5 |
 | greedy walk: non-fight steps of a run | **33.6 of 46** | 25.2 of 45 |
 
-### 99.3 The cap is spent during the draw, not fixed up afterwards
+### 100.3 The cap is spent during the draw, not fixed up afterwards
 
 `buildRoute` carries an allowance per kind down the route and drops a kind from
 the allowed list once it is spent. **The draw count does not move**: one value
@@ -12667,7 +12739,7 @@ legible direction: an early step may spend the last rest and a later one then
 cannot offer it. That is the correct direction — a player reads a route
 forwards.
 
-### 99.4 The battle-step floor, and the two ways of getting it wrong
+### 100.4 The battle-step floor, and the two ways of getting it wrong
 
 `ensureBattleSteps` guarantees `battleStepFloorFor` steps whose every option is
 a fight. It is `placeBattlePair` generalised: that rule is this rule already,
@@ -12696,7 +12768,7 @@ unclaimed so a later floor may convert an option of it, which cannot drop the
 route under the floor because the steps holding it up are the claimed ones.
 The census now reports zero floor breaks across 7,984 routes.
 
-### 99.5 `restStepsPerGuarantee` is deleted, not flagged
+### 100.5 `restStepsPerGuarantee` is deleted, not flagged
 
 A floor that mandates what a ceiling forbids is not a tuning disagreement. The
 density went; the guarantee stayed, and it is the half that was ever
@@ -12707,7 +12779,7 @@ place holding the answer. `test/node-curve.test.ts` swaps the two tests that
 pinned the density for one that pins its absence and one that pins the floor
 strictly below the cap.
 
-### 99.6 Axes
+### 100.6 Axes
 
 - `RANDOMIZER_VERSION` → `gymrun-randomizer-22`. All three changes move the
   shape stream's values **and** how many it hands out.
@@ -12716,7 +12788,7 @@ strictly below the cap.
   picked by index.
 - `AI_VERSION` — untouched.
 
-### 99.7 What it cost, recorded and not chased
+### 100.7 What it cost, recorded and not chased
 
 **Measured twice, on two different trees, and the second measurement is the
 one that counts.**
@@ -12743,7 +12815,7 @@ checkpoints. `battleStepsPerGuarantee` is the dial if the number is to come
 back; moving it from 2 to 3 returns the opening segments to roughly their old
 pressure and keeps the caps.
 
-### 99.8 Five pinned seeds stopped reaching, and the lesson became a function
+### 100.8 Five pinned seeds stopped reaching, and the lesson became a function
 
 A shorter run means pinned seeds stop exercising what they were pinned for.
 Five files broke at once — a gym never reached, a capture never offered, a

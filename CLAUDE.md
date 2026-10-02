@@ -129,7 +129,7 @@ Only a Toll has one. A drawn cost is not a price.
 - A refusal is loud at every layer. The screen dims the button, and the run
   throws rather than charging a price it cannot take.
 
-Argument: [`docs/generation.md`](docs/generation.md) section 98.
+Argument: [`docs/generation.md`](docs/generation.md) section 99.
 
 ## Process
 
