@@ -1533,7 +1533,14 @@ body {
 .party__member[data-expanded="true"],
 .pre-gym__slot:has(.party__member[data-expanded="true"]) { grid-column: 1 / -1; }
 .party__member:not([data-expanded="true"]) .badge--archetype,
-.party__member:not([data-expanded="true"]) .party__ability { display: none; }
+.party__member:not([data-expanded="true"]):not(.party__member--offered) .party__ability { display: none; }
+/* **The offered card is not a member card that folds.** It wears
+   `.party__member` for the shape (`screens/acquisition.ts`) but has no fold
+   control, so `data-expanded` is never set on it and the rule above hid its
+   ability for good: on a phone the incoming Pokemon's ability was on no face
+   and behind no press, which is C2. The ability is the encoding table's
+   "name, in a fixed slot", and taking a Pokemon is a decision made largely
+   on it. Capture card ability patch, 2026-10-02. */
 .party__member .panel__header { gap: var(--space-1); margin-bottom: var(--space-h); }
 .party__member .party__ability { margin-left: 0; }
 .party__member .hp { height: 4px; }
