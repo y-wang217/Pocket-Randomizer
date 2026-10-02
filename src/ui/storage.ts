@@ -10,9 +10,10 @@
  * because it could not write a log would be a worse failure than losing the
  * log.
  */
-import type { RunLog, RunLogVersions } from '../core/types';
+import type { ItemPlan, RunLog, RunLogVersions } from '../core/types';
 
 const KEY = 'gymrun.lastRun';
+const DRAFT_KEY = 'gymrun.itemDraft';
 
 export function saveRunLog(log: RunLog): void {
   try {
@@ -39,6 +40,83 @@ export function clearRunLog(): void {
   } catch {
     // See above.
   }
+}
+
+/**
+ * The item plan the party screen has composed and the run has not spent yet.
+ * **The second QA pass, QA-008 and QA-009.**
+ *
+ * A plan is one logged decision per boundary, so the fidgeting before it is
+ * unlogged by design (`RunPolicy.chooseItemPlan`). That left a taught TM or an
+ * item moved to the bag living only in `app.ts` memory until the boundary that
+ * spends it, and a reload in between handed back the run as the log had it:
+ * the old move, the item still held, the TM still in the bag. The draft is kept
+ * here instead, beside the log, and the log is untouched: `RUN_LOG_VERSION`
+ * does not move, because the decision it becomes is the same `items` entry.
+ *
+ * Stamped with the seed and the number of decisions logged when it was last
+ * written, so it can only come back into the run and the moment it was made.
+ */
+export interface ItemPlanDraft {
+  seed: string;
+  decisions: number;
+  plan: ItemPlan;
+}
+
+export function saveItemDraft(draft: ItemPlanDraft): void {
+  try {
+    globalThis.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    // Non-fatal, as for the log: the plan still stands until a reload.
+  }
+}
+
+export function clearItemDraft(): void {
+  try {
+    globalThis.localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    // See above.
+  }
+}
+
+/**
+ * The draft for this log, or null.
+ *
+ * Null unless it names the same seed and nothing that spends or invalidates a
+ * plan has been logged since it was written: an `items` entry spent it, and a
+ * party edit or a release for a capture moved the slots it names (the UI drops
+ * the plan for both, and a crash between the two writes must not bring it
+ * back). `reconcileItemPlan` still runs on it before it is answered with.
+ */
+export function loadItemDraft(log: RunLog): ItemPlan | null {
+  try {
+    const raw = globalThis.localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<ItemPlanDraft> | null;
+    if (!parsed || parsed.seed !== log.seed || typeof parsed.decisions !== 'number') return null;
+    if (parsed.decisions > log.decisions.length || !isItemPlan(parsed.plan)) return null;
+    const since = log.decisions.slice(parsed.decisions);
+    const spent = since.some(
+      (decision) =>
+        decision.kind === 'items' ||
+        decision.kind === 'party' ||
+        (decision.kind === 'acquisition' && decision.decision.kind === 'release'),
+    );
+    return spent ? null : parsed.plan;
+  } catch {
+    return null;
+  }
+}
+
+function isItemPlan(value: unknown): value is ItemPlan {
+  if (typeof value !== 'object' || value === null) return false;
+  const plan = value as Partial<Record<keyof ItemPlan, unknown>>;
+  return (
+    Array.isArray(plan.assignments) &&
+    Array.isArray(plan.discards) &&
+    Array.isArray(plan.teaches) &&
+    Array.isArray(plan.discardTms)
+  );
 }
 
 /**
@@ -128,6 +206,16 @@ function isRunDecision(value: unknown): boolean {
     }
     case 'replace':
       return typeof decision.slot === 'number';
+    /*
+     * A party screen edit. The opening playtest QA, QA-001. Checked here for
+     * the reason this list exists: a kind missing from it makes every save
+     * that holds one silently unresumable.
+     */
+    case 'party': {
+      const edit = decision.edit as { kind?: unknown; from?: unknown; to?: unknown; slot?: unknown } | undefined;
+      if (edit?.kind === 'reorder') return typeof edit.from === 'number' && typeof edit.to === 'number';
+      return edit?.kind === 'release' && typeof edit.slot === 'number';
+    }
     default:
       return false;
   }

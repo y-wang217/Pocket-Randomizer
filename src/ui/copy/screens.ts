@@ -24,7 +24,7 @@
  * forms — `test/boundaries.test.ts` reads both.
  */
 import type { Prose } from '../dom';
-import type { Density, MoveBar, BattleSpeed } from '../settings';
+import type { BattleSpeed } from '../settings';
 
 export const STARTER_COPY = {
   blurb: {
@@ -35,6 +35,26 @@ export const STARTER_COPY = {
     short: 'Species, ability and moves are randomized. HP and PP carry between fights; a gym clear restores both.',
   },
 } as const satisfies Record<string, Prose>;
+
+/**
+ * The starter detail panel's words. **Bible Rev 19, D80**: section 4's
+ * *Starter detail panel* row budgets exactly these, the two coverage labels and
+ * the control's verb, at 5. *Vulnerable*, never *weak*: section 8 forbids the
+ * hedge word on every surface and `data/forbiddenWords.ts` carries it.
+ */
+export const STARTER_LABELS = {
+  effective: 'Effective against',
+  vulnerable: 'Vulnerable to',
+  choose: (species: string): string => `Choose ${species}`,
+} as const;
+
+/**
+ * The band a stat bar is measured against, on the stat glyph's press.
+ * **Bible Rev 21, D88.** A bare range at a level: no rating, no hedge.
+ */
+export const STAT_BAND_COPY = {
+  line: (level: string, min: string, max: string): string => `At level ${level}, the pool runs ${min} to ${max}.`,
+} as const;
 
 export const LOCALE_COPY = {
   blurb: {
@@ -88,11 +108,39 @@ export const TARGET_COPY = {
    * (recommended if your moves are good)" would be the UI ranking the option
    * against the party, which the copy rule bars.
    */
+  /**
+   * The control that picks a recipient. **Milestone M3.3.**
+   *
+   * New copy, because the card used to *be* the button and now it is the party
+   * row with a control beside it — `screens/pre-gym.ts`'s shape, which asks the
+   * same "which member" question. Flat, like every label here: "Teach it"
+   * states the action where a "best fit" would rank the six against each
+   * other, which Part 4 bars.
+   */
+  choose: { long: 'Teach it to this one', short: 'Teach it' },
   decline: { long: "Don't learn it", short: "Don't learn it" },
-  declineNote: {
-    long: 'Nobody learns this move. It is not offered again.',
-    short: 'Nobody learns it. Not offered again.',
-  },
+  /**
+   * The confirm behind the decline. **Milestone M3.3.**
+   *
+   * `declineNote` stood under the control and said the same thing at rest, on
+   * every render, for a control most runs never press. Section 4 budgets this
+   * overlay at 4 words and the record gives the wording: "Forfeit this reward?"
+   *
+   * Both halves the same, which is the convention `decline` above already
+   * follows: a confirm has one form, because the band is the compact surface
+   * and a long variant of a four-word question would be a second reading of
+   * the same sentence. They stay in this table rather than beside the caller
+   * so `npm run copy-audit` still finds every string a player reads.
+   */
+  forfeitTitle: { long: 'Forfeit this reward?', short: 'Forfeit this reward?' },
+  forfeitConfirm: { long: 'Forfeit', short: 'Forfeit' },
+  /*
+   * `Keep`, the same word the replace confirm's way out uses. R1 is about
+   * slots and this is the same idea one level up: the two confirms in this
+   * game ask the player to give something up, and the control that declines
+   * should not be a different word on each.
+   */
+  forfeitCancel: { long: 'Keep', short: 'Keep' },
 } as const satisfies Record<string, Prose>;
 
 /** What a move would do to one member, in one line. Facts about the pairing only. */
@@ -112,39 +160,38 @@ export const TARGET_EFFECT = {
 };
 
 /**
- * The three modes as the drawer's picker names them: a name and one line
- * saying what the mode does. Facts about the layout — what is on screen,
- * what a screen costs — and never which one suits whom. One form, because
- * a control that changes its own words with the mode it sets is a control
- * the player cannot read while using it; one line each, because the drawer
- * is under the Pocket gate too and three wrapped lines put its sheet over.
+ * The shell nav's five words. **Stage 5.0/1**, section 4's Shell nav row at
+ * 5: one word per tab, and nothing else at rest.
  */
-export const DENSITY_HEADING = 'Density';
-export const DENSITY_COPY: Readonly<Record<Density, { name: string; description: string }>> = {
-  detailed: { name: 'Detailed', description: 'Full labels and full prose.' },
-  simple: { name: 'Simple', description: 'Short labels and fewer words.' },
-  pocket: { name: 'Pocket', description: 'Fits every screen without scrolling.' },
-};
+export const NAV_COPY = {
+  label: 'Run',
+  tabs: { map: 'Map', team: 'Team', bag: 'Bag', info: 'Run Info', settings: 'Settings' },
+} as const;
 
-/**
- * The move bar picker. **The four-column patch.**
- *
- * Attributes, never verdicts, and that rule is doing real work on these two
- * lines: neither says which layout is better, neither says "recommended", and
- * neither names a number. What each says is what the layout *is* — how the
- * four buttons are arranged, and what that costs or buys — because the report
- * asked to compare the two and a description that ranked them would be making
- * the comparison instead of enabling it.
- *
- * "One tap away" on the columns line is a statement of where a fact went, not
- * an apology for it. The `?` on every button opens the same panel in both
- * layouts.
- */
-export const MOVE_BAR_HEADING = 'Move bar';
-export const MOVE_BAR_COPY: Readonly<Record<MoveBar, { name: string; description: string }>> = {
-  grid: { name: 'Grid', description: 'Two by two. Every field on the button.' },
-  columns: { name: 'Columns', description: 'Four columns, fields lined up across. Some read one tap away.' },
-};
+/** The screens the Run Info and Settings tabs open. Stage 5.0/1. */
+export const RUN_INFO_COPY = {
+  title: 'Run info',
+  label: 'Run info',
+  seed: 'Seed',
+  build: 'Build',
+  progress: 'Run progress',
+} as const;
+
+/** The desktop sidebar. Stage 5.0/1. */
+export const SIDEBAR_COPY = {
+  label: 'Run at a glance',
+  wordmark: 'GYMRUN',
+  whereTitle: 'Where',
+  team: 'Team',
+  where: (locale: string | null, segment: number, gyms: number, leader: string): string =>
+    `${locale ? `${locale} · ` : ''}Gym ${segment + 1} of ${gyms} · ${leader}`,
+} as const;
+
+export const SETTINGS_COPY = {
+  title: 'Settings',
+  label: 'Settings',
+  tutorial: 'Show the tutorial again',
+} as const;
 
 export const BATTLE_SPEED_HEADING = 'Battle speed';
 /*
@@ -165,10 +212,25 @@ export const DRAWER_COPY = {
   note: { long: 'Read only. Items are assigned on the party screen.', short: 'Read only.' },
 } as const satisfies Record<string, Prose>;
 
+/** The drawer's backpack heading, for the Bag tab. Stage 5.0/1. */
+export const DRAWER_BAG_HEADING = 'Bag';
+
 export const REWARD_COPY = {
   itemNote: { long: 'Goes to your backpack. Assign it on the party screen.', short: 'To your backpack.' },
   coins: { long: 'Spend it at a shop, on items, healing or a move.', short: 'Spend at a shop.' },
   heal: { long: 'Heals HP and PP, and clears status, for the whole party.', short: 'Full HP, PP and status, whole party.' },
+  /*
+   * A partial heal's line. **The opening playtest QA, QA-004.**
+   *
+   * `heal` above was the only line, so a `Restore 85%` card read "Full HP, PP
+   * and status" under its own title. The share stays in the title and only
+   * there (R3); this line says what it is a share of, which is max HP and PP
+   * added through `recoverParty`, and the status clear, which is total.
+   */
+  healPartial: {
+    long: 'Heals that share of max HP and PP, and clears status, for the whole party.',
+    short: 'Share of max HP and PP. Clears status.',
+  },
   tutor: { long: 'A strong move. You choose who learns it, and what it replaces.', short: 'You choose who learns it.' },
   tm: { long: 'A new move. You choose who learns it, and what it replaces.', short: 'You choose who learns it.' },
   /*
@@ -194,7 +256,24 @@ export const REWARD_COPY = {
   relic: { long: 'Yours for the rest of the run. It cannot be lost or replaced.', short: 'Kept for the whole run.' },
 } as const satisfies Record<string, Prose>;
 
-/** The coins already held, on a currency card. */
+/**
+ * The claim band over a reward card, and the buy band over the shop's basket.
+ * **Stage 5.0/3, D69.** Section 4's *Confirm band (claim, buy)* row, at 6: the
+ * question and the band's two controls. The way out returns to the cards.
+ */
+export const CLAIM_COPY = { title: 'Take this?', confirm: 'Take', cancel: 'Back' } as const;
+export const BUY_COPY = { title: 'Buy and leave?', confirm: 'Buy', cancel: 'Back' } as const;
+
+/**
+ * A restore card's name, for its long press. **Stage 5.0/3, D66.** It was the
+ * card's title at rest; the face is `+N%` beside a bar now, and the words
+ * went to inspect with every other card's name.
+ */
+export function restoreTitle(fraction: number): string {
+  return fraction >= 1 ? 'Full restore' : `Restore ${Math.round(fraction * 100)}%`;
+}
+
+/** The coins already held, on a currency card's long press. */
 export function carryingLine(coins: number): Prose {
   return { long: `You are carrying ${coins}.`, short: `Carrying ${coins}.` };
 }
@@ -215,6 +294,16 @@ export const KIND_HINTS = {
   shop: { long: 'Spend coins on items, healing and moves.', short: 'Items, healing, moves.' },
   event: { long: 'Something happens. You choose what to do about it.', short: 'Something happens.' },
 } as const satisfies Record<string, Prose>;
+
+/**
+ * What a coin amount is, behind the currency mark. **Stage 5.0/4, D54.**
+ * Section 3's *Coin amount* inspect column; the number comes from the mark.
+ */
+export const CURRENCY_COPY = {
+  payout: 'What this fight pays when it is won.',
+  price: 'The cheapest thing on this shelf.',
+  wallet: 'What the run is carrying.',
+} as const;
 
 export const CAPTURE_FULL: Prose = {
   long: ' Your party is full — someone has to go.',

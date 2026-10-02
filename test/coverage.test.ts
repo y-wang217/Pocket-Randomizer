@@ -15,7 +15,13 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { coverageAfterSwap, coverageDelta, offensiveCoverage } from '../src/core/coverage';
+import {
+  coverageAfterSwap,
+  coverageDelta,
+  moveCoverage,
+  offensiveCoverage,
+  typeVulnerabilities,
+} from '../src/core/coverage';
 import { createPartyMember } from '../src/core/party';
 import type { PokemonSpec, PokemonState } from '../src/core/types';
 
@@ -204,7 +210,9 @@ describe('there is no score to render', () => {
     expect(Object.keys(module).sort()).toEqual([
       'coverageAfterSwap',
       'coverageDelta',
+      'moveCoverage',
       'offensiveCoverage',
+      'typeVulnerabilities',
     ]);
   });
 
@@ -216,6 +224,56 @@ describe('there is no score to render', () => {
       mon('Squirtle', 'Torrent', ['Bubble']),
     ]);
     expect(covered).toEqual([...covered].sort());
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The starter detail panel's two rows (bible Rev 19, D80)
+// ---------------------------------------------------------------------------
+
+describe('moveCoverage', () => {
+  it("is the union of the moves' supers, not the species' typing", () => {
+    // The author's example: Electrike with Electric, Flying and Rock moves and
+    // a Normal status move. Electric hits Water and Flying; Flying hits Bug,
+    // Fighting and Grass; Rock hits Bug, Fire, Flying and Ice.
+    const covered = moveCoverage([
+      { type: 'Electric', category: 'Special' },
+      { type: 'Flying', category: 'Physical' },
+      { type: 'Rock', category: 'Physical' },
+      { type: 'Normal', category: 'Status' },
+    ]);
+    expect(covered).toEqual(['Bug', 'Fighting', 'Fire', 'Flying', 'Grass', 'Ice', 'Water']);
+  });
+
+  it('skips status moves', () => {
+    expect(moveCoverage([{ type: 'Fire', category: 'Status' }])).toEqual([]);
+  });
+
+  it("keeps the wheel's order whatever the move order", () => {
+    const a = moveCoverage([
+      { type: 'Water', category: 'Special' },
+      { type: 'Ice', category: 'Special' },
+    ]);
+    const b = moveCoverage([
+      { type: 'Ice', category: 'Special' },
+      { type: 'Water', category: 'Special' },
+    ]);
+    expect(a).toEqual(b);
+    expect(a).toEqual([...a].sort());
+  });
+});
+
+describe('typeVulnerabilities', () => {
+  it('reads one type straight off the chart', () => {
+    expect(typeVulnerabilities(['Electric'])).toEqual(['Ground']);
+  });
+
+  it('multiplies a dual typing: a 4x counts and an immunity cancels', () => {
+    // Rock/Ground: Water and Grass are 4x; Electric is cancelled by Ground's
+    // immunity, and Normal is resisted.
+    const rockGround = typeVulnerabilities(['Rock', 'Ground']);
+    expect(rockGround).toEqual(['Fighting', 'Grass', 'Ground', 'Ice', 'Steel', 'Water']);
+    expect(rockGround).not.toContain('Electric');
   });
 });
 

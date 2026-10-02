@@ -160,6 +160,12 @@ describe('the gym held-item ladder', () => {
    * moves a trainer or a wild team by so much as one field, this fails and the
    * change owes `RANDOMIZER_VERSION` a bump — which is the whole point of
    * writing the digest down rather than asserting a property of it.
+   *
+   * **Re-recorded 2026-09-25**, from `68f5b8e9ec48a07f`, by the patch that
+   * owed the bump this digest exists to demand: `levelOffset.wild` moved two
+   * levels down at every segment, every wild team here moved with it, and
+   * `gymrun-randomizer-22` arrived beside it. Trainer teams did not move; the
+   * digest covers both, so it moves once.
    */
   it('generates trainer and wild teams byte-identically to before the ladder existed', () => {
     const records: string[] = [];
@@ -180,7 +186,7 @@ describe('the gym held-item ladder', () => {
       }
     }
     const digest = createHash('sha256').update(records.join('\n')).digest('hex').slice(0, 16);
-    expect(digest).toBe('68f5b8e9ec48a07f');
+    expect(digest).toBe('8acd0cd19c67dc7c');
   });
 
   it('spends the same two draws on a gym member as on any other opponent', () => {

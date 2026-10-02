@@ -112,14 +112,18 @@ describe('the drawer itself', () => {
     expect(card!.querySelectorAll('.stat')).toHaveLength(6);
     expect(card!.querySelectorAll('.move--card').length).toBeGreaterThan(0);
     /*
-     * **The chip and the bars, both.** Chip-audit patch, 2026-09-17: this
-     * asserted the chip was absent, which was Patch 4.8.0.3 item 3 — the bars
-     * replace the label — superseded by the author's answer to question 1.
-     * `docs/generation.md` section 30a. A label carried on four surfaces out of
-     * ten is not a vocabulary, and the failure mode 4.8.0.3 named is answered
-     * by `ARCHETYPE_CAVEAT` inside the panel the chip opens.
+     * **The bars, and no label. M3.2, and the third time this line has moved.**
+     *
+     * 4.8.0.3 item 3 removed the chip where the bars draw it; the chip-audit
+     * patch put it back, on the argument that a label carried on four surfaces
+     * out of ten is not a vocabulary. That argument is right and M3.2 answers
+     * it the other way: section 3 does not render the label where the bars
+     * are, so it goes from every surface that draws them at once rather than
+     * from the four that happened to have somewhere else to look. The six
+     * bars asserted two lines up are what it was a summary of, and they are
+     * on this card.
      */
-    expect(card!.querySelector('.badge--archetype'), 'the drawer carries the label too').not.toBeNull();
+    expect(card!.querySelector('.badge--archetype'), 'the bars draw it; the label does not').toBeNull();
     expect(card!.querySelector('.party__item')).not.toBeNull();
     expect(card!.querySelector('.panel__hp-text')?.textContent ?? '').not.toBe('');
   });
@@ -159,17 +163,48 @@ describe('the drawer itself', () => {
     // density picker (step 7), and the three speeds the battle speed picker:
     // each writes a display setting, which is not party state, and the
     // comparison below holds that.
-    expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual([
-      '+', 'Close', 'Columns', 'Detailed', 'Even', 'Explain', 'Grid', 'Patient', 'Pocket', 'Simple', 'Swift',
-    ]);
+    /*
+     * **`Columns` and `Grid` left at M2.2, `Explain` at M2.1, and the drawer
+     * got quieter for both.**
+     *
+     * The two layout names were the move-bar picker. D9 ruled the four-column
+     * bar deleted — R6 forbids two card faces, and the measurement said the
+     * compact face fits the 2x2 and cannot fit 85px — so the setting, the
+     * picker and its copy went with it.
+     *
+     * It was a button under every move card — four per member — opening an
+     * inline panel. D15 ruled it a second explanation mechanism under R5, and
+     * section 7 rejects a control the player must know exists. The move card
+     * itself is the inspect trigger now, which is not a `<button>` and so does
+     * not appear here.
+     */
+    // Detailed, Pocket and Simple left with the density picker at Stage 5.0/1,
+    // and the three speeds moved to the Settings screen the same stage.
+    expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual(['+', 'Close']);
+
+    /*
+     * **The card is not a `<button>`, so the sweep above cannot see it, and
+     * that is exactly why it is swept separately.**
+     *
+     * M2.1 made every move card a focusable `role="button"`. It writes nothing
+     * — it opens an explanation — but "it writes nothing" is the claim this
+     * whole case exists to check, and a control the query misses is a control
+     * nobody is checking. So the press loop below takes both sets.
+     *
+     * **M3.2 built chips here and D21a was re-ruled back to cards**, so the
+     * selector is the card's again. `.move[role="button"]` would have caught
+     * either; it is spelled `.move--card` because that is the claim.
+     */
+    const cards = [...drawer.root.querySelectorAll<HTMLElement>('.move--card[role="button"]')];
+    expect(cards.length, 'the drawer draws move cards, so this must not be vacuous').toBeGreaterThan(0);
 
     // Every control pressed, and the party compared before and after. The
     // drawer holds the same objects the run does, so a write of any kind —
     // an item moved, a slot reordered, a member released — shows up here.
     const before = JSON.stringify(view.party);
-    for (const button of buttons) {
-      if (button.textContent === 'Close') continue;
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    for (const control of [...buttons, ...cards]) {
+      if (control.textContent === 'Close') continue;
+      control.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     }
     expect(JSON.stringify(view.party), 'a drawer control wrote party state').toBe(before);
     expect(drawer.isOpen(), 'a drawer control closed the drawer').toBe(true);

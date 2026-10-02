@@ -322,8 +322,11 @@ describe('the version axes', () => {
      * `-20` is the teach-now patch: a move may be taught at the node that paid
      * it, so a plan that was illegal at that boundary is legal there now and a
      * `-19` reader would drop it. `docs/generation.md` section 49.3.
+     *
+     * `-21` is the opening playtest QA: a party edit is a logged decision.
+     * `docs/generation.md` section 85.
      */
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-20/gymrun-0.3.0');
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-21/gymrun-0.3.0');
     /*
      * Pinned literally, as the Branch 1 value was: a hash nobody can read off
      * the tree by eye is exactly the kind that moves without anyone noticing.
@@ -407,20 +410,44 @@ describe('the version axes', () => {
      * a gym member somewhere in a range instead of on one number.
      * `docs/generation.md` section 50 is the account.
      *
-     * And a tenth time, for the region composition patch: `data/tuning.ts`
-     * loses `restStepsPerGuarantee` and gains `kindCapPerRoute`,
-     * `minBattleStepsPerRoute` and `battleStepsPerGuarantee`. **The third
-     * `contentHash` move that arrives beside another axis** —
-     * `gymrun-randomizer-22`, because a capped kind leaves the allowed list
-     * and the battle-step floor converts steps the old table left alone.
-     * `docs/generation.md` section 52 is the account.
+     * And a tenth time, for the copy split. **This is the display edit the
+     * claim below said would never come, and it says so rather than being
+     * quietly amended.**
      *
-     * The literal below is all ten together. The display split remains the
-     * **last** time this number moves for a display edit —
-     * `battleFeedbackMs` hashes the same at 500, 750 and 1234 — and
-     * `docs/generation.md` section 22 is the account.
+     * The claim was that the display split was the *last* time this number
+     * moves for a display edit, and it was true of the mechanism it was about:
+     * `battleFeedbackMs` still hashes the same at 500, 750 and 1234, because it
+     * lives in a file `core/` does not import. What the claim did not cover is
+     * copy that was *already inside* a hashed table when the rule arrived —
+     * `ItemEntry.blurb`, `Relic.playerDescription`, and every event hook, label
+     * and hint. Getting those out is a one-time edit to three hashed files, and
+     * there is no way to reach the future where rewording them is free without
+     * paying it once.
+     *
+     * Ruled 2026-09-22: pay it once, with both halves in one commit, rather
+     * than twice across one tier. M5.1's item and relic copy went to
+     * `data/itemCopy.ts` and M5.6's event copy to `data/eventCopy.ts`, both
+     * excluded by the mechanical rule, and `EventInstance` stopped carrying
+     * display strings so that exclusion is honest. `docs/generation.md` section
+     * 65 is the account, and rows D12 and D14 carry the argument.
+     *
+     * **The claim is now: no copy a player reads is inside this hash.** That is
+     * a stronger thing than the old one and it is checkable — which is the
+     * point of replacing a promise with a property.
+     *
+     * The wild-strength and early-gym-levels patch moved it from `0b2c2c`, the
+     * ordinary case: two columns of `data/scaling.ts`, and `gymrun-randomizer-22`
+     * arrives beside it because the level a seed draws moved.
+     * `docs/generation.md` section 78.
+     *
+     * And again for the region composition patch: `data/tuning.ts` loses
+     * `restStepsPerGuarantee` and gains `kindCapPerRoute`,
+     * `minBattleStepsPerRoute` and `battleStepsPerGuarantee`, with
+     * `gymrun-randomizer-23` beside it because a capped kind leaves the
+     * allowed list and the battle-step floor converts steps the old table left
+     * alone. `docs/generation.md` section 99.
      */
-    expect(CONTENT_HASH).toBe('637670ddd4c4652bb869297daac07f12bd7c150d2cf6f2692ee6d83e2cee7c5c');
+    expect(CONTENT_HASH).toBe('dfe1e407dc2f5cb47aa572c204b6e62a92376e224128d144a86d802fcaf8e2f9');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

@@ -91,6 +91,21 @@ const LEGS = [
     command: NPX,
     args: ['eslint', '.'],
   },
+  /*
+   * The hedge-word lint. **Milestone M0.3**, holding design bible section 8.
+   *
+   * Its own leg rather than a line in the suite, so a violation prints the
+   * file, the line and the word instead of arriving inside a vitest summary.
+   * `test/hedge-lint.test.ts` asks the same question under `npm test`, because
+   * a rule only a separate command holds is held only when somebody remembers
+   * the separate command.
+   */
+  {
+    name: 'hedge',
+    what: 'no hedge word in the explanation tables',
+    command: NPX,
+    args: ['vite-node', 'scripts/hedge-lint.ts'],
+  },
   {
     name: 'typecheck',
     what: 'tsc --noEmit',
@@ -146,6 +161,26 @@ const LEGS = [
     command: NODE,
     args: ['scripts/smoke.mjs'],
     needs: 'build',
+    browser: true,
+  },
+  /*
+   * The text census. **Milestone M0.1, and it cannot fail this run.**
+   *
+   * M0.1's own "kills it" line is "nothing. Measurement cannot fail the
+   * bible", so the leg is non-blocking — and it is non-blocking by
+   * construction rather than by a flag here: `census.ts --check` prints the
+   * per-surface delta and exits zero whether or not a number moved. The only
+   * way it reports FAILED is if the script itself throws, which is a broken
+   * instrument and should stop the run.
+   *
+   * `browser: true` so a box with no Playwright binary skips it with the
+   * others instead of failing on a missing engine.
+   */
+  {
+    name: 'census',
+    what: 'words at rest, delta against docs/design/text-census.md',
+    command: NPX,
+    args: ['vite-node', 'scripts/visual/census.ts', '--check'],
     browser: true,
   },
 ];

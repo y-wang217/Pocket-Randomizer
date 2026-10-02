@@ -336,10 +336,29 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * feed the stage gate, so a segment draws from a different species list. The
  * practical harm was nil — `contentHash` moved, so no seed replayed silently —
  * but the axis was the wrong one. `docs/generation.md` section 50.
+ */
+/*
+ * ## `-22`: wild two levels lower, gyms 1 to 3 one level lower
  *
- * ## `-22`: the route's ceiling, and the floor under its fights
+ * One column each of `SEGMENTS`, and no draw added, removed or moved. The same
+ * `inRange` float off the same key resolves to a lower level, and the stage
+ * gate that reads `level.min` admits a different species list, so a recorded
+ * seed fields different wild and early-gym teams. Same reason `-19` and `-21`
+ * gave; `contentHash` moves beside it for the table.
+ * `docs/spec/gymrun-patch-wild-strength-and-early-gym-levels.md`,
+ * `docs/generation.md` section 78.
+ */
+/*
+ * ## `-23`: the route's ceiling, and the floor under its fights
  *
- * **2026-09-19.** Three changes to how a route's shape is drawn, all in
+ * **Built 2026-09-19 as `-22` and renumbered on 2026-10-02**, because it was
+ * reapplied onto a `main` that had taken `-22` for the level columns above in
+ * the meantime. The number is a position in this file's sequence rather than a
+ * property of the change, so renumbering costs nothing — and holding the
+ * collision would have been two different generators answering to one string,
+ * which is the exact failure the axis exists to announce.
+ *
+ * Three changes to how a route's shape is drawn, all in
  * `encounters.buildRoute` and `enforceComposition`:
  *
  *   1. A kind that has spent its `kindCapPerRoute` allowance leaves the
@@ -355,9 +374,9 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * it hands out, so every recorded map moves — the routes and the tiers on
  * them, and through the tiers the contents. `contentHash` moves beside it for
  * the table. `RUN_LOG_VERSION` holds: a step is still a step and a node is
- * still picked by index. `docs/generation.md` section 52.
+ * still picked by index. `docs/generation.md` section 99.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-22';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-23';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

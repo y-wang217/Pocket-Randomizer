@@ -15,6 +15,7 @@ import {
   hasRelic,
 } from '../src/core/relics';
 import { RELICS, RELIC_IDS, relicById, relicsGranting } from '../src/data/relics';
+import { relicCopy } from '../src/data/itemCopy';
 import { CAPABILITIES } from '../src/data/capabilities';
 
 const idOf = (capability: (typeof CAPABILITIES)[number]): string => {
@@ -43,11 +44,16 @@ describe('the table', () => {
 
   it('gives every relic a description that says what it opens', () => {
     for (const relic of RELICS) {
-      expect(relic.playerDescription.length, relic.id).toBeGreaterThan(20);
+      // **The copy moved to `data/itemCopy.ts` at M5.1 (D12, and the hash
+      // ruling of 2026-09-22).** The assertion is unchanged and deliberately
+      // still lives here: it is a claim about the relic table's coverage —
+      // every relic has one — not about the copy file's contents.
+      const description = relicCopy(relic.id);
+      expect(description.length, relic.id).toBeGreaterThan(20);
       // The Part 4 editorial rule: attributes, never verdicts. A permanent
       // object is on screen for the rest of the run, so this matters more here
       // than on a card the player sees once.
-      expect(relic.playerDescription).not.toMatch(/\b(best|strong(est)?|useful|powerful|better|worth it|recommended)\b/i);
+      expect(description).not.toMatch(/\b(best|strong(est)?|useful|powerful|better|worth it|recommended)\b/i);
     }
   });
 

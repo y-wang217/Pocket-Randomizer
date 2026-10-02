@@ -1,10 +1,19 @@
 /**
- * The move-card type watermark. **Chip-audit patch, item 3.**
+ * The eighteen type glyphs. **Chip-audit patch item 3, narrowed at M2.1.**
  *
- * Three claims that comments in `ui/theme/typeIcons.ts` and `ui/styles.css`
- * make and cannot enforce: that every type the game can put on a move has a
- * glyph, that no glyph escapes its box, and that the opacity stays under the
- * ceiling the brief set.
+ * Two claims that comments in `ui/theme/typeIcons.ts` make and cannot enforce:
+ * that every type the game can put on a move has a glyph, and that no glyph
+ * escapes its box.
+ *
+ * **It used to test a third, and the feature is gone.** The move-card type
+ * *watermark* — a large faint silhouette behind a battle button — was deleted
+ * by M2.1 as a live R3 violation: the button carried the type as a mark and as
+ * a word at once, and once the chip's glyph became the type's one channel the
+ * watermark was the same mark twice. The opacity-ceiling case and the
+ * one-call-site case went with the feature rather than being adapted to
+ * something they were not about. The table they were drawn from is still here
+ * and is now the source of the sheet's eighteen type glyphs
+ * (`ui/theme/glyphs.ts`), so it is tested harder than before, not less.
  *
  * **What this file deliberately does not test is whether the glyphs are any
  * good.** Legibility is a thing a person looks at, and the contact sheet that
@@ -90,37 +99,4 @@ describe('type icons', () => {
     }
   });
 
-  /**
-   * **The brief's ceiling: "these icons should be 50% opacity max".**
-   *
-   * Read off the stylesheet, because the token is where a playtest would move
-   * it and a comment saying "never above 0.5" is exactly the kind of thing a
-   * tuning pass walks past.
-   */
-  it('never draws the watermark above half opacity', () => {
-    const css = readFileSync(join(ROOT, 'src/ui/styles.css'), 'utf8');
-    const token = /--move-watermark:\s*([\d.]+)/.exec(css);
-    expect(token, '--move-watermark must be defined in styles.css').not.toBeNull();
-    expect(Number(token?.[1])).toBeGreaterThan(0);
-    expect(Number(token?.[1])).toBeLessThanOrEqual(0.5);
-
-    // And every rule that multiplies it scales down rather than up.
-    for (const [, factor] of css.matchAll(/var\(--move-watermark\)\s*\*\s*([\d.]+)/g)) {
-      expect(Number(factor)).toBeLessThanOrEqual(1);
-    }
-  });
-
-  /*
-   * The watermark rides the battle button and not `moveCard`.
-   *
-   * The brief says "in battle", and the cards outside one carry the 4.7.2
-   * expander in the corner this would occupy. `renderMove` is the battle
-   * button; `moveCard` is everything else.
-   */
-  it('rides the battle button only', () => {
-    const scene = readFileSync(join(ROOT, 'src/ui/scene.ts'), 'utf8');
-    const calls = [...scene.matchAll(/typeWatermark\(/g)];
-    // One declaration, one call site.
-    expect(calls.length).toBe(2);
-  });
 });

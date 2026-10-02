@@ -66,8 +66,6 @@ function movePaid(move: string): EventOutcome {
 function option(archetype: EventArchetype, paid: EventOutcome): EventOption {
   return {
     archetype,
-    label: archetype,
-    hint: archetype,
     toll: null,
     outcomes: { T0: paid, T1: paid, T2: paid, T3: paid },
     tierAt: { none: 'T2', latent: 'T2', known: 'T2' },
@@ -80,7 +78,6 @@ function eventWith(paid: EventOutcome): EventInstance {
     eventId: 'test',
     locale: 'forest',
     rarity: 'common',
-    prompt: 'p',
     requires: 'cut',
     options: [option('safe', paid)],
   };
@@ -163,10 +160,11 @@ describe('the version axes this patch moved', () => {
      * number.
      */
     /*
-     * And `-22` by the region composition patch: a per-route ceiling on rests
-     * and shops, spent during the draw, and a floor of battle-only steps.
+     * `-22` is the wild and early-gym level columns, and `-23` the region
+     * composition patch: a per-route ceiling on rests and shops, spent during
+     * the draw, and a floor of battle-only steps.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-22');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-23');
   });
 });
 

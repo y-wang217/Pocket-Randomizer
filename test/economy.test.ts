@@ -13,6 +13,7 @@
  *      can honestly offer.
  */
 import { describe, expect, it } from 'vitest';
+import { eventHook } from '../src/data/eventCopy';
 
 import { greedyAiPolicy } from '../src/core/battle/ai';
 import {
@@ -568,7 +569,7 @@ describe('events', () => {
      * is a property of the *instance*, which `test/event-bands.test.ts` holds.
      */
     for (const event of EVENTS) {
-      expect(event.hook.length, event.id).toBeGreaterThan(0);
+      expect(eventHook(event.id).length, event.id).toBeGreaterThan(0);
       expect(event.toll, event.id).toBeTruthy();
       if (event.toll.kind === 'gold') {
         expect(event.toll.fraction, event.id).toBeGreaterThan(0);

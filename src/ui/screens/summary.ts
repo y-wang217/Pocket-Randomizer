@@ -45,7 +45,7 @@ import { relicById } from '../../data/relics';
 import { WHEEL_TYPES } from '../../core/battle/driver';
 import { abilityChip, monTypeChip } from '../chip';
 import { OUTCOME_WORDS, TIER_ROWS, tierRowFor } from '../copy/summary';
-import { el, moveCard } from '../scene';
+import { el, levelAria, levelText, moveCard } from '../scene';
 import { setProse } from '../dom';
 import { moveCardData } from '../move-detail';
 import type { Tuning } from '../../data/tuning';
@@ -413,7 +413,8 @@ function renderMember(member: RunState['party'][number], index: number, tuning: 
   // Pokemon by species too, so the two still agree — by species now, not name.
   name.textContent = detail.species;
   const level = el('span', 'starter__level');
-  level.textContent = `Lv${detail.level}`;
+  level.textContent = levelText(detail.level);
+  level.setAttribute('aria-label', levelAria(detail.level));
   const types = el('span', 'panel__types');
   types.replaceChildren(...detail.types.map(monTypeChip));
   header.append(slotNumber(index), name, level, archetypeChip(detail.baseStats), types);

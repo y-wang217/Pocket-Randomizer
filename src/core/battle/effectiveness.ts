@@ -88,6 +88,8 @@ export type AbilityEffects = (abilityId: string) => readonly AbilityTypeEffect[]
 
 /** Just enough of a move to answer the question. */
 export interface EffectivenessMove {
+  /** The dex id, for the three moves Grassy Terrain halves by name. Optional: a test that asks about a type need not name a move. */
+  id?: string;
   type: string;
   category: 'Physical' | 'Special' | 'Status';
   /** Dex flags — `bullet`, `sound`, `powder`, ... — for the flag-keyed immunities. */
@@ -113,6 +115,117 @@ export interface EffectivenessResult {
   band: Effectiveness | null;
   /** True when a *visible* ability moved the answer off the naive chart result. */
   abilityAffected: boolean;
+  /**
+   * The field's own factor for this move, folded into `multiplier`. **Stage
+   * 4.11 Tier 2b, D49.** 1 when the board does nothing to this move, and 1 for
+   * a status move. The id of the effect that moved it is `fieldCause`, so the
+   * button can point its number at the reason the way it points a Levitate
+   * `0x` at the ability.
+   */
+  fieldFactor: number;
+  /** The sim id of the weather or terrain behind `fieldFactor`, or null when it is 1. */
+  fieldCause: string | null;
+}
+
+/**
+ * The board, as the forecast needs it. **Stage 4.11 Tier 2b, D49.**
+ *
+ * The ids are `FieldFacts`'s; the two grounded flags are the projection's
+ * business, because whether a hidden Levitate counts is a reveal question and
+ * this file does not read the reveal policy for anything but the ability.
+ */
+export interface FieldContext {
+  weather: string | null;
+  terrain: string | null;
+  /** An ability is holding the weather off, so it does nothing. */
+  suppressed: boolean;
+  attackerGrounded: boolean;
+  defenderGrounded: boolean;
+  /**
+   * The chart's factor for this move against the Flying type alone, which is
+   * what Strong winds takes away. The adapter reads it off the dex beside
+   * `typeMultiplier`; 1 when the defender is not Flying or the move is not
+   * strong against it.
+   */
+  flyingWeakness: number;
+}
+
+/** The three moves Grassy Terrain halves against a grounded target. */
+const GRASSY_HALVED = new Set(['earthquake', 'bulldoze', 'magnitude']);
+
+/**
+ * What the weather and terrain on the board do to this move's damage, as the
+ * engine does it. **Stage 4.11 Tier 2b, D49.**
+ *
+ * Only the factors that multiply the move: rain and sun on Water and Fire,
+ * the primal weathers' outright refusal, Strong winds taking the Flying
+ * weakness off, and the four terrains on a grounded attacker or target.
+ * Sandstorm's Rock Sp. Def and snow's Ice Defense are stat-side and are not
+ * a number on the move, so they are not here — the field glyph's inspect
+ * says them. A suppressed weather does nothing. Terrain reads grounding the
+ * way the engine does: the attacker's for the 1.3, the target's for the
+ * halvings.
+ */
+export function fieldFactor(
+  move: EffectivenessMove,
+  defender: EffectivenessDefender,
+  field: FieldContext,
+): { factor: number; cause: string | null } {
+  if (move.category === 'Status') return { factor: 1, cause: null };
+  let factor = 1;
+  let cause: string | null = null;
+  const by = (id: string, f: number): void => {
+    factor *= f;
+    cause ??= id;
+  };
+
+  const weather = field.suppressed ? null : field.weather;
+  switch (weather) {
+    case 'raindance':
+      if (move.type === 'Water') by(weather, 1.5);
+      if (move.type === 'Fire') by(weather, 0.5);
+      break;
+    case 'primordialsea':
+      if (move.type === 'Water') by(weather, 1.5);
+      if (move.type === 'Fire') by(weather, 0);
+      break;
+    case 'sunnyday':
+      if (move.type === 'Fire') by(weather, 1.5);
+      if (move.type === 'Water') by(weather, 0.5);
+      break;
+    case 'desolateland':
+      if (move.type === 'Fire') by(weather, 1.5);
+      if (move.type === 'Water') by(weather, 0);
+      break;
+    case 'deltastream': {
+      // The Flying part of the target's typing stops being a weakness.
+      const flying = defender.types.includes('Flying') ? field.flyingWeakness : 1;
+      if (flying > 1) by(weather, 1 / flying);
+      break;
+    }
+    default:
+      break;
+  }
+
+  switch (field.terrain) {
+    case 'electricterrain':
+      if (move.type === 'Electric' && field.attackerGrounded) by(field.terrain, 1.3);
+      break;
+    case 'grassyterrain':
+      if (move.type === 'Grass' && field.attackerGrounded) by(field.terrain, 1.3);
+      if (move.id && GRASSY_HALVED.has(move.id) && field.defenderGrounded) by(field.terrain, 0.5);
+      break;
+    case 'psychicterrain':
+      if (move.type === 'Psychic' && field.attackerGrounded) by(field.terrain, 1.3);
+      break;
+    case 'mistyterrain':
+      if (move.type === 'Dragon' && field.defenderGrounded) by(field.terrain, 0.5);
+      break;
+    default:
+      break;
+  }
+
+  return { factor, cause };
 }
 
 /** The chart lookup, injected. `driver.typeMultiplier` is the one real implementation. */
@@ -129,6 +242,8 @@ const NO_EFFECTIVENESS: EffectivenessResult = {
   multiplier: null,
   band: null,
   abilityAffected: false,
+  fieldFactor: 1,
+  fieldCause: null,
 };
 
 /**
@@ -147,20 +262,28 @@ export function moveEffectiveness(
   typeMultiplier: TypeMultiplier,
   abilityEffects: AbilityEffects,
   reveal: RevealPolicy,
+  field?: FieldContext,
 ): EffectivenessResult {
   if (move.category === 'Status') return NO_EFFECTIVENESS;
 
   const naive = typeMultiplier(move.type, defender.types);
   const ability = defender.ability;
-  if (!ability || !reveal.ability) {
-    return { multiplier: naive, band: bandOf(naive), abilityAffected: false };
-  }
-
-  const modified = applyAbilityEffects(naive, move.type, move.flags, abilityEffects(ability.id));
+  const chart =
+    !ability || !reveal.ability ? naive : applyAbilityEffects(naive, move.type, move.flags, abilityEffects(ability.id));
+  /*
+   * The field's factor, folded in last. **D49.** C1's second exception: the
+   * weather or terrain on the board is a fact about the present board, and
+   * the number on the button is the number the hit will use. Folded after the
+   * ability so that an immunity stays 0 whatever the weather says.
+   */
+  const { factor, cause } = field ? fieldFactor(move, defender, field) : { factor: 1, cause: null };
+  const multiplier = chart * factor;
   return {
-    multiplier: modified,
-    band: bandOf(modified),
-    abilityAffected: modified !== naive,
+    multiplier,
+    band: bandOf(multiplier),
+    abilityAffected: chart !== naive,
+    fieldFactor: factor,
+    fieldCause: factor === 1 ? null : cause,
   };
 }
 

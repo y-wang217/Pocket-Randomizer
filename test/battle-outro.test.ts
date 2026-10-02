@@ -325,11 +325,7 @@ describe('the result screen does not arrive before the fight has ended', () => {
  * does, so what is asserted is the wiring that ships.
  */
 describe('an abnormality gets a beat, and it costs the turn nothing', () => {
-  const STUB: FlagDeps = {
-    priorityOf: () => 0,
-    moveIdentityOf: () => ({ type: 'Normal', category: 'Physical', contact: true }),
-    typesOf: () => ['Normal'],
-  };
+  const STUB: FlagDeps = { priorityOf: () => 0 };
 
   /**
    * A turn's worth of protocol, read and handed to a fresh scene.

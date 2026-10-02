@@ -19,6 +19,7 @@ import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { MAX_MOVE_FACTS } from '../src/data/moveFactCeiling.mjs';
+import { notFirstLaunch } from './first-launch.mjs';
 
 const DIST = join(process.cwd(), 'dist');
 mkdirSync(join(process.cwd(), 'stats'), { recursive: true });
@@ -109,22 +110,23 @@ const PINNED = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/opt/pw-b
 const executablePath = PINNED.find((candidate) => existsSync(candidate));
 const browser = await chromium.launch(executablePath ? { executablePath } : {});
 /*
- * The tutorial's coach marks show on a first launch, which a fresh browser is.
- * They are tappable panels over the screen and this script clicks by selector,
- * so the store is seeded with the tutorial skipped, the same way the visual
- * harness seeds its contexts. The tutorial has its own browser test.
+ * Both first-run surfaces show on a first launch, which a fresh browser is:
+ * the intro panel is a modal with a scrim and the coach marks are tappable
+ * panels over the screen, and this script clicks by selector. So the store is
+ * seeded as a returning player's, from the one file the visual harness seeds
+ * from too — `scripts/first-launch.mjs` says why that is one file. Each
+ * surface has its own test.
  */
-const TUTORIAL_SKIPPED = JSON.stringify({ density: 'detailed', tutorial: { skipped: true, seen: [] } });
-const skipTutorial = (target) =>
+const skipFirstRun = (target) =>
   target.addInitScript((settings) => {
     try {
       if (!globalThis.localStorage.getItem('gymrun.settings')) globalThis.localStorage.setItem('gymrun.settings', settings);
     } catch {
       // Storage unavailable: defaults apply.
     }
-  }, TUTORIAL_SKIPPED);
+  }, notFirstLaunch());
 const page = await browser.newPage();
-await skipTutorial(page);
+await skipFirstRun(page);
 const problems = [];
 page.on('console', (msg) => {
   if (msg.type() !== 'error') return;
@@ -166,7 +168,8 @@ const starterCount = await page.locator('.starter').count();
 console.log(`  ${starterCount === 3 ? 'ok  ' : 'FAIL'} three starters offered (x${starterCount})`);
 if (starterCount !== 3) problems.push(`expected 3 starters, saw ${starterCount}`);
 await check('starter types', '.starter .type');
-await check('starter movesets', '.starter__move');
+// A move chip per move since bible Rev 19 (D78); move cards under D40.
+await check('starter movesets', '.starter__moves .move--chip');
 await check('starter move power', '.starter .move__power');
 
 const seed = await page.inputValue('.seedbar__input');
@@ -196,7 +199,7 @@ else if (versioned[1] !== SEED) problems.push(`seed from the URL was not used (s
  */
 async function playRun(label) {
   await page.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
-  await (await bulkiestStarter()).click();
+  await pickBulkiestStarter();
 
   let battles = 0;
   let nodes = 0;
@@ -303,7 +306,18 @@ async function playRun(label) {
      * stop proving a choice was applied at all.
      */
     if (await page.locator(visible('pre-gym')).count()) {
-      const choose = page.locator(`${visible('pre-gym')} .pre-gym__slot .button:not([disabled])`).last();
+      /*
+       * `.pre-gym__choose`, not `.pre-gym__slot .button`. **M5.3.**
+       *
+       * The lead control used to be a `.button` beside the card reading "Lead
+       * with this one"; it is the card itself now, and it deliberately does
+       * not take the `.button` class — that class uppercases, and with the
+       * member card inside the control it reached the stat block's labels.
+       * The old selector still matched something: the card's own `+` collapse
+       * toggle, which is not visible in every density, so the walk waited
+       * thirty seconds on an element it could never click.
+       */
+      const choose = page.locator(`${visible('pre-gym')} .pre-gym__choose:not([disabled])`).last();
       if (preGyms === 0) await page.screenshot({ path: `stats/${label}-pre-gym.png`, fullPage: true });
       if (await choose.count()) {
         await choose.click();
@@ -344,6 +358,8 @@ async function playRun(label) {
       if (await card.count()) {
         if (rewards === 0) await page.screenshot({ path: `stats/${label}-reward.png`, fullPage: true });
         await card.click();
+        // A tap selects; the claim band's commit takes it (Stage 5.0/3, D69).
+        await page.locator('.confirm-band .primary-action').click();
         rewards++;
         await page.waitForTimeout(25);
         continue;
@@ -442,7 +458,13 @@ async function playRun(label) {
       // Take the first member. Which one is a real decision, but a smoke test
       // is proving the screen routes and a click reaches the policy — the
       // *quality* of the target is the simulator's question, not this one.
-      const card = page.locator(`${visible('target')} .party__member--target`).first();
+      /*
+       * The control beside the card, not the card. **M3.3**: the card is the
+       * party row now and is not a `<button>`, because the row is full of
+       * focusable things a button may not contain. A player presses
+       * `.target__choose`, so this does.
+       */
+      const card = page.locator(`${visible('target')} .target__choose`).first();
       if (await card.count()) {
         if (targets === 0) await page.screenshot({ path: `stats/${label}-target.png`, fullPage: true });
         await card.click();
@@ -471,6 +493,11 @@ async function playRun(label) {
       if (await victim.count()) {
         if (replacements === 0) await page.screenshot({ path: `stats/${label}-replace.png`, fullPage: true });
         await victim.click();
+        // M2.3 put a confirm between the tap and the commit: the chip opens a
+        // band with both full cards on it. Leaving it up would intercept every
+        // later click, because it is `aria-modal` with a scrim.
+        const commit = page.locator('.confirm-band .primary-action');
+        if (await commit.count()) await commit.first().click();
         replacements++;
         await page.waitForTimeout(25);
         continue;
@@ -515,7 +542,7 @@ async function playRun(label) {
        * rendering it. Done once so the second run makes the same clicks.
        */
       if (nodes === 2 && partyVisits === 0) {
-        const manage = page.locator(`${visible('map')} .party__header .button`);
+        const manage = page.locator('[data-nav="team"]');
         if (await manage.count()) {
           await manage.click();
           await page.waitForTimeout(25);
@@ -612,27 +639,31 @@ async function playRun(label) {
 }
 
 /**
- * The starter with the most HP, ties to the leftmost card.
+ * Pick the starter with the most HP, ties to the leftmost card.
  *
  * At PARTY_SIZE 1 this one click is the largest decision in the run — it is the
  * only Pokemon the player will ever have — so a bot that takes whichever card is
  * first is not playing the game, it is sampling it.
+ *
+ * The max HP is the detail panel's since bible Rev 19 (D78, D79): a tap
+ * selects a card and fills the panel, and the Choose control commits.
  */
-async function bulkiestStarter() {
+async function pickBulkiestStarter() {
   const cards = page.locator('.starter');
   const count = await cards.count();
   let best = 0;
   let bestHp = -1;
   for (let i = 0; i < count; i++) {
-    // The card prints "<Ability> · <N> HP"; N is the number the choice turns on.
-    const meta = (await cards.nth(i).locator('.starter__meta').textContent()) ?? '';
-    const hp = Number(/(\d+)\s*HP/.exec(meta)?.[1] ?? 0);
+    await cards.nth(i).click();
+    const meta = (await page.locator('.starter-detail .stat[data-row="hp"] .stat__value').textContent()) ?? '';
+    const hp = Number(/(\d+)/.exec(meta)?.[1] ?? 0);
     if (hp > bestHp) {
       bestHp = hp;
       best = i;
     }
   }
-  return cards.nth(best);
+  await cards.nth(best).click();
+  await page.locator('.starter-select__choose').click();
 }
 
 /**
@@ -672,15 +703,27 @@ async function chooseNode() {
   const options = page.locator(`${visible('map')} .node--current`);
   if ((await options.count()) === 0) return null;
 
-  const hpText = (await page.locator(`${visible('map')} .panel__hp-text`).first().textContent()) ?? '';
-  const [, current, max] = /(\d+)\s*\/\s*(\d+)/.exec(hpText) ?? [];
-  const fraction = current && max ? Number(current) / Number(max) : 1;
-
-  if (fraction < 0.95) {
-    const rest = page.locator(`${visible('map')} .node--current.node--rest`).first();
-    if (await rest.count()) return rest;
-  }
+  // The lead's HP from the party screen, through the Team tab: the map
+  // carries no team since 5.0/4 (`leadHpFraction` below).
+  const rest = page.locator(`${visible('map')} .node--current.node--rest`).first();
+  if ((await rest.count()) && (await leadHpFraction()) < 0.95) return rest;
   return options.first();
+}
+
+/**
+ * The lead's HP as a fraction, read off the party screen through the Team
+ * tab. **Stage 5.0/4**: the map carried the party until then. A readout: it
+ * submits nothing and draws nothing, so both runs stay the same walk. The
+ * same helper as `scripts/visual/browser.mjs`'s, on this file's own page.
+ */
+async function leadHpFraction() {
+  await page.locator('[data-nav="team"]').click();
+  await page.waitForSelector(visible('party'));
+  const hpText = (await page.locator(`${visible('party')} .party__member .panel__hp-text`).first().textContent()) ?? '';
+  await page.locator(`${visible('party')} .primary-action`).first().click();
+  await page.waitForSelector(visible('map'));
+  const [, current, max] = /(\d+)\s*\/\s*(\d+)/.exec(hpText) ?? [];
+  return current && max ? Number(current) / Number(max) : 1;
 }
 
 /** What the chain looked like partway through: done behind, current, upcoming ahead. */
@@ -879,7 +922,7 @@ const phone = await browser.newPage({
   isMobile: true,
   hasTouch: true,
 });
-await skipTutorial(phone);
+await skipFirstRun(phone);
 await phone.goto(url, { waitUntil: 'load' });
 await phone.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
 
@@ -904,11 +947,21 @@ const phoneCheck = (label, ok, detail) => {
  * ever needs the same countdown, it is eleven lines and it is in this file's history.
  */
 
-// Starter cards carry base stats, so a pick is not a coin flip.
-const starterStats = await phone.locator('.starter .statline__stat').count();
-phoneCheck('starter cards show base stats', starterStats >= 18, `${starterStats} cells across 3 cards`);
-
+/*
+ * Starter cards carry base stats, so a pick is not a coin flip.
+ *
+ * `.stats .stat` since M3.2, where `.statline` was deleted: it was the second
+ * of three components drawing a six-stat readout, which is the defect section
+ * 5 of the design bible closes with. One component draws them all now, so this
+ * counts the rows it draws.
+ */
 await phone.locator('.starter').first().click();
+// The selected starter's stats, numbers at rest, in the detail panel since
+// bible Rev 19 (D79); on each card under D40. Every call site since Rev 20 (D82).
+const starterStats = await phone.locator('.starter-detail .stats .stat__value:visible').count();
+phoneCheck('the selected starter shows its six stats as numbers', starterStats === 6, `${starterStats} numbers`);
+
+await phone.locator('.starter-select__choose').click();
 
 /*
  * The locale pick, which from Stage 4.6a sits between the starter and the map.
@@ -1014,7 +1067,7 @@ phoneCheck(
  * And the same readout on the party screen, where it is open by default and is
  * the first thing under the heading.
  */
-await phone.locator(`${visible('map')} .party__header .button`).first().click().catch(() => undefined);
+await phone.locator('[data-nav="team"]').first().click().catch(() => undefined);
 await phone.waitForTimeout(50);
 if (await phone.locator(visible('party')).count()) {
   const partyMetrics = await phone.evaluate(() => {
@@ -1118,10 +1171,30 @@ if (await phone.locator(visible('battle')).count()) {
       ),
       statusMoves: globalThis.document.querySelectorAll('.moves .move[data-category="status"]').length,
       statusReadouts: globalThis.document.querySelectorAll('.moves .move__effect').length,
-      // Part 7: the label beside the level, on both panels.
+      /*
+       * **Not the archetype label any more. M3.1, discrepancy D18.**
+       *
+       * Part 7 put a label beside the level on both panels and this check
+       * held it there for five stages. Section 3 bars the label — *"a derived
+       * label [that] can lie under randomization"* — section 5 never listed
+       * it, and section 4 budgets this panel at zero words, so D18 deleted
+       * it. What the check was really protecting is the fact underneath: V5
+       * took the six base stats off this panel on the argument that the label
+       * replaced them, which is what made deleting it a C2 question rather
+       * than a tidy-up.
+       *
+       * So the assertion follows the fact rather than the element. Both
+       * panels carry all six stats behind their long press, and neither
+       * carries the label. A panel that regained the label, or lost the
+       * stats, fails here the way the old check meant to.
+       */
       archetypes: globalThis.document.querySelectorAll('.panel .badge--archetype').length,
-      // Part 1: the drawer trigger, in the same place on every surface.
-      drawerTrigger: globalThis.document.querySelectorAll('[data-drawer-trigger]').length,
+      statPanels: [...globalThis.document.querySelectorAll('.panel[data-tip^="stats:"]')].filter(
+        (panel) => (panel.dataset.detail ?? '').split('\n').filter(Boolean).length === 6,
+      ).length,
+      // Part 1: the party is reachable from a battle. The Team tab since Stage
+      // 5.0/1, where the drawer trigger was.
+      drawerTrigger: [...globalThis.document.querySelectorAll('[data-nav="team"]')].filter((tab) => !tab.disabled).length,
       scrollWidth: globalThis.document.documentElement.scrollWidth,
       innerWidth: globalThis.window.innerWidth,
     };
@@ -1159,9 +1232,13 @@ if (await phone.locator(visible('battle')).count()) {
     battle.statusReadouts >= battle.statusMoves,
     `${battle.statusReadouts} readouts for ${battle.statusMoves} status moves`,
   );
-  phoneCheck('both Pokemon carry an archetype label', battle.archetypes === 2, `${battle.archetypes} labels`);
+  phoneCheck(
+    'both Pokemon carry their six stats, and neither carries the archetype label',
+    battle.statPanels === 2 && battle.archetypes === 0,
+    `${battle.statPanels} stat panels, ${battle.archetypes} labels`,
+  );
   phoneCheck('the party drawer is reachable in a battle', battle.drawerTrigger === 1,
-    `${battle.drawerTrigger} triggers`);
+    `${battle.drawerTrigger} enabled Team tabs`);
 
   await phone.screenshot({ path: 'stats/phone-battle.png' });
 } else {

@@ -19,7 +19,9 @@
  * existing tests are untouched. What changed is that no screen builds one by
  * hand any more; `test/chip.test.ts` scans for that.
  */
+import type { FieldKind } from '../core/battle/view';
 import { el } from './dom';
+import { categoryGlyphId, glyphNode, markFamily, typeGlyphId } from './theme/glyph';
 import { BAND_PIPS } from '../data/bandInfo';
 import {
   MAX_STAGE,
@@ -30,12 +32,16 @@ import {
 
 export type ChipVariant =
   | 'type'
+  /** The field glyph on the battle header. Stage 4.11 Tier 2, D47. */
+  | 'field'
   | 'tier'
+  | 'reward-tier'
   | 'band'
   | 'status'
   | 'stage'
   | 'capability'
   | 'capability-band'
+  | 'node'
   | 'category'
   | 'effect'
   | 'flag'
@@ -55,9 +61,42 @@ function build(variant: ChipVariant, legacy: string, text: string, options: Chip
   return node;
 }
 
+/**
+ * The word form of a chip whose glyph now carries the fact. **M2.1.**
+ *
+ * Section 2 makes the type chip *"18 glyphs inside a coloured chip"* and the
+ * category chip a fist, a ring or a wave. R2 forbids the type name and the
+ * category word at rest, and R3 forbids rendering either fact twice. So the
+ * glyph is the encoding and the word is a second form of the same fact, kept
+ * only because D16 ruled Detailed and Simple keep their labelled face until
+ * M6.4 decides whether they survive at all.
+ *
+ * The stylesheet is what chooses: Pocket renders the glyph alone, the other
+ * two render the word. Density has always been a stylesheet change here rather
+ * than a re-render, and this keeps it one — the DOM carries both forms and no
+ * screen re-renders when the mode changes.
+ */
+function wordForm(text: string): HTMLElement {
+  const word = el('span', 'chip__word');
+  word.textContent = text;
+  return word;
+}
+
 /** A type. The one coloured chip; `type--<name>` carries the hue. */
 export function typeChip(type: string, options: ChipOptions = {}): HTMLElement {
-  return build('type', `type type--${type.toLowerCase()}`, type, options);
+  const node = build('type', `type type--${type.toLowerCase()}`, '', options);
+  /*
+   * The glyph carries the accessible name, not the chip and not the word.
+   *
+   * Once Pocket hides the word the mark is the only thing naming the type, so
+   * it is the one glyph on the card that is not `aria-hidden`. Labelling the
+   * chip instead would announce the type twice in the modes that still render
+   * the word.
+   */
+  const mark = glyphNode(typeGlyphId(type), { label: type });
+  if (mark) node.append(mark);
+  node.append(wordForm(type));
+  return node;
 }
 
 /**
@@ -150,8 +189,16 @@ export function bandChip(band: number): HTMLElement {
   const node = build('band', `band band--${band}`, '', { tip: `band:${band}` });
   node.setAttribute('role', 'img');
   node.setAttribute('aria-label', `Band ${band} of ${BAND_PIPS}`);
+  /*
+   * **The pips are the sheet's pips. Milestone M6.1, D41.** They were CSS boxes
+   * drawn here, so the band family never reported itself and its exposure
+   * label could never fire. M1.1 had already redrawn the pair as a filled and
+   * an outlined circle, because two boxes differing only in tone separated by
+   * 0.063 at 16px against a floor of 0.12; this mounts that pair. The chip's
+   * `aria-label` names the band, so each pip stays `aria-hidden`.
+   */
   for (let i = 0; i < BAND_PIPS; i++) {
-    const pip = el('span', 'band__pip');
+    const pip = glyphNode(i < band ? 'band-pip-on' : 'band-pip-off', { extra: 'band__pip' }) ?? el('span', 'band__pip');
     if (i < band) pip.dataset['on'] = 'true';
     pip.setAttribute('aria-hidden', 'true');
     node.append(pip);
@@ -159,10 +206,213 @@ export function bandChip(band: number): HTMLElement {
   return node;
 }
 
+/**
+ * A node's tier, as a meter. **Milestone M5.2, section 3's Tier row.**
+ *
+ * Section 3: *"Tier (map node) | Tier pips, reward-tier pips | None | Tier
+ * definition."* `NORMAL` and `HARD` were words naming a bracket the player has
+ * to have been told about; three pips filled to the tier say the same thing as
+ * a quantity, which is the band meter's argument one family up and the reason
+ * R2 deletes a label but keeps a count.
+ *
+ * **Only one strip, and that is R3 rather than a shortcut.** Section 3 asks for
+ * tier pips *and* reward-tier pips. In this tree the reward tier is a pure
+ * function of the node tier — `data/tierInfo.ts` says normal pays its own band,
+ * hard one up, elite two up — so a second strip would render one attribute
+ * twice on one surface, which is exactly what R3 forbids. What a tier pays is
+ * on inspect, in the tier definition, where section 3's own last column puts
+ * it. Recorded in `docs/generation.md` §67.
+ *
+ * Not a rating. A filled pip is one step of difficulty, the same fact `HARD`
+ * stated; nothing here says a higher tier is a better route, which is the
+ * editorial rule C1 binds every map surface with.
+ */
+export function tierPips(tier: string): HTMLElement {
+  const step = TIER_STEPS.indexOf(tier) + 1;
+  /*
+   * `tier-pips`, not `tier`. **`.tier` is still the reward screen's text
+   * chip** — `offerBadge` draws `GYM` and `ELITE` through `tierChip`, and that
+   * rule sets `display: inline-block` with padding, so a meter wearing the
+   * same class renders as an empty box. Found the direct way, on the map.
+   */
+  const node = build('tier', `tier-pips tier-pips--${tier}`, '', { tip: `tier:${tier}` });
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', `Tier ${step} of ${TIER_STEPS.length}`);
+  for (let i = 0; i < TIER_STEPS.length; i++) {
+    const pip = el('span', 'tier-pips__pip');
+    if (i < step) pip.dataset['on'] = 'true';
+    pip.setAttribute('aria-hidden', 'true');
+    node.append(pip);
+  }
+  return node;
+}
+
+/** The tier ladder, lowest first. The order the pips count in. */
+const TIER_STEPS: readonly string[] = ['normal', 'hard', 'elite'];
+
+/**
+ * Which tiers an event option can pay, as a span of pips. **Milestone M5.6.**
+ *
+ * Section 3's Tier row has asked for *"reward-tier pips"* since Rev 1 and
+ * nothing rendered them: the event screen printed `Reward: T0 to T2`, which is
+ * a label, a ladder position and a range written out, on the one surface where
+ * every word is already spoken for. Four pips, one per outcome tier, with the
+ * ones this option draws from filled.
+ *
+ * **A span, not a fill-to-step, and that is the whole difference from
+ * `tierPips`.** A node's tier is a position on a ladder, so its meter fills
+ * from the bottom. An option's reward is a *range* — Gamble reaches from `T0`
+ * to `T2` and Attune from `T2` to `T3` — and a meter filled from the bottom
+ * would say those two overlap everywhere they do not. Where the range is one
+ * tier the span is one pip, which reads as the narrow thing it is.
+ *
+ * Not a rating, on the same footing as the tier label it replaces: it names
+ * which pool the outcome draws from, which is an attribute of the button. The
+ * carve-out is `docs/generation.md` section 14 and it is unchanged by drawing
+ * the same fact without words.
+ */
+export function rewardTierPips(low: string, high: string, label: string): HTMLElement {
+  const first = REWARD_TIER_STEPS.indexOf(low);
+  const last = REWARD_TIER_STEPS.indexOf(high);
+  const node = build('reward-tier', `reward-tier-pips reward-tier-pips--${low}-${high}`, '', {
+    tip: `reward-tier:${low}-${high}`,
+  });
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  for (const [index, tier] of REWARD_TIER_STEPS.entries()) {
+    const pip = el('span', `tier-pips__pip reward-tier-pips__pip reward-tier-pips__pip--${tier}`);
+    if (index >= first && index <= last) pip.dataset['on'] = 'true';
+    pip.setAttribute('aria-hidden', 'true');
+    node.append(pip);
+  }
+  return node;
+}
+
+/** T0 to T3, lowest first. The order the reward pips are laid out in. */
+const REWARD_TIER_STEPS: readonly string[] = ['T0', 'T1', 'T2', 'T3'];
+
+/**
+ * The capability a gated node asks for, as its glyph. **M5.2, D37.**
+ *
+ * Section 3 has specified a *"capability glyph plus band chevron"* on this row
+ * since Rev 1 and section 2's roster did not carry the family until D37; what
+ * shipped in the meantime was `Requires Cut`, two words for a fact with a
+ * mark. The name and what satisfies it are the inspect column, reached by the
+ * same `capability:` tip the chip carried.
+ */
+export function capabilityGlyph(capability: string, label: string): HTMLElement {
+  const node = build('capability', 'node__gate-need', '', { tip: `capability:${capability}` });
+  const mark = glyphNode(`capability-${capability}`, { label });
+  if (mark) node.append(mark);
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  return node;
+}
+
+/**
+ * The kind of a node, as its mark. **Patch 4.10.1, D46.**
+ *
+ * One builder for the two surfaces that carry the kind, the map node card and
+ * the battle screen header, because R1 forbids the same attribute encoded two
+ * ways: the head the player routed toward is the head the fight is under. The
+ * size is the one thing the surfaces differ on, 24 on the card where the mark
+ * is the face and 16 on the header where it sits beside text, and section 5
+ * carries both numbers.
+ *
+ * The word is the glyph's accessible name and R7's exposure label, and nothing
+ * else: `KIND_LABELS` went with the build. The hint behind the mark is the
+ * `node:` tip, fed by `KIND_HINTS`, which is the copy the detail line printed
+ * for an untiered node and the tutorial paraphrased.
+ */
+export function nodeKindGlyph(kind: string, label: string, size: 24 | 16): HTMLElement {
+  const node = build('node', 'node__kind', '', { tip: `node:${kind}` });
+  const mark = glyphNode(`node-${kind}`, { label, size });
+  if (mark) node.append(mark);
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  return node;
+}
+
+/**
+ * The state of the board, as its mark. **Stage 4.11 Tier 2, D47.**
+ *
+ * One builder for the weather and the terrain, because they are one family
+ * and one slot: the battle header, after the AI tier, at 16. `id` is the sim's
+ * own (`raindance`, `desolateland`) and it is what the tip is keyed by, so
+ * Extreme sun and Harsh sunlight wear one mark and open two panels — which is
+ * the D47 ruling on the primal weathers. `suppressed` is the second fact the
+ * mark can carry: the weather is set and an ability is holding it off, drawn
+ * dimmed rather than absent because the rain returns the moment that Pokemon
+ * leaves.
+ */
+export function fieldGlyph(kind: FieldKind, id: string, label: string, suppressed = false): HTMLElement {
+  const node = build('field', 'battle__field-mark', '', { tip: `field:${id}` });
+  const mark = glyphNode(`field-${kind}`, { label, size: 16 });
+  if (mark) node.append(mark);
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  if (suppressed) node.dataset['suppressed'] = 'true';
+  return node;
+}
+
+/**
+ * Where the run stands against that capability, as the band chevron. **M5.2.**
+ *
+ * Three states — none, latent, known — drawn as two chevrons with none, one or
+ * both filled. That is the band meter's pattern rather than three more
+ * silhouettes inside one family, and it keeps the reading a *count*: how much
+ * of the way there this run is.
+ */
+export function capabilityBandChevron(band: string, label: string): HTMLElement {
+  const filled = CAPABILITY_BAND_STEPS.indexOf(band);
+  const node = build('capability-band', 'node__gate-band', '', { tip: `capability-band:${band}` });
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  for (let i = 0; i < CAPABILITY_BAND_STEPS.length - 1; i++) {
+    const mark = glyphNode(i < filled ? 'capability-band-on' : 'capability-band-off', { label });
+    if (mark) {
+      mark.setAttribute('aria-hidden', 'true');
+      node.append(mark);
+    }
+  }
+  return node;
+}
+
+/**
+ * A coin amount that inspects, for the map. **Stage 5.0/4.** `coinAmount`
+ * below (5.0/3) is the mark and the number; this adds the `currency:` tip,
+ * because section 3's *Coin amount* row puts *"the word coins, and what the
+ * amount buys or pays"* on inspect and a map amount is a fact the player
+ * routes by. `context` picks that line (`payout` for what a node pays,
+ * `price` for a shelf's cheapest, `wallet` for the run's coins); the number
+ * rides on `data-value`, the way a stat label carries its value.
+ */
+export function currencyAmount(amount: number, context: 'payout' | 'price' | 'wallet'): HTMLElement {
+  const node = coinAmount(String(amount));
+  node.dataset['tip'] = `currency:${context}`;
+  node.dataset['value'] = String(amount);
+  node.setAttribute('aria-label', `${amount} coins`);
+  return node;
+}
+
+/** none, latent, known: the ladder the chevrons count along. */
+const CAPABILITY_BAND_STEPS: readonly string[] = ['none', 'latent', 'known'];
+
 /** A status condition. `data-status` names it; the label is what is shown. */
 export function statusChip(id: string, label: string = id.toUpperCase(), options: ChipOptions = {}): HTMLElement {
   const node = build('status', 'badge badge--status', label, options);
   node.dataset['status'] = id;
+  /*
+   * **The lettering is the sheet's. Milestone M6.1, D41.** Section 2 makes the
+   * status family lettering, so the six major conditions are glyphs in the
+   * sheet whose art is their three letters. Mounting that glyph in place of
+   * the same letters is what lets the family report itself. A volatile has no
+   * sheet entry (D19 put it in the family without drawing it) and a chip whose
+   * caller asked for other letters keeps them, so both are marked instead.
+   */
+  const mark = glyphNode(`status-${id}`);
+  if (mark && mark.textContent === label) node.replaceChildren(mark);
+  else markFamily(node, 'status');
   return node;
 }
 
@@ -245,7 +495,10 @@ export function capabilityBandChip(text: string): HTMLElement {
 
 /** A move category, `PHYS`, `SPEC`, `STAT`. */
 export function categoryChip(category: string, label: string, options: ChipOptions = {}): HTMLElement {
-  const node = build('category', `badge badge--category badge--cat-${category.toLowerCase()}`, label, options);
+  const node = build('category', `badge badge--category badge--cat-${category.toLowerCase()}`, '', options);
+  const mark = glyphNode(categoryGlyphId(category), { label: category });
+  if (mark) node.append(mark);
+  node.append(wordForm(label));
   node.tabIndex = 0;
   node.setAttribute('role', 'button');
   return node;
@@ -255,6 +508,9 @@ export function categoryChip(category: string, label: string, options: ChipOptio
 export function effectChip(label: string, band: string): HTMLElement {
   const node = build('effect', 'badge badge--effect', label);
   node.dataset['band'] = band;
+  // The forecast's numeral reports its family (M6.1, D41). Section 2 draws the
+  // family as an edge and a numeral rather than a glyph, so it is marked.
+  markFamily(node, 'effectiveness');
   return node;
 }
 
@@ -282,4 +538,21 @@ export function flagChip(kind: string, text: string, options: ChipOptions = {}):
 /** A plain neutral badge: lead, item, ability, volatile, relic. */
 export function neutralChip(text: string, modifier: string, options: ChipOptions = {}): HTMLElement {
   return build('neutral', `badge badge--${modifier}`, text, options);
+}
+
+/**
+ * A coin amount: the currency glyph beside a bare number. **Section 2's
+ * currency family, ruled under D54, first drawn in Stage 5.0/3.** The shop's
+ * price and the coins card; the wallet and the map node's payout follow as
+ * their stages reach them. Not a chip: the mark qualifies the number beside
+ * it, and the number is the fact.
+ */
+export function coinAmount(amount: string, className = ''): HTMLElement {
+  const node = el('span', `coin-amount${className ? ` ${className}` : ''}`);
+  const mark = glyphNode('currency-coin');
+  if (mark) node.append(mark);
+  const value = el('span', 'coin-amount__value');
+  value.textContent = amount;
+  node.append(value);
+  return node;
 }

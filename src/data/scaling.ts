@@ -82,6 +82,18 @@ export interface SegmentScaling {
    * The gym keeps its exam difficulty — the full roster (`opponentTeamSize`),
    * the band bonus (`GYM_MOVE_BAND_BONUS`) and the hard AI (`data/ai.ts`) are
    * all untouched — and pays for none of it in levels.
+   *
+   * **Wild two lower, gyms 1 to 3 one lower. 2026-09-25.** A playtest read
+   * wild encounters as too strong, and the lever is the level rather than a
+   * band: a capture keeps the species and moveset it was fought with and
+   * re-levels to the party (`core/acquisition.ts`), so a lower band is a
+   * weaker catch for the rest of the run while a lower level is the same
+   * catch fought at a discount. Every wild row moves down by two at both ends.
+   * The same brief asked for gyms 1 to 3 one level lower, so those three rows'
+   * gym columns move down by one at both ends: the ace sits one under the
+   * party and the spread keeps its shape. The rule the column carries is
+   * unchanged — a gym is never *above* the player — and `max` at `-1` is
+   * inside it; what was pinned as exact parity is now pinned as a ceiling.
    */
   levelOffset: Record<BattleKind, Range>;
   /**
@@ -274,7 +286,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 0,
     playerLevel: 15,
-    levelOffset: { wild: { min: -3, max: -2 }, trainer: { min: -2, max: -1 }, gym: { min: -3, max: 0 } },
+    levelOffset: { wild: { min: -5, max: -4 }, trainer: { min: -2, max: -1 }, gym: { min: -4, max: -1 } },
     speciesBandWeights: { 0: 5, 1: 1 },
     moveBandWeights: { 1: 4, 2: 1 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -282,7 +294,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 1,
     playerLevel: 20,
-    levelOffset: { wild: { min: -5, max: -3 }, trainer: { min: -4, max: -2 }, gym: { min: -4, max: 0 } },
+    levelOffset: { wild: { min: -7, max: -5 }, trainer: { min: -4, max: -2 }, gym: { min: -5, max: -1 } },
     speciesBandWeights: { 0: 4, 1: 2 },
     moveBandWeights: { 1: 3, 2: 2 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -290,7 +302,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 2,
     playerLevel: 26,
-    levelOffset: { wild: { min: -7, max: -5 }, trainer: { min: -5, max: -3 }, gym: { min: -5, max: 0 } },
+    levelOffset: { wild: { min: -9, max: -7 }, trainer: { min: -5, max: -3 }, gym: { min: -6, max: -1 } },
     speciesBandWeights: { 0: 2, 1: 3, 2: 2 },
     moveBandWeights: { 1: 2, 2: 3, 3: 2 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -298,7 +310,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 3,
     playerLevel: 32,
-    levelOffset: { wild: { min: -9, max: -6 }, trainer: { min: -7, max: -4 }, gym: { min: -6, max: 0 } },
+    levelOffset: { wild: { min: -11, max: -8 }, trainer: { min: -7, max: -4 }, gym: { min: -6, max: 0 } },
     speciesBandWeights: { 0: 1, 1: 3, 2: 3 },
     moveBandWeights: { 1: 1, 2: 3, 3: 4 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -306,7 +318,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 4,
     playerLevel: 38,
-    levelOffset: { wild: { min: -11, max: -8 }, trainer: { min: -8, max: -5 }, gym: { min: -7, max: 0 } },
+    levelOffset: { wild: { min: -13, max: -10 }, trainer: { min: -8, max: -5 }, gym: { min: -7, max: 0 } },
     speciesBandWeights: { 1: 2, 2: 3, 3: 2 },
     moveBandWeights: { 2: 2, 3: 5, 4: 1 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -314,7 +326,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 5,
     playerLevel: 44,
-    levelOffset: { wild: { min: -13, max: -9 }, trainer: { min: -10, max: -6 }, gym: { min: -8, max: 0 } },
+    levelOffset: { wild: { min: -15, max: -11 }, trainer: { min: -10, max: -6 }, gym: { min: -8, max: 0 } },
     speciesBandWeights: { 1: 1, 2: 3, 3: 3 },
     moveBandWeights: { 2: 2, 3: 5, 4: 1, 5: 1 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -322,7 +334,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 6,
     playerLevel: 50,
-    levelOffset: { wild: { min: -15, max: -11 }, trainer: { min: -11, max: -7 }, gym: { min: -9, max: 0 } },
+    levelOffset: { wild: { min: -17, max: -13 }, trainer: { min: -11, max: -7 }, gym: { min: -9, max: 0 } },
     speciesBandWeights: { 2: 2, 3: 3, 4: 1 },
     moveBandWeights: { 3: 4, 4: 2, 5: 2 },
     teamAdvantage: { wild: 0, trainer: 0 },
@@ -330,7 +342,7 @@ export const SEGMENTS: readonly SegmentScaling[] = [
   {
     segment: 7,
     playerLevel: 58,
-    levelOffset: { wild: { min: -17, max: -12 }, trainer: { min: -13, max: -8 }, gym: { min: -10, max: 0 } },
+    levelOffset: { wild: { min: -19, max: -14 }, trainer: { min: -13, max: -8 }, gym: { min: -10, max: 0 } },
     speciesBandWeights: { 2: 1, 3: 3, 4: 2 },
     moveBandWeights: { 3: 3, 4: 2, 5: 4 },
     teamAdvantage: { wild: 0, trainer: 0 },

@@ -13,6 +13,7 @@
  */
 import { GYMRUN_FORMAT } from '../core/battle/format';
 import { TUTORIAL_COPY } from '../data/tutorial';
+import { INTRO_COPY } from '../data/intro';
 import { el } from './dom';
 
 export function createHeader(replayTutorial: HTMLButtonElement, seedToggle: HTMLButtonElement): HTMLElement {
@@ -48,8 +49,15 @@ function createControls(replayTutorial: HTMLButtonElement, seedToggle: HTMLButto
   replayTutorial.type = 'button';
   replayTutorial.className = 'button button--small tutorial__replay';
   replayTutorial.textContent = TUTORIAL_COPY.replayShort;
-  replayTutorial.setAttribute('aria-label', TUTORIAL_COPY.replay);
-  replayTutorial.title = TUTORIAL_COPY.replay;
+  /*
+   * The face stays `Tutorial`; the full label names both surfaces.
+   *
+   * The button resets the intro and the coach marks together — one control for
+   * "show me the first launch again" — so a label reading only "Show tutorial
+   * again" would understate it for the reader who most depends on the label.
+   */
+  replayTutorial.setAttribute('aria-label', INTRO_COPY.replay);
+  replayTutorial.title = INTRO_COPY.replay;
   replayTutorial.dataset['tutorialReplay'] = 'true';
 
   /*

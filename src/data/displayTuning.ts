@@ -159,6 +159,46 @@ export interface DisplayTuning {
    * already samples that way for the V1 text rule and this reuses it.
    */
   minChipContrastRatio: number;
+
+  /**
+   * How long a press has to be held before inspect opens. **Milestone M1.2.**
+   *
+   * Design bible R5 makes one long press the only way to open an explanation,
+   * and the number that separates a press from a tap is the whole of whether
+   * that rule is usable. Too short and a player selecting a move gets a panel
+   * they did not ask for; too long and the gesture feels broken and is never
+   * found.
+   *
+   * **450ms**, which is the platform convention rather than a finding: iOS and
+   * Android both fire their own long-press at roughly half a second, and a
+   * gesture that disagreed with the one a player already has in their hands
+   * would be the wrong kind of novel. It is parked here, off the
+   * `contentHash` glob, so the first playtest that says "I keep opening it by
+   * accident" can move it without refusing a single shared seed.
+   *
+   * R5's disconfirmer is the one to watch: *any* accidental submission during
+   * inspect in playtest sends the gesture to two-finger tap, and no amount of
+   * raising this number is the fix for that.
+   */
+  inspectHoldMs: number;
+
+  /**
+   * How far the log handle has to be pulled before the sheet opens.
+   * **Milestone M4.3, row D26.**
+   *
+   * M4.3 asks for the sheet to be *"reachable by pull"*, and the number that
+   * separates a pull from a tap is the whole of whether both gestures can live
+   * on one control. Too small and a player who meant to tap gets a drag that
+   * fires twice; too large and the pull is a gesture nobody completes.
+   *
+   * **24px**, which is the platform convention rather than a finding: a sheet
+   * that follows the finger commits at roughly a finger's width on both
+   * phones, and it sits well above the ~10px slop a browser already allows a
+   * tap before it stops being a click. Parked here, off the `contentHash`
+   * glob, so the first playtest that says "it opens when I try to read the
+   * strip" can move it without refusing a shared seed.
+   */
+  logPullPx: number;
 }
 
 /**
@@ -228,4 +268,14 @@ export const DEFAULT_DISPLAY_TUNING: DisplayTuning = {
 
   minChipFontSizePx: 11,
   minChipContrastRatio: 4.5,
+  inspectHoldMs: 450,
+
+  /*
+   * **24px.** M4.3, and the same reasoning as `inspectHoldMs` above: a gesture
+   * number that disagrees with the one a player already has in their hands is
+   * the wrong kind of novel. The tap is unaffected — a pointer that never
+   * travels this far is a click, and the click handler is the route that was
+   * always there.
+   */
+  logPullPx: 24,
 };

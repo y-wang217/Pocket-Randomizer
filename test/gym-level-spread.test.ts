@@ -87,7 +87,13 @@ describe('a gym is never above the player', () => {
 describe('the spread', () => {
   it('puts the team mean near the 0.91 the reference games sit at', () => {
     for (let segment = 0; segment < SEGMENT_COUNT; segment++) {
-      const cap = playerLevel(segment);
+      /*
+       * The cap is the ace's level, which is the range's ceiling. It was the
+       * player's level until 2026-09-25, when gyms 1 to 3 moved one under the
+       * party; the reference ratio is team mean to ace, so it is read against
+       * the ceiling and the 0.91 still means what it did.
+       */
+      const cap = opponentLevel('gym', segment, 'normal').max;
       const levels = teamsAt(segment, SEEDS).flatMap((team) => team.map((member) => member.level));
       const mean = levels.reduce((total, level) => total + level, 0) / levels.length;
       /*

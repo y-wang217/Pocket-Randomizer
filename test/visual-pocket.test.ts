@@ -7,9 +7,13 @@
  * (`ui/gallery-fixtures.ts`, ruling 3) loaded in Pocket mode on a fresh page,
  * and the assertion is the mode's whole definition:
  *
- *   - **Decision surfaces** — starter, locale, map, battle, result (both
- *     shapes), target, replace, party, pre-gym, shop, event — `scrollHeight`
- *     of the document at or under 844. A hard gate, no exemptions.
+ *   - **Decision surfaces** — locale, map, battle, result (both shapes),
+ *     target, replace, party, pre-gym, shop, event — `scrollHeight` of the
+ *     document at or under 844. A hard gate, no exemptions.
+ *   - **Starter select**, the one decision surface allowed to scroll
+ *     (2026-09-23, D45). Three full starters with four move cards each cannot
+ *     fit 844 in any layout measured, so the gate is the first starter card,
+ *     whole, above the fold: one complete option before any scroll.
  *   - **The drawer** — a fixed overlay whose sheet scrolls on its own, so the
  *     document's height cannot see it: the sheet's `scrollHeight` at or under
  *     its `clientHeight`.
@@ -26,7 +30,7 @@ import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { PHONE } from '../scripts/visual/browser.mjs';
-import { ARCHIVE_SURFACES, DECISION_SURFACES, GALLERY_SURFACES, OVERLAY_SURFACES, type GallerySurface } from '../src/ui/gallery-surfaces';
+import { ARCHIVE_SURFACES, CONFIRM_SURFACES, DECISION_SURFACES, GALLERY_SURFACES, OVERLAY_SURFACES, RELIC_SURFACES, type GallerySurface } from '../src/ui/gallery-surfaces';
 import { openHarness, type Harness } from './visual/harness';
 
 let harness: Harness;
@@ -46,7 +50,7 @@ async function open(surface: GallerySurface): Promise<{ page: Page; close: () =>
   // so a missing one moves nothing this file measures.
   await context.route(/play\.pokemonshowdown\.com/, (route) => route.abort());
   const page = await context.newPage();
-  await page.goto(`${harness.url}/gallery.html#seed=SMOKE24&screen=${surface}&density=pocket&fixture=loaded`, { waitUntil: 'load' });
+  await page.goto(`${harness.url}/gallery.html#seed=SMOKE24&screen=${surface}&fixture=loaded`, { waitUntil: 'load' });
   await page.waitForSelector('html[data-gallery-ready="true"]', { timeout: 60_000 });
   await page.evaluate(() => globalThis.document.fonts.ready);
   await page.mouse.move(0, 0);
@@ -59,11 +63,31 @@ describe('the surfaces are all gated', () => {
     // `OVERLAY_SURFACES` rather than the literal `'drawer'` it named before the
     // map overlay: the list below is generated from the same constant, so a new
     // overlay is gated by adding it in one place instead of two.
-    expect([...DECISION_SURFACES, ...OVERLAY_SURFACES, ...ARCHIVE_SURFACES].sort()).toEqual([...GALLERY_SURFACES].sort());
+    expect(
+      [...DECISION_SURFACES, ...RELIC_SURFACES, ...OVERLAY_SURFACES, ...CONFIRM_SURFACES, ...ARCHIVE_SURFACES].sort(),
+    ).toEqual([...GALLERY_SURFACES].sort());
   });
 });
 
-describe.each(DECISION_SURFACES)('%s in Pocket', (surface) => {
+/**
+ * **The starter screen scrolls, by ruling. D45, 2026-09-23.** M6.0 mounted the
+ * move card there (D40) and the screen went from under 844 to 1667; a 2x2 grid
+ * of cards brings it to about 1081 and nothing measured got it under 844. The
+ * ruling let the classroom scroll rather than take facts off it. What stays
+ * gated is the first starter, complete, in the first screenful.
+ */
+const SCROLLING_DECISIONS: readonly GallerySurface[] = ['starter'];
+
+describe('starter in Pocket', () => {
+  it('holds the first starter card whole above 844', async () => {
+    const { page, close } = await open('starter');
+    const bottom = await page.evaluate(() => globalThis.document.querySelector('.starter')?.getBoundingClientRect().bottom ?? Infinity);
+    await close();
+    expect(bottom, `the first starter card ends at ${bottom}`).toBeLessThanOrEqual(PHONE.height);
+  }, 120_000);
+});
+
+describe.each([...DECISION_SURFACES, ...RELIC_SURFACES].filter((surface) => !SCROLLING_DECISIONS.includes(surface)))('%s in Pocket', (surface) => {
   it('does not scroll at 390x844', async () => {
     const { page, close } = await open(surface);
     const height = await page.evaluate(() => globalThis.document.documentElement.scrollHeight);
@@ -95,6 +119,74 @@ describe.each(OVERLAY_SURFACES)('the %s in Pocket', (surface) => {
     await close();
     expect(sheet, `the ${surface} was not open`).not.toBeNull();
     expect(sheet?.scroll, `the sheet scrolls: ${sheet?.scroll} inside ${sheet?.client}`).toBeLessThanOrEqual(sheet?.client ?? 0);
+  }, 120_000);
+});
+
+/**
+ * The confirm bands in Pocket, one case per entry in `CONFIRM_SURFACES`.
+ * **Milestone M5.5.**
+ *
+ * Not the overlay gate above: a band has no `__sheet`, so that query would
+ * find nothing and the assertion would pass on an absence. Not the decision
+ * gate either: a band is `position: fixed` over a screen, so the document's
+ * `scrollHeight` is the screen behind it, which `replace` and `target`
+ * already gate.
+ *
+ * What a confirm has to do is fit in front of the player without being
+ * scrolled, so the band's own body is measured against the viewport. Both
+ * mount full move cards, which is the content that could outgrow it.
+ */
+describe.each(CONFIRM_SURFACES)('the %s band in Pocket', (surface) => {
+  it('fits the viewport without scrolling', async () => {
+    const { page, close } = await open(surface);
+    const band = await page.evaluate(() => {
+      const element = globalThis.document.querySelector('.confirm-band__body');
+      if (!element) return null;
+      const box = element.getBoundingClientRect();
+      return { top: box.top, bottom: box.bottom, scroll: element.scrollHeight, client: element.clientHeight };
+    });
+    await close();
+    expect(band, `${surface} did not open a band`).not.toBeNull();
+    expect(band?.top, `the band starts above the viewport: ${band?.top}`).toBeGreaterThanOrEqual(0);
+    expect(band?.bottom, `the band runs past the fold: ${band?.bottom} against ${PHONE.height}`).toBeLessThanOrEqual(PHONE.height);
+    expect(band?.scroll, `the band scrolls internally: ${band?.scroll} inside ${band?.client}`).toBeLessThanOrEqual(band?.client ?? 0);
+  }, 120_000);
+});
+
+/**
+ * **Overlay cancel and flow decline are visually distinct. Milestone M5.5.**
+ *
+ * The item's last line, asserted where the condition it names actually
+ * happens: the `confirm-forfeit` fixture is the one surface in the gallery
+ * where a band's cancel and the screen's own decline are on screen at the
+ * same time. `confirm-replace` has no flow decline behind it — a replacement
+ * screen's way out is the band — so only the forfeit case is measured, and
+ * the reason is here rather than in a comment on a skipped case.
+ *
+ * Distinct means the player can tell a way out from an answer. The two differ
+ * in background, in border and in text colour once `body[data-band-open]`
+ * takes the decline's weight, and the assertion reads all three rather than
+ * trusting one: a single property could match by coincidence, three cannot.
+ */
+describe('the forfeit band in Pocket', () => {
+  it('does not look like the decline that opened it', async () => {
+    const { page, close } = await open('confirm-forfeit');
+    const pair = await page.evaluate(() => {
+      const read = (element: Element | null): { background: string; border: string; color: string } | null => {
+        if (!element) return null;
+        const style = globalThis.getComputedStyle(element);
+        return { background: style.backgroundColor, border: style.borderTopColor, color: style.color };
+      };
+      return {
+        cancel: read(globalThis.document.querySelector('.confirm-band__actions .button:not(.primary-action)')),
+        decline: read(globalThis.document.querySelector('.decline:not(.confirm-band .decline)')),
+      };
+    });
+    await close();
+    expect(pair.cancel, 'the band had no cancel control').not.toBeNull();
+    expect(pair.decline, 'the screen behind had no flow decline').not.toBeNull();
+    expect(pair.decline?.color, 'the flow decline keeps full text weight under an open band').not.toBe(pair.cancel?.color);
+    expect(pair.decline?.border, 'the two controls share a border colour').not.toBe(pair.cancel?.border);
   }, 120_000);
 });
 

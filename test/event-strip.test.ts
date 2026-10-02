@@ -58,28 +58,58 @@ function turn(session: BattleSession, slot = 1): void {
 }
 
 describe('the event line', () => {
-  it('says what was done, and names the side it was done by', () => {
+  /*
+   * **The premise changed in M4.3, under row D25.** These cases asserted
+   * `Snorlax used Body Slam` and `Opposing Snorlax used Tackle`, which is a
+   * sentence at rest on the screen R11 says carries nothing written. The facts
+   * did not go anywhere: the side is `data-side`, which the strip has drawn
+   * since V5, and the relation between the one actor and the one move on the
+   * line is the separator. What is asserted now is that no word survives.
+   */
+  it('says what was done, and spends no word doing it', () => {
     expect(eventLine({ kind: 'move', side: 'p1', actor: 'Snorlax', move: 'Body Slam', order: 1, priority: false, bracket: 0 })).toBe(
-      'Snorlax used Body Slam',
+      'Snorlax \u00b7 Body Slam',
     );
     /*
-     * The opponent is named as the log names it. Both sides can have a
-     * Snorlax out, and a bare name on a one-line strip would be the only place
-     * on the board that could not say which of the two just acted.
+     * And the opponent's line is the same line. `Opposing` was the second
+     * channel for a fact `data-side` already carried, which is R3; the case
+     * below asserts the attribute is still set, because the moment it is not
+     * this line stops saying which of two Snorlaxes acted.
      */
     expect(eventLine({ kind: 'move', side: 'p2', actor: 'Snorlax', move: 'Tackle', order: 2, priority: false, bracket: 0 })).toBe(
-      'Opposing Snorlax used Tackle',
+      'Snorlax \u00b7 Tackle',
     );
   });
 
-  it('names who a switch replaced only when the protocol said', () => {
-    expect(eventLine({ kind: 'switch', side: 'p1', actor: 'Gengar', from: 'Snorlax', order: 1 })).toBe(
-      'Gengar came in for Snorlax',
-    );
+  it('names the body that arrived, and leaves the pairing to the sheet', () => {
+    // `Gengar came in for Snorlax` named the body that left. The board does not
+    // draw that body any more by the time this line is read — the panel has
+    // already redrawn — and the sheet holds the pairing.
+    expect(eventLine({ kind: 'switch', side: 'p1', actor: 'Gengar', from: 'Snorlax', order: 1 })).toBe('Gengar');
     // A replacement after a faint, and the opening switch-ins, replaced nobody
-    // the protocol named. Inventing one would claim a withdrawal that never
-    // happened.
-    expect(eventLine({ kind: 'switch', side: 'p2', actor: 'Golem', from: null, order: 1 })).toBe('Opposing Golem came in');
+    // the protocol named. Both cases read the same now, which is honest: the
+    // strip never knew the difference, it only had two sentences for it.
+    expect(eventLine({ kind: 'switch', side: 'p2', actor: 'Golem', from: null, order: 1 })).toBe('Golem');
+  });
+
+  it('carries no word at all, on either kind of action', () => {
+    /*
+     * The done-when, as an assertion rather than an eyeball. Species and move
+     * names are proper nouns and free under section 4's counting rule; anything
+     * else on this line is word load on a screen budgeted at zero outside the
+     * strip and the header.
+     */
+    const lines = [
+      eventLine({ kind: 'move', side: 'p1', actor: 'Snorlax', move: 'Body Slam', order: 1, priority: false, bracket: 0 }),
+      eventLine({ kind: 'switch', side: 'p1', actor: 'Gengar', from: 'Snorlax', order: 1 }),
+      eventLine({ kind: 'switch', side: 'p2', actor: 'Golem', from: null, order: 1 }),
+    ];
+    const NAMES = new Set(['Snorlax', 'Body', 'Slam', 'Gengar', 'Golem']);
+    for (const line of lines) {
+      for (const token of line.split(/\s+/).filter((each) => /[A-Za-z]/.test(each))) {
+        expect(NAMES.has(token), `${token} in "${line}" is not a name`).toBe(true);
+      }
+    }
   });
 });
 
@@ -94,7 +124,9 @@ describe('the strip', () => {
     strip.show([{ turn: 4, actions: [move('p1', 'Snorlax', 'Body Slam', 1), move('p2', 'Golem', 'Tackle', 2)], residual: [] }]);
     // The board is in the state the *second* action left it, and the log holds
     // both in order one tap away.
-    expect(strip.root.querySelector('.flags__event')?.textContent).toBe('Opposing Golem used Tackle');
+    expect(strip.root.querySelector('.flags__event')?.textContent).toBe('Golem \u00b7 Tackle');
+    // And which side it was, in the one channel that carries it now.
+    expect((strip.root.querySelector('.flags__event') as HTMLElement).dataset['side']).toBe('p2');
   });
 
   it('has something to say on a turn that produced no flag word at all', () => {
@@ -105,7 +137,7 @@ describe('the strip', () => {
      */
     const strip = createFlagStrip();
     strip.show([{ turn: 2, actions: [move('p1', 'Snorlax', 'Splash', 1)], residual: [] }]);
-    expect(strip.root.querySelector('.flags__event')?.textContent).toBe('Snorlax used Splash');
+    expect(strip.root.querySelector('.flags__event')?.textContent).toBe('Snorlax \u00b7 Splash');
     // And `data-empty` still answers the question it has always answered:
     // whether there were words, which is what holds the band's height.
     expect(strip.root.dataset['empty']).toBe('true');

@@ -22,7 +22,7 @@ import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { describeMove } from '../src/core/battle/driver';
-import { moveFactsOf, MOVE_FACT_IDS, type MoveFactId } from '../src/core/moveFacts';
+import { moveFactsOf, MOVE_FACT_IDS, type MoveFact, type MoveFactId } from '../src/core/moveFacts';
 import { BOOST_TABLE, MAX_STAGE, applyStage } from '../src/core/battle/stats';
 import {
   ACCURACY_STAGE_TABLE,
@@ -30,7 +30,8 @@ import {
   formatStageMultiplier,
   stageMultiplier,
 } from '../src/data/statStages';
-import { MOVE_FACT_COLUMN, MOVE_FACT_INFO } from '../src/data/moveFactInfo';
+import { MOVE_FACT_COLUMN, MOVE_FACT_INFO, type StripFactId } from '../src/data/moveFactInfo';
+import { DEFAULT_DISPLAY_TUNING } from '../src/data/displayTuning';
 import { BAND_INFO, BAND_PIPS } from '../src/data/bandInfo';
 import { bandChip, stageChip } from '../src/ui/chip';
 import { moveFactStrip } from '../src/ui/scene';
@@ -155,15 +156,32 @@ describe('the move fact strip', () => {
     'Swords Dance', // pure status: no accuracy, no contact, nothing
   ];
 
-  it('renders exactly the fields describeMove returns, and nothing for the rest', () => {
+  /**
+   * **Two ids left this strip at M2.1, and they left for R3.**
+   *
+   * Section 3 gives accuracy and priority their own slot on the card face — a
+   * number beside the target glyph, a chevron beside the name — and both were
+   * also in `MOVE_FACT_IDS`. Drawing them here *and* there renders one fact
+   * twice on one surface, which R3 forbids in as many words. M0.2's inventory
+   * found the collision before anything was built and the bible left exactly
+   * one option: the strip gives them up.
+   *
+   * They are still facts, still in `MOVE_FACT_IDS`, still printed by the
+   * explanation and still keyed by `movefact:` on inspect. What changed is
+   * which component draws them, which is re-encoding and not removal — C2.
+   */
+  const OWN_SLOT = new Set(['accuracy', 'priority']);
+
+  it('renders exactly the fields describeMove returns, less the two with their own slot', () => {
     for (const name of SWEEP) {
       const move = describeMove(name);
       expect(move, name).not.toBeNull();
       const facts = moveFactsOf(move!);
+      const striped = facts.filter((fact): fact is MoveFact & { id: StripFactId } => !OWN_SLOT.has(fact.id));
       const strip = moveFactStrip(facts);
 
-      if (facts.length === 0) {
-        expect(strip, `${name}: no facts must mean no strip`).toBeNull();
+      if (striped.length === 0) {
+        expect(strip, `${name}: no strip-borne facts must mean no strip`).toBeNull();
         continue;
       }
 
@@ -173,21 +191,20 @@ describe('the move fact strip', () => {
        * the playtest patch: a field's column is its identity, so the DOM order
        * is the column order rather than `MOVE_FACT_IDS` order — contact sits in
        * column 2 and is therefore drawn second, not last. The set is what this
-       * assertion is about, and it is unchanged: nothing is dropped and nothing
-       * is invented.
+       * assertion is about: nothing is dropped and nothing is invented.
        */
       expect([...drawn.map((chip) => chip.dataset['fact'])].sort(), name).toEqual(
-        facts.map((fact) => fact.id).sort(),
+        striped.map((fact) => fact.id).sort(),
       );
       expect(drawn.map((chip) => chip.dataset['fact']), `${name}: column order`).toEqual(
-        [...facts].sort((a, b) => MOVE_FACT_COLUMN[a.id] - MOVE_FACT_COLUMN[b.id]).map((fact) => fact.id),
+        [...striped].sort((a, b) => MOVE_FACT_COLUMN[a.id] - MOVE_FACT_COLUMN[b.id]).map((fact) => fact.id),
       );
-      // Each chip in the cell its column names, so the accuracy on one button
-      // is directly above the accuracy on the next.
+      // Each chip in the cell its column names, so the secondary chance on one
+      // button is directly above the secondary chance on the next.
       for (const chip of drawn) {
         const column = chip.parentElement?.dataset['column'];
         expect(column, `${name}: ${chip.dataset['fact']} is in a fact cell`).toBe(
-          String(MOVE_FACT_COLUMN[chip.dataset['fact'] as MoveFactId]),
+          String(MOVE_FACT_COLUMN[chip.dataset['fact'] as StripFactId]),
         );
       }
 
@@ -317,17 +334,26 @@ describe('one tooltip layer, and Pocket keeps every fact within one tap', () => 
    * showing the marker would pass every DOM assertion here and lose the facts
    * on the one mode that needs them most.
    */
-  it('opens the whole stage set from the collapsed marker in one tap', () => {
+  /*
+   * **The gesture changed under this test, and the substance did not.**
+   * M1.2 made inspect a long press, per design bible R5, so the tap this test
+   * used to perform now selects rather than opens. What it asserts — that every
+   * fact the inline chips carried is in the panel — is unchanged.
+   */
+  it('opens the whole stage set from the collapsed marker on a long press', async () => {
     const host = document.createElement('div');
     document.body.append(host);
-    const layer = createTooltips(host);
+    // Hold of zero, so the press resolves on the next macrotask instead of
+    // making the suite wait out a real 450ms.
+    const layer = createTooltips(host, { ...DEFAULT_DISPLAY_TUNING, inspectHoldMs: 0 });
 
     const marker = document.createElement('span');
     marker.dataset['tip'] = 'stages:active';
     marker.dataset['detail'] = ['Atk\t2.0x\t+2', 'Spe\t0.7x\t-1', 'Eva\t1.3x\t+1'].join('\n');
     host.append(marker);
 
-    marker.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    marker.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
     const text = layer.root.textContent ?? '';
     // Every fact the inline chips would have carried, in the panel one tap
     // away: the stat, the multiplier and the stage.
@@ -339,10 +365,74 @@ describe('one tooltip layer, and Pocket keeps every fact within one tap', () => 
     host.remove();
   });
 
-  it('swaps the chips for the marker in Pocket rather than hiding both', () => {
+  /**
+   * The panel's own long press, and the six numbers behind it. **M3.1, D18.**
+   *
+   * The ruling was that the archetype label goes and the stats it was derived
+   * from come back one press away, drawn as section 3's Six stats row
+   * specifies. So this asserts the three parts of that row — a glyph, a bar
+   * and a number, for all six, in order — rather than that a panel opened.
+   */
+  it('opens all six stats from the panel on a long press, as glyph and number', async () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    const layer = createTooltips(host, { ...DEFAULT_DISPLAY_TUNING, inspectHoldMs: 0 });
+
+    const panel = document.createElement('div');
+    panel.dataset['tip'] = 'stats:Golem';
+    panel.dataset['detail'] = [
+      'hp\t160',
+      'atk\t130',
+      'def\t190',
+      'spa\t75',
+      'spd\t85',
+      'spe\t65',
+    ].join('\n');
+    host.append(panel);
+
+    panel.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    /*
+     * **The shared component, mounted rather than resembled. M3.2, D20.**
+     * The layer drew its own rows when M3.1 shipped because `statBlock` was
+     * private to the member card and took a `SpecCard`; it takes six numbers
+     * now, so this is the same element the party card and the pick cards
+     * draw, and a change to any of them is a change to all of them.
+     */
+    const rows = [...layer.root.querySelectorAll('.stats .stat')];
+    // Always all six, never hidden, no sort: R10 and section 3's own wording.
+    expect(rows).toHaveLength(6);
+    expect(rows.map((row) => row.querySelector('.glyph')?.getAttribute('data-glyph'))).toEqual([
+      'stat-hp',
+      'stat-atk',
+      'stat-def',
+      'stat-spa',
+      'stat-spd',
+      'stat-spe',
+    ]);
+    expect(rows.map((row) => row.querySelector('.stat__value')?.textContent)).toEqual([
+      '160',
+      '130',
+      '190',
+      '75',
+      '85',
+      '65',
+    ]);
+    // No bar since Bible Rev 20 (D82): the number is the readout.
+    expect(layer.root.querySelectorAll('.stat__bar, .stat__bar-fill')).toHaveLength(0);
+    // The species names whose numbers these are, so two panels never blur.
+    expect(layer.root.textContent).toContain('Golem');
+
+    layer.destroy();
+    host.remove();
+  });
+
+  // Pocket's two rules, unconditional since Stage 5.0/1 retired the modes.
+  it('swaps the chips for the marker rather than hiding both', () => {
     const css = readFileSync(join(process.cwd(), 'src/ui/styles.css'), 'utf8');
-    expect(css).toContain(':root[data-density="pocket"] .panel__stages .badge--stage { display: none; }');
-    expect(css).toContain(':root[data-density="pocket"] .panel__stages .badge--stages { display: inline-flex; }');
+    expect(css).toContain('.panel__stages .badge--stage { display: none; }');
+    expect(css).toContain('.panel__stages .badge--stages { display: inline-flex; }');
   });
 });
 

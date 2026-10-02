@@ -26,6 +26,11 @@ A session starting cold, in order:
 
 Stop there unless you need a specific answer. The rest of the map is below.
 
+If what you are about to touch is something a player looks at, add
+[`design/design-bible.md`](design/design-bible.md) to that list, before the
+prompt you are working from. It is permanent, it governs presentation, and on
+presentation it outranks the prompt.
+
 ## 3. The document map
 
 One row per document. If a fact changes, exactly one of these files should need
@@ -40,6 +45,9 @@ editing.
 | [`balance.md`](balance.md) | Every simulator figure, the standing policy that balance is not a gate, and the benchmark table | Reading or quoting any number |
 | [`keyed-streams.md`](keyed-streams.md) | What the 4.6a stream refactor actually shipped, and the four requirements of its design that were not built | Working on RNG, seeds or replay |
 | [`engine-notes.md`](engine-notes.md) | `@pkmn/sim` findings: browser viability, the Gen 3 lock, bundle and trim analysis | Touching the sim adapter or the bundle |
+| [`copy.md`](copy.md) | **Generated.** Every player-facing string in the game, by surface, with the file a rewrite edits and a blank column to write the replacement in | Rewording anything a player reads. Rebuild it with `npm run copy-audit`; never edit it |
+| [`design/design-bible.md`](design/design-bible.md) | **Permanent.** How every attribute is presented: the thirteen rules, the thirteen glyph families, the encoding table, the surface text budgets, the component canon, the battle turn grammar. Outranks any prompt on presentation | Before changing anything a player looks at |
+| [`design/playtest-log.md`](design/playtest-log.md) | The observations that are allowed to amend the bible. One row per observation, dated, with a tester count | Proposing an amendment, or checking whether one is earned |
 | [`spec/`](spec/) | The prompts and design documents themselves, verbatim | Its README says which are live |
 
 ### Where two files touch the same fact
@@ -58,72 +66,380 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: a ceiling on a region, and a floor under its fights.** Same
-branch, prompt
+**In flight: Stage 5.0, the visual redesign ([`spec/gymrun-stage5.0-visual-redesign.md`](spec/gymrun-stage5.0-visual-redesign.md)). 5.0/0, the spike and audit, is done on `claude/hopeful-shannon-kch3gw` and stopped for review.** The report is [`visual/reports/5.0-stage0-spike.md`](visual/reports/5.0-stage0-spike.md). It filed D50 to D76 in the discrepancy register. The author ruled D50 and D52 to D55 the same day ([`spec/gymrun-stage5.0-rulings-d50-d55.md`](spec/gymrun-stage5.0-rulings-d50-d55.md)); the bible is at **Rev 15** (one face and no density setting, tabs open screens, a mid-run Run Info screen, a `currency` family, and Run Progress as a decision feed replayed from the run log), recorded in [`generation.md` §87](generation.md). **5.0/1 is built and stopped for review**: one face with the density setting deleted, the shell nav with its read-only guard, the decision feed, Run Info and Settings screens, the desktop sidebar, the light palette and the asset manifest. Report [`visual/reports/5.0-stage1.md`](visual/reports/5.0-stage1.md), record [`generation.md` §87](generation.md). **D56 to D60 were ruled the same day** ([`spec/gymrun-stage5.0-rulings-d56-d60.md`](spec/gymrun-stage5.0-rulings-d56-d60.md)): the HP box is the panel restyled with every fact, the move button is the full move card, the header stays above the stage, D26's log handle stands with no Info button, and the World stays behind the frame while the painted backdrops live inside it. Bible **Rev 16**, [`generation.md` §88](generation.md). The author confirmed D60's reading and ruled D62 option 1 everywhere ([`spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md`](spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md)). **5.0/2, the battle screen, is built on `claude/wizardly-wright-cum8e0` and stopped for review**: the stage on its scene backdrop with platforms, the HP boxes and move buttons restyled with every fact kept, the header row with section 6's turn header built for the first time, the strip under the stage, and the bench behind a Switch button. The nine battle backdrops came forward from 5.0/5 into this stage at the author's request, converted from paintings at 224x136, with notes for the asset pipeline in the report. Report [`visual/reports/5.0-stage2.md`](visual/reports/5.0-stage2.md), record [`generation.md` §88](generation.md). WebKit and a real iPhone are the reviewer's. 5.0/0 and 5.0/1 merged as #77, 5.0/2 as #78. **5.0/3, the reward, result and shop cards, is built on `claude/stage-5.0-3-cards` and stopped for review**, after the author took every recommendation on D65 to D71 ([`spec/gymrun-stage5.0-rulings-d65-d71.md`](spec/gymrun-stage5.0-rulings-d65-d71.md), bible **Rev 17**): a card's face is its mark with the name and effect on the long press, a tap selects and the confirm band claims, the relic card carries its capability glyph, and the currency family is drawn. Report [`visual/reports/5.0-stage3.md`](visual/reports/5.0-stage3.md), record [`generation.md` §89](generation.md). No version axis moved; `contentHash` holds at `715122`. 5.0/4 (map) waits on D61, D63, D64, D72 and D75.
+
+**Also in flight, reapplied onto this tree on 2026-10-02: the Toll price gate,
+and a ceiling on a region with a floor under its fights.** Branch
+`claude/t2-berry-inventory-gating-7gvcye`, prompts
+[`spec/gymrun-patch-toll-affordability-gate.md`](spec/gymrun-patch-toll-affordability-gate.md)
+and
 [`spec/gymrun-patch-region-node-composition.md`](spec/gymrun-patch-region-node-composition.md),
-record [`generation.md`](generation.md) section 52, measurement
-[`balance.md`](balance.md) section 0. **Checkpoint 1 of two**; checkpoint 2 is
-the question mark that does not bite.
+records [`generation.md`](generation.md) sections 98 and 99.
 
-The brief asked for a cap on rests and shops per region and, before any code,
-for the current limit. There was no ceiling anywhere in the generator — only
-floors — and the double rest was not a bad roll: `restStepsPerGuarantee`
-*guaranteed* two rests on any six-step route, so **100% of segment 5 and 6
-routes offered one**. The brief's first sentence contradicted an existing rule
-rather than adding to it, and the author resolved it: cap 2, floor 1.
+Both were built on 2026-09-19 against a tree cut at `970c2a2` and **reapplied
+rather than rebased**, because `main` had moved 260 commits and taken
+`EventOption`'s display strings out of `core/` in between. Neither defect had
+been fixed on `main` meanwhile: `applyEffect`'s `loseItem` branch still
+no-opped on a bag that could not answer it, and no ceiling existed anywhere in
+the generator.
 
-- **A per-route ceiling, spent during the draw.** A kind that has spent its
-  `kindCapPerRoute` allowance leaves the allowed list for later steps, so the
-  cap holds by construction and **the draw count does not move**. Routes
-  offering three or more rests or shops: up to 26% → **zero**.
-- **A floor of battle-only steps**, `floor(steps / 2)` clamped so the event and
-  rest floors still fit. `placeBattlePair` generalised — it was this rule
-  hardcoded to segment 7. Forced fights per route 1.43 → 2.54 in the middle
-  segments; a greedy non-fight walk through a run drops from **33.6 of 46 steps
-  to 25.2 of 45**.
-- **`restStepsPerGuarantee` is deleted**, not flagged. A floor that mandates
-  what a ceiling forbids is two rules that cannot both be true.
-- `RANDOMIZER_VERSION` → `-22`, `contentHash` → `637670`, `RUN_LOG_VERSION`
-  held.
-- **0.92 mean gyms against the pinned 1.085.** Recorded, not chased;
-  `battleStepsPerGuarantee` is the dial. **And one consequence is louder than
-  the mean**: no seed in 400 reaches an evolution fork any more, so Stage 4.9's
-  headline mechanic is close to unreachable at this difficulty. That is an open
-  question for the author, filed below.
+- **A price is charged, or the option is not purchasable.** A Toll priced in
+  berries, pressed by a bag with none, took nothing and paid its guaranteed
+  `T2` in full — and the coin and HP prices had the same hole. The rule is
+  `CLAUDE.md`'s **Prices** section.
+- **A per-route ceiling of two rests and two shops**, spent during the draw so
+  the draw count does not move, plus a floor of battle-only steps.
+  `restStepsPerGuarantee` is deleted: it *guaranteed* the double rest on 100%
+  of segment 5 and 6 routes, which is what the ceiling exists to make rare.
+- `RANDOMIZER_VERSION` → `-23`, renumbered from `-22` because `main` took that
+  number for the level columns. `contentHash` moves; `RUN_LOG_VERSION` holds.
+- **Re-measured on this tree: 1.47 against a 1.55 baseline, a −0.08.** The
+  original row read 0.92 against 1.085 and is withdrawn rather than carried,
+  because reading it across a moved `randomizer` and `contentHash` is reading
+  across a yardstick that moved. The cost roughly halved and the reason is the
+  baseline rather than the patch: `main`'s level columns give a run enough
+  headroom to absorb the extra fights. 200 seeds on both arms, same prefix,
+  same AI — the count is part of the stamp and these do not read against the
+  400-seed rows. The map measurements are unchanged.
 
-**Merged before it: a Toll that charged nothing.** Branch
-`claude/t2-berry-inventory-gating-7gvcye`, prompt
-[`spec/gymrun-patch-toll-affordability-gate.md`](spec/gymrun-patch-toll-affordability-gate.md),
-record [`generation.md`](generation.md) section 51. A playtest report: a Toll
-priced in berries, pressed by a bag with none, took nothing and paid its
-guaranteed `T2` in full. Three of the five `TollPrice` kinds had the same hole
-— a coin price clamps at zero and an HP price floors at
-`tuning.eventDamageFloor` — so the gate is defined over `TollPrice` rather than
-over berries.
 
-**No version axis moves.** No draw is added, moved or removed;
-`data/eventCopy.ts` is outside `contentHash`, which stays at `d4e080`. The set
-of *answers* `playRun` accepts for an `event` decision narrows, in the shape
-the `attune` refusal already had, so `RUN_LOG_VERSION` holds — and a pre-patch
-log naming an unpayable Toll now fails loudly rather than replaying a free
-`T2`.
+**Stage 5.1: band bars, the starter detail over the moves, a starter screen without a scroll, built on `claude/level-15-stat-bars-layout-s8s0ma`.** The author's message of 2026-10-01, named 5.1 by the author ([`spec/gymrun-stage5.1-band-bars-and-starter-fit.md`](spec/gymrun-stage5.1-band-bars-and-starter-fit.md)): the stat bar returns beside the number on every stat block, measured against the band of values that stat takes at the Pokemon's level across the species pool (`statBandAt`); the starter detail panel opens over the selected card's moves, the card's own tap flipping back; the starter screen fits 390x700 without a scroll. The message's IV and nature marks were not built: GYMRUN has neither, and the author, asked, said to ignore them. Presentation only, no version axis moves. Bible Rev 21, D88 to D90; [`generation.md` §96](generation.md).
 
-- **A price is charged, or the option is not purchasable.** `pricePayable`
-  answers by *charging* the price against a throwaway state, so the gate cannot
-  drift from the fold — a predicate written beside it is a second opinion, and
-  the first disagreement is this bug rebuilt by its own fix.
-- **Dimmed, not withdrawn.** The Toll stays on the menu with a `Cannot pay`
-  chip beside the price it is short of, because a player who can see the price
-  can go and get the berry. `presentedOptions` is untouched.
-- **The price names its victim.** `Costs Sitrus Berry`, not `Costs A berry`,
-  off the same walk the fold takes; the reveal restates it the same way. A
-  price that cannot be planned against is a surprise with a label.
-- **A drawn cost is not a price and is not gated**, because refusing a button
-  on what it would pay reveals the draw before the press.
-- The rule is in [`../CLAUDE.md`](../CLAUDE.md) under **Prices**.
+**Patch: stats at rest, the map's later rows, the locale card as a peek, built on `claude/sleepy-dijkstra-tp2176`.** The author's feedback of 2026-10-01 against production R22 ([`spec/gymrun-patch-r22-stats-at-rest-and-map.md`](spec/gymrun-patch-r22-stats-at-rest-and-map.md)): a new rule, **R13, vital information** (the six stats, and a carried item's name and effect line, are at rest everywhere and never budgeted); the stat bars retired for numbers; the stats out of the party card's fold and on the player's battle panel; the capture swap's stat change in green and red; the bag listed at rest; later map rows down to the kind glyph on a restyled token; the locale card as a full-bleed crop of its map. The author's painting fills the page behind the frame before the first region. Bible Rev 20, D81 to D87; [`generation.md` §94 and §95](generation.md).
 
-**Merged before it: teaching a move at the node that paid it, and a level
-spread for gyms.** Branch `claude/great-curie-99l9fm`, prompt
+**Patch: the starter select redesign, built on `claude/magical-shannon-64iefo`.** The author's mockup and playtest note of 2026-10-01 ([`spec/gymrun-patch-starter-select-redesign.md`](spec/gymrun-patch-starter-select-redesign.md)): compact starter cards a step darker, a tap-to-select detail panel with the stat numbers at rest and a move-type matchup, and a Choose control; no reroll. Bible Rev 19, D78 to D80; [`generation.md` §92](generation.md).
+
+**5.0/4, the map, is built on `claude/loving-darwin-lpx2r4`, PR [#80](https://github.com/y-wang217/Pocket-Randomizer/pull/80), merged up to `main` after 5.0/3 (#79).** The author took every recommendation on D61, D63, D64, D72 and D75 ([`spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md`](spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md)) and, mid-stage, took the team off the map ([`spec/gymrun-stage5.0-rulings-map-without-team.md`](spec/gymrun-stage5.0-rulings-map-without-team.md)). Bible **Rev 18** (5.0/3 took Rev 17). The segment is a graph on the locale's map backdrop (all eight painted by the author and delivered with the stage), bottom up: the step being chosen from carries the whole node card, every other row the mark, tier pips and capability, with the rest on the mark's long press; nodes placed by option index; the trainer on the node last walked to; the payout, the shelf's price and the wallet on 5.0/3's currency mark. The worst case fits 390x844, 1366x768 and 375x667 with no scroll. The census filed **D77** (the map node card's shop and untiered words, 7 against 1, predating the stage); the author ruled it option 1 and it is built: the hint is inspect only and the shelf is a count and a coin amount, so the card reads 1 on its budget of 1. No version axis moved. Report [`visual/reports/5.0-stage4.md`](visual/reports/5.0-stage4.md), record [`generation.md` §90](generation.md).
+
+**5.0/5, the art pass, is built on `claude/eloquent-heisenberg-383rnt` and stopped for review.** The author asked for the decisions first and for the art already delivered to be acknowledged: all seventeen backdrops were the author's, in 5.0/2 and 5.0/4. The author then took every recommendation ([`spec/gymrun-stage5.0-rulings-stage5.md`](spec/gymrun-stage5.0-rulings-stage5.md)). The session drew the other thirty-one class C slots on their native grids (`scripts/visual/icons.py`): node, capability and currency marks at 8px, drawn by `glyphNode` as `currentColor` masks (D61); nav icons; the wordmark; ten relics. No placeholder remains. M1.1's separation was re-run on the drawings and every family clears its floor. The gym backdrop's Poke Balls are painted out by a converter step. The HP boxes are measured against nine backdrops under ten field states (lowest 3.51 against 3:1). First load grows 3,845 bytes gzipped. On most map backdrops the outer slots land off the painted ground, and narrowing the grid would overlap the current step's cards; the author ruled that a known difference ([`spec/gymrun-stage5.0-rulings-slot-grids.md`](spec/gymrun-stage5.0-rulings-slot-grids.md)), so `BACKDROP_GRIDS` stays empty. No version axis moved and the stage changes nothing in the bible. Report [`visual/reports/5.0-stage5.md`](visual/reports/5.0-stage5.md), record [`generation.md` §93](generation.md).
+
+**In flight: the 4.10 presentation milestones, Tier 6 merged as [#68](https://github.com/y-wang217/Pocket-Randomizer/pull/68); patch 4.10.1 built on `claude/map-icons-conversion-plan-tvab5v`; Tier 7 next.**
+Patch 4.10.1 makes the map's node kinds marks — a head, a bush, a tent, a
+badge, a bag, a question mark — as an eleventh glyph family, ruled under D46
+as D37's option 2 and a reversal of D28, bible Rev 13;
+[`generation.md` §80](generation.md). List
+[`spec/gymrun-presentation-milestones.md`](spec/gymrun-presentation-milestones.md),
+working checklist [`design/milestones.md`](design/milestones.md), handoffs
+[`handoff/4.10-tiers-0-1.md`](handoff/4.10-tiers-0-1.md),
+[`handoff/4.10-tier-2.md`](handoff/4.10-tier-2.md) and
+[`handoff/4.10-tier-4.md`](handoff/4.10-tier-4.md), prep
+[`handoff/4.10-tier-5-prep.md`](handoff/4.10-tier-5-prep.md), Tier 6
+[`handoff/4.10-tier-6-prep.md`](handoff/4.10-tier-6-prep.md) and
+[`handoff/4.10-tier-6.md`](handoff/4.10-tier-6.md). **Tiers 0 to 4
+are closed, sixteen items of twenty-four**, as
+[#61](https://github.com/y-wang217/Pocket-Randomizer/pull/61),
+[#63](https://github.com/y-wang217/Pocket-Randomizer/pull/63),
+[#64](https://github.com/y-wang217/Pocket-Randomizer/pull/64) and
+[#65](https://github.com/y-wang217/Pocket-Randomizer/pull/65); `main` is
+`8ecf208`. **Tier 5 is closed on `claude/version-4-10-tier-5-6nhlfh`, twenty-two
+items of twenty-four plus two clauses of M5.4**: M5.1, M5.2, M5.3, M5.5 and M5.6
+are closed, and **D38 blocks M5.4's last clause** and nothing else. Tier 5
+merged as [#67](https://github.com/y-wang217/Pocket-Randomizer/pull/67). **Tier 6
+is built on `claude/dazzling-faraday-tafnyp`** except M6.4, which waits on M7.1.
+The prep ([`handoff/4.10-tier-6-prep.md`](handoff/4.10-tier-6-prep.md)) filed
+D40 to D44 before any code; all five were ruled as recommended and the bible
+went to Rev 12. M6.0 then filed and ruled D45. The order was M6.0 (the starter
+move card, a fifth item), M6.2 (the coach-mark guard deleted), M6.3 (Pocket for
+new installs), M6.1 (exposure labels, ten families), recorded in
+[`generation.md` §72 to §76](generation.md). No version axis moved. One trunk per tier,
+one sub-branch per item. **One version axis moved in the whole of 4.10**:
+`contentHash`, once, `d4e080` → `0b2c2c`, for the copy split ruled
+2026-09-22 ([`generation.md` §65](generation.md)) — item, relic and event copy
+out of three hashed tables, with the re-recorded baseline changing 26 lines,
+all of them hash strings, and the re-minted simulator fixture changing 2.
+`RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and `AI_VERSION` all hold. Changes under
+`core/`: M4.1 deleting two flag kinds the bible's R9 forbids, and M5.6's split
+taking display strings off `EventInstance` so the copy file stays excludable.
+
+**Built, on `claude/dazzling-archimedes-wc1frw`: Stage 4.11, weather, terrain
+and trigger visuals**, six tiers in one session. The prompt and its plan are in
+[`spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md`](spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md),
+the handoff in [`handoff/4.11-prep.md`](handoff/4.11-prep.md), the record in
+[`generation.md` §82](generation.md). The finding that shaped it: the logic is
+the sim's and always was, the tree read weather as an event and never as a
+state, and every weather in the game is set by an ability on switch-in, the
+one batch the battle screen never animated. The board's weather and terrain
+are now a fact on `BattleFacts`, a twelfth glyph family on the battle header,
+a factor folded into the move button's forecast (D49, ruled against the plan's
+recommendation), and a wash and a tint on the world behind the stage; an
+ability firing pulses its name and a berry pops its sprite; the opening batch
+is shown when it did something. D47 to D49 ruled, bible **Rev 14**. **No
+version axis moved**; `contentHash` holds at `715122`. The chip legibility
+sweep cannot run on the session box on any commit and is read off CI.
+
+**Tier 5 filed six rows before it opened and closed all six**, plus D14 from
+Tier 0 and D35 from Tier 4, and filed **D38** and **D39** on the way. The bible
+went Rev 6 → **Rev 11** across the tier. The one row still open is D38.
+
+**M5.6 moved a number rather than the copy, and then moved the copy too.**
+Section 4's event row said 40 and composed itself as 54; twenty-four of
+twenty-four events failed it by a median of twenty-seven words, and the four
+hints that were the whole overflow were not in the composition at all. D33
+ruled option 1: name the hints, re-derive the number. The row is **59** and it
+adds up — hook 12, four labels 4, four hints 6 (the ruling's 52), the Toll's
+price 5, the control 2. All ninety-six hints and twenty-eight labels were
+rewritten to it. Census **89 → 54**. Twenty-six of those thirty-five words left
+as marks rather than as cuts: the requirement and its band became the glyph and
+chevron M5.2 built, the reward range became the reward-tier pips section 3 has
+named since Rev 1 and nothing had ever drawn, and the screen's title went
+because the hook says what it said. [`generation.md` §70](generation.md).
+
+**D8's remedy was read and not taken.** Section 9 reserves *"requirement moves
+to the map node glyph"* for a disconfirmer observed in a playtest. The
+requirement did not move off the event screen; it stayed and changed form,
+which is R2 and section 3 doing ordinary work. The distinction is the whole of
+why M5.6 did not need D8 reopened.
+
+**A band chevron has opened nothing since M5.2, on every map.**
+`capabilityBandChevron` emits a `capability-band:` tip and `ui/tooltips.ts`
+never carried the kind, so the trigger was focusable, `aria-expanded` and
+silent — the third time this exact defect has shipped, after the flag strip in
+release C. `test/tip-kinds.test.ts` now reads every `tip:` literal under
+`src/ui/` and fails on a prefix the allowlist does not carry, which is the
+third of the three places that have to agree and the only one nothing checked.
+
+**Three counts said nine families three revisions after the tenth.** Section
+2's opening line, R7's enforce clause and section 9's register row all still
+read nine after D37. R7 forbids *"shipping a glyph family that never gets a
+label"* and M6.1 reads that enforce line for its scope, so at nine the
+capability glyph would have shipped unlabelled. Corrected in Rev 11. **The
+milestone prompt is not corrected** — a prompt records what was asked — so the
+deviation is recorded instead: **M6.1's scope is ten families**, and
+the glyph-label table M6.1 creates owes the capability family a label.
+
+**D30 is closed and it moved the instrument twice.** Four card selectors went
+in, and building them found that the per-component table had been **summing**
+instances since M0.1 — the same number as the worst instance only where the
+budget is 0, which is every budget the census had been checked against until
+now. D1 makes every section 4 figure a ceiling and a ceiling binds the worst
+instance, so the table has that column. Before-numbers, Pocket, worst instance:
+reward card **8** against 8, shop stock card **11**, map node card **12**
+against 0, locale card **6** against 0, capture card **3** against 0. **No
+relic card renders on any fixture in the tree**, and a relic description is 16
+words at the median, so the reward card's 8 is not the heaviest card the game
+draws — Tier 4's second finding for the third time.
+
+**`heights.json` has two stale blocks, and they predate Tier 5.**
+`modes.*.battle` and `layouts.columns.*.battle` measure 566.61 against recorded
+477.89 and 412.28 on a tree with no Tier 5 work in it at all — stale since
+column mode was deleted (D9). Nothing caught it because the assertion that
+gates those screens reads the top-level block, which is accurate and still
+matches to the pixel. M5.2 re-recorded the `map` block only, deliberately,
+rather than launder the rest into its own diff. Open.
+
+**A hover-opening inspect panel on the face of a control is a hazard, and one
+may still be live.** M5.3 tried moving the locale card's line behind a tip on
+the card's name; the panel opens on hover as well as on long press, landed over
+the card, and the tutorial walk could not click a region. Making `.tip`
+pointer-transparent was backed out — `styles.css` documents `pointer-events:
+auto` there so the type wheel can be read — so the line was cut outright
+instead. **M5.1 put a `relic:` tip on a reward card's name and a reward card is
+a button too**; no test points at it and the panel may well miss the card, but
+it is the same shape.
+
+**Mostly closed by #66, and the remainder is deliberate.** The inspect-on-touch
+patch landed `lastPointerType`, so a hover only opens a panel when a hovering
+device made it — which is the whole of the hazard on a phone. What it left
+taking hover is a *small* trigger inside a button, on the stated reasoning that
+a chip-sized panel does not cover the control it sits on, with `dropStranded`
+closing one whose trigger a re-render took away. M5.1's relic name and M5.6's
+reward pips are both that shape, not the card-sized shape
+`data-tip-hover="off"` exists for. M5.6's is the safer of the two: an event
+choice disables its buttons on the pick and never re-renders, so its trigger
+cannot be stranded at all.
+
+**M5.4 found the party row's class on a card running none of its code, and
+could not fix it. D38.** `renderOffered` builds a `.party__member` by hand, so
+the census charges its words to a component that never runs there. The mount
+was built and measured: the party row draws four move *cards* since D21a, so at
+the app's default density the offered card is **655px** and the screen's
+decision buttons land at **2253** against a fold gate of **844**. Pocket passes
+at 661. Every fix reaches something ruled, so it is filed and the hand-built
+card stays — **section 5's canon is aspirational about exactly one call site**
+until D38 is ruled. The coverage
+sentence became two rows of signs and chips, and **C2 was satisfied two tiers
+ago rather than by this item**: M1.2 mounted the inspect sets and said in as
+many words that M5.4 would move the trigger onto the rows. **Twelve of the
+result screen's words were `HP` and `PP`** — two of the six field labels R2
+lists by name — and `hpStateBare` had existed for exactly that since the round
+2 patch.
+
+**M5.3 found two things the row did not anticipate.** The locale strip was
+still drawing `archetypeChip` — 12 words across six members of a label section
+3 calls *"derived … and can lie under randomization"*, which survived D18
+because that row's first clause is conditional on stat bars being present. And
+`Party screen (items)` on the pre-gym screen turned out to be the **last route
+to item assignment before a gym**, not a duplicate of the shell's drawer
+button: the drawer is read only, and from the pre-gym screen there is no way
+back to the map's `Manage`. Cutting it would have been a functional regression;
+it reads `Items` now. **Locale card 6 → 0, locale screen 45 → 3 against 4,
+pre-gym 32 → 3 against 4.**
+
+**M5.2 closed on a tenth glyph family, and it was not a tenth claim.** Section
+3 has specified a *"capability glyph plus band chevron"* on its map-node row
+since Rev 1; section 2's roster of nine never carried it, and the disagreement
+survived nine revisions because nothing had to draw it — the map rendered
+`Requires Cut`, a word. That is the line between D37, granted, and D5, refused:
+D5 asked section 2 for something no other section had promised. **Worst node
+card 12 → 3**, the `map` surface 57 → 28, and the family's worst glyph pair
+separates at 0.164 against a floor of 0.12.
+
+**The node kind stayed a word, because D28 ruled it one day earlier.** M5.2
+also asked for a node type glyph; the battle header's budget of 4 covers the
+same attribute, on the reasoning that the nine families are attributes of a
+Pokemon or a move. Encoding it one way there and another here is what R1
+forbids, so section 4's map node card row went from 0 to **3** — written after
+the measurement, not before it.
+
+**M5.1 is closed, and D36 is what it built.** Section 3 — the bible's *"single
+source of truth for how each attribute renders at rest"* — puts the name, the
+effect line and a relic's capability on **inspect**, and leaves the face as a
+sprite. Section 4's *words that survive* column said "One effect line", and the
+two had disagreed for six revisions because nothing measured a card on its own
+until D30 gave the census a row for one. **Every item, berry and relic card now
+reads 0**; `shop` went 64 → 31 in Pocket less shell. The reward card's worst
+instance stays at **8** and that instance is a *heal* card — a kind M5.1 does
+not name and **section 4 has no budget row for**, the same gap D28 found on the
+battle header and D32 on the locale screen, in a third place, and an input to
+M7.2.
+
+**D29's unification had the teeth.** `renderRewardCard` had one call site while
+`src/ui/screens/shop.ts` built its own card from scratch, where section 4 has said
+since Rev 1 that a shop card *"follows the reward card"*. `src/ui/screens/shop.ts` lost **103
+lines** the moment the shelf mounted the card. **D35 paid off too**: of the 28
+relic cards the map generates, none had ever rendered, because `furnish` grants
+every relic and both resolvers collapse one already held —
+`result-relic` and `shop-relic` staged the first relic card this tree has ever
+measured.
+
+**D34 was ruled on a false premise and is moot rather than implemented.** Its
+option 1 said the capability glyph is a section 2 family. It is not: section 2
+lists nine and capability is not among them, and what the map renders is
+`capabilityChip("Requires Surf")`, a chip carrying a word. With the effect line
+on inspect there was no eight-word face to fit into, so no copy was rewritten.
+The correction is recorded at the foot of the row. Section 3 opens *"the single source of truth for how each attribute
+renders at rest"*, and its rows for held item, berry and relic put the **name,
+the effect line and a relic's capability all on inspect**, leaving the card face
+as a sprite. Section 4's *words that survive* column says *"One effect line"* at
+rest, and M5.1 follows section 4. Under section 3 the card reaches **0** and
+section 4's 8 is headroom, which is what D1 already ruled a budget is. Two
+things fall out: no copy needs cutting to eight words, and the real work is
+mounting `itemIcon` — which exists, and which M3.1 and M3.2 already mount
+against this same section 3 row — because `renderRewardCard` draws no sprite at
+all today.
+
+**D34 was ruled on a premise that is false, and the correction is recorded
+rather than absorbed.** Its option 1 said the capability glyph is a section 2
+family. It is not: section 2 lists nine and capability is not among them, and
+what the map renders is `capabilityChip("Requires Surf")`, a chip carrying a
+word. The row is moot if D36 is ruled option 1, and wakes up otherwise.
+
+**Tier 4's standing instruction was to check the fixture before trusting a
+number, and that nobody had looked at the other surfaces. Looking found three,
+and they are D35.** `gallery-fixtures.ts` grants the run **every relic** — the
+honest worst case for the party screen and the drawer, and the best case for
+anything that asks what the run lacks. `resolveOffer` and `resolveStock`
+collapse a relic already held, so of the **28 relic cards the map generates,
+14 offers and 14 shelves, none renders**; and all six gated nodes resolve
+`known` where the same map held bare resolves `none` and `latent`. Separately,
+`wordiestEvent` hardcodes `forest`, which holds 3 of 24 events and has the
+lowest ceiling of the eight locales — the event census of 89 is nine words
+light. M5.1, M5.2 and M5.6 each carry a fixture of their own now, and **D35 is
+closed**. M5.6's half found a second defect in the same function: it ranked
+candidates by **characters**, and nothing budgets characters. The longest
+string is a 52-word event; the most words is a 54-word one. It counts words
+now, and the census moved 52 → 54 when it did.
+
+**D33 was the one to read, and it is closed.** Section 4 budgeted the event
+screen at 40 and composed that row as "prompt under 30, choices under 6 each" —
+54 before the outcome line and before a hint exists, with no line at all for
+the four hints every event carries. Measured: **24 of 24 events over 40, median
+67**, while **0 of 24 hooks exceeded 30 and 1 of 96 labels exceeded 6**. The
+overflow was entirely the hints and there was nothing to tighten. Ruled option
+1 and built in M5.6: the row is 59 and names every part of the screen, the
+hints stayed, **D14 came off the shelf with it** after five tiers.
+
+**Beside it, one playtest defect, now on `main`.**
+[`spec/gymrun-patch-inspect-hover-on-touch.md`](spec/gymrun-patch-inspect-hover-on-touch.md),
+merged as [#66](https://github.com/y-wang217/Pocket-Randomizer/pull/66). A tap
+on a phone opened an inspect panel and the panel could not be dismissed,
+because the compatibility `mouseover` every mobile browser synthesises after a
+touch was taken for a hover. Introduced by M1.2, which moved `data-tip` onto
+the move button itself and handed the hover enhancement a card-sized target on
+the one screen that rebuilds itself every turn. Presentation only, no version
+axis moves; [`generation.md` §71](generation.md) is the account and
+[`design/playtest-log.md`](design/playtest-log.md) carries the first row it has
+ever had. **That section is §71 and not §64 because the merge renumbered it**:
+M5.5 and this patch both appended a 64 on branches that could not see each
+other, and M5.5's number is cited from source and tests where this one is cited
+only from documents.
+
+The design bible is at **Rev 11**. Every place the list and the bible disagreed
+is a row in [`design/bible-discrepancies.md`](design/bible-discrepancies.md)
+rather than something built around; **thirty-nine rows, thirty-eight ruled,
+D38 the only one open** and it blocks one clause of M5.4. None of the twelve
+rules has moved across eleven revisions: every amendment has corrected a table,
+an ordering, a count, or a gap where a surface had no row at all.
+
+Three instruments exist now that did not: `npm run census` (words at rest, per
+surface and per component), `npm run hedge` (section 8's hedge words) and
+`npm run glyphs` (the contact sheet and the 16px separation check).
+
+**The browser suite's CI red is closed, on `claude/epic-knuth-7w4g6f`.** It was
+never the walk: every Actions run since 2026-09-18 failed one chip-contrast
+assertion against a Ghost chip inside a disabled move button, which the
+Playwright image's font set made the sweep photograph and a developer box's
+did not. Prompt
+[`spec/gymrun-patch-browser-suite-ci.md`](spec/gymrun-patch-browser-suite-ci.md),
+record [`generation.md`](generation.md) section 57. The second reading, the
+gallery party's 4.43:1, was the sampler measuring one layout and photographing
+another, diagnosed from the screenshot a floor failure now uploads. The walk
+in `scripts/visual/browser.mjs` waits on DOM state, layered at the merge on
+M2.0's contract (section 53), which landed first on the Tier 2 branch.
+
+**Tier 3 is closed**, thirteen items of twenty-four. The battle panel, the
+party row and the teach target card all census **0 words at rest in Pocket**,
+and one component draws the six stats everywhere they appear.
+[`generation.md`](generation.md) sections 58, 59 and 60 record the three items;
+the rulings worth reading before touching any of those surfaces again are D18
+(the archetype label is gone and the stats it summarised are behind the panel's
+long press), D20 (one stat block, in its own module, with the glyph) and D21a,
+which was ruled one way, built, and re-ruled back when three invariant tests
+caught three fact families leaving with the move card's face.
+
+**Tier 4 is closed**, sixteen items of twenty-four, on
+`claude/eloquent-hamilton-9ncoz8` and written up in
+[`handoff/4.10-tier-4.md`](handoff/4.10-tier-4.md). The battle screen censuses
+**7 in Pocket less the shell and every one of the seven is budgeted** — four for
+the header, three for two flag words. [`generation.md`](generation.md) sections
+61, 62 and 63 record the items. Two findings outlive the tier and belong to
+whoever measures anything next: **the census fixture was reading a screen the
+app does not render** — harness node naming charged to the battle surface since
+M0.1, and an AI tier word that has never been counted at all because the gallery
+attached the screen with no segment — and **a fixture that cannot produce the
+condition an item exists for cannot measure that item**, which is why M4.1 and
+M4.2 both moved the number by zero and said so rather than claiming a reduction.
+
+
+**In flight: wild encounters below the curve, and gyms 1 to 3 one level
+lower.** Branch `claude/wild-pokemon-gym-balance-gpykz5`, prompt
+[`spec/gymrun-patch-wild-strength-and-early-gym-levels.md`](spec/gymrun-patch-wild-strength-and-early-gym-levels.md),
+record [`generation.md`](generation.md) section 78, measurement
+[`balance.md`](balance.md) section 0. Two columns of `data/scaling.ts` and no
+logic. `RANDOMIZER_VERSION` to `-22` with `contentHash` to `715122`;
+`RUN_LOG_VERSION` and `AI_VERSION` hold.
+
+- **A wild encounter draws two levels lower at every segment.** The level rather
+  than a band, because a capture keeps the species and moveset it was fought
+  with and re-levels to the party: a lower band is a weaker catch for the rest
+  of the run, a lower level is the same catch fought at a discount.
+- **Gyms 1 to 3 draw one level lower at both ends of their spread.** The ace
+  sits one under the party; the shape holds. The parity pin in
+  `test/generation.test.ts` relaxes from `max === 0` to `max <= 0`, which is
+  the rule the Speed argument was always about.
+
+**In flight: teaching a move at the node that paid it, and a level spread for
+gyms.** Branch `claude/great-curie-99l9fm`, prompt
 [`spec/gymrun-patch-teach-now-and-gym-level-spread.md`](spec/gymrun-patch-teach-now-and-gym-level-spread.md),
 records [`generation.md`](generation.md) sections 49 and 50, measurements
 [`balance.md`](balance.md) section 0. Two patches on one branch with a benchmark
@@ -981,11 +1297,14 @@ rule; report and screenshots in
 
 One line each. The analysis lives where the pointer goes, not here.
 
-00. **An evolution fork is now close to unreachable, and nothing is pinned to
-    say so.** A fork needs a branching species in the party at a gym clear.
-    After the region composition patch, **no seed in 400 reached one** — Stage
-    4.9's headline mechanic is gated behind most of a run's difficulty, and at
-    0.92 mean gyms most runs never get there. `test/evolution-run.test.ts` was
+00. **An evolution fork may still be out of reach, and the measurement that
+    said so is stale.** A fork needs a branching species in the party at a gym
+    clear. On the tree the region composition patch was built against, **no
+    seed in 400 reached one** — Stage 4.9's headline mechanic sat behind most
+    of a run's difficulty, and at 0.92 mean gyms most runs never got there.
+    `main`'s wild and early-gym level columns push hard the other way, 1.295
+    to 2.223 on the same population, so the figure needs retaking on the
+    reapplied tree before any dial is touched. `test/evolution-run.test.ts` was
     rewritten to search rather than pin, and to assert on the fork rather than
     on Hitmonlee, which makes it hold for every branching species in the pool;
     what it cannot do is make the fork happen. Three ways out and the choice is
@@ -993,7 +1312,39 @@ One line each. The analysis lives where the pointer goes, not here.
     back, lower the evolution thresholds so a fork lands before the first gym,
     or move the fork off the gym clear entirely. **Filed, not fixed** — it is a
     difficulty decision and the standing policy forbids retuning between
-    checkpoints. `generation.md` section 52.8.
+    checkpoints. `generation.md` section 99.8.
+
+0. **The design bible is live and nothing has been built against it yet.**
+   [`design/design-bible.md`](design/design-bible.md) landed 2026-09-19 as a
+   permanent document and `../CLAUDE.md` now defers to it on presentation. **It
+   is a document-only change: no source file moved, no version axis moved, no
+   surface changed.** So the tree does not yet satisfy it, and the gap is the
+   bible's own milestone M0: **M0.1** the text census, which measures words at
+   rest per surface against the budgets in its section 4; **M0.2** the glyph
+   inventory and the redundancy audit, which lists every attribute rendered
+   twice on one surface; **M0.3** the four hedge-word strings, which are the
+   same four the invariant register below has carried since 2026-09-14 and are
+   now named in the bible's section 8. Two further known gaps, neither of them
+   defects until a milestone claims them: density modes still default to
+   something other than Pocket (R6), and coach marks still force Detailed per
+   screen, a rule R6 deletes when Pocket lands. **Both closed 2026-09-23**:
+   the forced-Detailed rule by M6.2, the default by M6.3
+   ([`generation.md` §74 and §75](generation.md)). **Nothing here is retuned or
+   rewritten on the bible's arrival.** Each closes in its own prompt, committed
+   to `spec/` first like any other.
+
+0. **The AI does not know about the weather it now shows the player.**
+   `core/battle/ai.ts` calls `@smogon/calc` with no `Field`, so its damage
+   estimates ignore rain, sun and terrain while the button's forecast folds
+   them in since Stage 4.11 (D49). A balance lever, not a presentation one:
+   it goes through `balance.md`'s queue with a benchmark row, not through a
+   patch to the UI. Named by the 4.11 plan's section 8.
+
+0. **`CLAUDE.md` restates C1 with one exception and the bible has two.**
+   D49 (2026-09-25) extended C1's exception to the field multiplier on the
+   move button. `CLAUDE.md` is the invariants register and is the lead
+   designer's to bring in line; until then it disagrees with the bible on the
+   exception's count. Recorded in `bible-discrepancies.md` under D49.
 
 0. **The baseline may be making itself worse with every move it takes.**
    `greedyMoveToReplace` (`scripts/sim.ts`) and `defaultMoveReplacement`
@@ -1231,7 +1582,7 @@ One line each. The analysis lives where the pointer goes, not here.
    exemptions" — and the shop came out at 864. So Pocket hides the shelf's move
    cards, in CSS rather than by a branch in the screen, because a screen that
    reasoned about density in JS would not re-render when the mode is switched
-   live and `test/density.test.ts` greps for that mistake. The name, the
+   live and `test/one-face.test.ts` (was density.test.ts) greps for that mistake. The name, the
    category and the price are on the row in every mode.
 
    If a later pass wants the card back in Pocket, the lever is a disclosure
@@ -1242,7 +1593,7 @@ One line each. The analysis lives where the pointer goes, not here.
    guarded Detailed heights unchanged to the pixel. On merge the register
    row flips to `built`. What it leaves: the member card's HP line is on
    the bar's tap in Pocket (a rule the prompt did not write; `generation.md`
-   12m item 4), and `data/densityTuning.ts` sits outside `contentHash` by
+   12m item 4), and data/densityTuning.ts (deleted at 5.0/1) sits outside `contentHash` by
    a reasoned exclusion rather than inside `tuning.ts` (item 1).
    [`visual/reports/patch-density-modes.md`](visual/reports/patch-density-modes.md).
 

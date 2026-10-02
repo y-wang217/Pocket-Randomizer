@@ -21,7 +21,8 @@ import { createParty } from '../src/core/party';
 import type { TargetedReward } from '../src/core/rewards';
 import { bandOfMove } from '../src/data/moveOverrides';
 import { DEFAULT_TUNING } from '../src/data/tuning';
-import { createItemTargetScreen } from '../src/ui/screens/item-target';
+import { openBandOf } from '../src/ui/band';
+import { TEACH_CANCELLED, createItemTargetScreen } from '../src/ui/screens/item-target';
 import { resetSettings } from '../src/ui/settings';
 
 const ROSTER = [
@@ -34,10 +35,10 @@ beforeEach(() => {
   document.body.replaceChildren();
 });
 
-function render(reward: TargetedReward) {
+function render(reward: TargetedReward, allowSkip = false) {
   const screen = createItemTargetScreen();
   const picked: number[] = [];
-  screen.render(reward, createParty(ROSTER), (slot) => picked.push(slot), DEFAULT_TUNING);
+  screen.render(reward, createParty(ROSTER), (slot) => picked.push(slot), DEFAULT_TUNING, allowSkip);
   document.body.append(screen.root);
   return { screen, picked };
 }
@@ -69,24 +70,62 @@ describe('the recipient screen', () => {
     expect(screen.root.querySelector('.target__move .move__name')?.textContent).toBe('Thunderbolt');
   });
 
-  it('opens Explain without picking a member, and the members still pick', () => {
+  /**
+   * **This asserted an `Explain` control, and M2.1 removed it (D15).**
+   *
+   * The card carried a button that opened an inline panel, and the point of
+   * the case was that using it did not pick a member — a real hazard, because
+   * this screen picks on tap. R5 allows one explanation mechanism and names a
+   * help button among the things it forbids, so the card itself is the inspect
+   * trigger now.
+   *
+   * The hazard is unchanged and the guard keeps its shape, but the two halves
+   * invert. Reaching the explanation must still cost no pick — it is a long
+   * press, and the layer eats the click it leaves behind — while a *tap* on the
+   * card must still reach the member under it, because R5 is explicit that tap
+   * still selects. Both are asserted: either one failing alone is a live defect
+   * on this screen.
+   */
+  it('is an inspect trigger that costs no pick, and does not swallow the tap', () => {
     const { screen, picked } = render({ kind: 'tutor', move: 'Ice Beam' });
-    const toggle = screen.root.querySelector<HTMLButtonElement>('.target__move .move__explain-toggle');
-    const panel = screen.root.querySelector<HTMLElement>('.target__move .move__explain');
-    expect(toggle, 'no Explain control on the card').not.toBeNull();
-    expect(panel?.hidden).toBe(true);
+    const card = screen.root.querySelector<HTMLElement>('.target__move .move--card');
+    expect(card, 'the card is not an inspect trigger').not.toBeNull();
+    expect(card?.dataset['tip']).toMatch(/^move:/);
+    // Focusable, because a long press is not a keyboard gesture. This is the
+    // half of D15 that had to be replaced rather than deleted.
+    expect(card?.tabIndex).toBe(0);
+    expect(card?.getAttribute('role')).toBe('button');
+    // And it declines hover: a card-sized hover target opens a panel over the
+    // very thing the player is reaching for. See `ui/tooltips.ts`.
+    expect(card?.dataset['tipHover']).toBe('off');
+    expect(screen.root.querySelector('.move__explain-toggle'), 'the expander survived').toBeNull();
+    expect(picked, 'merely drawing the card picked a member').toEqual([]);
 
-    toggle?.click();
-    expect(panel?.hidden).toBe(false);
-    expect(toggle?.getAttribute('aria-expanded')).toBe('true');
-    // The panel carries the category row a player reads the stat off.
-    expect(panel?.textContent).toContain('Category');
-    expect(picked, 'opening an explanation picked a member').toEqual([]);
-
-    const members = [...screen.root.querySelectorAll<HTMLButtonElement>('.party__member--target')];
+    /*
+     * **The card is not the control since M3.3.** It is the party row, which
+     * carries the fold toggle, six stat labels and four move cards that are
+     * all focusable — nesting those inside a `<button>` is invalid and takes
+     * the keyboard path to every one of them. The control is a sibling, the
+     * shape `screens/pre-gym.ts` already uses for the same question.
+     */
+    const members = [...screen.root.querySelectorAll<HTMLElement>('.party__member--target')];
     expect(members.length).toBe(ROSTER.length);
-    members[1]?.click();
+    expect(members.every((card) => card.tagName === 'DIV'), 'a card is not a button').toBe(true);
+    const controls = [...screen.root.querySelectorAll<HTMLButtonElement>('.target__choose')];
+    expect(controls.length).toBe(ROSTER.length);
+    controls[1]?.click();
     expect(picked).toEqual([1]);
+  });
+
+  it('mounts the party row rather than a card of its own', () => {
+    const { screen } = render({ kind: 'tutor', move: 'Ice Beam' });
+    const card = screen.root.querySelector('.party__member--target');
+    // Section 5's component, so the things M3.2 took off it are off here too
+    // without this screen having to know they existed.
+    expect(card?.querySelectorAll('.stats--grid .stat')).toHaveLength(6);
+    expect(card?.querySelector('.badge--archetype'), 'the bars draw it; the label does not').toBeNull();
+    expect(card?.querySelector('.panel__level')?.textContent ?? '').not.toContain('Lv');
+    expect(card?.querySelectorAll('.move--card').length).toBeGreaterThan(0);
   });
 
   it('keeps the per-member line about the pairing, which the card does not replace', () => {
@@ -94,5 +133,103 @@ describe('the recipient screen', () => {
     const lines = [...screen.root.querySelectorAll('.target__effect')].map((line) => line.textContent);
     expect(lines[0]).toContain('Knows four moves');
     expect(lines[1]).toContain('Already knows Ice Beam');
+  });
+});
+
+/**
+ * The decline, and the confirm behind it. **Milestone M3.3.**
+ *
+ * The control used to carry a note spelling out what declining costs, at rest,
+ * on every render, for a control most runs never press. The record moves that
+ * to a confirm — *"Decline copy: 'Forfeit this reward?' with the two cards"* —
+ * and `ui/band.ts` is the one confirm component, which M2.3 gave the `content`
+ * slot this uses.
+ */
+describe('the decline', () => {
+  beforeEach(() => {
+    document.body.replaceChildren();
+    resetSettings();
+    openBandOf()?.close();
+  });
+
+  it('asks before it forfeits, and shows the card being given up', () => {
+    const { screen, picked } = render({ kind: 'tutor', move: 'Ice Beam' }, true);
+    const control = screen.root.querySelector<HTMLButtonElement>('.target__decline');
+    expect(control, 'the decline is offered when the flow allows a skip').not.toBeNull();
+    // The note is gone from the face; the question is what the press opens.
+    expect(screen.root.querySelector('.target__decline-note')).toBeNull();
+
+    control?.click();
+    const band = openBandOf();
+    expect(band, 'the decline opens the one confirm component').not.toBeNull();
+    expect(band?.root.querySelector('.confirm-band__title')?.textContent).toBe('Forfeit this reward?');
+    // The card in front of the player when the question is asked, rather than
+    // remembered from the screen behind it.
+    expect(band?.root.querySelector('.confirm-band__content .move--card')).not.toBeNull();
+    expect(picked, 'opening the confirm did not commit').toEqual([]);
+  });
+
+  it('commits only on the confirm, and backing out changes nothing', () => {
+    const { screen, picked } = render({ kind: 'tutor', move: 'Ice Beam' }, true);
+    screen.root.querySelector<HTMLButtonElement>('.target__decline')?.click();
+
+    const buttons = [...(openBandOf()?.root.querySelectorAll<HTMLButtonElement>('button') ?? [])];
+    const cancel = buttons.find((button) => button.textContent === 'Keep');
+    expect(cancel, 'the way out is labelled').not.toBeNull();
+    cancel?.click();
+    expect(picked, 'backing out of the confirm forfeited nothing').toEqual([]);
+    expect(openBandOf(), 'and it closed the band').toBeNull();
+
+    screen.root.querySelector<HTMLButtonElement>('.target__decline')?.click();
+    const confirm = [...(openBandOf()?.root.querySelectorAll<HTMLButtonElement>('button') ?? [])].find(
+      (button) => button.textContent === 'Forfeit',
+    );
+    confirm?.click();
+    expect(picked).toEqual([TEACH_CANCELLED]);
+  });
+
+  /**
+   * Section 4 budgets the decline overlay at 6 words, and it measures **5**.
+   *
+   * The question is the record's, verbatim, and it counts 3 under the rule in
+   * section 4's header — `Forfeit`, `this`, `reward`. The other two are the
+   * band's own controls, and a confirm cannot have fewer than two.
+   *
+   * **The budget was 4 and D22 raised it to 6**, matching the replace overlay,
+   * because both are `ui/band.ts` and only one of the two rows had been
+   * written against it: D1's audit already read this one as *"Counting the
+   * rule as written: 3"*, derived from the question alone before the component
+   * existed. Section 9 carries the bet that raise makes, so this assertion is
+   * the instrument for it — if the overlay ever reaches 6, that is the
+   * register's row firing, not a passing test.
+   *
+   * Asserted rather than left to the census because no gallery fixture opens a
+   * confirm: the component reads `absent` on that table, and a budget nothing
+   * measures is a budget nothing holds.
+   *
+   * **The band's own copy, not its content.** The card mounted inside it is
+   * the move card, which carries its own row in section 4 and censuses 0 in
+   * Pocket — and jsdom applies no stylesheet, so every word form the Pocket
+   * face hides is in `textContent` here. Counting the whole subtree would be
+   * measuring the card twice and measuring it in the wrong mode.
+   */
+  it('spends five words, one under the ceiling D22 corrected', () => {
+    const { screen } = render({ kind: 'tutor', move: 'Ice Beam' }, true);
+    screen.root.querySelector<HTMLButtonElement>('.target__decline')?.click();
+    const band = openBandOf();
+    const own = [
+      band?.root.querySelector('.confirm-band__title'),
+      ...(band?.root.querySelectorAll('.confirm-band__actions button') ?? []),
+    ];
+    const words = own
+      .flatMap((node) => (node?.textContent ?? '').split(/\s+/))
+      .map((token) => token.replace(/[^\p{L}\p{N}]/gu, ''))
+      .filter((token) => token.length > 0);
+    expect(words).toEqual(['Forfeit', 'this', 'reward', 'Forfeit', 'Keep']);
+  });
+
+  it('offers no decline where the flow has none', () => {
+    const { screen } = render({ kind: 'tutor', move: 'Ice Beam' });
+    expect(screen.root.querySelector('.target__decline')).toBeNull();
   });
 });

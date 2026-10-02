@@ -86,12 +86,17 @@ function outcomeOf(cost: EventOutcome['cost'] = []): EventOutcome {
   return { tier: 'T2', entryId: 'test', cost, grant: [{ kind: 'currency', amount: 40 }] };
 }
 
+/*
+ * **No `label`, `hint` or `prompt` here, and that is M5.6's split rather than
+ * an omission.** They were display strings assembled in `core/` and are now
+ * resolved by the screen from `eventId` and `archetype` out of
+ * `data/eventCopy.ts`, which nothing under `core/` imports. The fixture names
+ * a real event id so the screen has copy to find for it.
+ */
 function option(archetype: EventArchetype, toll: TollPrice | null): EventOption {
   const paid = outcomeOf();
   return {
     archetype,
-    label: archetype,
-    hint: archetype,
     toll,
     outcomes: { T0: paid, T1: paid, T2: paid, T3: paid },
     tierAt: { none: 'T2', latent: 'T2', known: 'T2' },
@@ -99,13 +104,13 @@ function option(archetype: EventArchetype, toll: TollPrice | null): EventOption 
 }
 
 function eventWith(toll: TollPrice): EventInstance {
+  const definition = EVENTS[0]!;
   return {
     nodeId: 'n1',
-    eventId: 'priced',
-    locale: 'forest',
+    eventId: definition.id,
+    locale: definition.locale,
     rarity: 'common',
-    prompt: 'p',
-    requires: 'cut',
+    requires: definition.requires,
     options: [option('safe', null), option('gamble', null), option('toll', toll), option('attune', null)],
   };
 }

@@ -161,6 +161,16 @@ export interface ActiveFacts {
   ability: { id: string; name: string } | null;
   item: { id: string; name: string } | null;
   speed: SpeedFacts;
+  /**
+   * Standing on the ground, as the engine decides it. **Stage 4.11 Tier 2b.**
+   *
+   * Terrain applies to a grounded Pokemon and the engine's `isGrounded` folds
+   * in the Flying type, Levitate, an Air Balloon, Magnet Rise, Iron Ball and
+   * Gravity. Read off the sim rather than re-derived, for the same reason
+   * `speed.engine` is: a list reimplemented here is a list that drifts. The
+   * projection decides what a hidden ability may reveal, not this.
+   */
+  grounded: boolean;
 }
 
 /** A move offered this turn, before effectiveness is computed against a defender. */
@@ -185,6 +195,12 @@ export interface MoveFacts {
    */
   typeMultiplier: number;
   /**
+   * The chart against the Flying type alone, for Strong winds. **Stage 4.11
+   * Tier 2b.** Read beside `typeMultiplier` in the adapter, since the chart
+   * is the dex's and this file does not open it.
+   */
+  flyingMultiplier: number;
+  /**
    * Everything `describeMove` knows about this move. **Stage 4.7, Part 6.**
    *
    * The adapter is where a dex read belongs, and `describeMove` is already the
@@ -204,6 +220,35 @@ export interface MoveFacts {
 }
 
 /**
+ * One move a benched member knows, as the forecast needs it. **The
+ * effectiveness emphasis patch, bible D92.**
+ *
+ * Read off the member's move slots rather than a request: a benched Pokemon
+ * has no request, and the question is what its moves would do to the Pokemon
+ * on the field, not which of them the sim would accept this turn. The chart
+ * lookup is the adapter's, as `MoveFacts.typeMultiplier` is.
+ */
+export interface BenchMoveFacts {
+  id: string;
+  name: string;
+  type: string;
+  category: 'Physical' | 'Special' | 'Status';
+  flags: readonly string[];
+  /** The naive chart against the defender's current types. */
+  typeMultiplier: number;
+  /** The chart against Flying alone, for Strong winds. */
+  flyingMultiplier: number;
+}
+
+/** A benched member's moves, keyed by the slot `SwitchView` carries. */
+export interface BenchFacts {
+  slot: number;
+  /** The engine's own grounding answer, for terrain. */
+  grounded: boolean;
+  moves: BenchMoveFacts[];
+}
+
+/**
  * Everything the adapter hands over for one turn.
  *
  * The switch panel and the three request flags are carried through unchanged
@@ -218,6 +263,93 @@ export interface MoveFacts {
  * says *why* a switch is refused — and a parallel copy would be a second thing
  * to keep in step with the sim's request for no gain.
  */
+/**
+ * The state of the board that belongs to neither Pokemon. **Stage 4.11, Tier 1.**
+ *
+ * The engine has run weather and terrain since Stage 0 and the tree read them
+ * only as an *event* — `flags.ts` emits `field` when one starts and nothing
+ * else — never as a *fact about the board now*. This is the present tense:
+ * the same split `flagWords.ts` draws for status, where the panel's `BRN` is
+ * what is true and the strip's *Burned* is what happened.
+ *
+ * Read straight off the sim in `driver.buildFacts`, beside `invertedSpeed`,
+ * which is the precedent: a board fact the adapter reports rather than one a
+ * protocol reader reconstructs. The ids are the sim's own (`raindance`,
+ * `electricterrain`), never a word; the words are `data/fieldCopy.ts`'s and
+ * that file is read by `ui/` alone, which is what keeps it out of
+ * `contentHash`.
+ *
+ * Never narrowed by the reveal policy: weather is public to both sides by the
+ * rules of the game, so a fact collected once is a fact the player may see.
+ */
+export interface FieldFacts {
+  /** The sim's weather id, or null when the sky is the locale's own. */
+  weather: string | null;
+  /** The sim's terrain id, or null. */
+  terrain: string | null;
+  /**
+   * The weather is set and an ability on the board is holding it off — Cloud
+   * Nine, Air Lock. Two facts and both are true: the rain is still there, and
+   * nothing is happening under it. Always false when `weather` is null.
+   */
+  suppressed: boolean;
+}
+
+/**
+ * The nine marks of the bible's `field` family (section 2, D47), which is the
+ * *shape* of the state and not its name. Heavy rain wears the rain mark and
+ * Extreme sun the sun mark, per the ruling; what distinguishes a primal
+ * weather is the id beside the kind, which inspect reads.
+ */
+export type FieldKind = 'rain' | 'sun' | 'sand' | 'snow' | 'wind' | 'electric' | 'grassy' | 'misty' | 'psychic';
+
+/**
+ * A sim id to its mark. `null` for an id the family has no mark for, which the
+ * sim does not produce and `test/field-facts.test.ts` holds by walking the
+ * dex's weathers and terrains.
+ */
+export function fieldKindOf(id: string): FieldKind | null {
+  switch (id) {
+    case 'raindance':
+    case 'primordialsea':
+      return 'rain';
+    case 'sunnyday':
+    case 'desolateland':
+      return 'sun';
+    case 'sandstorm':
+      return 'sand';
+    case 'hail':
+    case 'snow':
+    case 'snowscape':
+      return 'snow';
+    case 'deltastream':
+      return 'wind';
+    case 'electricterrain':
+      return 'electric';
+    case 'grassyterrain':
+      return 'grassy';
+    case 'mistyterrain':
+      return 'misty';
+    case 'psychicterrain':
+      return 'psychic';
+    default:
+      return null;
+  }
+}
+
+/** One field effect as the screen receives it: the mark, and the id inspect names. */
+export interface FieldEffectUiView {
+  id: string;
+  kind: FieldKind | null;
+}
+
+/** The board state, projected. See `FieldFacts` for what each part means. */
+export interface FieldUiView {
+  weather: FieldEffectUiView | null;
+  terrain: FieldEffectUiView | null;
+  suppressed: boolean;
+}
+
 export interface BattleFacts {
   turn: number;
   ended: boolean;
@@ -226,6 +358,11 @@ export interface BattleFacts {
   moves: MoveFacts[];
   /** This side's bench, exactly as the policy view reports it. */
   switches: SwitchView[];
+  /**
+   * Each benched member's moves against the defender. **D92.** Optional so a
+   * hand-built view in a test need not state a bench it is not testing.
+   */
+  bench?: BenchFacts[];
   /** The sim wants a switch and will not accept a move. */
   forceSwitch: boolean;
   /** The sim says the active Pokemon may not switch out. */
@@ -234,6 +371,8 @@ export interface BattleFacts {
   awaitingChoice: boolean;
   /** Trick Room is on, so the *slower* side moves first. */
   invertedSpeed: boolean;
+  /** Weather and terrain on the board, as the sim holds them. */
+  field: FieldFacts;
   /**
    * How much of the opposing team is still standing, and how much there was.
    *
@@ -411,6 +550,13 @@ export interface MoveUiView {
    */
   abilityAffected: boolean;
   /**
+   * The field's factor inside `effectiveness`, and the weather or terrain
+   * behind it. **Stage 4.11 Tier 2b, D49.** `fieldFactor` is 1 and
+   * `fieldCause` null when the board does nothing to this move.
+   */
+  fieldFactor: number;
+  fieldCause: string | null;
+  /**
    * The tags on this move's button face. **Stage 4.7, Part 6b.**
    *
    * Capped at `tuning.maxMoveTagsOnFace` and in table priority order, so the
@@ -478,10 +624,35 @@ export interface BattleUiView {
    * the field; it does not say whether that is good news.
    */
   opponentLeft: { standing: number; total: number | null };
-  switches: SwitchView[];
+  /**
+   * The weather and terrain on the board. **Stage 4.11, Tier 1.** Not
+   * narrowed by the reveal policy: see `FieldFacts`.
+   */
+  field: FieldUiView;
+  switches: SwitchUiView[];
   forceSwitch: boolean;
   trapped: boolean;
   awaitingChoice: boolean;
+}
+
+/**
+ * A benched member's move, forecast against the Pokemon on the field.
+ * **The effectiveness emphasis patch, bible D92.** The same answer
+ * `MoveUiView.effectiveness` and `band` give, from the same helper.
+ */
+export interface BenchMoveUiView {
+  id: string;
+  name: string;
+  type: string;
+  category: 'Physical' | 'Special' | 'Status';
+  /** Null for a status move, exactly as on the move button. */
+  effectiveness: number | null;
+  band: Effectiveness | null;
+}
+
+/** A bench row: the policy's switch record, plus its moves' forecast. */
+export interface SwitchUiView extends SwitchView {
+  forecast: BenchMoveUiView[];
 }
 
 // ---------------------------------------------------------------------------
@@ -574,17 +745,67 @@ export function buildBattleUiView(
     player,
     opponent,
     moves: facts.moves.map((move) =>
-      toMoveUiView(move, facts.opponent, facts.player, maxMoveTagsOnFace, reveal, abilityEffects),
+      toMoveUiView(move, facts.opponent, facts.player, maxMoveTagsOnFace, reveal, abilityEffects, facts.field),
     ),
     fasterSide: fasterSide(facts, reveal),
     opponentLeft: {
       standing: facts.opponentRoster.standing,
       total: reveal.teamSize ? facts.opponentRoster.total : null,
     },
-    switches: facts.switches,
+    field: toFieldUiView(facts.field),
+    switches: facts.switches.map((member) => ({
+      ...member,
+      forecast: benchForecast(facts.bench?.find((entry) => entry.slot === member.slot), facts, reveal, abilityEffects),
+    })),
     forceSwitch: facts.forceSwitch,
     trapped: facts.trapped,
     awaitingChoice: facts.awaitingChoice,
+  };
+}
+
+/**
+ * A benched member's moves against the Pokemon on the field. **D92.**
+ *
+ * The move button's own helper, called with the bench member as the attacker:
+ * R8's forecast comes from `moveEffectiveness` and nothing else, on the bench
+ * as on the bar. The defender's grounding follows the same reveal rule
+ * `toMoveUiView` applies, so a hidden Levitate leaks through neither.
+ */
+function benchForecast(
+  entry: BenchFacts | undefined,
+  facts: BattleFacts,
+  reveal: RevealPolicy,
+  abilityEffects: AbilityEffects,
+): BenchMoveUiView[] {
+  if (!entry) return [];
+  const defender = facts.opponent;
+  return entry.moves.map((move) => {
+    const result = moveEffectiveness(move, defender, () => move.typeMultiplier, abilityEffects, reveal, {
+      weather: facts.field.weather,
+      terrain: facts.field.terrain,
+      suppressed: facts.field.suppressed,
+      attackerGrounded: entry.grounded,
+      defenderGrounded: reveal.ability ? defender.grounded : !defender.types.includes('Flying'),
+      flyingWeakness: move.flyingMultiplier,
+    });
+    return {
+      id: move.id,
+      name: move.name,
+      type: move.type,
+      category: move.category,
+      effectiveness: result.multiplier,
+      band: result.band,
+    };
+  });
+}
+
+/** The board state, with each id given its mark. Carries no word. */
+function toFieldUiView(field: FieldFacts): FieldUiView {
+  const effect = (id: string | null): FieldEffectUiView | null => (id ? { id, kind: fieldKindOf(id) } : null);
+  return {
+    weather: effect(field.weather),
+    terrain: effect(field.terrain),
+    suppressed: field.weather !== null && field.suppressed,
   };
 }
 
@@ -669,6 +890,7 @@ function toMoveUiView(
   maxTags: number,
   reveal: RevealPolicy,
   abilityEffects: AbilityEffects,
+  field: FieldFacts,
 ): MoveUiView {
   const base = {
     slot: move.slot,
@@ -701,6 +923,22 @@ function toMoveUiView(
     () => move.typeMultiplier,
     abilityEffects,
     reveal,
+    /*
+     * The board. **Stage 4.11 Tier 2b, D49.** The holder's grounding is the
+     * engine's, since everything about one's own side is visible. The
+     * defender's is the engine's only while its ability is visible: a hidden
+     * Levitate must not leak through a terrain factor that failed to apply,
+     * so with the ability hidden the honest reading is the typing alone —
+     * the same rule `visibleSpeed` follows for a hidden Swift Swim.
+     */
+    {
+      weather: field.weather,
+      terrain: field.terrain,
+      suppressed: field.suppressed,
+      attackerGrounded: holder.grounded,
+      defenderGrounded: reveal.ability ? defender.grounded : !defender.types.includes('Flying'),
+      flyingWeakness: move.flyingMultiplier,
+    },
   );
 
   return {
@@ -711,6 +949,8 @@ function toMoveUiView(
     // `bandOfMove`. The projection looks nothing up here.
     powerBand: move.explanation?.band ?? null,
     abilityAffected: result.abilityAffected,
+    fieldFactor: result.fieldFactor,
+    fieldCause: result.fieldCause,
     tags: move.explanation ? tagsForFace(move.explanation, maxTags, { types: holder.types }) : [],
     effect:
       move.explanation && hasStatusReadout(move.explanation)

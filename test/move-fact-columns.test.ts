@@ -10,11 +10,18 @@
  * the second line of the next depending on how long that move's type name was.
  *
  * The fix is a fixed grid, and a fixed grid rests on a claim about the data:
- * **four columns are enough, and the fields sharing one never co-occur.** That
+ * **the columns are enough, and the fields sharing one never co-occur.** That
  * claim is true of the pools today and nothing about it is self-enforcing — a
  * move added to `data/movePools.ts` could break either half — so it is
  * re-derived here over the live tables rather than asserted as a number
  * somebody once measured.
+ *
+ * **It was four columns until M2.1, and the re-derivation is why it is three.**
+ * Accuracy and priority moved to slots of their own on the card face (R3), and
+ * accuracy had held column 1 alone — so a grid that kept four would have
+ * reserved a dead column on every card. Everything below derives over the
+ * fields the strip still draws, `STRIP_FACT_IDS`, for the same reason it
+ * derived over all of them before: the set is data, not a number in a comment.
  *
  * The grouping's justification is in `data/moveFactInfo.ts`. This file is the
  * check that the justification still describes the tables.
@@ -22,24 +29,32 @@
 import { describe, expect, it } from 'vitest';
 
 import { describeMove } from '../src/core/battle/driver';
-import { moveFactsOf, MOVE_FACT_IDS, type MoveFactId } from '../src/core/moveFacts';
-import { MOVE_FACT_COLUMN, MOVE_FACT_COLUMNS } from '../src/data/moveFactInfo';
+import { moveFactsOf } from '../src/core/moveFacts';
+import { MOVE_FACT_COLUMN, MOVE_FACT_COLUMNS, MOVE_FACT_OWN_SLOT, STRIP_FACT_IDS, type StripFactId } from '../src/data/moveFactInfo';
 import { DAMAGING_MOVES, STATUS_MOVES } from '../src/data/movePools';
 
 /** Every move the game can draw, with its face facts. */
-function factsByMove(): Map<string, MoveFactId[]> {
-  const out = new Map<string, MoveFactId[]>();
+function factsByMove(): Map<string, StripFactId[]> {
+  const out = new Map<string, StripFactId[]>();
+  const own = new Set<string>(MOVE_FACT_OWN_SLOT);
   for (const entry of [...DAMAGING_MOVES, ...STATUS_MOVES]) {
     const explained = describeMove(entry.name);
     if (!explained) continue;
-    out.set(entry.name, moveFactsOf(explained).map((fact) => fact.id));
+    // The two with a slot of their own are not the grid's problem: they are
+    // drawn by the card face, so they can neither collide here nor be dropped.
+    out.set(
+      entry.name,
+      moveFactsOf(explained)
+        .map((fact) => fact.id)
+        .filter((id): id is StripFactId => !own.has(id)),
+    );
   }
   return out;
 }
 
 describe('the fact column map', () => {
   it('gives every field a column inside the grid', () => {
-    for (const id of MOVE_FACT_IDS) {
+    for (const id of STRIP_FACT_IDS) {
       const column = MOVE_FACT_COLUMN[id];
       expect(Number.isInteger(column), id).toBe(true);
       expect(column, id).toBeGreaterThanOrEqual(1);
@@ -50,7 +65,7 @@ describe('the fact column map', () => {
   it('never gives one move two fields in the same column', () => {
     const collisions: string[] = [];
     for (const [name, facts] of factsByMove()) {
-      const seen = new Map<number, MoveFactId>();
+      const seen = new Map<number, StripFactId>();
       for (const id of facts) {
         const column = MOVE_FACT_COLUMN[id];
         const taken = seen.get(column);

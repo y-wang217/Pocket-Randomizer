@@ -1,7 +1,7 @@
 {
-  "version": "gymrun-run-20/gymrun-0.3.0",
-  "randomizerVersion": "gymrun-randomizer-22",
-  "contentHash": "637670ddd4c4652bb869297daac07f12bd7c150d2cf6f2692ee6d83e2cee7c5c",
+  "version": "gymrun-run-21/gymrun-0.3.0",
+  "randomizerVersion": "gymrun-randomizer-23",
+  "contentHash": "dfe1e407dc2f5cb47aa572c204b6e62a92376e224128d144a86d802fcaf8e2f9",
   "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
   "runs": [
     {
@@ -118,11 +118,11 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 160,
+            "damageDealt": 118,
             "damageTaken": 148,
-            "kos": 3,
+            "kos": 2,
             "faints": 3,
-            "turnsOnField": 20
+            "turnsOnField": 18
           },
           "status": null,
           "pp": [
@@ -149,11 +149,11 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 88,
-            "damageTaken": 104,
-            "kos": 2,
+            "damageDealt": 107,
+            "damageTaken": 116,
+            "kos": 3,
             "faints": 2,
-            "turnsOnField": 8
+            "turnsOnField": 10
           },
           "status": "par",
           "pp": [
@@ -182,7 +182,7 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 2,
-          "hpAfter": 28,
+          "hpAfter": 30,
           "casualties": []
         },
         {
@@ -191,8 +191,8 @@
           "kind": "wild",
           "tier": "normal",
           "winner": "p1",
-          "turns": 6,
-          "hpAfter": 13,
+          "turns": 5,
+          "hpAfter": 27,
           "casualties": [
             {
               "side": "p1",
@@ -209,7 +209,7 @@
           "tier": null,
           "winner": null,
           "turns": null,
-          "hpAfter": 35,
+          "hpAfter": 49,
           "casualties": []
         },
         {
@@ -218,7 +218,7 @@
           "kind": "trainer",
           "tier": "normal",
           "winner": "p1",
-          "turns": 3,
+          "turns": 4,
           "hpAfter": 22,
           "casualties": [
             {
@@ -236,13 +236,13 @@
           "tier": null,
           "winner": "p1",
           "turns": 7,
-          "hpAfter": 35,
+          "hpAfter": 23,
           "casualties": [
             {
               "side": "p1",
               "name": "Sorrel",
               "bySpecies": "Rolycoly",
-              "byMove": "Sludge"
+              "byMove": "Accelerock"
             }
           ]
         },
@@ -337,13 +337,6 @@
         {
           "kind": "battle",
           "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
             "kind": "switch",
             "slot": 2
           }
@@ -373,7 +366,7 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 1
+            "slot": 3
           }
         },
         {
@@ -450,6 +443,13 @@
         {
           "kind": "battle",
           "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
             "kind": "switch",
             "slot": 2
           }
@@ -458,7 +458,7 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 3
+            "slot": 1
           }
         },
         {
@@ -496,21 +496,7 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 4
+            "slot": 1
           }
         },
         {
@@ -525,6 +511,20 @@
           "choice": {
             "kind": "switch",
             "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
           }
         },
         {
@@ -668,18 +668,18 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 536,
-            "damageTaken": 172,
-            "kos": 10,
-            "faints": 4,
-            "turnsOnField": 23
+            "damageDealt": 558,
+            "damageTaken": 116,
+            "kos": 13,
+            "faints": 2,
+            "turnsOnField": 24
           },
           "status": null,
           "pp": [
-            10,
+            7,
             32,
-            32,
-            22
+            29,
+            24
           ]
         },
         {
@@ -699,15 +699,15 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 86,
-            "damageTaken": 84,
+            "damageDealt": 105,
+            "damageTaken": 56,
             "kos": 2,
-            "faints": 2,
-            "turnsOnField": 6
+            "faints": 1,
+            "turnsOnField": 5
           },
           "status": null,
           "pp": [
-            13,
+            12,
             24,
             32,
             16
@@ -730,17 +730,17 @@
           "fainted": true,
           "joinedSegment": 1,
           "contribution": {
-            "damageDealt": 92,
+            "damageDealt": 27,
             "damageTaken": 56,
-            "kos": 4,
+            "kos": 1,
             "faints": 1,
-            "turnsOnField": 5
+            "turnsOnField": 3
           },
           "status": null,
           "pp": [
-            14,
-            24,
-            46,
+            15,
+            23,
+            48,
             16
           ]
         }
@@ -762,8 +762,8 @@
           "kind": "wild",
           "tier": "normal",
           "winner": "p1",
-          "turns": 3,
-          "hpAfter": 25,
+          "turns": 2,
+          "hpAfter": 34,
           "casualties": []
         },
         {
@@ -773,7 +773,7 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 1,
-          "hpAfter": 69,
+          "hpAfter": 78,
           "casualties": []
         },
         {
@@ -782,16 +782,9 @@
           "kind": "wild",
           "tier": "normal",
           "winner": "p1",
-          "turns": 4,
-          "hpAfter": 44,
-          "casualties": [
-            {
-              "side": "p1",
-              "name": "Onyx",
-              "bySpecies": "Mantyke",
-              "byMove": "Circle Throw"
-            }
-          ]
+          "turns": 3,
+          "hpAfter": 64,
+          "casualties": []
         },
         {
           "id": "s0-summit-4-0",
@@ -800,7 +793,7 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 2,
-          "hpAfter": 62,
+          "hpAfter": 65,
           "casualties": []
         },
         {
@@ -809,8 +802,8 @@
           "kind": "gym",
           "tier": null,
           "winner": "p1",
-          "turns": 4,
-          "hpAfter": 56,
+          "turns": 3,
+          "hpAfter": 65,
           "casualties": []
         },
         {
@@ -829,16 +822,9 @@
           "kind": "wild",
           "tier": "hard",
           "winner": "p1",
-          "turns": 6,
-          "hpAfter": 101,
-          "casualties": [
-            {
-              "side": "p1",
-              "name": "Fennel",
-              "bySpecies": "Stantler",
-              "byMove": "Rising Voltage"
-            }
-          ]
+          "turns": 5,
+          "hpAfter": 110,
+          "casualties": []
         },
         {
           "id": "s1-shore-2-0",
@@ -846,8 +832,8 @@
           "kind": "wild",
           "tier": "normal",
           "winner": "p1",
-          "turns": 2,
-          "hpAfter": 120,
+          "turns": 3,
+          "hpAfter": 102,
           "casualties": []
         },
         {
@@ -856,16 +842,9 @@
           "kind": "wild",
           "tier": "normal",
           "winner": "p1",
-          "turns": 3,
-          "hpAfter": 77,
-          "casualties": [
-            {
-              "side": "p1",
-              "name": "Onyx",
-              "bySpecies": "Pikipek",
-              "byMove": "Aerial Ace"
-            }
-          ]
+          "turns": 2,
+          "hpAfter": 102,
+          "casualties": []
         },
         {
           "id": "s1-shore-4-0",
@@ -873,14 +852,14 @@
           "kind": "wild",
           "tier": "normal",
           "winner": "p1",
-          "turns": 3,
-          "hpAfter": 64,
+          "turns": 5,
+          "hpAfter": 58,
           "casualties": [
             {
               "side": "p1",
               "name": "Onyx",
-              "bySpecies": "Doduo",
-              "byMove": "Horn Attack"
+              "bySpecies": "Slowpoke",
+              "byMove": "Frost Breath"
             }
           ]
         },
@@ -897,19 +876,19 @@
               "side": "p1",
               "name": "Onyx",
               "bySpecies": "Finneon",
-              "byMove": "Aqua Jet"
-            },
-            {
-              "side": "p1",
-              "name": "Fennel",
-              "bySpecies": "Finneon",
               "byMove": "Bubble Beam"
             },
             {
               "side": "p1",
               "name": "Nettle",
               "bySpecies": "Finneon",
-              "byMove": "Bubble Beam"
+              "byMove": "Aqua Jet"
+            },
+            {
+              "side": "p1",
+              "name": "Fennel",
+              "bySpecies": "Finneon",
+              "byMove": "Aqua Jet"
             }
           ]
         }
@@ -934,13 +913,6 @@
         {
           "kind": "node",
           "index": 0
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 4
-          }
         },
         {
           "kind": "battle",
@@ -1036,20 +1008,6 @@
           }
         },
         {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 2
-          }
-        },
-        {
           "kind": "acquisition",
           "decision": {
             "kind": "decline"
@@ -1114,13 +1072,6 @@
         {
           "kind": "lead",
           "index": 0
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
         },
         {
           "kind": "battle",
@@ -1258,20 +1209,6 @@
           }
         },
         {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
           "kind": "acquisition",
           "decision": {
             "kind": "decline"
@@ -1299,6 +1236,13 @@
         {
           "kind": "node",
           "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
         },
         {
           "kind": "battle",
@@ -1346,21 +1290,7 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 4
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 3
+            "slot": 1
           }
         },
         {
@@ -1404,7 +1334,21 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 4
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
           }
         },
         {
@@ -1418,7 +1362,7 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 3
+            "slot": 2
           }
         },
         {
@@ -1460,8 +1404,22 @@
         {
           "kind": "battle",
           "choice": {
+            "kind": "switch",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
             "kind": "move",
             "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
           }
         },
         {
@@ -1475,21 +1433,7 @@
           "kind": "battle",
           "choice": {
             "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 3
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
+            "slot": 2
           }
         }
       ]

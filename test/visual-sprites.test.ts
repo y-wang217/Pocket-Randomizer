@@ -31,13 +31,12 @@ afterAll(async () => {
 async function open(
   browser: Browser,
   surface: GallerySurface,
-  density: 'detailed' | 'pocket',
   options: { reducedMotion?: 'reduce' | 'no-preference' } = {},
 ): Promise<{ page: Page; close: () => Promise<void> }> {
   const context = await browser.newContext({ viewport: PHONE, reducedMotion: options.reducedMotion ?? 'no-preference' });
   await context.route(/play\.pokemonshowdown\.com/, (route) => route.abort());
   const page = await context.newPage();
-  await page.goto(`${harness.url}/gallery.html#seed=SMOKE24&screen=${surface}&density=${density}&fixture=loaded`, { waitUntil: 'load' });
+  await page.goto(`${harness.url}/gallery.html#seed=SMOKE24&screen=${surface}&fixture=loaded`, { waitUntil: 'load' });
   await page.waitForSelector('html[data-gallery-ready="true"]', { timeout: 60_000 });
   await page.evaluate(() => globalThis.document.fonts.ready);
   return { page, close: () => context.close() };
@@ -96,7 +95,7 @@ async function readFigures(page: Page): Promise<FigureReading[]> {
 describe('a missing sprite costs its figure nothing', () => {
   for (const surface of ['starter', 'party'] as const) {
     it(`keeps every sprite inside its figure on ${surface}, with the CDN gone`, async () => {
-      const { page, close } = await open(harness.browser, surface, 'detailed');
+      const { page, close } = await open(harness.browser, surface);
       await page.waitForFunction(
         () => globalThis.document.querySelector('.figure > .sprite')?.getAttribute('data-missing') === 'true',
         undefined,
@@ -124,7 +123,7 @@ describe('a missing sprite costs its figure nothing', () => {
 
 describe('the idle bob', () => {
   it('does not run on an empty box: a sprite the CDN did not have holds still', async () => {
-    const { page, close } = await open(harness.browser, 'party', 'detailed');
+    const { page, close } = await open(harness.browser, 'party');
     // The first card's sprite is in the viewport, so its lazy request is made
     // and aborted; the mark lands when the error fires. A card below the fold
     // never requests, so it is never marked, and is not read here.
@@ -135,7 +134,7 @@ describe('the idle bob', () => {
   });
 
   it('runs on every figure of the party screen, phased by slot, out of the flow', async () => {
-    const { page, close } = await open(harness.browser, 'party', 'detailed');
+    const { page, close } = await open(harness.browser, 'party');
     const figures = await readFigures(page);
     await close();
     expect(figures.length).toBeGreaterThanOrEqual(2);
@@ -143,25 +142,21 @@ describe('the idle bob', () => {
       expect(figure.name).toBe('figure-idle');
       expect(parseFloat(figure.duration)).toBeGreaterThan(0);
       expect(figure.absolute).toBe(true);
-      expect(figure.size).toBe(48);
+      // 48 in Detailed until Stage 5.0/1; the one face is Pocket's 24.
+      expect(figure.size).toBe(24);
     }
     // Six bodies, not one mechanism: the first two slots start apart.
     expect(figures[0]?.delay).not.toBe(figures[1]?.delay);
   });
 
-  it('is smaller on a member card in Pocket, where the head is the whole card', async () => {
-    const { page, close } = await open(harness.browser, 'party', 'pocket');
-    const figures = await readFigures(page);
-    await close();
-    expect(figures.length).toBeGreaterThanOrEqual(2);
-    for (const figure of figures) expect(figure.size).toBe(24);
-  });
+  // 'is smaller on a member card in Pocket' merged into the case above when
+  // Stage 5.0/1 made Pocket the one face.
 
   it('holds still under reduced motion, on every surface that carries one', async () => {
     // The event gate's figures ride the same `.figure` rule; the gallery's
     // event fixture is not pinned to the `latent` band, so it is not listed.
     for (const surface of ['starter', 'replace', 'target', 'party'] as const) {
-      const { page, close } = await open(harness.browser, surface, 'detailed', { reducedMotion: 'reduce' });
+      const { page, close } = await open(harness.browser, surface, { reducedMotion: 'reduce' });
       const figures = await readFigures(page);
       await close();
       expect(figures.length, `${surface} carries a figure`).toBeGreaterThan(0);

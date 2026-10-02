@@ -15,7 +15,7 @@ const browser = await launch();
 try {
   const { page, context } = await openApp(browser, server.url, 'SMOKE24');
   await playUntil(page, (screen) => screen === 'map');
-  await page.locator(`${visible('map')} .party__header .button`).click();
+  await page.locator('[data-nav="team"]').click();
   await page.waitForSelector(visible('party'));
   // A party of one cannot release, so the button is disabled; force the band
   // open through the helper's DOM instead by using the backpack discard when

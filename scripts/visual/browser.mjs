@@ -13,6 +13,8 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 
+import { notFirstLaunch } from '../first-launch.mjs';
+
 const TYPES = {
   '.html': 'text/html',
   '.js': 'text/javascript',
@@ -108,7 +110,20 @@ const ENGINE_API = { chromium, webkit };
 
 export async function launch(options = {}, engine = ENGINE) {
   const executablePath = (PINNED[engine] ?? []).find((candidate) => existsSync(candidate));
-  return ENGINE_API[engine].launch({ ...(executablePath ? { executablePath } : {}), ...options });
+  /*
+   * `GYMRUN_PROXY` routes the browser through an egress proxy, with the local
+   * harness bypassed. **The browser suite CI patch.** A sandboxed box has no
+   * direct route to Showdown's sprite CDN, so every sprite on it is
+   * `data-missing` and a panel that has a sprite behind a chip on Actions has
+   * none here; `visual-chips` samples exactly that. With the box's proxy named
+   * the sprites load and the two environments measure the same pixels.
+   * Certificate errors are ignored only under this flag, because a proxy that
+   * re-signs TLS is the whole point of it.
+   */
+  const proxy = process.env.GYMRUN_PROXY
+    ? { proxy: { server: process.env.GYMRUN_PROXY, bypass: '127.0.0.1,localhost' }, args: ['--ignore-certificate-errors'] }
+    : {};
+  return ENGINE_API[engine].launch({ ...(executablePath ? { executablePath } : {}), ...proxy, ...options });
 }
 
 export const visible = (name) => `.screen[data-screen="${name}"]:not([hidden])`;
@@ -121,21 +136,110 @@ export async function openScreen(page) {
   });
 }
 
-/** The starter with the most HP, ties to the leftmost card. Same as smoke. */
-async function bulkiestStarter(page) {
+/*
+ * **The walk waits on state, not on the clock.** The browser suite CI patch,
+ * `docs/spec/gymrun-patch-browser-suite-ci.md`, on top of M2.0.
+ *
+ * M2.0 (`docs/generation.md` section 53) fixed the two defects that made the
+ * budget count laps as decisions: `stepOnce` now acts only on the screen its
+ * caller decided about and returns null when it clicked nothing, and
+ * `playUntil` counts only laps that acted, under a wall-clock deadline. What
+ * it left in place was the sleeps: `waitForTimeout(40)` in the branches that
+ * found nothing to click, 16ms between laps, 15ms and 25ms inside the shop and
+ * event branches. Each is a guess at how long the app takes, and on a
+ * saturated runner the guess is wrong in the one direction that costs time.
+ *
+ * The app exposes no busy flag, so "finished reacting" is read off the DOM
+ * itself: a `MutationObserver` on the document stamps the time of the last
+ * mutation, and `settle` resolves once a screen is visible and nothing has
+ * mutated for `quietMs`. Beats and transitions in this UI are CSS; what the
+ * observer sees is the app writing attributes and text at their boundaries,
+ * which is exactly the moment a player could act again. `waitForMutation` is
+ * the other half, for a step that found nothing to click: wait for the app to
+ * do *anything*, rather than for 40ms to pass.
+ *
+ * Both are bounded, and a bound expiring is not an error here: the walk goes
+ * on and `playUntil`'s deadline or the test's timeout is the stall guard,
+ * exactly as before. A driver with no `waitForFunction` is not a browser
+ * (`test/visual-walk.test.ts` drives these with a fake page) and has nothing
+ * to settle, so both return at once there.
+ */
+const QUIET_MS = 60;
+const SETTLE_TIMEOUT_MS = 8_000;
+const MUTATION_TIMEOUT_MS = 5_000;
+
+/** Install the observer once per page; Playwright serialises this to run there. */
+function observe() {
+  const w = globalThis;
+  if (!w.__gymrunWalk) {
+    const state = { last: globalThis.performance.now() };
+    new globalThis.MutationObserver(() => {
+      state.last = globalThis.performance.now();
+    }).observe(globalThis.document.documentElement, { subtree: true, childList: true, attributes: true, characterData: true });
+    w.__gymrunWalk = state;
+  }
+  return w.__gymrunWalk.last;
+}
+
+const isBrowser = (page) => typeof page.waitForFunction === 'function';
+
+async function boundedWait(page, fn, arg, timeout) {
+  if (!isBrowser(page)) return false;
+  try {
+    await page.waitForFunction(fn, arg, { timeout, polling: 16 });
+    return true;
+  } catch (error) {
+    if (!/timeout/i.test(String(error?.message))) throw error;
+    return false;
+  }
+}
+
+/** Resolve once a screen is visible and the DOM has been quiet for `quietMs`. */
+export async function settle(page, { quietMs = QUIET_MS, timeout = SETTLE_TIMEOUT_MS } = {}) {
+  if (!isBrowser(page)) return false;
+  await page.evaluate(observe);
+  return boundedWait(
+    page,
+    (quiet) => {
+      const screen = [...globalThis.document.querySelectorAll('.screen')].find((el) => !el.hidden);
+      if (!screen) return false;
+      return globalThis.performance.now() - globalThis.__gymrunWalk.last >= quiet;
+    },
+    quietMs,
+    timeout,
+  );
+}
+
+/** Resolve once anything in the document mutates, or `timeout` passes. */
+async function waitForMutation(page, timeout = MUTATION_TIMEOUT_MS) {
+  if (!isBrowser(page)) return false;
+  const mark = await page.evaluate(observe);
+  return boundedWait(page, (since) => globalThis.__gymrunWalk.last > since, mark, timeout);
+}
+
+/**
+ * Pick the starter with the most HP, ties to the leftmost card. Same as smoke.
+ *
+ * The max HP is the detail panel's since bible Rev 19 (D78, D79): a tap
+ * selects a card and fills the panel, and the Choose control commits. Each
+ * card is tapped in turn to read it, which is a selection and never a pick.
+ */
+async function pickBulkiestStarter(page) {
   const cards = page.locator('.starter');
   const count = await cards.count();
   let best = 0;
   let bestHp = -1;
   for (let i = 0; i < count; i++) {
-    const meta = (await cards.nth(i).locator('.starter__meta').textContent()) ?? '';
-    const hp = Number(/(\d+)\s*HP/.exec(meta)?.[1] ?? 0);
+    await cards.nth(i).click();
+    const meta = (await page.locator('.starter-detail .stat[data-row="hp"] .stat__value').textContent()) ?? '';
+    const hp = Number(/(\d+)/.exec(meta)?.[1] ?? 0);
     if (hp > bestHp) {
       bestHp = hp;
       best = i;
     }
   }
-  return cards.nth(best);
+  await cards.nth(best).click();
+  await page.locator('.starter-select__choose').click();
 }
 
 async function hardestMove(page) {
@@ -162,14 +266,28 @@ async function hardestMove(page) {
 async function chooseNode(page) {
   const options = page.locator(`${visible('map')} .node--current`);
   if ((await options.count()) === 0) return null;
-  const hpText = (await page.locator(`${visible('map')} .panel__hp-text`).first().textContent()) ?? '';
-  const [, current, max] = /(\d+)\s*\/\s*(\d+)/.exec(hpText) ?? [];
-  const fraction = current && max ? Number(current) / Number(max) : 1;
-  if (fraction < 0.95) {
-    const rest = page.locator(`${visible('map')} .node--current.node--rest`).first();
-    if (await rest.count()) return rest;
-  }
+  const rest = page.locator(`${visible('map')} .node--current.node--rest`).first();
+  if ((await rest.count()) && (await leadHpFraction(page)) < 0.95) return rest;
   return options.first();
+}
+
+/**
+ * The lead's HP as a fraction, read off the party screen. **Stage 5.0/4.**
+ *
+ * The map carried the party until 5.0/4 and the bot read the lead's HP there;
+ * the team is the Team tab's now, so the bot looks the way a player would:
+ * the tab, the lead's card, and back to the map. Asked only when a rest is on
+ * offer, which is the only time the answer changes a pick. A readout: it
+ * submits nothing and draws nothing, so a seeded walk is the same walk.
+ */
+export async function leadHpFraction(page) {
+  await page.locator('[data-nav="team"]').click();
+  await page.waitForSelector(visible('party'));
+  const hpText = (await page.locator(`${visible('party')} .party__member .panel__hp-text`).first().textContent()) ?? '';
+  await page.locator(`${visible('party')} .primary-action`).first().click();
+  await page.waitForSelector(visible('map'));
+  const [, current, max] = /(\d+)\s*\/\s*(\d+)/.exec(hpText) ?? [];
+  return current && max ? Number(current) / Number(max) : 1;
 }
 
 /**
@@ -178,6 +296,12 @@ async function chooseNode(page) {
  * Returns the name of the screen it acted on, or null when nothing was
  * clickable (a transition in flight). The caller decides when to stop; this
  * only knows how to answer whichever screen is up.
+ *
+ * **That null is the contract, and until M2.0 the code did not keep it.**
+ * Every branch returned the screen whether or not it had clicked anything, so
+ * a caller counting steps counted the waiting as progress and a walk could
+ * exhaust its budget without having made a single decision. The branches that
+ * wait now return null, as this comment always said they did.
  */
 /**
  * Close an open tooltip before acting. **Added at patch 4.7.2.**
@@ -208,7 +332,15 @@ async function dismissTooltip(page) {
   });
   if (!open) return;
   await page.keyboard.press('Escape');
-  await page.waitForTimeout(30);
+  await boundedWait(
+    page,
+    () => {
+      const tip = globalThis.document.querySelector('.tip');
+      return !tip || tip.hidden;
+    },
+    undefined,
+    2_000,
+  );
 }
 
 /**
@@ -231,22 +363,51 @@ async function dismissTooltip(page) {
  * `visual-v0`, `visual-v2` and `contrast.mjs` already make before they measure,
  * each with a comment saying why.
  */
-export async function stepOnce(page) {
-  const screen = await stepOnceUnparked(page);
+export async function stepOnce(page, expected) {
+  const screen = await stepOnceUnparked(page, expected);
+  // Nothing clickable: wait for the app to do something. Then, either way,
+  // wait for it to finish doing it before anyone reads the screen.
+  if (screen === null) await waitForMutation(page);
+  await settle(page);
   await page.mouse.move(0, 0);
   return screen;
 }
 
-async function stepOnceUnparked(page) {
+async function stepOnceUnparked(page, expected) {
   await dismissTooltip(page);
   const screen = await openScreen(page);
+  /*
+   * **Act on the screen the caller decided about, never on whatever replaced
+   * it.** M2.0.
+   *
+   * A caller reads the screen, decides whether it is the one it wanted, and
+   * then calls this — which reads the screen *again*. Between those two reads
+   * the app can move on its own: the battle outro resolves on a `setTimeout`,
+   * and `router.show` is synchronous, so the switch lands whole inside the
+   * gap. The caller then decides about one screen and this steps off another,
+   * and the screen it was waiting for is consumed without its predicate ever
+   * having been asked about it.
+   *
+   * That is the walk's one real race, and it is load-sensitive for a reason
+   * that is not the app's fault: the gap is two CDP round trips wide, the
+   * timer fires on wall-clock, and a saturated box stretches the former while
+   * leaving the latter alone. It is also why throttling the *page* does not
+   * reproduce it — that slows the app and narrows the gap.
+   *
+   * `expected` closes it. A caller that has already decided passes what it
+   * decided about; if the app has moved since, this acts on nothing and says
+   * so, and the caller re-reads and decides again. A caller with no opinion
+   * omits it and gets the old behaviour exactly.
+   */
+  if (expected !== undefined && screen !== expected) return null;
   switch (screen) {
     case 'starter':
-      await (await bulkiestStarter(page)).click();
+      await pickBulkiestStarter(page);
       return screen;
     case 'locale': {
       const card = page.locator(`${visible('locale')} .locale`).last();
-      if (await card.count()) await card.click();
+      if (!(await card.count())) return null;
+      await card.click();
       return screen;
     }
     case 'battle': {
@@ -267,8 +428,10 @@ async function stepOnceUnparked(page) {
        * always present and never a trigger, and the click bubbles to the
        * button exactly as a tap on it would.
        */
-      if (move) await move.locator('.move__name').first().click();
-      else await page.waitForTimeout(40);
+      // Mid-turn: the buttons are disabled while the beats run. Nothing was
+      // spent, so this is not a step; `stepOnce` waits for the beat to move.
+      if (!move) return null;
+      await move.locator('.move__name').first().click();
       return screen;
     }
     case 'result': {
@@ -290,6 +453,8 @@ async function stepOnceUnparked(page) {
         // of them — an empty span is not clickable, which is a second way to
         // stall on the same screen.
         await card.click({ position: { x: 8, y: 8 } });
+        // A tap selects; the claim band's commit takes it (Stage 5.0/3, D69).
+        await page.locator('.confirm-band .primary-action').click();
         return screen;
       }
       const capture = page.locator(`${visible('result')} .result__capture`);
@@ -307,7 +472,8 @@ async function stepOnceUnparked(page) {
         return screen;
       }
       const carry = page.locator(`${visible('result')} .result__actions .button`).first();
-      if (await carry.count()) await carry.click();
+      if (!(await carry.count())) return null;
+      await carry.click();
       return screen;
     }
     case 'shop': {
@@ -316,7 +482,7 @@ async function stepOnceUnparked(page) {
         if (!(await add.count())) break;
         if ((await add.textContent()) !== 'Add') break;
         await add.click();
-        await page.waitForTimeout(15);
+        await settle(page);
       }
       await page.locator(`${visible('shop')} .shop__footer .button`).click();
       return screen;
@@ -325,7 +491,7 @@ async function stepOnceUnparked(page) {
       const choice = page.locator(`${visible('event')} .event__choice:not([disabled])`).first();
       if (await choice.count()) {
         await choice.click();
-        await page.waitForTimeout(25);
+        await settle(page);
       }
       const carry = page.locator(`${visible('event')} .event__result .button`);
       await carry.waitFor({ timeout: 5_000 });
@@ -351,19 +517,43 @@ async function stepOnceUnparked(page) {
      * The name line is the right target because it is the one part of either
      * card guaranteed to be present, non-empty and never a trigger. The click
      * bubbles to the button exactly as a tap on it would.
+     *
+     * **The teach target is the exception since M3.3.** Its card is the party
+     * row now and is not a control at all: the row carries a fold toggle, six
+     * stat labels and four inspect triggers, and nesting those in a `<button>`
+     * would be invalid, so the control is a sibling. A click on the card lands
+     * on a card and the walk stalls — which is exactly what it did, for 900
+     * steps, until this was changed to press what a player presses.
      */
     case 'target': {
-      const card = page.locator(`${visible('target')} .party__member--target`).first();
-      if (!(await card.count())) return screen;
-      const name = card.locator('.panel__name').first();
-      await ((await name.count()) ? name : card).click();
+      const choose = page.locator(`${visible('target')} .target__choose`).first();
+      if (!(await choose.count())) return null;
+      await choose.click();
       return screen;
     }
     case 'replace': {
       const victim = page.locator(`${visible('replace')} .move--victim`).last();
-      if (!(await victim.count())) return screen;
+      if (!(await victim.count())) return null;
       const name = victim.locator('.move__name').first();
       await ((await name.count()) ? name : victim).click();
+      /*
+       * **And then answer the confirm, because M2.3 put one here.**
+       *
+       * Tapping a victim used to commit the replacement. It opens the shared
+       * band now — two full cards, the question, and a primary that commits —
+       * which is the item's whole point: the chip gave up PP and the band, and
+       * the confirm is where they come back.
+       *
+       * A walker that clicked the chip and moved on would leave a modal up,
+       * and the band is `aria-modal` with a scrim, so *every* later click is
+       * intercepted by it. That is not a slow walk, it is a stuck one: the
+       * smoke run spent its timeout retrying a click the dialog was eating.
+       *
+       * The same shape the `result` branch already handles for a full-party
+       * release, and the selector is the same one.
+       */
+      const commit = page.locator('.confirm-band .primary-action');
+      if (await commit.count()) await commit.first().click();
       return screen;
     }
     case 'party': {
@@ -392,32 +582,57 @@ async function stepOnceUnparked(page) {
       // slot, because slot 0's own button is disabled ("Leading") — which on a
       // party of one left no enabled control at all.
       const confirm = page.locator(`${visible('pre-gym')} .pre-gym__confirm:not(:disabled)`);
-      if (await confirm.count()) await confirm.first().click();
-      else await page.waitForTimeout(40);
+      if (!(await confirm.count())) return null;
+      await confirm.first().click();
       return screen;
     }
     case 'map': {
       const node = await chooseNode(page);
-      if (node) await node.click();
-      else await page.waitForTimeout(40);
+      if (!node) return null;
+      await node.click();
       return screen;
     }
     default:
-      await page.waitForTimeout(40);
-      return screen;
+      return null;
   }
 }
 
 /**
  * Play until `predicate(screen, page)` is true, or `maxSteps` decisions pass.
  * Checked *before* each step, so the run stops on the screen asked for.
+ *
+ * **`maxSteps` counts decisions, not laps. M2.0.** It always said decisions;
+ * the loop counted laps, and the two differ exactly when the app is busy —
+ * which is when the budget matters. A lap that found nothing to click spent
+ * nothing, so it is not a step, and a walk no longer gives up because the
+ * machine was slow enough that waiting looked like progress.
+ *
+ * The wall-clock cap is what stops a genuinely stuck run now. It is a
+ * *deadline*, not a per-step sleep: a fast machine never touches it, and a slow
+ * one gets as many frames as it needs rather than a fixed 25ms that was only
+ * ever a guess at how long a render takes.
+ *
+ * It scales with the budget rather than being flat, because a caller that asks
+ * for five steps is asking a short question and should get a short answer when
+ * the walk is stuck — `scripts/visual/stamps.mjs` asks exactly that and
+ * swallows the rejection. 300ms a decision, floored at 30s, which lands the
+ * default 600 on the three minutes a full walk to the summary can take under
+ * load.
  */
-export async function playUntil(page, predicate, maxSteps = 600) {
-  for (let step = 0; step < maxSteps; step++) {
+export async function playUntil(page, predicate, maxSteps = 600, { timeoutMs = Math.max(30_000, maxSteps * 300) } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let steps = 0;
+  while (steps < maxSteps) {
     const screen = await openScreen(page);
     if (screen && (await predicate(screen, page))) return screen;
-    await stepOnce(page);
-    await page.waitForTimeout(25);
+    if (Date.now() > deadline) {
+      throw new Error(`playUntil: ${timeoutMs}ms elapsed after ${steps} steps, on ${screen}`);
+    }
+    // `screen` and not a fresh read: this is the half of the race that lives
+    // here. See `stepOnceUnparked`.
+    // A lap that acted counts. One that did not has already waited, inside
+    // `stepOnce`, for the app to move.
+    if (await stepOnce(page, screen)) steps += 1;
   }
   throw new Error(`playUntil: gave up after ${maxSteps} steps on ${await openScreen(page)}`);
 }
@@ -433,40 +648,34 @@ export async function playUntil(page, predicate, maxSteps = 600) {
  * skipped unless a test asks for it (`openApp(..., { tutorial: true })`), and
  * the tutorial's own browser test is the one that asks.
  */
-export const TUTORIAL_SKIPPED_SETTINGS = JSON.stringify({ density: 'detailed', tutorial: { skipped: true, seen: [] } });
-
-/** The three density modes, in the order the settings store lists them. Density modes patch. */
-export const DENSITIES = ['detailed', 'simple', 'pocket'];
-
-/**
- * Both move bar layouts. `grid` is the stored default, so it is what every
- * entry recorded before the four-column patch describes.
- */
-export const MOVE_BARS = ['grid', 'columns'];
+export const TUTORIAL_SKIPPED_SETTINGS = JSON.stringify({ tutorial: { skipped: true, seen: [] } });
 
 /**
  * Seed a context's storage so the app's first launch is a returning one,
- * tutorial-wise, in the density mode asked for.
- *
- * The mode goes in through the store rather than through a hook on the page,
- * so the bot measures exactly what a stored preference renders: the app reads
- * it at startup and writes the root attribute itself.
+ * tutorial-wise. It took a density mode until Stage 5.0/1 retired the modes.
  */
-export async function skipTutorialIn(context, density = 'detailed', moveBar = 'grid') {
+export async function skipTutorialIn(context) {
   await context.addInitScript(
     (settings) => {
       try {
         if (!globalThis.localStorage.getItem('gymrun.settings')) globalThis.localStorage.setItem('gymrun.settings', settings);
       } catch {
-        // Storage unavailable: the app falls back to defaults and the marks show.
+        // Storage unavailable: the app falls back to defaults and both
+        // first-run surfaces show.
       }
     },
-    JSON.stringify({ density, moveBar, tutorial: { skipped: true, seen: [] } }),
+    /*
+     * The store comes from `scripts/first-launch.mjs`, which `scripts/smoke.mjs`
+     * seeds from too. It covers the coach marks **and** the intro panel — the
+     * name here is older than the panel and is kept because every caller in the
+     * suite uses it.
+     */
+    notFirstLaunch(),
   );
 }
 
 export async function openApp(browser, url, seed, viewport = PHONE, contextOptions = {}) {
-  const { tutorial = false, density = 'detailed', moveBar = 'grid', ...rest } = contextOptions;
+  const { tutorial = false, ...rest } = contextOptions;
   /*
    * The engine's own context shape, then the caller's overrides. **The iOS
    * patch.** On Chromium this is the bare viewport it always was; on WebKit it
@@ -474,7 +683,7 @@ export async function openApp(browser, url, seed, viewport = PHONE, contextOptio
    * and 3x density come along without any test asking for them.
    */
   const context = await browser.newContext({ ...contextFor(viewport, browser.browserType().name()), ...rest });
-  if (!tutorial) await skipTutorialIn(context, density, moveBar);
+  if (!tutorial) await skipTutorialIn(context);
   const page = await context.newPage();
   const problems = [];
   page.on('console', (msg) => {
@@ -504,10 +713,21 @@ async function measureScreen(page, name, decisionSelector) {
       const nodes = [...globalThis.document.querySelectorAll(decision)];
       const rects = nodes.map((node) => node.getBoundingClientRect());
       const r = (n) => Math.round(n * 100) / 100;
-      const scrollY = globalThis.window.scrollY;
+      /*
+       * **The frame's scroller, not the document's. Stage 5.0/2**, carried
+       * from 5.0/1. Since the shell went one viewport tall, the page never
+       * scrolls and the document's `scrollHeight` is always the viewport's,
+       * so the number this reported stopped measuring anything. A screen
+       * scrolls inside `.screens` now: its `scrollHeight` against its
+       * `clientHeight` is whether the screen fits, and its `scrollTop` is
+       * what turns a box into a position in the screen's own content.
+       */
+      const scroller = globalThis.document.querySelector('.screens');
+      const scrollY = scroller ? scroller.scrollTop : globalThis.window.scrollY;
       return {
         screenHeight: r(screen.getBoundingClientRect().height),
-        scrollHeight: globalThis.document.documentElement.scrollHeight,
+        scrollHeight: scroller ? scroller.scrollHeight : globalThis.document.documentElement.scrollHeight,
+        clientHeight: scroller ? scroller.clientHeight : globalThis.window.innerHeight,
         decisionCount: nodes.length,
         decisionTop: rects.length ? r(Math.min(...rects.map((x) => x.top + scrollY))) : null,
         decisionBottom: rects.length ? r(Math.max(...rects.map((x) => x.bottom + scrollY))) : null,
@@ -522,50 +742,19 @@ async function measureScreen(page, name, decisionSelector) {
  * nodes, and a battle with four move buttons. Same seed, same clicks, so the
  * only variable between two builds is the stylesheet.
  *
- * **In all three density modes since the density patch.** The top-level `map`
- * and `battle` are Detailed, unchanged in shape so every reader of
- * `heights.json` before the patch reads the same numbers; `modes.simple` and
- * `modes.pocket` are the same two screens under the other two stored
- * preferences, each on a fresh context.
+ * One face since Stage 5.0/1. The density patch measured all three modes
+ * (`modes.simple`, `modes.pocket`, and the four-column `layouts` M2.2
+ * deleted); with the modes retired there is one measurement.
  */
 export async function measureGuardedScreens(url, browser, seed = 'SMOKE24') {
-  const result = { seed, viewport: { ...PHONE }, modes: {}, layouts: {} };
-  const problems = [];
-  for (const density of DENSITIES) {
-    const measured = await measureGuardedScreensIn(url, browser, seed, density, 'grid');
-    problems.push(...measured.problems);
-    if (density === 'detailed') {
-      result.map = measured.map;
-      result.battle = measured.battle;
-    } else {
-      result.modes[density] = { map: measured.map, battle: measured.battle };
-    }
-  }
-  /*
-   * The second move bar layout, in all three densities. **The four-column
-   * patch.**
-   *
-   * A sibling axis rather than a replacement, and the shape is deliberate: the
-   * `map`/`battle`/`modes` entries above are the stored default, so every
-   * number recorded before this patch keeps its meaning and its history. A
-   * layout that is one tap away in the drawer is a layout a player will be
-   * looking at, and an instrument that could not see it would gate half the
-   * game.
-   */
-  for (const layout of MOVE_BARS.filter((name) => name !== 'grid')) {
-    result.layouts[layout] = {};
-    for (const density of DENSITIES) {
-      const measured = await measureGuardedScreensIn(url, browser, seed, density, layout);
-      problems.push(...measured.problems);
-      result.layouts[layout][density] = { map: measured.map, battle: measured.battle };
-    }
-  }
-  if (problems.length) result.problems = problems;
+  const measured = await measureGuardedScreensIn(url, browser, seed);
+  const result = { seed, viewport: { ...PHONE }, map: measured.map, battle: measured.battle };
+  if (measured.problems.length) result.problems = measured.problems;
   return result;
 }
 
-async function measureGuardedScreensIn(url, browser, seed, density, moveBar = 'grid') {
-  const { page, context, problems } = await openApp(browser, url, seed, PHONE, { density, moveBar });
+async function measureGuardedScreensIn(url, browser, seed) {
+  const { page, context, problems } = await openApp(browser, url, seed, PHONE);
   const result = { problems };
 
   await playUntil(page, (screen) => screen === 'map');

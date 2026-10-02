@@ -38,7 +38,7 @@ if (files.length === 0) {
  * leg would run the browser files after all.
  */
 /*
- * The fork cap, in CI, on the Node half only.
+ * The fork cap, in CI, on both halves.
  *
  * ## What it is fixing
  *
@@ -67,16 +67,26 @@ if (files.length === 0) {
  * already the long pole, and that is the trade being made deliberately: a slower
  * green leg is worth more than a fast one nobody can read.
  *
- * ## Why only here
+ * ## Why only in CI, and why both halves now
  *
  * **CI only**, because a developer box is not the contended machine and has no
- * reason to give up a third of its parallelism. **The Node half only**, because
- * that is where the error has been seen and because the browser halves —
- * chromium and webkit alike — are left byte-identical rather than retuned
- * alongside a fix for something they did not report. If the browser halves
- * start carrying it, they get their own measurement, not this one's leftovers.
+ * reason to give up a third of its parallelism.
+ *
+ * **The Node half first**, because that is where the error had been seen, and
+ * the browser halves were left byte-identical rather than retuned alongside a
+ * fix for something they had not reported, with the rule that if they started
+ * carrying it they would get their own measurement. **They did.** The browser
+ * suite CI patch (`docs/spec/gymrun-patch-browser-suite-ci.md`) found the
+ * browser half's own load symptom on the same runner: three forks each driving
+ * a Chromium, and `visual-move-cards` walking 900 steps without reaching the
+ * result screen because a saturated machine had not painted it yet. The walk
+ * is state-based now (`scripts/visual/browser.mjs`, `settle`), which is the
+ * fix; this is the same second half the Node cap was, which is to stop
+ * provoking it. Two forks, each a Node process plus a browser, on four cores.
+ * WebKit inherits it because it runs the same half through the same command.
  */
 const CI_NODE_MAX_FORKS = 2;
+const CI_BROWSER_MAX_FORKS = 2;
 const extra = process.argv.slice(3);
 /*
  * Withheld when the caller names the flag themselves, rather than passed and
@@ -85,8 +95,8 @@ const extra = process.argv.slice(3);
  * "the last one wins", it is a pool size of `[2, 1]`. A measurement run that
  * wants a different number has to be able to ask for one.
  */
-const capped = process.env.CI && half === 'node' && !extra.some((arg) => arg.startsWith('--maxWorkers'));
-const cap = capped ? [`--maxWorkers=${CI_NODE_MAX_FORKS}`] : [];
+const capped = process.env.CI && !extra.some((arg) => arg.startsWith('--maxWorkers'));
+const cap = capped ? [`--maxWorkers=${half === 'node' ? CI_NODE_MAX_FORKS : CI_BROWSER_MAX_FORKS}`] : [];
 
 const args = ['vitest', 'run', ...cap, ...files, ...extra];
 const child = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', args, {

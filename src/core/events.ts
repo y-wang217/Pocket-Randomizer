@@ -169,10 +169,17 @@ export interface EventOutcome {
  * see the header for why the waste is the point.
  */
 export interface EventOption {
+  /*
+   * `label` and `hint` lived here and are gone. **M5.6's split, D14.**
+   *
+   * They were display strings assembled in `core/` and handed up, which is the
+   * seam this file is on the wrong side of: the words are in
+   * `data/eventCopy.ts` now and the screen resolves them from `eventId` and
+   * this `archetype`. Nothing under `core/` reads that file, which is what
+   * lets it stay out of `contentHash` and what
+   * `test/content-hash.test.ts` walks the import graph to hold.
+   */
   archetype: EventArchetype;
-  label: string;
-  /** Shown before picking. Says the shape of the risk, never the drawn outcome. */
-  hint: string;
   /** The exact price, on `toll` and nowhere else. */
   toll: TollPrice | null;
   outcomes: Readonly<Record<OutcomeTier, EventOutcome>>;
@@ -187,7 +194,10 @@ export interface EventInstance {
   locale: LocaleId;
   /** How swingy this node is. Scales the distribution; names nothing. */
   rarity: EventRarity;
-  prompt: string;
+  /*
+   * `prompt` lived here and is gone, for the reason `EventOption` above gives.
+   * `eventId` is the key the screen reads `eventHook` with.
+   */
   /** The capability whose relic puts the Attune option on the menu. */
   requires: Capability;
   /** Always four, in archetype order, Attune included. */
@@ -324,7 +334,6 @@ export function generateEvent(
     eventId: definition.id,
     locale: definition.locale,
     rarity,
-    prompt: definition.hook,
     requires: definition.requires,
     options,
   };
@@ -372,8 +381,6 @@ function buildOption(
 
   return {
     archetype,
-    label: definition.labels[archetype],
-    hint: definition.hints[archetype],
     toll: archetype === 'toll' ? definition.toll : null,
     outcomes,
     tierAt,

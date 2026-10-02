@@ -31,6 +31,20 @@ export interface BandSpec {
   title: string;
   /** One line under it, optional. */
   detail?: string;
+  /**
+   * Something to show above the buttons. **Milestone M2.3.**
+   *
+   * The band was text only — a question and a line — because the three
+   * confirms it replaced were. M2.3 needs one that shows *the two move cards
+   * being traded*, because the decision it confirms is a comparison and a
+   * confirm that only named the two moves would be asking the player to
+   * remember what they look like.
+   *
+   * An element rather than more strings, so the caller mounts the shared
+   * component and this file keeps knowing nothing about moves. Optional, so
+   * every existing caller is untouched.
+   */
+  content?: HTMLElement;
   /** The label of the committing button. */
   confirm: string;
   /** The label of the way out. */
@@ -45,6 +59,29 @@ export interface Band {
 }
 
 let open: Band | null = null;
+
+/**
+ * Where the band's element goes, when not straight into `host`. **The band
+ * long-press patch, 2026-10-01.**
+ *
+ * The band mounted on `<body>`, and the inspect layer is delegated from the
+ * shell (`app.ts` mounts it there), so a long press on a card inside a band
+ * never reached it: the claim band showed a move card that R5 says one long
+ * press explains, and the press did nothing. Two things were wrong, and moving
+ * the element fixes both. The events now bubble through the shell, and the
+ * band shares the shell's stacking context with the docked sheet, whose 40
+ * sits above the band's 30 there; from `<body>` the band's 30 covered the
+ * whole shell, sheet included.
+ *
+ * Only the element moves. `<body data-band-open>` and the Escape listener stay
+ * on `host`, so every stylesheet rule and caller is untouched.
+ */
+let mount: HTMLElement | null = null;
+
+/** Set once by the app beside `createTooltips`, with the same element. */
+export function setBandMount(element: HTMLElement | null): void {
+  mount = element;
+}
 
 /** The band currently up, if any. For tests and for the one-at-a-time rule. */
 export function openBandOf(): Band | null {
@@ -66,6 +103,12 @@ export function openBand(spec: BandSpec, host: HTMLElement = document.body): Ban
     const detail = el('p', 'confirm-band__detail');
     detail.textContent = spec.detail;
     body.append(detail);
+  }
+
+  if (spec.content) {
+    const content = el('div', 'confirm-band__content');
+    content.append(spec.content);
+    body.append(content);
   }
 
   const actions = el('div', 'confirm-band__actions');
@@ -121,7 +164,7 @@ export function openBand(spec: BandSpec, host: HTMLElement = document.body): Ban
   host.addEventListener('keydown', onKey, true);
 
   host.dataset['bandOpen'] = 'true';
-  host.append(root);
+  (mount?.isConnected ? mount : host).append(root);
   open = band;
   confirm.focus();
   return band;

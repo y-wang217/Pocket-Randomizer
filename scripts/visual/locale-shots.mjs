@@ -20,6 +20,14 @@ const flag = (name) => {
 };
 const out = flag('--out') ?? 'stats/locales';
 const screens = (flag('--screens') ?? 'map').split(',');
+/*
+ * The field states to shoot each locale under. **Stage 4.11 Tier 3.** `none`
+ * is the locale's own sky; a weather kind re-tags `<html data-weather>`, a
+ * `terrain:` prefix re-tags `data-terrain`, the same way the locale is
+ * re-tagged below rather than played into. Default: the bare sky only, so
+ * the V1 report's forty-shot shape is unchanged unless asked.
+ */
+const fields = (flag('--fields') ?? 'none').split(',');
 const dist = flag('--dist') ?? 'dist';
 const LOCALES = ['cave', 'shore', 'summit', 'city', 'forest', 'ruins', 'marsh', 'badlands'];
 const NAMES = { cave: 'Cave', shore: 'Shore', summit: 'Summit', city: 'City', forest: 'Forest', ruins: 'Ruins', marsh: 'Marsh', badlands: 'Badlands' };
@@ -42,10 +50,24 @@ try {
         },
         [id, NAMES[id], visible('map')],
       );
-      await page.waitForTimeout(80);
-      const file = join(out, `${screen}-${id}.png`);
-      await page.screenshot({ path: file });
-      console.log(file);
+      for (const field of fields) {
+        await page.evaluate(
+          ([state]) => {
+            const root = globalThis.document.documentElement;
+            root.removeAttribute('data-weather');
+            root.removeAttribute('data-terrain');
+            root.removeAttribute('data-weather-suppressed');
+            if (state.startsWith('terrain:')) root.setAttribute('data-terrain', state.slice('terrain:'.length));
+            else if (state !== 'none') root.setAttribute('data-weather', state);
+          },
+          [field],
+        );
+        await page.waitForTimeout(80);
+        const suffix = field === 'none' ? '' : `-${field.replace(':', '-')}`;
+        const file = join(out, `${screen}-${id}${suffix}.png`);
+        await page.screenshot({ path: file });
+        console.log(file);
+      }
     }
   }
   await context.close();

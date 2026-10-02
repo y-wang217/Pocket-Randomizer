@@ -142,7 +142,7 @@ describe('the event strip', () => {
 });
 
 describe('the stage', () => {
-  it('floats both panels on one scrim, with neither drawn heavier than the other', async () => {
+  it('draws both panels as one window, with neither drawn heavier than the other', async () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
     await playUntil(page, (screen) => screen === 'battle');
     await page.mouse.move(0, 0);
@@ -194,14 +194,23 @@ describe('the stage', () => {
 
     expect(read, 'the stage is on the board with both panels on it').not.toBeNull();
     // The band is the budgeted number, not whatever the content came to.
-    expect(read?.stageHeight).toBe(260);
+    // 272 since Stage 5.0/2 (`docs/spec/gymrun-stage5.0-visual-redesign.md`):
+    // the stage carries the platforms and the HP boxes in their windows, and
+    // the header row gave back the height the band took. Plus the 2px frame
+    // the stage wears as a window on each side.
+    expect(read?.stageHeight).toBe(272);
     // One style for both sides. Not "similar": the same string.
     expect(new Set(read?.panels).size, read?.panels.join('\n')).toBe(1);
-    // A scrim, not a card: no outline at all, and not the raised surface every
-    // other panel in the app sits on.
-    for (const widths of read?.borderWidths ?? []) expect(widths).toBe('0px,0px,0px,0px');
+    /*
+     * V5 made these a scrim, not a card: no outline, not the raised surface.
+     * Stage 5.0/1 (`docs/spec/gymrun-stage5.0-visual-redesign.md`) makes them
+     * the plan's HP boxes: a solid window with the one heavy border, the same
+     * on both sides. What V5 asserted and still holds is the half above:
+     * neither panel is drawn heavier than the other.
+     */
+    expect(new Set(read?.borderWidths).size, 'both panels wear the same border').toBe(1);
+    for (const widths of read?.borderWidths ?? []) expect(widths).not.toBe('0px,0px,0px,0px');
     for (const position of read?.positions ?? []) expect(position).toBe('absolute');
-    for (const background of read?.raised ?? []) expect(background).not.toBe(read?.surface);
     await context.close();
   }, 300_000);
 
@@ -277,9 +286,17 @@ describe('the move grid', () => {
       const screen = globalThis.document.querySelector(sel);
       const grid = globalThis.document.querySelector(`${sel} .moves`);
       if (!screen || !grid) return null;
+      /*
+       * The row's height less its tallest chip: zero when it holds one line.
+       * It was the height against a fixed 20px, which was the Detailed face's
+       * chip (a word); the one face's chip carries a 16px glyph and is 22px,
+       * so since Stage 5.0/1 the rule is measured as what it says, no wrap.
+       */
       const meta = buttons.map((button) => {
         const row = button.querySelector('.move__meta');
-        return row ? Math.round(row.getBoundingClientRect().height) : 0;
+        if (!row) return 0;
+        const tallest = Math.max(0, ...[...row.children].map((child) => child.getBoundingClientRect().height));
+        return Math.round(row.getBoundingClientRect().height - tallest);
       });
       return {
         count: buttons.length,
@@ -359,7 +376,7 @@ describe('the move grid', () => {
      * and is still checked, one assertion down, by the overhang count — which
      * is the direct check for it and never depended on the wrap.
      */
-    expect(Math.max(...grid.meta), 'the meta row must not wrap').toBeLessThanOrEqual(20);
+    expect(Math.max(...grid.meta), 'the meta row must not wrap').toBeLessThanOrEqual(1);
     expect(grid.bandsOnMeta, 'no band may sit on the row that wraps').toBe(0);
     expect(grid.bandsOnFacts, 'every band that is drawn is drawn on the fact line').toBeGreaterThan(0);
     // R12's check, widened: nothing on the face may overhang it, wherever on

@@ -19,6 +19,7 @@
  * would diverge on a roll neither of them made.
  */
 import { describe, expect, it } from 'vitest';
+import { eventHint, eventLabel } from '../src/data/eventCopy';
 import { createRng } from '../src/core/rng';
 import {
   EventPicker,
@@ -74,8 +75,8 @@ describe('the data', () => {
   it('gives every event copy for all four archetypes', () => {
     for (const event of EVENTS) {
       for (const archetype of EVENT_ARCHETYPES) {
-        expect(event.labels[archetype]?.length, `${event.id}/${archetype}`).toBeGreaterThan(0);
-        expect(event.hints[archetype]?.length, `${event.id}/${archetype}`).toBeGreaterThan(0);
+        expect(eventLabel(event.id, archetype)?.length, `${event.id}/${archetype}`).toBeGreaterThan(0);
+        expect(eventHint(event.id, archetype)?.length, `${event.id}/${archetype}`).toBeGreaterThan(0);
       }
     }
   });

@@ -1,9 +1,9 @@
 {
   "seed": "SEED-B",
   "versions": {
-    "runLog": "gymrun-run-20/gymrun-0.3.0",
-    "contentHash": "637670ddd4c4652bb869297daac07f12bd7c150d2cf6f2692ee6d83e2cee7c5c",
-    "randomizer": "gymrun-randomizer-22",
+    "runLog": "gymrun-run-21/gymrun-0.3.0",
+    "contentHash": "dfe1e407dc2f5cb47aa572c204b6e62a92376e224128d144a86d802fcaf8e2f9",
+    "randomizer": "gymrun-randomizer-23",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -27,7 +27,7 @@
       "level": 15,
       "ability": "Shed Skin",
       "moves": [
-        "Bug Bite 30/32",
+        "Bug Bite 29/32",
         "Snarl 21/24",
         "Incinerate 24/24",
         "Synthesis 8/8"
@@ -43,7 +43,7 @@
       "moves": [
         "Swift 30/32",
         "Pounce 32/32",
-        "Brutal Swing 30/32",
+        "Brutal Swing 31/32",
         "Spore 24/24"
       ],
       "item": "silkscarf",
@@ -80,9 +80,9 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Venipede",
-      "turns": 3,
+      "turns": 2,
       "winner": "p1",
-      "hpAfter": 60,
+      "hpAfter": 66,
       "casualties": []
     },
     {
@@ -91,20 +91,10 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Salandit",
-      "turns": 3,
+      "turns": 4,
       "winner": "p1",
-      "hpAfter": 19,
-      "casualties": [
-        {
-          "side": "p1",
-          "name": "Umber",
-          "level": 15,
-          "species": "Cutiefly",
-          "bySpecies": "Salandit",
-          "byMove": "Cross Poison",
-          "indirect": null
-        }
-      ]
+      "hpAfter": 18,
+      "casualties": []
     },
     {
       "segment": 0,
@@ -112,7 +102,7 @@
       "label": "Wild encounter",
       "tier": "hard",
       "opponent": "Wild Minun",
-      "turns": 4,
+      "turns": 2,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
@@ -140,10 +130,10 @@
   "log": {
     "seed": "SEED-B",
     "versions": {
-      "runLog": "gymrun-run-20/gymrun-0.3.0",
-      "contentHash": "637670ddd4c4652bb869297daac07f12bd7c150d2cf6f2692ee6d83e2cee7c5c",
+      "runLog": "gymrun-run-21/gymrun-0.3.0",
+      "contentHash": "dfe1e407dc2f5cb47aa572c204b6e62a92376e224128d144a86d802fcaf8e2f9",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-22"
+      "randomizerVersion": "gymrun-randomizer-23"
     },
     "decisions": [
       {
@@ -233,13 +223,6 @@
         "choice": {
           "kind": "move",
           "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
         }
       },
       {
@@ -338,22 +321,8 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
           "kind": "switch",
           "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
         }
       },
       {

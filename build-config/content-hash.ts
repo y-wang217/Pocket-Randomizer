@@ -101,6 +101,14 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
     why: 'the words a post-resolution flag is shown as; the truths are read in core/battle/flags.ts, which does not import this',
   },
   {
+    path: 'src/data/fieldCopy.ts',
+    why: 'the words and effect lines for the weather and terrain on the board; the ids are read in core/battle/driver.ts, which does not import this',
+  },
+  {
+    path: 'src/data/flagPrecedence.ts',
+    why: 'which flag the strip shows when several are true; R9 puts the order in data and D12 put it in a split file, because core/ reads the protocol and the renderer reads this',
+  },
+  {
     path: 'src/data/moveTargets.ts',
     why: 'a target keyword rendered as a sentence; read by ui/move-explanation.ts only',
   },
@@ -121,20 +129,36 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
     why: 'the paste-time refusal wording for a foreign seed string; read by ui/seed-bar.ts only, and must not move the hash it names',
   },
   {
+    path: 'src/data/intro.ts',
+    why: 'the one-time greeting shown before the first decision; read by ui/intro.ts, ui/header.ts and ui/settings.ts only, and rewording a greeting must not move the hash',
+  },
+  {
     path: 'src/data/tutorial.ts',
     why: 'the first-run coach mark copy, keyed by screen and mark; read by ui/tutorial.ts and ui/settings.ts only, and a reworded mark must not move the hash',
+  },
+  {
+    path: 'src/data/glyphFamilies.ts',
+    why: 'the nine glyph-family names of design bible section 2; read by ui/theme/glyphs.ts and ui/settings.ts only, and which symbols a player has been shown cannot change what a seed generates',
+  },
+  {
+    path: 'src/data/glyphLabels.ts',
+    why: 'the exposure-label word for every glyph (design bible R7, milestone M6.1); read by ui/theme/glyphs.ts and ui/exposure-labels.ts only, and rewording a label must not move the hash',
+  },
+  {
+    path: 'src/data/forbiddenWords.ts',
+    why: 'the hedge words no explanation may contain; read by scripts/hedge-lint.ts and its test only, and a word added to a lint cannot change what a seed generates',
   },
   {
     path: 'src/data/eventCopy.ts',
     why: 'the per-band hints and conclusions on the event screen, and the capability and band labels the map and the event screen print; read by ui/screens/event.ts, ui/screens/run-map.ts and ui/screens/party.ts only, and a reworded sentence must not move the hash',
   },
   {
-    path: 'src/data/displayTuning.ts',
-    why: "how long a battle beat lingers and the chip legibility floors; read by ui/theme/motion.ts and the visual tests only, and a number parked for a playtest must be movable when the playtest arrives without refusing every shared seed",
+    path: 'src/data/itemCopy.ts',
+    why: "the effect line for every held item, berry and relic; read by ui/screens/reward.ts, shop.ts, party.ts and ui/tooltips.ts only, and a reworded effect line must not refuse every seed recorded before it (M5.1, D12)",
   },
   {
-    path: 'src/data/densityTuning.ts',
-    why: 'the three density modes\' chrome scales and the phone Pocket is measured on; read by ui/theme/density.ts only, and a display scale must not move the hash it sits beside',
+    path: 'src/data/displayTuning.ts',
+    why: "how long a battle beat lingers and the chip legibility floors; read by ui/theme/motion.ts and the visual tests only, and a number parked for a playtest must be movable when the playtest arrives without refusing every shared seed",
   },
   {
     path: 'src/data/statStages.ts',

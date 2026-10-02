@@ -100,3 +100,36 @@ export function spriteFigure(species: string, options: FigureOptions = {}): HTML
   figure.append(spriteImg(species, options.side));
   return figure;
 }
+
+/**
+ * The player's marker on the map: a stock trainer sprite. **Stage 5.0/4, D61.**
+ *
+ * Class A, from the same CDN as the Pokemon, through `@pkmn/img`'s own avatar
+ * path, so nothing raster ships. D61 keeps trainer sprites to this one use:
+ * the gym node wears the badge mark, never its leader's sprite.
+ *
+ * Decorative, for the reason the stage's actors are: the node it stands on is
+ * named already. A missing file keeps its box and says so on `data-missing`,
+ * which the stylesheet draws as a placeholder of the same size.
+ */
+export const PLAYER_TRAINER = 'lucas';
+
+export function trainerImg(avatar: string = PLAYER_TRAINER): HTMLImageElement {
+  const img = el('img', 'sprite sprite--trainer');
+  /*
+   * `getAvatar` is on the class at runtime and in the package's `.d.ts`, but
+   * bundler resolution lands on the untyped `.mjs` and infers a `Sprites`
+   * without it. Narrowed here rather than hand-writing the CDN's path, which
+   * would be a second place for the sprite host to live.
+   */
+  img.src = (sprites as unknown as { getAvatar(avatar: string): string }).getAvatar(avatar);
+  img.alt = '';
+  img.setAttribute('aria-hidden', 'true');
+  img.width = 80;
+  img.height = 80;
+  img.decoding = 'async';
+  img.addEventListener('error', () => {
+    img.dataset['missing'] = 'true';
+  });
+  return img;
+}

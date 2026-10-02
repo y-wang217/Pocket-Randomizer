@@ -98,10 +98,19 @@ describe('the battle screen', () => {
     return { session, screen };
   }
 
+  /*
+   * **M3.1 changed what the foe's slot holds, not what it names.** The slot
+   * held `Opposing Golem`; section 4 budgets the panel at zero words with the
+   * name surviving, and `Opposing` is a word rather than a name. The side did
+   * not go anywhere — the panel's `aria-label` carries it, in a fuller form —
+   * so this test still asserts both halves, in the two places they now live.
+   */
   it('1. names both panels by species, the nicknamed member and the plain foe alike', () => {
     const { screen } = mount('LABEL01');
     expect(screen.root.querySelector('.panel--me .panel__name')?.textContent).toBe('Snorlax');
-    expect(screen.root.querySelector('.panel--foe .panel__name')?.textContent).toBe('Opposing Golem');
+    expect(screen.root.querySelector('.panel--foe .panel__name')?.textContent).toBe('Golem');
+    expect(screen.root.querySelector('.panel--foe')?.getAttribute('aria-label')).toContain('Opposing Golem');
+    expect(screen.root.querySelector('.panel--me')?.getAttribute('aria-label')).not.toContain('Opposing');
   });
 
   it('2. renders no nickname on the opponent panel even when the sim was handed one', () => {
@@ -119,7 +128,9 @@ describe('the battle screen', () => {
   it('says who acted by species on the strip and in the history sheet', () => {
     const { screen } = mount('LABEL04');
     const event = screen.root.querySelector('.flags__event')?.textContent ?? '';
-    expect(event).toMatch(/^(Snorlax|Opposing Golem) used /);
+    // M4.3 took the verb and the `Opposing` off this line (row D25); the
+    // species is still what names the actor, which is what this file is about.
+    expect(event).toMatch(/^(Snorlax|Golem) \u00b7 /);
     const log = texts(screen.root, '.log-entry');
     expect(log.length).toBeGreaterThan(0);
     expect(log.some((line) => line.includes('Snorlax'))).toBe(true);
@@ -224,13 +235,19 @@ describe('the party surfaces', () => {
     noNickname(screen.root, 'the starter select');
   });
 
-  it('map party cards, on a generated run whose starter carries a drawn name', () => {
+  /*
+   * **The map carries no party cards since Stage 5.0/4**
+   * (`docs/spec/gymrun-stage5.0-rulings-map-without-team.md`); the team is the
+   * Team tab's. What this case held for the map still holds, and more
+   * simply: no drawn name reaches the map's face.
+   */
+  it('the map, on a generated run whose starter carries a drawn name', () => {
     const state = chooseStarter(createRun('LABEL-MAP', DEFAULT_TUNING), 0);
     const starter = state.party[0]!;
     expect(starter.spec.nickname, 'generation names the starter').toBeDefined();
     const map = createRunMap();
-    map.render(state, () => undefined, () => undefined);
-    expect(texts(map.root, '.panel__name')[0]).toBe(starter.spec.species);
+    map.render(state, () => undefined);
+    expect(map.root.querySelector('.party__member'), 'the map carries no team').toBeNull();
     expect(map.root.textContent).not.toContain(starter.spec.nickname!);
   });
 });

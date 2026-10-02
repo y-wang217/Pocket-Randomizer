@@ -69,7 +69,7 @@ export const STATUS_INFO: Readonly<Record<string, StatusEntry>> = {
     mechanics:
       'Loses 1/16 of max HP at the end of every turn, and its physical moves deal half damage. Special moves are unaffected.',
     advice:
-      'Attack specially if you can — a burn barely touches a special attacker. Burning an opposing physical attacker is often worth more than the chip damage.',
+      'Special moves keep their full damage, so a special attacker loses only the 1/16 each turn. On a physical attacker the halved damage lasts as long as the burn does.',
   },
   par: {
     label: 'Paralysis',
@@ -85,7 +85,13 @@ export const STATUS_INFO: Readonly<Record<string, StatusEntry>> = {
       'A clock, not a crisis. Eight turns from full is fatal, so count how many turns you actually need and stop worrying about the rest.',
   },
   tox: {
-    label: 'Bad poison',
+    // Toxic, not "Bad poison". **M0.3, discrepancy D3.** The hedge-word lint
+    // this item adds matches whole words, and "Bad" is one of them — so the
+    // name either needs an allowlist entry or it needs to not be a hedge word.
+    // D3 ruled the rename, and it costs nothing: section 2 of the design bible
+    // already calls this family's chip TOX, so the panel and the explanation
+    // now say the same thing.
+    label: 'Toxic',
     mechanics:
       'Loses 1/16 of max HP the first turn, 2/16 the next, 3/16 the next, climbing every turn. The counter resets if it switches out.',
     advice:
@@ -122,7 +128,7 @@ export const VOLATILE_INFO: Readonly<Record<string, StatusEntry>> = {
     mechanics:
       'Lasts 1 to 4 turns. Each turn there is a 33% chance of hitting itself instead — a 40-power physical hit that ignores type entirely.',
     advice:
-      'Two thirds of your turns still land. Switching clears it outright, which is usually better than rolling the dice three times.',
+      'Two thirds of turns still land. Switching out clears it outright; staying in rolls the 33% again every turn until it ends.',
   },
   substitute: {
     label: 'Substitute',
@@ -136,7 +142,7 @@ export const VOLATILE_INFO: Readonly<Record<string, StatusEntry>> = {
     mechanics:
       'Loses 1/8 of max HP at the end of every turn, and the Pokemon that seeded it heals by the same amount.',
     advice:
-      'Costs you twice over, so it is worse than poison at the same rate. Switching removes it; Grass types cannot be seeded at all.',
+      'Drains at ordinary poison’s rate and heals the seeder by the same amount, so the gap closes twice as fast. Switching out removes it, and Grass types cannot be seeded at all.',
   },
   flinch: {
     label: 'Flinch',
@@ -168,7 +174,7 @@ export const VOLATILE_INFO: Readonly<Record<string, StatusEntry>> = {
     label: 'Encore',
     mechanics: 'Forced to repeat its last move for 3 turns, or until that move runs out of PP.',
     advice:
-      'Brutal if it catches a status move. Switching clears it, and is usually the answer if the locked move does nothing useful.',
+      'The locked move repeats whatever it does, a status move that has already resolved included. Switching out clears it.',
   },
   disable: {
     label: 'Disable',
@@ -193,7 +199,7 @@ export const VOLATILE_INFO: Readonly<Record<string, StatusEntry>> = {
     mechanics:
       'A 50% chance of being unable to move each turn. Only works between opposite genders.',
     advice:
-      'Half your turns, gone. Switching clears it, and it is worth the switch almost every time.',
+      'Half the turns spent on the field are lost to it. Switching out clears it, and it cannot be reapplied by a Pokemon of the same gender.',
   },
   curse: {
     label: 'Cursed',
@@ -222,7 +228,7 @@ export const VOLATILE_INFO: Readonly<Record<string, StatusEntry>> = {
     label: 'Torment',
     mechanics: 'Cannot select the same move twice in a row.',
     advice:
-      'You need a second move worth using. Switching clears it and resets what counts as your last move.',
+      'Every second turn is spent on a different move than the one before it. Switching out clears it and resets what counts as the last move used.',
   },
   aquaring: {
     label: 'Aqua Ring',
@@ -239,7 +245,7 @@ export const VOLATILE_INFO: Readonly<Record<string, StatusEntry>> = {
   focusenergy: {
     label: 'Focused',
     mechanics: 'Critical-hit ratio raised by two stages, which is roughly a 50% crit rate.',
-    advice: 'Attack. Crits ignore the target’s defensive boosts, so it is strongest into a wall.',
+    advice: 'A critical hit ignores the target’s defensive stat stages, so a raised Defense or Special Defense does not reduce it.',
   },
 };
 

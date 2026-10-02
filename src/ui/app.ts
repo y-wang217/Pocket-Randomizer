@@ -14,15 +14,17 @@ import type { BattleSession } from '../core/battle/driver';
 
 import type { NodeSpec } from '../core/encounters';
 import type { AcquisitionDecision } from '../core/acquisition';
-import { applyBattleState, releaseMember, reorderParty } from '../core/party';
+import { applyBattleState } from '../core/party';
 import {
   defaultItemPlan,
   gymClearLevel,
+  describeVersionMismatch,
   isReplayable,
+  versionMismatch,
   localeOf,
   partyCapacity,
   playRun,
-  resumeRun,
+  replayRunPolicy,
   type BattleReview,
   type RunPolicy,
   type RunProjection,
@@ -32,18 +34,21 @@ import {
 } from '../core/run';
 import { previewEvolutions } from '../core/evolution';
 
-import type { Choice, ItemPlan, PokemonSpec, PokemonState, RunLog } from '../core/types';
+import type { Choice, ItemPlan, PartyEdit, PokemonSpec, PokemonState, RunLog } from '../core/types';
 import { applyRelicPassives } from '../core/relics';
 import { backpackCapacity, reconcileItemPlan } from '../core/items';
 import { DEFAULT_TUNING } from '../data/tuning';
 import { SEED_COPY } from '../data/seedCopy';
 import type { EventArchetype } from '../data/eventPools';
 import { createPending, isRunAbandoned } from './pending';
-import { initSettings, onSettingsChange, resetTutorial } from './settings';
+import { watchExposures } from './exposure-labels';
+import { initSettings, onSettingsChange, resetIntro, resetTutorial } from './settings';
 import { createTutorial } from './tutorial';
-import { createDensityGuard } from './density-guard';
+import { createIntro } from './intro';
 import { TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
 import { applyLocale } from './theme/locale';
+import { applyField } from './theme/field';
+import { setBandMount } from './band';
 import { createTooltips } from './tooltips';
 import { createWorldScene, el, type OutroKind } from './scene';
 import { newSeed, seedFromLocation, writeSeedToLocation } from './seed';
@@ -58,7 +63,7 @@ import { replacementNeeded } from '../core/party';
 import { createPartyScreen } from './screens/party';
 import { createLocaleSelect } from './screens/locale-select';
 import { createResultScreen } from './screens/result';
-import { createRouter, DRAWER_SURFACES, MAP_SURFACES, type ScreenName } from './screens/router';
+import { createRouter, DRAWER_SURFACES, type ScreenName } from './screens/router';
 import { createHeader } from './header';
 import { createShopScreen } from './screens/shop';
 import { createRunMap } from './screens/run-map';
@@ -72,12 +77,17 @@ import type { GymDefinition } from '../data/gyms';
 import type { RelicId } from '../data/relics';
 import { createDrawer, type DrawerView } from './drawer';
 import { createMapDrawer } from './map-drawer';
+import { presentAsScreen } from './overlay';
+import type { NavTab } from './assets/manifest';
+import { createDecisionFeed } from './decision-feed';
+import { createNav } from './nav';
+import { createRunInfo, type RunInfoView } from './run-info';
+import { createSettingsSheet } from './settings-sheet';
+import { createSidebar } from './sidebar';
 import { gymForSegment } from '../data/gyms';
 import { itemLayoutOf, partyWithPlan } from './party-layout';
-import { clearRunLog, loadRunLog, saveRunLog } from './storage';
+import { clearItemDraft, clearRunLog, loadItemDraft, loadRunLog, saveItemDraft, saveRunLog } from './storage';
 import { applyMotion } from './theme/motion';
-import { applyDensity } from './theme/density';
-import { applyMoveBar } from './theme/move-bar';
 
 /**
  * How this fight should end on the stage. **The battle animation run.**
@@ -108,44 +118,15 @@ export function outroFor(review: BattleReview): OutroKind {
 
 
 export function mountApp(root: HTMLElement): void {
-  /*
-   * The density mode, once at startup and once per change. **Patch 4.7.2,
-   * ruling 4, and this is the whole of the subscription.**
-   *
-   * `initSettings` first so the attribute is written from the stored preference
-   * before any screen is built, rather than the first frame rendering in the
-   * default and flipping.
-   *
-   * The subscription lives in the guard below (`ui/density-guard.ts`), at
-   * the shell rather than inside a run, and is unsubscribed nowhere, because
-   * the mode outlives every run: it is written onto `<html>` and read only by
-   * the stylesheet, so a screen drawn before a change, after it, or while it
-   * happens is correct without anything re-rendering. That is the difference
-   * from what this replaced — a subscription that redrew the map and the
-   * party screen and left the drawer, pre-gym, reward, summary and battle
-   * screens showing the mode they were built in. Nothing registers with this
-   * and nothing can forget to.
-   *
-   * `ui/theme/density.ts` carries the argument for the attribute over a
-   * redraw, including why a shell-level redraw could not avoid being a
-   * per-screen registration in this router.
-   */
   const settings = initSettings();
-  applyDensity(settings.density);
   /*
    * The move bar layout, once at startup and once per change.
    *
-   * Straight off the store, with no guard in front of it — unlike density,
-   * which the tutorial holds at Detailed while a screen's marks are up. The
-   * marks that name a move button anchor `data-tutorial="move"` and `"pp"`,
-   * and both attributes are on the same elements in both layouts, so there is
-   * nothing for a layout to fold away and nothing for a guard to protect.
+   * Straight off the store, like density. The marks that name a move button
+   * anchor `data-tutorial="move"` and `"pp"`, and both attributes are on the
+   * same elements in both layouts, so there is nothing for a layout to fold
+   * away.
    */
-  applyMoveBar(settings.moveBar);
-  onSettingsChange((next) => applyMoveBar(next.moveBar));
-  // The subscription itself is the tutorial's guard, created with the layer
-  // below (`ui/density-guard.ts`): the stored mode, or Detailed while a
-  // screen's marks are up.
   /*
    * The one battle-feedback duration, from `data/displayTuning.ts` onto the
    * root, scaled by the player's chosen battle speed.
@@ -224,6 +205,10 @@ export function mountApp(root: HTMLElement): void {
     },
     (name) => {
       shell.dataset['screen'] = name;
+      // The opening painting behind the frame before the first region (D87).
+      // `world` is declared below; the router announces its first screen only
+      // after the app is assembled.
+      world.setOpening(name === 'starter' || name === 'locale');
     },
   );
 
@@ -235,39 +220,39 @@ export function mountApp(root: HTMLElement): void {
   const world = createWorldScene();
 
   /*
-   * The drawer trigger: **one button, mounted at the shell, not one per screen.**
+   * **The shell nav replaces the drawer bar. Stage 5.0/1.**
    *
-   * The rule is that it sits in the same screen position on every decision
-   * surface. Ten per-screen buttons could satisfy that on the day they were
-   * written and drift the first time one screen's header grew a row; one button
-   * outside the router cannot drift, and no screen can forget to add it.
+   * Map, Team, Bag, Run Info, Settings, at the top of the frame on every
+   * viewport (`ui/nav.ts`). The Map and Party triggers the bar carried since
+   * Stage 4.7 are gone; what they opened is what the Map and Team tabs open,
+   * restyled from a sheet to a screen that fills the frame under the nav
+   * (bible section 5, Shell nav, D53).
    *
-   * It is shown on the surfaces that ask the player for something *and* have a
-   * party to show. Starter select is a decision with no party yet; the summary
-   * is a finished run. Both hide it rather than showing an empty drawer.
+   * **The guard.** A tab opened while a decision is pending elsewhere opens a
+   * readout: the party drawer, the map without its picker, Run Info,
+   * Settings. None of them advances run state, submits or draws, and closing
+   * any of them returns to the decision underneath, which never unmounted.
+   * The one writable screen a tab reaches is the party screen, and only from
+   * the map or the pre-gym screen, which are the two places its Manage
+   * buttons already led: between nodes, where a party edit is a logged
+   * decision of its own.
    */
-  const drawerBar = el('div', 'shell__drawer-bar');
-  const drawerTrigger = drawer.trigger();
-  const mapTrigger = mapDrawer.trigger();
-  /*
-   * Map first, Party second, and the order is deliberate.
-   *
-   * The bar is `justify-content: flex-end`, so the *last* child sits hard
-   * against the right edge — which is where the Party button has been since
-   * Stage 4.7 and where a returning player's thumb goes. Appending Map after
-   * Party would have moved Party left to make room, and moving a control a
-   * player already knows is a worse cost than the new one landing beside it.
-   */
-  drawerBar.append(mapTrigger, drawerTrigger);
+  const nav = createNav();
+  const runInfo = createRunInfo();
+  const settingsSheet = createSettingsSheet();
+  for (const layer of [drawer.root, mapDrawer.root, runInfo.overlay.root, settingsSheet.overlay.root]) presentAsScreen(layer);
+  const sidebar = createSidebar();
 
   const replayTutorial = document.createElement('button');
   shell.append(
+    nav.root,
     createHeader(replayTutorial, seedBar.toggle),
     seedBar.root,
-    drawerBar,
     router.root,
     drawer.root,
     mapDrawer.root,
+    runInfo.overlay.root,
+    settingsSheet.overlay.root,
     stamps.root,
   );
 
@@ -278,18 +263,50 @@ export function mountApp(root: HTMLElement): void {
    * to toggle screens and a router that also knew which screens had a party
    * would be a router that knew about the party.
    */
-  const showScreen = (name: ScreenName): void => {
-    router.show(name);
-    drawerTrigger.hidden = !DRAWER_SURFACES.includes(name);
-    mapTrigger.hidden = !MAP_SURFACES.includes(name);
-    // The bar shows when *either* trigger does, so a screen that has a route to
-    // show but no party — or the reverse — still gets a bar rather than an
-    // empty row of chrome.
-    drawerBar.hidden = drawerTrigger.hidden && mapTrigger.hidden;
-    // Closing on navigation, not on open: a drawer left open across a screen
-    // change would be an overlay over a decision the player has already made.
+  /** Which tab's screen is open over the router, if any. */
+  let openTab: NavTab | null = null;
+  /** Which tab led to the party screen, so the right one reads as current. */
+  let partyVia: 'team' | 'bag' = 'team';
+
+  const closeTabScreens = (): void => {
     drawer.close();
     mapDrawer.close();
+    runInfo.overlay.close();
+    settingsSheet.overlay.close();
+  };
+
+  /*
+   * The nav's state follows the router and the open tab screen, in one place.
+   * A tab is available when it has something to show: Settings always, the
+   * rest once a run has state, and Team and Bag on the surfaces the drawer
+   * trigger was shown on, plus the map and the party screen themselves.
+   */
+  const refreshNav = (): void => {
+    const name = router.current();
+    const running = readMap() !== null;
+    const available = new Set<NavTab>(['settings']);
+    if (running) available.add('info');
+    if (running && name !== 'summary' && name !== 'starter') available.add('map');
+    if (name && (DRAWER_SURFACES.includes(name) || name === 'map') && readDrawer() !== null) {
+      available.add('team');
+      available.add('bag');
+    }
+    nav.setAvailable(available);
+    nav.setActive(openTab ?? (name === 'map' ? 'map' : name === 'party' ? partyVia : null));
+  };
+  for (const layer of [drawer, mapDrawer, runInfo.overlay, settingsSheet.overlay]) {
+    layer.onClose(() => {
+      openTab = null;
+      refreshNav();
+    });
+  }
+
+  const showScreen = (name: ScreenName): void => {
+    router.show(name);
+    // Closing on navigation, not on open: a tab screen left open across a
+    // screen change would be a readout over a decision already made.
+    closeTabScreens();
+    refreshNav();
     showTutorialFor(name);
   };
 
@@ -323,42 +340,130 @@ export function mountApp(root: HTMLElement): void {
    */
   let readMap: () => RunState | null = () => null;
 
-  drawerTrigger.addEventListener('click', () => {
-    const view = readDrawer();
-    if (!view) return;
-    // The trigger goes along as the opener: closing the drawer returns focus to
-    // the button that opened it, on whichever surface that was.
-    drawer.open({ ...view, inBattle: router.current() === 'battle' }, drawerTrigger);
-    marks.showFor('drawer', drawer.root);
-  });
-
-  /*
-   * The map overlay's trigger, on the same terms as the party drawer's.
-   *
-   * `live` is read at the moment of the click and nothing else happens: no
-   * pending promise resolves, no stream is touched, no decision is submitted.
-   * That is the whole of "opening it never advances state", and it is the same
-   * getter discipline `readDrawer` above is written for — this one needs no
-   * wrapper because the three renderers read `RunState` directly.
-   *
-   * No `marks.showFor` call: the overlay carries no tutorial marks, and
-   * `ui/map-drawer.ts` says why.
+  /**
+   * The Run Info screen's view, asked at the moment it opens, on the same
+   * getter discipline as the two above. Assigned by `start()`.
    */
-  mapTrigger.addEventListener('click', () => {
-    const state = readMap();
-    if (!state) return;
-    mapDrawer.open(state, mapTrigger);
+  let readRunInfo: () => RunInfoView | null = () => null;
+  /**
+   * The writable party screen, if the surface on view is one it may be
+   * reached from: the map or pre-gym. Returns false everywhere else, and the
+   * tab opens the read-only drawer instead. Assigned by `start()`.
+   */
+  let openPartyRoute: (bag: boolean) => boolean = () => false;
+  /**
+   * Leave the party screen for the map screen it was opened from, the way its
+   * own back control does. Returns false, and leaves everything where it is,
+   * when the party screen was opened from the pre-gym screen or a boundary is
+   * waiting on its answer: there the Map tab opens the readout as it does from
+   * any other decision. Assigned by `start()`.
+   *
+   * Without this the Map tab pressed from the party screen opened the readout
+   * over it, a map whose nodes cannot be pressed, and the only way back to
+   * the real map was the party screen's own control underneath.
+   */
+  let leavePartyForMap: () => boolean = () => false;
+
+  nav.onPress((id, button) => {
+    const name = router.current();
+    // The tab of what is already on view: close whatever is over it.
+    const onView =
+      openTab === id ||
+      (openTab === null && ((id === 'map' && name === 'map') || ((id === 'team' || id === 'bag') && name === 'party')));
+    if (onView) {
+      closeTabScreens();
+      if (name === 'party' && id !== partyVia) {
+        partyVia = id === 'bag' ? 'bag' : 'team';
+        if (id === 'bag') partyScreen.root.querySelector('.backpack')?.scrollIntoView?.({ block: 'start' });
+      }
+      refreshNav();
+      return;
+    }
+    closeTabScreens();
+    switch (id) {
+      case 'map': {
+        if (name === 'map') break;
+        if (name === 'party' && leavePartyForMap()) break;
+        const state = readMap();
+        if (!state) break;
+        mapDrawer.open(state, button);
+        openTab = 'map';
+        break;
+      }
+      case 'team':
+      case 'bag': {
+        if (openPartyRoute(id === 'bag')) {
+          partyVia = id;
+          break;
+        }
+        const view = readDrawer();
+        if (!view) break;
+        drawer.open({ ...view, inBattle: name === 'battle' }, button);
+        openTab = id;
+        if (id === 'bag') drawer.showBag();
+        marks.showFor('drawer', drawer.root);
+        break;
+      }
+      case 'info': {
+        const view = readRunInfo();
+        if (!view) break;
+        runInfo.open(view, button);
+        openTab = 'info';
+        break;
+      }
+      case 'settings':
+        settingsSheet.overlay.open(button);
+        openTab = 'settings';
+        break;
+    }
+    refreshNav();
   });
 
   // "Show tutorial again": the flags go back to a first launch and the screen
   // on view gets its marks now rather than on its next visit.
   replayTutorial.addEventListener('click', () => {
+    resetIntro();
     resetTutorial();
+    /*
+     * The greeting first, and the marks from its `onClose` — the same order a
+     * first launch has. The drawer's marks are the one thing that cannot wait
+     * for the close, because the drawer may not be open by then; they are
+     * asked for here as before, and the panel over them is the player's own
+     * doing.
+     */
+    intro.open(replayTutorial);
     const name = router.current();
     if (name) showTutorialFor(name);
     if (drawer.isOpen()) marks.showFor('drawer', drawer.root);
   });
-  root.replaceChildren(world.root, shell);
+  settingsSheet.onReplayTutorial(() => replayTutorial.click());
+  /*
+   * The frame and the sidebar, side by side from 1024px. On a phone the
+   * sidebar is hidden and the frame is the viewport.
+   */
+  const layout = el('div', 'layout');
+  layout.append(shell, sidebar.root);
+  root.replaceChildren(world.root, layout);
+  sidebar.update(null, []);
+  refreshNav();
+
+  /*
+   * **The exposure labels. Milestone M6.1, R7.** One pass whenever anything in
+   * the shell is added or replaced, counted against whatever the player is
+   * looking at: the drawer while it is open, the routed screen otherwise. A
+   * screen's first draw, a battle's per-turn redraw and the drawer opening are
+   * all additions, so this one watcher covers every path without a call at
+   * each. `ui/exposure-labels.ts` says why a redraw re-labels without
+   * re-counting.
+   */
+  watchExposures(shell, () => {
+    const name = router.current();
+    // The drawer is counted within the visit to the screen under it, so
+    // opening and closing it does not start that screen's visit again.
+    if (drawer.isOpen()) return { screen: 'drawer', within: drawer.root, ...(name ? { visit: name } : {}) };
+    const screen = name ? router.root.querySelector<HTMLElement>(`.screen[data-screen="${name}"]`) : null;
+    return name && screen ? { screen: name, within: screen } : null;
+  });
   stamps.update({ locale: null, segment: null, segments: 0, seed: null });
 
   /*
@@ -404,6 +509,9 @@ export function mountApp(root: HTMLElement): void {
    * that Pokemon's randomized moveset. See `scene.typeChip`.
    */
   createTooltips(shell);
+  // The confirm band mounts where the tooltip layer listens, so a long press
+  // on a card inside it inspects like anywhere else (R5).
+  setBandMount(shell);
 
   /*
    * The coach marks, one layer for the whole app, mounted once like the
@@ -413,21 +521,49 @@ export function mountApp(root: HTMLElement): void {
    */
   const tutorial = createTutorial(shell);
   /*
-   * Ruling 6 on the density modes patch: Detailed on the root while a
-   * screen's unseen marks are up, applied before the marks resolve their
-   * anchors, the stored mode back when they finish or Skip fires. Every
-   * `showFor` goes through the guard so no path shows a mark in Pocket.
+   * The intro, mounted beside the coach marks and sequenced ahead of them.
+   *
+   * Two overlays on one screen is neither, and on a first launch both are due
+   * on the starter screen. `showTutorialFor` holds while the panel is open and
+   * `onClose` asks again for whatever the router is showing, so the order is
+   * always intro, then marks. Presentation only, like the layer it sits next
+   * to: `ui/intro.ts`.
    */
-  const marks = createDensityGuard(tutorial);
+  const intro = createIntro(shell);
+  /*
+   * **The marks show in the player's own mode. Milestone M6.2, 2026-09-23.**
+   *
+   * Ruling 6 on the density modes patch put a guard here that forced Detailed
+   * while a screen's unseen marks were up, because in 4.7.2 a mark's anchor
+   * could be folded away in Pocket and the layer drops an unpainted anchor
+   * without a trace. Tiers 2 to 5 put every one of those facts on the compact
+   * face: measured before M6.2, all 29 anchors paint in Pocket. The guard was
+   * protecting nothing, and it put the classroom in Detailed on run one, where
+   * no glyph paints (D43). Section 7, amended under D10, asked for it deleted
+   * before Pocket became the default.
+   */
+  const marks = tutorial;
   const isTutorialScreen = (name: string): name is TutorialScreen => (TUTORIAL_SCREENS as readonly string[]).includes(name);
   const showTutorialFor = (name: ScreenName): void => {
     if (!isTutorialScreen(name)) return;
+    // Held, not dropped: the marks are asked for again from `intro.onClose`,
+    // against whatever the router is showing then. A screen reached while the
+    // greeting is up still gets its first visit.
+    if (intro.isOpen()) return;
     const screen = router.root.querySelector<HTMLElement>(`.screen[data-screen="${name}"]`);
     if (!screen) return;
     queueMicrotask(() => {
       if (router.current() === name) marks.showFor(name, screen);
     });
   };
+
+  intro.onClose(() => {
+    const name = router.current();
+    if (name) showTutorialFor(name);
+  });
+  // The greeting goes up before the first screen is reached, so the shell is
+  // the thing behind it rather than a decision the player is part way into.
+  intro.openIfDue();
 
   /** Tears down the run currently on screen, if any. */
   let abandon: (() => void) | null = null;
@@ -440,9 +576,22 @@ export function mountApp(root: HTMLElement): void {
     // the bar back when the player wants it.
     seedBar.collapse();
     seedBar.setSeed(seed);
+    /*
+     * **Resume is offered only for a save that is not the run on screen. The
+     * opening playtest QA, the author's ruling: "hide it to make it not
+     * ambiguous".**
+     *
+     * A resumed run *is* the save, and the button beside it only restarted the
+     * same run. A fresh run started over a save (New seed tapped by accident,
+     * a linked seed) leaves the save intact until that run's first decision
+     * writes over it, and the button is the way back for exactly that window.
+     */
+    const pending = resume ? null : loadRunLog();
+    seedBar.setResumable(Boolean(pending && isReplayable(pending)));
     writeSeedToLocation(seed);
     // A new run starts in no region; the first state with a locale sets one.
     applyLocale(null);
+    applyField(null);
     stamps.update({ locale: null, segment: null, segments: 0, seed });
 
     const starterPick = createPending<number>();
@@ -506,7 +655,18 @@ export function mountApp(root: HTMLElement): void {
       releaseBattle();
     };
 
+    /*
+     * The run's party editor, bound before the first question. QA-001: a
+     * reorder or a release goes through `core/run.ts`, which applies it, logs
+     * it and reports the new state, rather than being written into `live` here
+     * where no log could see it.
+     */
+    let editParty: ((edit: PartyEdit) => void) | null = null;
+
     const policy: RunPolicy = {
+      bindPartyEditor: (edit) => {
+        editParty = edit;
+      },
       chooseStarter: (options: PokemonSpec[]) => {
         starterScreen.render(options, (index) => starterPick.submit(index));
         showScreen('starter');
@@ -728,7 +888,7 @@ export function mountApp(root: HTMLElement): void {
           showParty(partyReturn === 'pre-gym' ? 'pre-gym' : 'map');
           const composed = await itemPlanPick.wait();
           atTeachBoundary = false;
-          pendingPlan = null;
+          holdPlan(null);
           return reconcileItemPlan(
             state,
             composed,
@@ -737,7 +897,7 @@ export function mountApp(root: HTMLElement): void {
           );
         }
         const plan = pendingPlan;
-        pendingPlan = null;
+        holdPlan(null);
         if (!plan) return defaultItemPlan(state, teachableNow(state));
         /*
          * **Brought forward before it is answered with, and this is the fix
@@ -804,7 +964,18 @@ export function mountApp(root: HTMLElement): void {
         if (state) {
           resultScreen.render(lastReview, null, state, () => undefined, {
             offer,
-            party,
+            /*
+             * **The party as the fight left it, not as the node found it. The
+             * opening playtest QA, QA-002.**
+             *
+             * `party` is `state.party`, which holds the HP and PP the node was
+             * entered with until `resolveNode` folds the battle in, so the
+             * capture block showed a Skrelp at 36/44 as 44/44 and full PP. The
+             * projection is the same fold computed in `core/`, and a battle
+             * fold moves no slot, so every slot the block's release control
+             * names is the slot `decisionRefusal` checks.
+             */
+            party: decidedParty ?? party,
             onDecide: (decision) => {
               /*
                * **A release drops the pending plan, for the reason the party
@@ -822,7 +993,7 @@ export function mountApp(root: HTMLElement): void {
                * `accept` appends and touches no existing slot, so it keeps the
                * plan. `decline` changes nothing at all.
                */
-              if (decision.kind === 'release') pendingPlan = null;
+              if (decision.kind === 'release') holdPlan(null);
               acquirePick.submit(decision);
             },
           });
@@ -832,6 +1003,13 @@ export function mountApp(root: HTMLElement): void {
       },
       battle: () => movePick.wait(),
     };
+
+    /*
+     * Every decision this run makes, as the Run Progress feed. **Stage
+     * 5.0/1.** Wrapped around the replay on a resume, so the feed sees the
+     * logged questions too; it answers nothing itself.
+     */
+    const feed = createDecisionFeed(resume ? replayRunPolicy(resume, policy) : policy);
 
     /*
      * The party the map screen is currently showing.
@@ -914,12 +1092,34 @@ export function mountApp(root: HTMLElement): void {
         holding: itemLayoutOf(party, pendingPlan),
         relics: decidedRelics ?? state.relics,
         tuning: state.tuning,
+        // The Bag tab's readout, as run state holds it. Stage 5.0/1.
+        bag: { loose: state.backpack, capacity: backpackCapacity(partyCapacity(state), state.tuning), tms: state.tms },
       };
     };
 
     // The map overlay's window onto this run. A read of the same `live`
     // reference, with nothing derived — see the declaration above.
     readMap = () => live;
+    readRunInfo = () => (live ? { state: live, entries: feed.entries() } : null);
+    /*
+     * The Team and Bag tabs' writable destination: the party screen, from the
+     * two surfaces whose Manage buttons already lead there. Everywhere else
+     * the tab opens the read-only drawer. Stage 5.0/1, the guard.
+     */
+    openPartyRoute = (bag) => {
+      const name = router.current();
+      if (!live || (name !== 'map' && name !== 'pre-gym')) return false;
+      atTeachBoundary = false;
+      showParty(name);
+      if (bag) partyScreen.root.querySelector('.backpack')?.scrollIntoView?.({ block: 'start' });
+      return true;
+    };
+    leavePartyForMap = () => {
+      if (!live || router.current() !== 'party' || partyReturn !== 'map' || itemPlanPick.isWaiting()) return false;
+      // The plan stays held in `pendingPlan`, exactly as the back control leaves it.
+      showScreen('map');
+      return true;
+    };
 
     /*
      * The last battle result shown, held for the capture render that follows it.
@@ -942,7 +1142,27 @@ export function mountApp(root: HTMLElement): void {
      * reference plan — which is also what happens on the very first boundary,
      * before the screen has ever been shown.
      */
-    let pendingPlan: ItemPlan | null = null;
+    let pendingPlan: ItemPlan | null = resume ? loadItemDraft(resume) : null;
+
+    /*
+     * How many decisions the log holds, for the draft's stamp. Kept by
+     * `onDecision`, which a replay fires for every entry it re-records.
+     */
+    let loggedDecisions = resume?.decisions.length ?? 0;
+
+    /*
+     * **Every write to `pendingPlan` goes through here. The second QA pass,
+     * QA-008 and QA-009.** A teach or a move to the bag was held only in this
+     * variable until the boundary that spends it, so a reload dropped it and
+     * the run came back as the log had it. The draft now goes to storage
+     * beside the log on every change and comes back on resume; see
+     * `ui/storage.ts` `loadItemDraft` for when it does not.
+     */
+    const holdPlan = (plan: ItemPlan | null): void => {
+      pendingPlan = plan;
+      if (plan) saveItemDraft({ seed, decisions: loggedDecisions, plan });
+      else clearItemDraft();
+    };
 
     /*
      * The party a decision has already settled on, while `live` is still behind.
@@ -1122,22 +1342,20 @@ export function mountApp(root: HTMLElement): void {
            * the arrangement that is actually true.
            */
           onReorder: (from, to) => {
-            pendingPlan = null;
-            state.party = reorderParty(state.party, from, to);
+            holdPlan(null);
+            editParty?.({ kind: 'reorder', from, to });
             showParty(partyReturn);
-            mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
+            mapScreen.render(state, (index) => nodePick.submit(index));
           },
           onRelease: (slot) => {
-            pendingPlan = null;
-            const released = releaseMember(state.party, slot);
-            state.party = released.party;
-            // Their item goes to the bag, not with them.
-            if (released.freed) state.backpack = [...state.backpack, released.freed];
+            holdPlan(null);
+            // The item goes to the bag, in `core/run.ts`'s editor.
+            editParty?.({ kind: 'release', slot });
             showParty(partyReturn);
-            mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
+            mapScreen.render(state, (index) => nodePick.submit(index));
           },
           onPlan: (plan) => {
-            pendingPlan = plan;
+            holdPlan(plan);
           },
           /*
            * Spending a TM: the same two screens, reached from here instead of
@@ -1280,7 +1498,9 @@ export function mountApp(root: HTMLElement): void {
         segments: state.segments.length,
         seed: state.seed,
       });
-      mapScreen.render(state, (index) => nodePick.submit(index), () => { atTeachBoundary = false; showParty('map'); });
+      mapScreen.render(state, (index) => nodePick.submit(index));
+      sidebar.update(state, feed.entries());
+      refreshNav();
     };
 
     /*
@@ -1360,17 +1580,38 @@ export function mountApp(root: HTMLElement): void {
        * `aiTierFor` per node, which is the same reading the node card and the
        * battle panel already print.
        */
-      const options = { onState, onBattle, onProjection, onDecision: saveRunLog };
-      const result: RunResult = resume
-        ? await resumeRun(resume, policy, DEFAULT_TUNING, options)
-        : await playRun(seed, policy, DEFAULT_TUNING, options);
+      const options = {
+        onState,
+        onBattle,
+        onProjection,
+        // The first decision of a fresh run replaces the save the button pointed at.
+        onDecision: (log: RunLog) => {
+          feed.record(log);
+          sidebar.update(live, feed.entries());
+          saveRunLog(log);
+          loggedDecisions = log.decisions.length;
+          // A fresh run's starter: nothing can be pending yet, and a draft left
+          // by the save it replaces must not come back into this one.
+          if (!resume && log.decisions.length === 1) clearItemDraft();
+          seedBar.setResumable(false);
+        },
+      };
+      /*
+       * The decision feed wraps the replay rather than the live policy, so a
+       * resumed run's logged questions pass through it with their real offers
+       * and the feed rebuilds itself. This is `resumeRun` spelled out with the
+       * wrapper in the middle: the same replay, the same live handover, the
+       * same answers. `ui/decision-feed.ts`.
+       */
+      const result: RunResult = await playRun(resume?.seed ?? seed, feed.policy, DEFAULT_TUNING, options);
 
       releaseBattle();
       // Leave the map showing the run as it finished, behind the summary.
-      mapScreen.render(result.state, () => undefined, () => undefined);
+      mapScreen.render(result.state, () => undefined);
       summaryScreen.render(result);
       // The summary is locale neutral, and its stamps say so too.
       applyLocale(null);
+      applyField(null);
       stamps.update({
         locale: null,
         segment: result.state.currentSegment + 1,
@@ -1383,6 +1624,7 @@ export function mountApp(root: HTMLElement): void {
       setPhase('setup');
       // The run is over: a saved log now would resume into a finished run.
       clearRunLog();
+      clearItemDraft();
     } catch (error) {
       /*
        * An abandoned decision, which happens when the player starts a
@@ -1424,6 +1666,7 @@ export function mountApp(root: HTMLElement): void {
        * nothing but reproduce the failure.
        */
       clearRunLog();
+      clearItemDraft();
       seedBar.setResumable(false);
       seedBar.warn(SEED_COPY.runFailed);
       setPhase('setup');
@@ -1450,16 +1693,39 @@ export function mountApp(root: HTMLElement): void {
   });
 
   const saved = loadRunLog();
-  seedBar.setResumable(Boolean(saved && isReplayable(saved)));
 
   const fromUrl = seedFromLocation(globalThis.location.href);
-  // A seed in the URL is an explicit request for *that* run, so it wins over a
-  // save. Without one, an interrupted run is resumed where it left off. A
-  // versioned URL made on another build has no paste moment to refuse at, so
+  /*
+   * **Continuing is assumed on load. The opening playtest QA, the author's
+   * ruling.**
+   *
+   * The URL seed used to win over a save, on the reading that a seed in the
+   * URL is an explicit request for that run. But `start` writes every run's
+   * own seed into the URL, so a reload of a run in progress carried its own
+   * seed back in and restarted it from the starter choice with the save
+   * sitting beside it. On a phone that is "sometimes": a restored tab keeps
+   * the hash, a home screen launch does not.
+   *
+   * So a replayable save always resumes. A link naming a *different* seed is
+   * not dropped: it goes in the box with a notice, and Start plays it. A save
+   * this build cannot replay is said out loud rather than replaced silently.
+   */
+  if (saved && isReplayable(saved)) {
+    void start(saved.seed, saved);
+    if (fromUrl && fromUrl.seed !== saved.seed) {
+      seedBar.setSeed(fromUrl.seed);
+      seedBar.warn(SEED_COPY.linkWaiting);
+    }
+    return;
+  }
+  // A versioned URL made on another build has no paste moment to refuse at, so
   // the bare seed starts a fresh run and the bar says why it is not the same one.
   if (fromUrl) {
     void start(fromUrl.seed);
     if (fromUrl.kind === 'foreign') seedBar.refuse(fromUrl);
-  } else if (saved && isReplayable(saved)) void start(saved.seed, saved);
-  else void start(newSeed());
+  } else void start(newSeed());
+  if (saved && fromUrl?.kind !== 'foreign') {
+    console.warn('GYMRUN: the saved run cannot be replayed on this build', describeVersionMismatch(versionMismatch(saved)!));
+    seedBar.warn(SEED_COPY.saveOutdated);
+  }
 }

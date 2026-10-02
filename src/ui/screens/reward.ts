@@ -7,9 +7,10 @@
  * into "take the obviously good one, skip otherwise". Three cards and a forced
  * choice is what makes a normal node's payout feel like a normal node's payout.
  *
- * Every card says what it *does*, not what it is called. "Leftovers" means
- * nothing to a player who has not held one; "Restores 1/16 max HP at the end of
- * every turn" means something immediately.
+ * **Since Stage 5.0/3 (D66) a card's face is its mark**: the sprite, the
+ * relic's icon, the move card, `+N` beside a coin. What a card is called and
+ * what it does are one long press away, and nowhere else. The claim is a tap
+ * and then the band's commit (D69), in `renderOfferCards` below.
  *
  * ## Part 4: the cards present attributes, never verdicts
  *
@@ -46,10 +47,14 @@ import type { OfferBadge, Reward } from '../../core/rewards';
 import type { RunState } from '../../core/run';
 import { itemById } from '../../data/items';
 import { relicById } from '../../data/relics';
-import { tierChip } from '../chip';
+import { CAPABILITY_LABELS } from '../../data/eventCopy';
+import { assetIcon } from '../assets/manifest';
+import { openBand } from '../band';
+import { createBar } from '../bar';
+import { capabilityGlyph, coinAmount, tierChip } from '../chip';
+import { CLAIM_COPY } from '../copy/screens';
 import { el, moveCard } from '../scene';
-import { setProse } from '../dom';
-import { carryingLine, REWARD_COPY } from '../copy/screens';
+import { itemIcon } from '../slots';
 import { typeChip } from './starter-select';
 
 /*
@@ -91,139 +96,235 @@ export function offerBadge(badge: OfferBadge): HTMLElement {
  * the screen, and the cards are a section inside it. What is left here is what
  * a card *is*, which was always this file's real subject.
  */
-export function renderRewardCard(reward: Reward, state: RunState, onPick: () => void): HTMLElement {
+export interface RewardCardOptions {
+  /**
+   * The coins held, when the caller knows a balance `state` does not yet.
+   * **The opening playtest QA, QA-003.**
+   *
+   * The result screen is shown before `resolveNode` folds the node's payout
+   * in, so `state.currency` there is the balance the fight was entered with:
+   * the header read `+13 · 13` and the coins card beside it `Carrying 0`. The
+   * screen passes the balance its own header prints. The shop omits it,
+   * because a shop's state is already the live one.
+   */
+  carrying?: number;
+  /**
+   * The shop's price, in coins. **Milestone M5.1, discrepancy D29.**
+   *
+   * Section 4: *"Shop stock card | 8 | Follows the reward card, plus price
+   * number."* "Follows" was not true — `screens/shop.ts` built its own
+   * `.shop__item` from scratch, with its own kind label, name, detail line and
+   * its own `itemById`, `relicById` and `describeMove` reads, while
+   * `renderRewardCard` had exactly one call site. Two components doing one job
+   * is the defect section 5 closes with, and D29 ruled the unification.
+   *
+   * A number and not a label: section 4's counting rule excludes bare numbers,
+   * so the price costs nothing against the budget, and R2 is why it is not
+   * `Price: 150`.
+   */
+  price?: number;
+  /**
+   * Draw the card as content rather than a control: a `div` with no click.
+   * The claim band's copy of the selected card (Stage 5.0/3, D69).
+   */
+  inert?: boolean;
+}
+
+export function renderRewardCard(
+  reward: Reward,
+  state: RunState,
+  onPick: () => void,
+  options: RewardCardOptions = {},
+): HTMLElement {
   const tuning = state.tuning;
-  const card = document.createElement('button');
-  card.type = 'button';
+  /*
+   * A button on a screen, a `div` inside the claim band. The band's copy is
+   * the content being traded, not a second control for it (Stage 5.0/3, D69).
+   */
+  const card = document.createElement(options.inert ? 'div' : 'button');
+  if (card instanceof HTMLButtonElement) card.type = 'button';
   card.className = `reward reward--${reward.kind}`;
-
-  const kind = el('span', 'reward__kind');
-  kind.textContent = KIND_LABELS[reward.kind];
-
-  const name = el('span', 'reward__name');
-  const detail = el('span', 'reward__detail');
-  const note = el('span', 'reward__note');
+  card.dataset['kind'] = reward.kind;
 
   switch (reward.kind) {
+    /*
+     * **The item and berry face is the sprite, and nothing else. Milestone
+     * M5.1, discrepancy D36.**
+     *
+     * Section 3, the bible's *"single source of truth for how each attribute
+     * renders at rest"*: `Held item | Item sprite in a fixed slot | Empty slot
+     * renders nothing | Name, one effect line`. The name and the line are the
+     * **last** column — what a press opens — not the first.
+     *
+     * `itemIcon` is the same cell of the same Showdown sheet the party slots,
+     * the battle panel and the party row draw (M3.1, M3.2), so an item looks
+     * the same wherever it appears. The `item:` tip is the same one the party
+     * row's held-item slot carries, so the press opens the same panel from the
+     * same table.
+     */
     case 'item': {
+      const slot = el('span', 'reward__sprite');
+      slot.append(itemIcon(reward.item));
+      slot.dataset['tip'] = `item:${reward.item}`;
+      card.append(slot);
+      /*
+       * The boosted type is the one thing on an item card besides the sprite.
+       * It is a type chip, section 2's first family and zero words, and it
+       * answers the question a sprite cannot: *which* type this item is for.
+       */
       const entry = itemById(reward.item);
-      name.textContent = entry?.name ?? reward.item;
-      // The plain-language effect line Part 5 asks for, from the item's own
-      // metadata rather than written here — `blurb` has been that field since
-      // Stage 3, so no `playerDescription` was added alongside it.
-      detail.textContent = entry?.blurb ?? '';
-      setProse(note, REWARD_COPY.itemNote);
+      if (entry?.boostsType) card.append(typeChip(entry.boostsType));
       break;
     }
 
-    case 'currency':
-      name.textContent = `${reward.amount} coins`;
-      setProse(detail, REWARD_COPY.coins);
-      setProse(note, carryingLine(state.currency));
+    /*
+     * **Coins and restore are a mark and a bare number. Stage 5.0/3, D66.**
+     *
+     * They were the two kinds with no section 4 row, and kept a kind label, a
+     * title, a line and a note (M5.1 left them, §66). Rev 17 gives each a row
+     * at 0: `+N` beside the currency glyph, `+N%` beside a bar filled to it.
+     * The word *coins*, the balance (QA-003) and what a restore restores are
+     * the long press, from the same copy the face used to print.
+     */
+    case 'currency': {
+      const face = coinAmount(`+${reward.amount}`, 'reward__amount');
+      card.dataset['tip'] = `coins:${reward.amount}`;
+      card.dataset['detail'] = String(options.carrying ?? state.currency);
+      card.append(face);
       break;
+    }
 
-    case 'heal':
-      name.textContent =
-        reward.fraction >= 1 ? 'Full restore' : `Restore ${Math.round(reward.fraction * 100)}%`;
-      setProse(detail, REWARD_COPY.heal);
+    case 'heal': {
+      const percent = Math.round(reward.fraction * 100);
+      const bar = createBar({ variant: 'neutral' });
+      bar.set(Math.min(1, reward.fraction), { chunk: false });
+      const amount = el('span', 'reward__amount');
+      amount.textContent = `+${percent}%`;
+      card.dataset['tip'] = `restore:${percent}`;
+      card.append(bar.root, amount);
       break;
+    }
 
     /*
-     * **The relic card. Added by the R19 rulings; it rendered blank until now.**
+     * **The relic face is its icon and the capability it satisfies. Stage
+     * 5.0/3, D65 and D66.**
      *
-     * This switch had no `case 'relic'` at all, so a relic card carried its
-     * `KIND_LABELS` chip and nothing else — no name, no effect — which is what
-     * the playtest screenshot shows. It was not a resolution bug: a relic card
-     * reaching this function has already survived `resolveOffer`, so it is a
-     * relic the run does not hold and the player can genuinely take.
+     * Until Rev 17 the name was the encoding, a recorded deviation (D36),
+     * because no relic art existed. The asset manifest carries a relic icon
+     * for every relic now, placeholder or drawing, so section 3's *"relic
+     * sprite"* is literal and the name joins the effect on the long press.
      *
-     * The ruling asks for more than the name: "relics should show you what they
-     * are. On the card." So the detail line is the relic's own
-     * `playerDescription`, read from the table the same way an item's card
-     * reads `blurb` — one field, written once, rendered wherever the object
-     * appears. Part 4 holds: that field is already written as an attribute and
-     * is already on screen for the rest of the run once taken.
-     *
-     * The id fallback mirrors `describeReward` and `screens/shop.ts`: a relic
-     * missing from the table shows its id rather than an empty card, because a
-     * blank card is exactly the failure this case exists to end.
+     * The capability glyph is the map node's own (`capabilityGlyph`), without
+     * the band chevron: the chevron is where the *run* stands against a
+     * capability, and a card is not the run. D65: a glyph costs no word, so
+     * the reason the capability chip left this card does not reach it.
      */
     case 'relic': {
       const entry = relicById(reward.relic);
-      name.textContent = entry?.name ?? reward.relic;
-      detail.textContent = entry?.playerDescription ?? '';
-      setProse(note, REWARD_COPY.relic);
+      const icon = el('span', 'reward__sprite reward__relic');
+      icon.append(assetIcon(`relic:${reward.relic}`));
+      icon.dataset['tip'] = `relic:${reward.relic}`;
+      icon.setAttribute('role', 'img');
+      icon.setAttribute('aria-label', entry?.name ?? reward.relic);
+      card.append(icon);
+      if (entry) card.append(capabilityGlyph(entry.grants, CAPABILITY_LABELS[entry.grants]));
       break;
     }
 
     /*
-     * **`technique` joins the two move kinds here, and was missing for the
-     * same reason `relic` was.** It is the third kind that carries a `move`,
-     * `isMoveRow` in `screens/shop.ts` has always treated all three together,
-     * and this switch did not — so every Technique card in the game has been
-     * blank since `generation.md` section 31 made status moves reachable.
+     * **The three move kinds mount the move card, and nothing else. Stage
+     * 5.0/3, D67 and D71.**
      *
-     * It shares the branch rather than getting one of its own because what a
-     * card does with a move is identical for all three: print the name, print
-     * the copy, and append the shared move card. Only the copy differs, and
-     * `MOVE_COPY` is that difference — a lookup keyed by the kind rather than a
-     * chain of conditionals, so the fourth move kind adds a row instead of
-     * another branch.
+     * The move card is the face: name, type chip, category, base power, PP,
+     * band pips, accuracy, priority and the fact strip, through the component
+     * the battle screen uses. No TM disc (D71): the chip already says the
+     * type, and a type-coloured disc would say it twice (R3).
+     *
+     * **No holder is passed, and that is the STAB rule.** A reward card is
+     * unassigned until `chooseMoveRecipient` answers, so a STAB tag here would
+     * be claiming something not yet true.
      */
     case 'tm':
     case 'tutor':
     case 'technique': {
-      name.textContent = reward.move;
-      setProse(detail, MOVE_COPY[reward.kind]);
-      /*
-       * The band. **Stage 4.6b's badge, on R12's insertion point.**
-       *
-       * "Band 3" says which of four power brackets the move sits in, and Part 4
-       * governs it exactly as it governs everything else on this card: a band
-       * is a fact about the move, the same kind of fact as its type or its base
-       * power, and the card does not say whether it is better than what the
-       * player is holding. There is no comparison, no arrow, and no colour that
-       * implies a direction.
-       *
-       * It is worth printing *because* base power is already here and does not
-       * answer the question the ramp poses. A player who has learned that this
-       * segment pays band 2 can read one badge and know whether the risky node
-       * beside them is offering something they cannot get for free — which is
-       * the whole decision Stage 4.6b added, and it is unreadable from `95 BP`
-       * alone.
-       *
-       * **R12 moved where it renders, not whether.** It used to be appended
-       * here, to the reward's name. It now arrives inside the move card below,
-       * from `moveCardData`, which is what makes the same badge appear on the
-       * four moves the player is comparing this one against. That comparison
-       * was the point of the badge and it was the half that was missing.
-       */
-      // Type, base power, band, PP and category, through the same component
-      // the battle screen uses. No comparison against anything the player owns.
-      /*
-       * The card, with tags. **Stage 4.7, Part 6b.**
-       *
-       * **No holder is passed, and that is the STAB rule.** A reward card is
-       * unassigned until `chooseMoveRecipient` answers, so a STAB tag here
-       * would be claiming something not yet true. It appears on the recipient
-       * screen and on the party card the move lands on, both of which know who
-       * is holding it.
-       */
       const facts = describeMove(reward.move);
       if (facts) card.append(moveCard(moveCardData(facts, tuning)));
       break;
     }
-
   }
 
-  card.prepend(kind, name, detail);
-  if (note.hasChildNodes()) card.append(note);
-  if (reward.kind === 'item') {
-    const entry = itemById(reward.item);
-    if (entry?.boostsType) card.append(typeChip(entry.boostsType));
-  }
-  card.addEventListener('click', onPick);
+  /*
+   * The shop's price, beside the currency glyph (D54). A bare number, which
+   * section 4's counting rule excludes.
+   */
+  if (options.price !== undefined) card.append(coinAmount(String(options.price), 'reward__price'));
+
+  if (!options.inert) card.addEventListener('click', onPick);
   return card;
+}
+
+/**
+ * Three cards and one claim. **Stage 5.0/3, D69.**
+ *
+ * The prompt asked for *"selection cursor on the picked card, confirm to
+ * claim"*, and D69 ruled how that stays an attribute rather than a verdict:
+ *
+ * - **No card is selected at rest.** A cursor resting on one of three cards
+ *   before any input is emphasis, which C1 forbids. `aria-pressed` is false
+ *   on all three until the player taps one.
+ * - **A tap selects and opens the band**, with the selected card as its
+ *   content, because the dim covers the row. The band's commit is the claim.
+ * - **The band's cancel returns to the three cards** and clears the
+ *   selection. It never leaves the offer: CLAUDE.md allows no skip at the
+ *   card, so there is no decline here to confuse it with.
+ * - **The selection never reaches the run.** `onClaim` is called once, on the
+ *   commit, so the run log records the same single reward decision it always
+ *   has and a reload between the tap and the commit asks the question again.
+ */
+export function renderOfferCards(
+  options: readonly Reward[],
+  state: RunState,
+  onClaim: (index: number) => void,
+  cardOptions: RewardCardOptions = {},
+): HTMLElement[] {
+  let claimed = false;
+  const cards: HTMLElement[] = [];
+  const select = (index: number | null): void => {
+    for (const [i, card] of cards.entries()) {
+      card.setAttribute('aria-pressed', String(i === index));
+      if (i === index) card.dataset['selected'] = 'true';
+      else delete card.dataset['selected'];
+    }
+  };
+  for (const [index, reward] of options.entries()) {
+    const card = renderRewardCard(
+      reward,
+      state,
+      () => {
+        if (claimed) return;
+        select(index);
+        openBand({
+          title: CLAIM_COPY.title,
+          content: renderRewardCard(reward, state, () => undefined, { ...cardOptions, inert: true }),
+          confirm: CLAIM_COPY.confirm,
+          cancel: CLAIM_COPY.cancel,
+          onConfirm: () => {
+            if (claimed) return;
+            claimed = true;
+            onClaim(index);
+          },
+          onCancel: () => {
+            select(null);
+            card.focus();
+          },
+        });
+      },
+      cardOptions,
+    );
+    card.setAttribute('aria-pressed', 'false');
+    cards.push(card);
+  }
+  return cards;
 }
 
 /*
@@ -233,20 +334,3 @@ export function renderRewardCard(reward: Reward, state: RunState, onPick: () => 
  * "what would this change about my party" belongs now that capture is the only
  * way a party member arrives.
  */
-
-/** The line under a move card's name, by which of the three move kinds it is. */
-const MOVE_COPY = {
-  tm: REWARD_COPY.tm,
-  tutor: REWARD_COPY.tutor,
-  technique: REWARD_COPY.technique,
-} as const satisfies Record<Extract<Reward, { move: string }>['kind'], unknown>;
-
-const KIND_LABELS: Record<Reward['kind'], string> = {
-  item: 'Held item',
-  currency: 'Coins',
-  heal: 'Restore',
-  tm: 'TM',
-  tutor: 'Move tutor',
-  technique: 'Technique',
-  relic: 'Relic',
-};

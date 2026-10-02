@@ -37,9 +37,8 @@
  * after a battle it won, so a `species` reward card lands in the same place a
  * wild capture does. Two screens for one decision is how the two drift.
  */
-import { describeOffer, type AcquisitionDecision, type AcquisitionOffer } from '../../core/acquisition';
+import { describeOffer, joiningSpec, type AcquisitionDecision, type AcquisitionOffer } from '../../core/acquisition';
 import { describeSpecCard } from '../../core/battle/driver';
-import { archetypeChip } from '../archetype-chip';
 import { createBar } from '../bar';
 import { coverageAfterSwap, coverageDelta, offensiveCoverage } from '../../core/coverage';
 import { hpState, ppState } from '../../core/hpCopy';
@@ -47,12 +46,12 @@ import { heldItem } from '../../core/items';
 import { createPartyMember, hpFraction, ppTotals } from '../../core/party';
 import type { PokemonSpec, PokemonState } from '../../core/types';
 
-import { el } from '../scene';
+import { el, levelAria, levelText, movePower } from '../scene';
+import { statBlock, type StatValues } from '../stat-block';
 import { prose } from '../dom';
 import { CAPTURE_FULL, CAPTURE_SOURCE, RELEASE_LABEL, RETURNS_TO_BAG } from '../copy/screens';
 import { hpTip } from '../member-card';
 import { slotNumber } from '../slots';
-import { statLine } from './starter-select';
 import { abilityChip, monTypeChip } from '../chip';
 import { openBand } from '../band';
 import { neutralChip, statusChip } from '../chip';
@@ -79,12 +78,22 @@ export function renderCaptureOffer(
    * answer against, so the screen and the rule cannot disagree.
    */
   capacity: number,
+  /**
+   * The segment the run is in, so the card draws the Pokemon that joins rather
+   * than the one that was fought: `joiningSpec` is the same call
+   * `applyAcquisition` builds the member from. Omitted, the card draws the
+   * offer as fought, which is what fixtures without a run want.
+   */
+  segment?: number,
 ): HTMLElement {
   const section = el('div', 'acquire');
   const full = party.length >= capacity;
+  // The heading and the card read one spec, so neither can name a level the
+  // other does not.
+  const joining = segment === undefined ? offer : { ...offer, spec: joiningSpec(offer.spec, segment) };
 
   const title = el('h3', 'result__heading');
-  title.textContent = describeOffer(offer);
+  title.textContent = describeOffer(joining);
 
   // Where it came from, and at a full party the rule that follows. Both
   // forms of both sentences, from `ui/copy/screens.ts`; never what it is worth.
@@ -93,7 +102,7 @@ export function renderCaptureOffer(
   if (full) blurb.append(prose(CAPTURE_FULL));
 
   const offered = el('div', 'acquire__offer');
-  offered.replaceChildren(renderOffered(offer.spec));
+  offered.replaceChildren(renderOffered(joining.spec));
 
   /*
    * The coverage line, before and after, exactly as the species reward card
@@ -105,9 +114,51 @@ export function renderCaptureOffer(
    * so, because which member goes is a choice the player has not made yet at
    * the moment they are reading this.
    */
-  const coverage = el('p', 'acquire__coverage');
+  /*
+   * **Two rows of type chips, with a sign each and no words. Milestone
+   * M5.4.**
+   *
+   * Section 3's row: *"Coverage change (capture card) | Two rows of type
+   * chips, plus row and minus row, signs only. **The signs are permanent, not
+   * an exposure label: coverage is not a glyph family** (2026-09-19, D5) |
+   * Empty row renders nothing | The full before and after sets."* All four
+   * clauses are here.
+   *
+   * The sentence it replaces — *"Coverage if it replaces your first member:
+   * adds Dragon, Steel. Loses Ghost."* — was **8 words** on a card budgeted at
+   * 0, and it was a summary of sets it never showed. The rows show the sets.
+   *
+   * **C2 is satisfied by M1.2 rather than by this item**, which is the whole
+   * reason the sentence could go: the `coverage:capture` tip was mounted two
+   * tiers ago carrying the full before and after, and the comment that did it
+   * said in as many words that M5.4 would move the trigger onto the rows. It
+   * does.
+   *
+   * **An empty row renders nothing**, which is R4 and not a convenience: a
+   * capture that adds nothing has no plus row, and a plus row with no chips in
+   * it would be a marker for the absence of a fact.
+   */
+  const coverage = el('div', 'acquire__coverage');
   coverage.dataset['tutorial'] = 'coverage';
-  coverage.textContent = captureCoverageLine(offer, party, capacity);
+  coverage.replaceChildren(...coverageRows(offer, party, capacity));
+  /*
+   * **Section 3's coverage row, given its inspect entry by M1.2.**
+   *
+   * Its entry is "the full before and after sets", and the line above is a
+   * summary of them: it names what moved and never the sets themselves. The
+   * sets ride on the trigger because they are a fact about this capture, the
+   * same shape a threat count and a stat-stage set already use.
+   *
+   * The line itself is still prose. **M5.4 is what replaces it with the two
+   * rows of type chips section 3 specifies**, and this trigger moves onto the
+   * rows when it does; mounting inspect here first is what lets that item
+   * delete the sentence without taking a fact with it, which is C2.
+   */
+  const detail = captureCoverageDetail(offer, party, capacity);
+  if (detail) {
+    coverage.dataset['tip'] = 'coverage:capture';
+    coverage.dataset['detail'] = detail;
+  }
 
   const compare = el('h4', 'acquire__heading');
   compare.textContent = full
@@ -115,12 +166,32 @@ export function renderCaptureOffer(
     : `Your party (${party.length} of ${capacity})`;
 
   const list = el('div', 'party party--compare');
-  list.replaceChildren(...party.map((member, index) => renderExisting(member, index, full, onDecide)));
+  /*
+   * **The swap's stat change. Bible Rev 20, D84.** At a full party every
+   * member card carries its six numbers and, beside each, what the incoming
+   * Pokemon would put in that slot instead, signed and coloured by its sign.
+   * All six on every card, in party order: R10's permit, never a marker on
+   * the member to drop. With room to spare nothing is replaced, so no change.
+   */
+  const incoming = describeSpecCard(joining.spec);
+  const against = full ? { ...incoming.baseStatsAtLevel, hp: incoming.maxHp } : undefined;
+  list.replaceChildren(...party.map((member, index) => renderExisting(member, index, full, onDecide, against)));
 
   const actions = el('div', 'acquire__actions');
   const decline = document.createElement('button');
   decline.type = 'button';
-  decline.className = 'button';
+  /*
+   * **The flow-decline kind. Milestone M5.5, and this screen is the sharp
+   * case.**
+   *
+   * At a full party this control reads `Keep my party as it is`, and the band
+   * a release opens reads `Keep`. Two controls beginning with the same word,
+   * on screen at the same time, one of which moves the run on and one of which
+   * changes nothing. The shared class is what the `body[data-band-open]` rule
+   * in `styles.css` reaches so the band's cancel is the only live "no" while
+   * the band is up.
+   */
+  decline.className = 'button decline';
   decline.textContent = full ? 'Keep my party as it is' : 'Leave it';
   decline.addEventListener('click', () => onDecide({ kind: 'decline' }));
 
@@ -141,34 +212,85 @@ export function renderCaptureOffer(
   return section;
 }
 
+
 /**
- * What taking it would change about the party's offensive typing, in one
- * factual sentence.
+ * The same two sets the line summarises, for the inspect panel.
  *
- * The same reading `screens/reward.ts` prints on a species card, computed the
- * same way from the same pure function — a second implementation would be a
- * second answer to "what does this cost me", and the first divergence between
- * them would be invisible.
+ * Two lines, `+` then `-`, each a tab-separated type list, and an empty set
+ * contributes no line at all — section 3's "empty row renders nothing".
+ * Derived from the same `coverageDelta` call the line uses, so the two can
+ * never disagree about what moved.
  */
-function captureCoverageLine(
+function captureCoverageDetail(
   offer: AcquisitionOffer,
   party: readonly PokemonState[],
   capacity: number,
 ): string {
   if (party.length === 0) return '';
   const incoming = createPartyMember(offer.spec);
-  const before = offensiveCoverage(party);
   const full = party.length >= capacity;
-  const delta = coverageDelta(before, coverageAfterSwap(party, incoming, full ? 0 : -1));
-
-  const parts: string[] = [];
-  if (delta.added.length > 0) parts.push(`adds ${delta.added.join(', ')}`);
-  if (delta.lost.length > 0) parts.push(`loses ${delta.lost.join(', ')}`);
-  const body = parts.length > 0 ? parts.join('. ') : 'unchanged';
-  const scope = full ? ' if it replaces your first member' : '';
-  return `Coverage${scope}: ${body}.`;
+  const delta = coverageDelta(offensiveCoverage(party), coverageAfterSwap(party, incoming, full ? 0 : -1));
+  const lines: string[] = [];
+  if (delta.added.length > 0) lines.push(`+${delta.added.join('\t')}`);
+  if (delta.lost.length > 0) lines.push(`-${delta.lost.join('\t')}`);
+  return lines.join('\n');
 }
 
+/**
+ * The coverage change, as section 3 draws it: a plus row and a minus row, type
+ * chips, signs only. **M5.4.**
+ *
+ * The sign is a text node rather than a glyph because D5 ruled exactly that: a
+ * plus beside a row of type chips *"is not a glyph in section 2's sense"*, the
+ * chips already carry the type family's own exposure label, and the count of
+ * families stays at nine — ten now, and for an unrelated reason (D37).
+ */
+function coverageRows(
+  offer: AcquisitionOffer,
+  party: readonly PokemonState[],
+  capacity: number,
+): HTMLElement[] {
+  if (party.length === 0) return [];
+  const incoming = createPartyMember(offer.spec);
+  const full = party.length >= capacity;
+  const delta = coverageDelta(offensiveCoverage(party), coverageAfterSwap(party, incoming, full ? 0 : -1));
+
+  const row = (sign: '+' | '\u2212', types: readonly string[], kind: string): HTMLElement | null => {
+    if (types.length === 0) return null;
+    const line = el('div', `acquire__coverage-row acquire__coverage-row--${kind}`);
+    const mark = el('span', 'acquire__coverage-sign');
+    mark.textContent = sign;
+    mark.setAttribute('aria-hidden', 'true');
+    line.append(mark, ...types.map(monTypeChip));
+    line.setAttribute('aria-label', `${kind === 'adds' ? 'Adds' : 'Loses'} ${types.join(', ')}`);
+    return line;
+  };
+
+  return [row('+', delta.added, 'adds'), row('\u2212', delta.lost, 'loses')].filter(
+    (line): line is HTMLElement => line !== null,
+  );
+}
+
+/*
+ * **This card does NOT mount the party row, and that is a filed conflict
+ * rather than an oversight. Milestone M5.4, discrepancy D38.**
+ *
+ * D29 added capture to the party row's canon call sites and section 4 says
+ * this card *"follows the recipient card"*, which mounts it. M5.4 built that —
+ * and `test/visual-v4.test.ts` refused it: the party row draws four **move
+ * cards** since D21a, so at the gallery's default density the offered card
+ * measures **655px** and the screen's decision buttons land at **2253**,
+ * against a gate that requires them above **844**.
+ *
+ * In Pocket the same screen measures 661 and passes, because the row's body is
+ * one tap behind the head there. The failing mode is Detailed, which is the
+ * app's default until M6.3 flips it, so this is not a hypothetical.
+ *
+ * The row is filed rather than worked around: the fixes available — a
+ * per-surface collapsed default, or relaxing a fold gate — each touch a rule
+ * (R6) or a gate that predates the canon, and section 10.3 makes that a
+ * stop-and-file. The hand-built card stays until it is ruled.
+ */
 /** The offered Pokemon, in the same card shape the party uses. */
 function renderOffered(spec: PokemonSpec): HTMLElement {
   const card = el('div', 'party__member party__member--offered');
@@ -178,10 +300,15 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
   const name = el('span', 'panel__name');
   name.textContent = detail.species;
   const level = el('span', 'panel__level');
-  level.textContent = `Lv${detail.level}`;
-  // The archetype chip is back beside the bars. Chip-audit patch, question 1:
-  // the label is a vocabulary, and a vocabulary with holes in it is not one.
-  header.append(name, level, archetypeChip(detail.baseStats), ...detail.types.map(monTypeChip));
+  level.textContent = levelText(detail.level);
+  level.setAttribute('aria-label', levelAria(detail.level));
+  /*
+   * **No archetype chip. M3.2.** Section 3: the label is not rendered where
+   * the stat bars already draw it, and this card carries the block. The
+   * chip-audit patch's objection — that a label on some surfaces and not
+   * others is not a vocabulary — is answered by it going from all of them.
+   */
+  header.append(name, level, ...detail.types.map(monTypeChip));
 
   const ability = abilityChip(detail.ability, detail.abilityId, 'party__ability');
   /*
@@ -205,8 +332,8 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
   const meta = el('div', 'panel__meta');
   const hp = el('span', 'panel__hp-text');
   /*
-   * Full HP, and from 4.6a at the level it was fought at rather than below the
-   * curve. The discount was the price of a free Pokemon; the price is the step
+   * Full HP, at the level it joins at when the caller passes the segment (the
+   * opening playtest QA), which since 4.7 is the party's level. The discount was the price of a free Pokemon; the price is the step
    * the encounter occupied and the slot it takes.
    */
   hp.textContent = `${hpState(detail.maxHp, detail.maxHp)} · joins at full health`;
@@ -218,9 +345,20 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
       const row = el('li', 'party__move');
       const label = el('span', '');
       label.textContent = move.name;
-      const power = el('span', 'move__pp');
-      power.textContent = move.category === 'Status' ? '—' : `${move.basePower} BP`;
-      row.append(label, power);
+      /*
+       * **The shared base-power slot, not a string built here. M2.1.**
+       *
+       * This drew `${move.basePower} BP` into a span it labelled `.move__pp`,
+       * which was wrong twice: the class named a different attribute, and R2
+       * forbids the `BP` at rest — the capture card censused three of them in
+       * Pocket because this text never went through the component that drops
+       * the label.
+       *
+       * Mounting `movePower` is the section 5 answer: a screen mounts the slot
+       * and does not position the attribute itself. The full move chip this
+       * row wants is M2.3's item; this is the one field it was getting wrong.
+       */
+      row.append(label, movePower(move.category, move.basePower));
       return row;
     }),
   );
@@ -228,9 +366,17 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
   // The same six-stat row a starter card and a species reward card carry, so a
   // Pokemon looks identical everywhere the player is asked to judge one.
   // The body, in the card's corner. Idle-sprites patch.
-  card.append(spriteFigure(detail.species), header, meta, statLine(detail.baseStatsAtLevel, detail.maxHp), moves);
+  card.append(
+    spriteFigure(detail.species),
+    header,
+    meta,
+    // The shared stat block, six across, as the starter card draws it. M3.2, D20.
+    statBlock({ ...detail.baseStatsAtLevel, hp: detail.maxHp }, { layout: 'row', level: detail.level }),
+    moves,
+  );
   return card;
 }
+
 
 /** One current member, with a release button when the party is full. */
 function renderExisting(
@@ -238,6 +384,7 @@ function renderExisting(
   index: number,
   full: boolean,
   onDecide: (decision: AcquisitionDecision) => void,
+  against?: StatValues,
 ): HTMLElement {
   const card = el('div', 'party__member');
   const detail = describeSpecCard(member.spec);
@@ -246,12 +393,15 @@ function renderExisting(
   const name = el('span', 'panel__name');
   name.textContent = detail.species;
   const level = el('span', 'panel__level');
-  level.textContent = `Lv${detail.level}`;
+  level.textContent = levelText(detail.level);
+  level.setAttribute('aria-label', levelAria(detail.level));
   // The slot number first, as on the party screen's cards: this list stands
   // in for the result screen's slot row in Pocket, where that row is off
   // screen, and a slot is the one fact the row had that the card did not.
   // Density modes patch, Part 4.
-  header.append(slotNumber(index), name, level, archetypeChip(detail.baseStats), ...detail.types.map(monTypeChip));
+  // No archetype chip: the six numbers are on this card now (D84), and
+  // section 3 draws the label nowhere the numbers already are.
+  header.append(slotNumber(index), name, level, ...detail.types.map(monTypeChip));
 
   const bar = createBar();
   bar.set(hpFraction(member));
@@ -283,7 +433,14 @@ function renderExisting(
   }
 
   // The body, phased by slot as the party screen's cards are. Idle-sprites patch.
-  card.append(spriteFigure(detail.species, { phase: index }), header, track, meta);
+  // The six numbers at rest (R13), with the swap's change on a full party (D84).
+  card.append(
+    spriteFigure(detail.species, { phase: index }),
+    header,
+    track,
+    meta,
+    statBlock({ ...detail.baseStatsAtLevel, hp: member.maxHp }, { layout: 'row', against, level: detail.level }),
+  );
 
   if (full) {
     const release = document.createElement('button');

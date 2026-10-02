@@ -32,6 +32,7 @@ import {
   type Effectiveness,
   type EffectivenessDefender,
   type EffectivenessMove,
+  type FieldContext,
 } from '../src/core/battle/effectiveness';
 import { abilityEffects } from '../src/data/abilityEffects';
 
@@ -113,7 +114,7 @@ describe('a move against a defender', () => {
       move({ type: 'Ground', category: 'Status', flags: [] }),
       defender({ types: ['Rock'], ability: { id: 'levitate', name: 'Levitate' } }),
     );
-    expect(result).toEqual({ multiplier: null, band: null, abilityAffected: false });
+    expect(result).toEqual({ multiplier: null, band: null, abilityAffected: false, fieldFactor: 1, fieldCause: null });
   });
 
   it('every damaging move gets a band, and every band has a label', () => {
@@ -206,3 +207,85 @@ describe('bandOf', () => {
     expect(bandOf(4)).toBe('super');
   });
 });
+
+/**
+ * The board's own factor, folded in last. **Stage 4.11 Tier 2b, D49.**
+ */
+describe('the field, folded into the forecast', () => {
+  const board = (overrides: Partial<FieldContext> = {}): FieldContext => ({
+    weather: null,
+    terrain: null,
+    suppressed: false,
+    attackerGrounded: true,
+    defenderGrounded: true,
+    flyingWeakness: 1,
+    ...overrides,
+  });
+  const under = (m: EffectivenessMove, d: EffectivenessDefender, field: FieldContext, reveal = REVEALED) =>
+    moveEffectiveness(m, d, typeMultiplier, abilityEffects, reveal, field);
+
+  it('does nothing to a move the board does not touch, and says so', () => {
+    const result = under(move({ type: 'Normal' }), defender(), board({ weather: 'raindance', terrain: 'electricterrain' }));
+    expect(result.fieldFactor).toBe(1);
+    expect(result.fieldCause).toBeNull();
+    expect(result.multiplier).toBe(1);
+  });
+
+  it('multiplies the chart by rain and by sun, and names the weather', () => {
+    const surf = under(move({ type: 'Water' }), defender({ types: ['Fire'] }), board({ weather: 'raindance' }));
+    expect(surf).toMatchObject({ multiplier: 3, band: 'super', fieldFactor: 1.5, fieldCause: 'raindance' });
+    const ember = under(move({ type: 'Fire' }), defender({ types: ['Grass'] }), board({ weather: 'raindance' }));
+    expect(ember).toMatchObject({ multiplier: 1, band: 'neutral', fieldFactor: 0.5, fieldCause: 'raindance' });
+    const flame = under(move({ type: 'Fire' }), defender({ types: ['Water'] }), board({ weather: 'sunnyday' }));
+    expect(flame).toMatchObject({ multiplier: 0.75, band: 'resisted', fieldFactor: 1.5 });
+  });
+
+  it('refuses outright under the primal weathers', () => {
+    expect(under(move({ type: 'Water' }), defender({ types: ['Fire'] }), board({ weather: 'desolateland' })).multiplier).toBe(0);
+    expect(under(move({ type: 'Fire' }), defender({ types: ['Grass'] }), board({ weather: 'primordialsea' })).multiplier).toBe(0);
+  });
+
+  it('takes the Flying weakness off under strong winds, and nothing else', () => {
+    const thunder = under(move({ type: 'Electric' }), defender({ types: ['Water', 'Flying'] }), board({ weather: 'deltastream', flyingWeakness: 2 }));
+    expect(thunder).toMatchObject({ multiplier: 2, fieldFactor: 0.5, fieldCause: 'deltastream' });
+    const rock = under(move({ type: 'Rock' }), defender({ types: ['Water'] }), board({ weather: 'deltastream', flyingWeakness: 2 }));
+    expect(rock.fieldFactor).toBe(1);
+  });
+
+  it('does nothing while an ability holds the weather off', () => {
+    const result = under(move({ type: 'Water' }), defender(), board({ weather: 'raindance', suppressed: true }));
+    expect(result.fieldFactor).toBe(1);
+  });
+
+  it('applies a terrain to a grounded attacker, and not to one in the air', () => {
+    const grounded = under(move({ type: 'Electric' }), defender(), board({ terrain: 'electricterrain' }));
+    expect(grounded).toMatchObject({ multiplier: 1.3, fieldFactor: 1.3, fieldCause: 'electricterrain' });
+    const airborne = under(move({ type: 'Electric' }), defender(), board({ terrain: 'electricterrain', attackerGrounded: false }));
+    expect(airborne.fieldFactor).toBe(1);
+  });
+
+  it('halves against a grounded target under Misty and, by name, under Grassy', () => {
+    const outrage = under(move({ type: 'Dragon' }), defender(), board({ terrain: 'mistyterrain' }));
+    expect(outrage.fieldFactor).toBe(0.5);
+    const quake = under(move({ id: 'earthquake', type: 'Ground' }), defender(), board({ terrain: 'grassyterrain' }));
+    expect(quake.fieldFactor).toBe(0.5);
+    const quakeOnFlier = under(move({ id: 'earthquake', type: 'Ground' }), defender(), board({ terrain: 'grassyterrain', defenderGrounded: false }));
+    expect(quakeOnFlier.fieldFactor).toBe(1);
+  });
+
+  it('keeps a visible immunity at 0 whatever the weather says', () => {
+    const result = under(
+      move({ type: 'Water' }),
+      defender({ types: ['Fire'], ability: { id: 'waterabsorb', name: 'Water Absorb' } }),
+      board({ weather: 'raindance' }),
+    );
+    expect(result.multiplier).toBe(0);
+    expect(result.abilityAffected).toBe(true);
+  });
+
+  it('leaves a status move alone', () => {
+    const result = under(move({ type: 'Water', category: 'Status', flags: [] }), defender(), board({ weather: 'raindance' }));
+    expect(result).toEqual({ multiplier: null, band: null, abilityAffected: false, fieldFactor: 1, fieldCause: null });
+  });
+});
+

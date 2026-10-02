@@ -34,6 +34,9 @@
 import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { PHONE, openApp, openScreen, stepOnce, visible } from '../scripts/visual/browser.mjs';
 import { ratio } from '../scripts/visual/contrast.mjs';
 import { DEFAULT_DISPLAY_TUNING } from '../src/data/displayTuning';
@@ -58,12 +61,13 @@ afterAll(async () => {
  * reader would write down, and it going stale is the point at which somebody
  * has to look.
  *
- * `capability` and `capability-band` are the node gate's two chips, which need
- * a gated node on the route; `flag` is a post-resolution word, which needs a
- * turn that produced one. Both are reachable on SMOKE24 and both are asserted
- * below, so if a tuning pass moves the route this test says so.
+ * `flag` is a post-resolution word, which needs a turn that produced one. It is
+ * reachable on SMOKE24 and asserted below, so if a tuning pass moves the route
+ * this test says so.
  *
- * **`band` is off the list, and it is the one omission.** `ui/chip.ts` builds
+ * **`band`, `capability` and `capability-band` are off the list, for one reason
+ * between them.** Each draws marks rather than words, so both floors here — a
+ * floor on text size and a floor on text contrast — have nothing to measure. `ui/chip.ts` builds
  * it, and this file cannot measure it: `bandChip` sets no text — it draws five
  * `.band__pip` spans, because Stage V0 ruled a band is a count and not a word —
  * and both floors here are floors on *text*. A font size on a box with no
@@ -71,25 +75,45 @@ afterAll(async () => {
  * not weak measurements, they are measurements of nothing, and `chipsOn` now
  * declines to take them.
  *
+ * **Two of the three came off at M5.2, and that is a coverage loss worth
+ * stating plainly.** `capability` was `Requires Cut` and is now the tenth
+ * family's glyph; `capability-band` was `Latent` and is now two chevrons
+ * filled to the run's reach. Both are the encoding the design bible asks for,
+ * and both are variants this sweep can no longer photograph — the instrument
+ * got narrower on the same day the surfaces got better, which is the honest
+ * way round to say it.
+ *
+ * **`tier` stays, and the reason is worth knowing.** M5.2 turned the *map's*
+ * tier into pips, and `tierChip` still draws `GYM` and `ELITE` as words on the
+ * reward screen through `offerBadge` — one variant name, two encodings, on two
+ * surfaces. So the sweep still reaches it, and what it measures is the reward
+ * screen's badge rather than the map's meter.
+ *
  * So the list is what this instrument can answer for rather than everything the
  * component can build, and the gap is named here rather than left for a reader
- * to infer from a variant that quietly stopped appearing. What a pip meter
- * needs is a contrast rule between a filled pip and an empty one, which is a
- * different assertion in a different file; it is filed as an open item in
- * `docs/README.md`.
+ * to infer from a variant that quietly stopped appearing. What a pip meter and
+ * a glyph mark need is a contrast rule between a filled mark and an empty one,
+ * which is a different assertion in a different file. `npm run glyphs` already
+ * measures **separation** between the marks of a family and holds the
+ * capability family at 0.164 against a floor of 0.12; what neither instrument
+ * covers is a filled-against-empty *contrast* floor, and it is filed as an
+ * open item in `docs/README.md`.
  */
 const VARIANTS = [
   'type',
   'tier',
   'status',
   'stage',
-  'capability',
-  'capability-band',
   'category',
   'effect',
   'flag',
   'neutral',
 ] as const;
+
+/** On the list this sweep answers for, as opposed to something `ui/chip.ts` can build. */
+function listed(variant: string): boolean {
+  return (VARIANTS as readonly string[]).includes(variant);
+}
 
 interface ChipSample {
   variant: string;
@@ -227,20 +251,88 @@ async function imagesSettled(page: Page): Promise<void> {
   );
 }
 
+/**
+ * The screenshot each surface was sampled from, kept so a floor failure can
+ * hand over the pixels it read. **The browser suite CI patch.**
+ *
+ * The one reading this file could not explain, it could not explain because
+ * the number arrived alone: `party (gallery, loaded) "Ghost" 4.43:1` on Actions,
+ * 5.13:1 on every box and font set tried here. A ratio names two colours and
+ * says nothing about what was under the chip, and the container is not a
+ * machine anyone can open. So on a failure the screenshots of the surfaces
+ * named go to `visual-failures/chips/`, which the workflow uploads, and the
+ * assertion message says so. An instrument that answers should also show its
+ * work.
+ */
+const shots = new Map<string, Buffer>();
+const FAILURE_DIR = join('visual-failures', 'chips');
+
+function keepFailureShots(under: string[]): string {
+  const named = [...shots.keys()].filter((screen) => under.some((line) => line.startsWith(`${screen} "`)));
+  if (named.length === 0) return '';
+  mkdirSync(FAILURE_DIR, { recursive: true });
+  const files = named.map((screen) => {
+    const file = join(FAILURE_DIR, `${screen.replace(/[^a-z0-9]+/gi, '-')}.png`);
+    writeFileSync(file, shots.get(screen)!);
+    return file;
+  });
+  return `; screenshots: ${files.join(', ')}`;
+}
+
 /** Every rendered chip on the screen currently open, measured. */
-async function chipsOn(page: Page, scratch: Page, screen: string): Promise<ChipSample[]> {
+async function chipsOn(page: Page, scratch: Page, screen: string, label = screen): Promise<ChipSample[]> {
   await imagesSettled(page);
-  const found = await page.evaluate((sel) => {
+  /*
+   * **One viewport at a time, since Stage 5.0/1.** The frame holds the
+   * viewport's height and the screens scroll inside `.screens`, so a
+   * full-page screenshot is one viewport and a chip below the fold is not in
+   * it. The sweep scrolls the frame a viewport at a time and samples the
+   * chips wholly inside the scroller's visible box at each stop.
+   */
+  const measure = () => page.evaluate((sel) => {
     const root = globalThis.document.querySelector(sel);
     if (!root) return [];
+    const view = globalThis.document.querySelector('.screens')?.getBoundingClientRect() ?? { top: 0, bottom: globalThis.innerHeight };
     return [...root.querySelectorAll('.chip')].flatMap((node) => {
       const rect = node.getBoundingClientRect();
+      if (rect.top < view.top || rect.bottom > view.bottom) return [];
       const style = globalThis.getComputedStyle(node);
       // Present but not rendered — inside a closed overlay, or on a turn that
       // did not produce one. Skipping it is right; skipping it *silently* is
       // what the variant assertion catches.
       if (rect.width < 1 || rect.height < 1) return [];
       if (style.visibility === 'hidden' || style.opacity === '0') return [];
+      /*
+       * A chip inside something the app has dimmed is not a floor question
+       * either. **The browser suite CI patch.**
+       *
+       * `.move:disabled` is 0.42, `.party__member--fainted` 0.55, `.button:disabled`
+       * 0.35: every one of them is the app saying *this is not for reading now*,
+       * and what shows through a dimmed control is whatever sits behind it — on
+       * a marsh battle, the locale's green backdrop. The floor is a promise about
+       * a chip a player is meant to read, and it was being asserted against the
+       * Ghost chip on a disabled move button during the faint beat, at 3.81:1
+       * over the marsh, on every Actions run since 2026-09-18.
+       *
+       * Reached rather than theoretical, and reached only there: the sweep
+       * samples a screen when a variant it has not seen appears, and *when* that
+       * happens depends on the machine's font set, because the chip widths that
+       * decide which chips fit on screen are a system monospace stack with no
+       * font shipped (`docs/generation.md` section 34.8). On a box with DejaVu
+       * Sans Mono the sweep never lands on the forced-switch board; with
+       * Liberation Mono, the Playwright image's fallback, it does, and it read
+       * the same 3.81:1 on the same rgb(54,62,50) that CI had been reporting.
+       * Reproduced locally by rejecting DejaVu through `FONTCONFIG_FILE`, on
+       * both Chromium 141 and 153. The engine was never the variable.
+       *
+       * Walked rather than read off the chip, because opacity does not inherit
+       * as a computed value: the chip's own `opacity` is `1` inside a button at
+       * 0.42.
+       */
+      for (let el: Element | null = node; el && el !== root; el = el.parentElement) {
+        if (el.matches(':disabled')) return [];
+        if (Number.parseFloat(globalThis.getComputedStyle(el).opacity) < 1) return [];
+      }
       const variant = [...node.classList].find((name) => name.startsWith('chip--'))?.slice(6);
       if (!variant) return [];
       /*
@@ -264,10 +356,10 @@ async function chipsOn(page: Page, scratch: Page, screen: string): Promise<ChipS
         text,
         fontSize: Number.parseFloat(style.fontSize),
         color: style.color,
-        // Page coordinates, to index into a full-page screenshot.
+        // Viewport coordinates, to index into this stop's screenshot.
         box: {
-          x: rect.left + globalThis.scrollX,
-          y: rect.top + globalThis.scrollY,
+          x: rect.left,
+          y: rect.top,
           width: rect.width,
           height: rect.height,
         },
@@ -275,12 +367,52 @@ async function chipsOn(page: Page, scratch: Page, screen: string): Promise<ChipS
     });
   }, visible(screen));
 
-  if (found.length === 0) return [];
-  const png = await page.screenshot({ fullPage: true });
+  /*
+   * **Read the boxes, take the picture, read the boxes again, and keep only a
+   * picture whose boxes did not move.** The browser suite CI patch, and the
+   * gallery row it could not reproduce.
+   *
+   * The `4.43:1` the Playwright container reported for the loaded party's
+   * Ghost chip was real and the chip was fine. Its artifact showed the chip
+   * painted at x=213 on the panel, reading 5.13:1 there; the box the sampler
+   * had used was x=87, and at x=87 the picture holds the archetype chip's
+   * neutral fill, which is the grey in the log to the digit. Between the
+   * `getBoundingClientRect` and the screenshot the page had reflowed: the
+   * header's gender glyph resolves through that image's colour-emoji fallback
+   * after first layout, the header widens, the archetype chip wraps down a
+   * row, and every chip on that row moves right. No box in this repo waits on
+   * a system font, and `document.fonts.ready` does not cover a fallback
+   * glyph, so the fix is not a wait but an agreement: the instrument measures
+   * the layout it photographed, or it measures again.
+   */
   // Device pixels per CSS pixel, asked of the page rather than assumed. 1 on
   // the Chromium leg, 3 on the WebKit one's iPhone descriptor.
   const dpr = await page.evaluate(() => globalThis.devicePixelRatio);
-  const backgrounds = await sampleBoxes(scratch, png, found.map((chip) => chip.box), dpr);
+  const stops = await page.evaluate(() => {
+    const frame = globalThis.document.querySelector<HTMLElement>('.screens');
+    if (!frame) return [0];
+    const out: number[] = [];
+    for (let top = 0; top < frame.scrollHeight - frame.clientHeight + frame.clientHeight; top += frame.clientHeight) out.push(top);
+    return out.length ? out : [0];
+  });
+  const all: { found: Awaited<ReturnType<typeof measure>>; backgrounds: Awaited<ReturnType<typeof sampleBoxes>> }[] = [];
+  for (const [stop, top] of stops.entries()) {
+    await page.evaluate((y) => globalThis.document.querySelector('.screens')?.scrollTo(0, y), top);
+    let found = await measure();
+    if (found.length === 0) continue;
+    let png = await page.screenshot();
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const again = await measure();
+      if (JSON.stringify(again.map((chip) => chip.box)) === JSON.stringify(found.map((chip) => chip.box))) break;
+      found = again;
+      png = await page.screenshot();
+    }
+    if (stop === 0) shots.set(label, png);
+    all.push({ found, backgrounds: await sampleBoxes(scratch, png, found.map((chip) => chip.box), dpr) });
+  }
+  await page.evaluate(() => globalThis.document.querySelector('.screens')?.scrollTo(0, 0));
+  const found = all.flatMap((stop) => stop.found);
+  const backgrounds = all.flatMap((stop) => stop.backgrounds);
 
   const out: ChipSample[] = [];
   for (const [index, chip] of found.entries()) {
@@ -355,7 +487,7 @@ async function sweep(): Promise<ChipSample[]> {
     // archetype is" was true for four stages and is the kind of thing a reader
     // will otherwise re-derive from a stale memory.
     if (screen === 'map' && !openedParty) {
-      await page.locator(`${visible('map')} .party__header .button`).click();
+      await page.locator('[data-nav="team"]').click();
       await page.waitForTimeout(50);
       openedParty = true;
       continue;
@@ -364,7 +496,7 @@ async function sweep(): Promise<ChipSample[]> {
     const fresh = !seenScreens.has(screen);
     const novel =
       seenVariants.size < VARIANTS.length &&
-      (await variantsOn(screen)).some((variant) => !seenVariants.has(variant));
+      (await variantsOn(screen)).some((variant) => listed(variant) && !seenVariants.has(variant));
 
     if (fresh || novel) {
       seenScreens.add(screen);
@@ -373,7 +505,7 @@ async function sweep(): Promise<ChipSample[]> {
       await page.mouse.move(0, 0);
       await page.waitForTimeout(250);
       const found = await chipsOn(page, scratch, screen);
-      for (const sample of found) seenVariants.add(sample.variant);
+      for (const sample of found) if (listed(sample.variant)) seenVariants.add(sample.variant);
       samples.push(...found);
     }
 
@@ -402,8 +534,8 @@ async function sweep(): Promise<ChipSample[]> {
     await gallery.waitForSelector(`${visible('party')} .chip`, { timeout: 20_000 });
     await gallery.mouse.move(0, 0);
     await gallery.waitForTimeout(250);
-    const galleryChips = await chipsOn(gallery, scratch, 'party');
-    for (const sample of galleryChips) seenVariants.add(sample.variant);
+    const galleryChips = await chipsOn(gallery, scratch, 'party', 'party (gallery, loaded)');
+    for (const sample of galleryChips) if (listed(sample.variant)) seenVariants.add(sample.variant);
     samples.push(...galleryChips.map((sample) => ({ ...sample, screen: 'party (gallery, loaded)' })));
     await galleryContext.close();
   } finally {
@@ -423,7 +555,19 @@ describe('the chip legibility floor', () => {
 
   it('reaches every variant ui/chip.ts can build, so the sweep is not vacuous', () => {
     const seen = new Set(samples.map((sample) => sample.variant));
-    expect([...seen].sort()).toEqual([...VARIANTS].sort());
+    /*
+     * Every listed variant, and not *only* the listed ones. The sweep takes any
+     * chip with text, and a variant off the list can carry text on one surface
+     * while it draws marks on the rest: `capability` is the event screen's
+     * cost chip (`ui/screens/event.ts`, `capabilityChip(cost)`) beside the
+     * gate glyph everywhere else. The seed reached that screen for the first
+     * time on 2026-09-25, when the wild-strength patch moved the road, and an
+     * equality here read a photograph the instrument had never taken as a
+     * failure. What this asserts is that the list was covered; a sample from
+     * beyond it is kept, and asserted against nothing, which is what the note
+     * on `VARIANTS` already says of it.
+     */
+    expect([...VARIANTS].filter((variant) => !seen.has(variant))).toEqual([]);
   });
 
   /*
@@ -450,7 +594,7 @@ describe('the chip legibility floor', () => {
       const under = mine
         .filter((sample) => sample.ratio < DEFAULT_DISPLAY_TUNING.minChipContrastRatio)
         .map((sample) => `${sample.screen} "${sample.text}" ${sample.ratio}:1 rgb(${sample.color}) on rgb(${sample.background})`);
-      expect(under, `below displayTuning.minChipContrastRatio (${DEFAULT_DISPLAY_TUNING.minChipContrastRatio})`).toEqual([]);
+      expect(under, `below displayTuning.minChipContrastRatio (${DEFAULT_DISPLAY_TUNING.minChipContrastRatio})${keepFailureShots(under)}`).toEqual([]);
     });
   }
 });

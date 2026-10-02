@@ -18,7 +18,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 
 import { createOverlay, type Overlay } from '../src/ui/overlay';
 
-const BLOCKS = ['drawer', 'log-sheet', 'map-drawer'] as const;
+const BLOCKS = ['drawer', 'log-sheet', 'map-drawer', 'intro'] as const;
 
 function mount(block: string): { overlay: Overlay; opener: HTMLButtonElement } {
   const overlay = createOverlay({ block, label: `The ${block}`, title: 'A title' });

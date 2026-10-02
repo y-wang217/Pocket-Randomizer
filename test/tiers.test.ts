@@ -36,7 +36,7 @@ import {
   speciesBandWeightsFor,
   TIER_MODIFIERS,
 } from '../src/data/scaling';
-import { TIER_INFO } from '../src/data/tierInfo';
+import { TIER_INFO, TIER_INFO_SHORT } from '../src/data/tierInfo';
 import { DEFAULT_TUNING, tierWeightsFor, withTuning } from '../src/data/tuning';
 
 const TIERS: readonly Tier[] = ['normal', 'hard', 'elite'];
@@ -388,8 +388,29 @@ describe('tier copy', () => {
       const line = TIER_INFO[tier] ?? '';
       // Stage 4.9: the count is the party's own and the level is a share, so
       // the opening names the encounter's shape rather than a literal count.
-      expect(line, `${tier} does not open by naming the encounter`).toMatch(/^(The segment's|One Pokemon more),/);
+      expect(line, `${tier} does not open by naming the encounter`).toMatch(
+        /^(What the segment fields|One Pokemon more than the segment fields),/,
+      );
       expect(line, `${tier} does not state the reward band`).toMatch(/Pays a move .*band/);
+    }
+  });
+
+  /*
+   * **No line opens on a possessive with its noun left out.**
+   *
+   * `normal` and `hard` read `The segment's, at its own level and band.` for
+   * three releases. On a two-line card that does not parse as ellipsis, it
+   * parses as a string that got cut off, and it was reported as exactly that.
+   * The shape check above could not see it — the old regex was written around
+   * the defect and required the comma straight after the possessive — so the
+   * guard is its own case, over both forms, and it is about punctuation rather
+   * than about any particular wording.
+   */
+  it('never opens on a possessive with no noun after it', () => {
+    const elided = /^[A-Z][a-z]* [A-Za-z]+['\u2019]s,/;
+    for (const tier of TIERS) {
+      expect(TIER_INFO[tier] ?? '', `${tier} opens on an elided noun`).not.toMatch(elided);
+      expect(TIER_INFO_SHORT[tier] ?? '', `${tier} short form opens on an elided noun`).not.toMatch(elided);
     }
   });
 });

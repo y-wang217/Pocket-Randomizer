@@ -32,30 +32,42 @@
 import type { TurnAction } from '../../core/battle/turnOrder';
 
 /**
- * How the opponent's Pokemon is named, in the log's own vocabulary.
+ * The most recent event as one line, and **since M4.3 it spends no words on
+ * it**. Row D25.
  *
- * The log formatter prints "The opposing Blastoise"; the strip has one line
- * and drops the article. Both sides could have a Snorlax out, and a bare name
- * on a one-line strip would be the one place on the board that could not say
- * which of the two just acted.
- */
-function actorName(side: TurnAction['side'], name: string): string {
-  return side === 'p2' ? `Opposing ${name}` : name;
-}
-
-/**
- * The most recent event as one line.
+ * ## What it said, and why the verb had to go
  *
- * Never truncated here. The strip's rule is that overflow truncates and the
- * history sheet has the full text, and truncation is a property of the box it
- * is drawn in rather than of the sentence — a wording cut to fit 390 would be
- * cut on every viewport.
+ * `Opposing Snorlax used Body Slam`. Three facts and two words — `Opposing`
+ * and `used` — on the one screen R11 says carries *"the turn header, the
+ * panels, the flags and nothing written"*. The names were always free under the
+ * counting rule: a species and a move are proper nouns.
+ *
+ * Both words are re-encoded rather than dropped, which is C2's requirement and
+ * the reason this function still exists at all:
+ *
+ *   - **`Opposing`** is the side, and the side is already drawn.
+ *     `.flags__event[data-side]` has marked it since V5 *"in the same mark the
+ *     chips wear one line over"*, which the strip's own rule set calls the
+ *     player's side in the heavier neutral and the opponent's left dim. The
+ *     word was the second channel for a fact that already had one — R3.
+ *   - **`used`** is the relation between an actor and a move, and on a line
+ *     that holds exactly one actor and one move there is no other relation it
+ *     could be. The separator carries it, the way the header's `·` carries the
+ *     one between an opponent and its tier.
+ *
+ * ## The switch line lost a fact, and that is recorded rather than hidden
+ *
+ * `came in for Golem` named the body that left. The board does not redraw the
+ * old body — it is gone from the panel by the time this line is read — so on
+ * the strip the name is now the arriving body alone. The pairing is in the log
+ * sheet, one tap away, which is where every line this screen no longer writes
+ * has gone.
  */
 export function eventLine(action: TurnAction): string {
-  const actor = actorName(action.side, action.actor);
-  if (action.kind === 'move') return `${actor} used ${action.move}`;
-  // A replacement after a faint, and the opening switch-ins, name nobody they
-  // came in for: the protocol did not say, and inventing one would be the
-  // strip claiming a withdrawal that never happened.
-  return action.from ? `${actor} came in for ${action.from}` : `${actor} came in`;
+  if (action.kind === 'move') return `${action.actor} · ${action.move}`;
+  // A replacement after a faint, and the opening switch-ins. The protocol does
+  // not always say who was replaced, and inventing one would be the strip
+  // claiming a withdrawal that never happened — so the arriving body is the
+  // whole line in both cases, and the sheet has the pairing where there is one.
+  return action.actor;
 }

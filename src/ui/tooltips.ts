@@ -11,6 +11,18 @@
  * without it.** That constraint is the reason this stage runs before Stage 5
  * rather than after.
  *
+ * **M1.2 replaced the opening half of that: a long press opens, and a tap
+ * selects.** The rest of the sentence still holds and is still the reason the
+ * layer is shaped this way — the dismissal is a tap, and hover is the part
+ * that may be absent. The gesture section below is the authority on what
+ * opens; this paragraph is kept because it is the argument for the order, and
+ * the order did not change.
+ *
+ * **What that ordering is worth is not theoretical.** The one time hover was
+ * allowed to act like the primary interaction — 2026-09-22, when a phone's
+ * synthesised `mouseover` was taken for a real one — a tap opened a panel a
+ * tap could not close. `lastPointerType` is what keeps the two apart.
+ *
  * The practical consequence is that every trigger is a real focusable control
  * with `role="button"`, not a `title` attribute and a `:hover` rule. That also
  * makes the whole layer keyboard-reachable, which a hover implementation could
@@ -34,10 +46,11 @@
  */
 import { abilityInfo, describeMove, typeChart } from '../core/battle/driver';
 import { abilityText } from '../data/abilityOverrides';
-import { CAPABILITY_LABELS } from '../data/eventCopy';
+import { BAND_LABELS, CAPABILITY_LABELS, OUTCOME_TIER_INFO } from '../data/eventCopy';
 import { gymForSegment } from '../data/gyms';
 import { relicById } from '../data/relics';
 import { DEFAULT_TUNING } from '../data/tuning';
+import { DEFAULT_DISPLAY_TUNING, type DisplayTuning } from '../data/displayTuning';
 import { moveExplanationRows } from './move-explanation';
 import { moveCardData } from './move-detail';
 import { bandInfo, BAND_MULTIHIT_NOTE } from '../data/bandInfo';
@@ -45,11 +58,13 @@ import { FLAG_BLURBS, flagWord } from '../data/flagWords';
 import type { FlagKind } from '../core/battle/flags';
 import { categoryInfo } from '../data/categoryInfo';
 import { itemById } from '../data/items';
+import { itemCopy, relicCopy } from '../data/itemCopy';
 import { statInfo } from '../data/statInfo';
+import { statBlock } from './stat-block';
 import { stageRowValue } from '../data/statStages';
 import { MOVE_TAG_BY_ID, type MoveTagId } from '../data/moveTags';
 import { MOVE_FACT_INFO } from '../data/moveFactInfo';
-import type { MoveFactId } from '../core/moveFacts';
+import { moveFactsOf, type MoveFactId } from '../core/moveFacts';
 import {
   ARCHETYPES,
   ARCHETYPE_CAVEAT,
@@ -57,6 +72,14 @@ import {
   ARCHETYPE_INTRO,
 } from '../data/archetypes';
 import { statusInfo, STATUS_PERSISTENCE_NOTE } from '../data/statusInfo';
+import { TIER_INFO } from '../data/tierInfo';
+import { GLYPH_LABELS } from '../data/glyphLabels';
+import { carryingLine, CURRENCY_COPY, KIND_HINTS, restoreTitle, REWARD_COPY, STAT_BAND_COPY } from './copy/screens';
+import { FIELD_SUPPRESSED, fieldEffect, fieldName } from '../data/fieldCopy';
+import { capabilityTypes, type Capability } from '../data/capabilities';
+import { OUTCOME_TIERS, type OutcomeTier } from '../data/eventPools';
+import type { CapabilityBand } from '../core/capabilities';
+import type { Tier } from '../core/types';
 import { typeChip } from './chip';
 import { el } from './scene';
 
@@ -87,6 +110,18 @@ type TipKind =
    * this instance of it said.
    */
   | 'flag'
+  | 'node'
+  /** A coin amount on the map: a payout, a shelf's price, the wallet. Stage 5.0/4, D54. */
+  | 'currency'
+  /**
+   * A coins card and a restore card, whose words left the face for the long
+   * press. Stage 5.0/3, D66. `coins:<amount>` carries the balance on
+   * `data-detail`; `restore:<percent>` is the share restored.
+   */
+  | 'coins'
+  | 'restore'
+  /** The field glyph on the battle header: weather or terrain. Stage 4.11 Tier 2, D47. */
+  | 'field'
   /**
    * The six-label stat shorthand. Stage 4.7, Part 7.
    *
@@ -95,6 +130,23 @@ type TipKind =
    * what that one means. `archetype:all` is the trigger every chip carries.
    */
   | 'archetype'
+  /**
+   * One Pokemon's six stats, from the battle panel it is standing on.
+   * **Milestone M3.1, discrepancy D18, ruled 2026-09-21.**
+   *
+   * The panel drew an archetype label — `Phys. Attacker` — which section 3
+   * bars as a derived label that can lie under randomization, section 5 never
+   * listed, and section 4's budget of zero words has no room for. It was also
+   * the *only* channel left for what the thing opposite is built to do, since
+   * V5 took the six numbers off the panel on the argument that the label
+   * replaced them. So the label goes and the numbers come back here, which is
+   * C2's re-encode rather than a removal.
+   *
+   * Keyed by species, so the panel says whose numbers these are; the numbers
+   * themselves ride on `data-detail`, because which numbers a body has is a
+   * property of this render and not a table entry. Same argument as `stages`.
+   */
+  | 'stats'
   /**
    * A move, explained, from a battle button. **Density modes patch; open item
    * 9 (R8) closed.** The same rows `ui/move-explanation.ts` builds for a card's
@@ -142,9 +194,69 @@ type TipKind =
    * which takes eight of the nine straight from `data/moveTags.ts` so the
    * strip and the explanation cannot drift into two descriptions of one fact.
    */
-  | 'movefact';
+  | 'movefact'
+  /**
+   * A move's base power, from the number itself. **Milestone M1.2.**
+   *
+   * Section 3 gives base power an inspect entry — "same, plus per-hit power
+   * for multi-hit moves" — and until M1.2 the largest number on the card was
+   * the one thing on it that answered nothing. Keyed by move id.
+   */
+  | 'power'
+  /**
+   * A move's PP, from the counter. **Milestone M1.2.**
+   *
+   * Section 3: "max and remaining". The counter shows one or both depending on
+   * the surface, so the pair rides on the trigger as `data-value` rather than
+   * being looked up: it is a fact about this render.
+   */
+  | 'pp'
+  /**
+   * The capture card's two coverage rows. **Milestone M1.2.**
+   *
+   * Section 3: "the full before and after sets". The sets are this capture's,
+   * so they ride on the trigger as `data-detail`. Discrepancy D5 ruled that
+   * coverage is *not* a tenth glyph family and carries permanent signs rather
+   * than an exposure label, so this panel is the only place the rows are named
+   * in words.
+   */
+  | 'coverage'
+  /**
+   * What a map node's capability requirement asks for. **Milestone M1.2.**
+   *
+   * Section 3: "capability name, what satisfies it". The name is
+   * `data/eventCopy.ts`'s and the types are `data/capabilities.ts`'s, so the
+   * panel is a lookup and writes nothing of its own.
+   */
+  | 'capability'
+  /**
+   * A map node's tier. **Milestone M1.2.**
+   *
+   * Section 3: "tier definition", and `data/tierInfo.ts` is where those three
+   * sentences already live.
+   */
+  | 'tier'
+  /**
+   * Where the run stands against a capability. **Milestone M5.6.**
+   *
+   * **The chevron shipped in M5.2 with a `capability-band:` tip and this kind
+   * was never added, so every chevron on the map was a dead trigger** —
+   * focusable, `aria-expanded`, and opening nothing, which is exactly what the
+   * `flag` note in `KINDS` below describes happening to the flag strip. Found
+   * when M5.6 mounted the same chevron on the event screen. The body is
+   * `BAND_LABELS`, which is what the words used to say.
+   */
+  | 'capability-band'
+  /**
+   * Which tiers an event option can pay. **Milestone M5.6.**
+   *
+   * Section 3's *"tier definition"* for the reward-tier pips, which replaced
+   * `Reward: T0 to T2`. The id is the span — `T2` or `T0-T2` — and the panel
+   * carries a line per tier inside it, from `data/eventCopy.ts`.
+   */
+  | 'reward-tier';
 
-const KINDS: readonly TipKind[] = [
+const KINDS = [
   'type',
   'status',
   'volatile',
@@ -155,14 +267,52 @@ const KINDS: readonly TipKind[] = [
   'hp',
   'band',
   'movetag',
+  /**
+   * **`flag` was missing from this list until M1.2, and that was a live bug.**
+   *
+   * Release C item 3 built the flag strip, gave every flag word a `data-tip`
+   * and wrote `renderFlag` to answer it — and never added the kind here.
+   * `render` refuses any kind this array does not carry, before it reaches the
+   * switch, so every post-resolution flag on the battle screen was a trigger
+   * that opened nothing: focusable, `aria-expanded`, and silent.
+   *
+   * Nothing caught it because the union, the switch and this list were three
+   * places saying the same thing and only two of them were checked. The guard
+   * below makes the third a compile error.
+   */
+  'flag',
+  'node',
+  'currency',
+  'coins',
+  'restore',
+  'field',
   'archetype',
+  'stats',
   'move',
   'gym',
   'threat',
   'relic',
   'stages',
   'movefact',
-];
+  'power',
+  'pp',
+  'coverage',
+  'capability',
+  'capability-band',
+  'tier',
+  'reward-tier',
+] as const satisfies readonly TipKind[];
+
+/**
+ * A kind in the union with no entry in `KINDS` is a dead trigger.
+ *
+ * `render`'s switch is exhaustive because TypeScript makes it so; this makes
+ * the allowlist exhaustive the same way. If a kind is added to `TipKind` and
+ * not to `KINDS`, the conditional resolves to `false`, the assignment fails,
+ * and the build stops — rather than shipping an element that opens nothing.
+ */
+const ALL_KINDS_LISTED: Exclude<TipKind, (typeof KINDS)[number]> extends never ? true : false = true;
+void ALL_KINDS_LISTED;
 
 export interface TooltipLayer {
   root: HTMLElement;
@@ -174,13 +324,28 @@ export interface TooltipLayer {
  * Mount the layer on a container. Every `[data-tip]` inside it becomes a
  * trigger, now and for anything rendered into it later.
  */
-export function createTooltips(host: HTMLElement): TooltipLayer {
+export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAULT_DISPLAY_TUNING): TooltipLayer {
   const root = el('div', 'tip');
   root.hidden = true;
   // A tooltip is supplementary content the reader chose to open, not an alert:
   // `polite` announces it without interrupting whatever is being read.
   root.setAttribute('role', 'dialog');
   root.setAttribute('aria-live', 'polite');
+
+  /*
+   * The scrim: a transparent sheet over the whole viewport, under the panel,
+   * shown only while a *held* or keyboard-opened panel is up. **The docked
+   * sheet patch, 2026-09-25.**
+   *
+   * The tap that closes the panel has to land somewhere, and on the battle
+   * screen "somewhere" is a move button. Without this the dismissal would
+   * also be a submission, which is the one thing R5 says inspect must never
+   * do. The scrim takes the tap, closes the panel, and stops it there. A
+   * hover panel never shows it: `mouseout` closes that one and a scrim under
+   * a cursor would eat the click the reader was about to make.
+   */
+  const scrim = el('div', 'tip-scrim');
+  scrim.hidden = true;
 
   let openFor: HTMLElement | null = null;
   /** True when the panel was opened by hover, so leaving should close it. */
@@ -193,9 +358,18 @@ export function createTooltips(host: HTMLElement): TooltipLayer {
     transient = false;
     root.hidden = true;
     root.replaceChildren();
+    scrim.hidden = true;
   }
 
-  function open(trigger: HTMLElement, byHover: boolean): void {
+  /**
+   * Open the sheet for a trigger.
+   *
+   * The sheet is docked by CSS, never positioned from the trigger: one spot,
+   * the top of the viewport, whatever was pressed. The rationale is in the
+   * gesture section below. `armScrim` is false for the hold, which arms it on
+   * release instead — see `onPointerUp`.
+   */
+  function open(trigger: HTMLElement, byHover: boolean, armScrim = !byHover): void {
     const tip = trigger.dataset['tip'];
     if (!tip) return;
     const body = render(tip, trigger);
@@ -204,11 +378,20 @@ export function createTooltips(host: HTMLElement): TooltipLayer {
     if (openFor && openFor !== trigger) openFor.removeAttribute('aria-expanded');
     openFor = trigger;
     transient = byHover;
+    // The stylesheet takes a hover sheet out of the pointer's way.
+    root.dataset['transient'] = byHover ? 'true' : 'false';
     trigger.setAttribute('aria-expanded', 'true');
 
-    root.replaceChildren(body);
+    // Answered by `onClick`, like every other control the layer owns.
+    const dismiss = el('button', 'tip__close');
+    dismiss.type = 'button';
+    // The glyph is the stylesheet's (`.tip__close::before`): a mark, not copy,
+    // and the copy audit should not list it as a string awaiting a table.
+    dismiss.setAttribute('aria-label', 'Close');
+
+    root.replaceChildren(dismiss, body);
     root.hidden = false;
-    position(root, trigger);
+    scrim.hidden = !armScrim;
   }
 
   function triggerFor(target: EventTarget | null): HTMLElement | null {
@@ -216,28 +399,290 @@ export function createTooltips(host: HTMLElement): TooltipLayer {
     return target.closest<HTMLElement>('[data-tip]');
   }
 
-  const onClick = (event: MouseEvent): void => {
+  /**
+   * Close a panel whose trigger has left the document. **The inspect-on-touch
+   * patch, 2026-09-22.**
+   *
+   * A hover panel is exempt from the tap-outside dismissal in `onClick`, on
+   * the reasoning that `mouseout` will close it and needs no help. **That is
+   * true only while its trigger is still in the document.** On the battle
+   * screen it is not: the click that follows the hover spends the turn, the
+   * turn rebuilds the move bar, and the element whose `mouseout` was the only
+   * thing that would ever close the panel is gone. Nothing was left that could
+   * dismiss it, and it sat over the stage and the log for the rest of the
+   * fight — which is the screenshot the report arrived with.
+   *
+   * Called at the top of the two events that mean the reader is doing
+   * something. A stranded panel therefore lives until the next press and no
+   * longer, and clearing it eats nothing: `close` does not touch the event.
+   *
+   * It is the safety net rather than the fix. What stops the panel opening
+   * unasked is `lastPointerType` below, and on a desktop `data-tip-hover` on
+   * the two card-sized triggers; this is what makes the state unreachable
+   * rather than merely unlikely, for the chips *inside* a move button that
+   * still take hover and still vanish with it.
+   */
+  function dropStranded(): void {
+    /*
+     * Hover panels only, since the docked sheet patch. A held panel now
+     * outlives its release, and the reader may still be reading it when a
+     * re-render takes its trigger away; the sheet is docked, so nothing it
+     * covers depends on where that trigger was, and the tap that closes it
+     * is the scrim's, not the trigger's.
+     */
+    if (openFor && transient && !openFor.isConnected) close();
+  }
+
+  /*
+   * ---------------------------------------------------------------------
+   * The gesture. **Milestone M1.2, design bible R5.**
+   *
+   * R5: *"Long press on any card, chip, glyph, badge or pip opens its full
+   * explanation. Release closes. Tap still selects."*
+   *
+   * **What this replaced, and why the replacement is not a regression.**
+   * Until M1.2 a tap on a badge opened its panel and stopped the event, which
+   * meant a badge sitting inside a move button was a hole in that button: the
+   * player aiming at the button and catching the type chip got an explanation
+   * instead of a turn. That was safe and it was also the rule inverted — the
+   * explanation was the easy gesture and the decision was the one you could
+   * miss.
+   *
+   * Now the press opens and the tap selects, so the button is a button
+   * everywhere on its face and the explanation is deliberate. The three
+   * `suppress` flags below are what keep those two from ever firing together.
+   *
+   * **The docked sheet patch, 2026-09-25, amended R5's "Release closes".**
+   * The panel used to open beside the trigger and close on release, which on
+   * a phone meant a small box under the thumb that vanished when the thumb
+   * lifted. It now opens in one fixed spot — the top of the viewport, the
+   * edge a thumb is least often on — stays open on release, and closes on a
+   * tap anywhere outside it (the scrim), on its own close control, or on
+   * Escape. The hold is unchanged and so is what it eats: the click a hold
+   * leaves behind still never submits.
+   *
+   * The same patch made every trigger unselectable (`styles.css`,
+   * `[data-tip]`). iOS reads a long press on selectable text as "select this
+   * word", raises its copy callout, and cancels the pointer — and the cancel
+   * closed the panel. That was the report's first sentence, and no amount of
+   * work in this file could fix it: the platform gesture has to be declined
+   * at the element.
+   * ---------------------------------------------------------------------
+   */
+
+  /** The hold in flight, if any. */
+  let holdTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Where the finger went down, so a scroll can cancel the hold. */
+  let holdFrom: { x: number; y: number } | null = null;
+  /**
+   * When the press began, by the *event's* clock rather than the timer's.
+   *
+   * A blocked main thread delays dispatch but not generation: a tap the
+   * browser made 5ms apart still reports 5ms apart in `timeStamp`, however
+   * late JS gets to see it. That is what tells a real hold from a fast tap
+   * that arrived after a long stall, and it is the difference between
+   * inspecting and losing the player's turn. See `onClick`.
+   */
+  let holdDownAt = 0;
+  /** True once a hold has opened a panel, so the release knows to close it. */
+  let openedByHold = false;
+  /**
+   * True from the moment a hold opens until the click it produces is eaten.
+   *
+   * A long press still emits `click` on release, and that click would submit
+   * the move the player was only inspecting. This is the flag that stops it,
+   * and it is the mechanism behind R5's enforcement test.
+   */
+  let suppressClick = false;
+
+  /** Beyond this many pixels the press is a scroll, not a hold. */
+  const HOLD_SLOP = 10;
+
+  /**
+   * The kind of pointer that last pressed, and the whole of what tells a hover
+   * from a tap. **The inspect-on-touch patch, 2026-09-22.**
+   *
+   * A phone browser emits a compatibility mouse sequence after every touch —
+   * `mouseover`, `mousemove`, `mousedown`, `mouseup`, `click`, in that order,
+   * with `mouseover` arriving *before* the click. `onOver` below treated that
+   * `mouseover` as a hover and opened the panel, so on a phone a tap opened
+   * inspect, and opened it `transient`, which is the flag that told the click
+   * behind it not to close anything. On the battle screen the turn then
+   * re-rendered the move bar out from under the panel, taking with it the only
+   * element whose `mouseout` could have closed it, and the explanation sat on
+   * top of the board for the rest of the fight.
+   *
+   * `mouse` until a pointer says otherwise, because a desktop cursor can be
+   * over a trigger before it has pressed anything and that hover is real. A
+   * touch always announces itself with a `pointerdown` first, so the flag is
+   * set before the synthesised `mouseover` it will produce.
+   */
+  let lastPointerType = 'mouse';
+
+  function cancelHold(): void {
+    if (holdTimer !== null) clearTimeout(holdTimer);
+    holdTimer = null;
+    holdFrom = null;
+  }
+
+  const onPointerDown = (event: PointerEvent): void => {
+    cancelHold();
+    dropStranded();
+    // Recorded for every press, trigger or not: the hover that a tap on a
+    // *non*-trigger synthesises can still land on one on its way past.
+    if (event.pointerType) lastPointerType = event.pointerType;
     const trigger = triggerFor(event.target);
-    if (!trigger) {
-      // A tap anywhere else dismisses. Clicks inside the panel are exempt so a
-      // wheel can be read without it closing under the reader's finger.
-      if (!(event.target instanceof Node) || !root.contains(event.target)) close();
-      return;
+    if (!trigger) return;
+    holdFrom = { x: event.clientX, y: event.clientY };
+    holdDownAt = event.timeStamp;
+    holdTimer = setTimeout(() => {
+      holdTimer = null;
+      openedByHold = true;
+      suppressClick = true;
+      // The scrim waits for the release; see `onPointerUp`.
+      open(trigger, false, false);
+    }, tuning.inspectHoldMs);
+  };
+
+  const onPointerMove = (event: PointerEvent): void => {
+    if (holdTimer === null || !holdFrom) return;
+    // A finger that has travelled is scrolling the page, and a panel that
+    // opened mid-scroll would be the accidental open R5's disconfirmer is
+    // about.
+    if (Math.abs(event.clientX - holdFrom.x) > HOLD_SLOP || Math.abs(event.clientY - holdFrom.y) > HOLD_SLOP) {
+      cancelHold();
     }
-    // Toggle: a second tap on the same badge closes it, which is the only
-    // dismissal a touch user will reliably find.
-    if (openFor === trigger && !transient) {
+  };
+
+  /**
+   * Release. Until the docked sheet patch this closed the panel; now it arms
+   * the scrim and leaves the panel up.
+   *
+   * The scrim is armed here rather than when the hold opens, because until
+   * the finger lifts the click that follows may still be the player's: the
+   * jank case in `onClick` lets a fast tap through, and a scrim already over
+   * the button would have taken that click away from it.
+   */
+  const onPointerUp = (): void => {
+    cancelHold();
+    if (!openedByHold) return;
+    openedByHold = false;
+    if (openFor && !transient) scrim.hidden = false;
+  };
+
+  const onPointerCancel = (): void => {
+    cancelHold();
+    if (!openedByHold) return;
+    openedByHold = false;
+    /*
+     * **A cancelled pointer emits no click, so the flag that eats one must go
+     * with it.** The inspect-on-touch patch.
+     *
+     * `suppressClick` is armed when the hold opens and disarmed by the click
+     * the release produces. A cancel produces no click — iOS cancels a pointer
+     * whenever the page starts scrolling or the system callout takes over a
+     * long press — so the flag survived into the player's *next* tap, and
+     * `onClick` measured that tap against the cancelled press's `holdDownAt`,
+     * found a two-second gap, and ate it. On a move button that is the turn,
+     * lost silently, which is the same cost the jank case in `onClick` exists
+     * to prevent.
+     */
+    suppressClick = false;
+    // Same as a release since the docked sheet patch: the panel stays, and
+    // the scrim is what closes it.
+    if (openFor && !transient) scrim.hidden = false;
+  };
+
+  /*
+   * The click a long press leaves behind.
+   *
+   * This listener exists to eat exactly that one click and to dismiss a
+   * keyboard-opened panel. **It never opens anything**, because opening on
+   * click is what R5 replaced.
+   */
+  const onClick = (event: MouseEvent): void => {
+    dropStranded();
+    if (suppressClick) {
+      suppressClick = false;
+      /*
+       * **Only eat a click the player actually held for.**
+       *
+       * The timer fires on the main thread, so a stall long enough to delay a
+       * `pointerup` lets it fire for a press the browser generated in five
+       * milliseconds — and eating *that* click costs the player the turn they
+       * chose, silently, on exactly the slow frame where they are least likely
+       * to forgive it. `timeStamp` is set when the browser makes the event,
+       * not when JS receives it, so this measures the press and not the jank.
+       *
+       * Under the threshold the panel that just opened is closed again and the
+       * click goes through: the player tapped, and a tap selects.
+       */
+      if (event.timeStamp - holdDownAt >= tuning.inspectHoldMs) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      openedByHold = false;
       close();
       return;
     }
-    /*
-     * A move button is also a trigger's ancestor. Opening a tooltip must not
-     * also submit the turn, so a tap that lands on a badge stops there — but
-     * only when it landed on the badge itself, not on the button around it.
-     */
+    // The scrim takes the tap that closes a held or keyboard-opened panel,
+    // and the tap goes no further: a dismissal on the battle screen must not
+    // also be a move.
+    const dismissal =
+      event.target === scrim ||
+      (event.target instanceof Element && event.target.closest('.tip__close') !== null);
+    if (dismissal) {
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+      return;
+    }
+    // A tap elsewhere dismisses a panel the keyboard opened. Clicks inside the
+    // panel are exempt so a wheel can be read without closing under the finger.
+    // A hover panel is exempt because `mouseout` closes it — see `dropStranded`
+    // above for the case where that is not true.
+    if (!(event.target instanceof Node) || !root.contains(event.target)) {
+      if (openFor && !transient) close();
+    }
+  };
+
+  /**
+   * A long press is the platform's own gesture for "select text" or "show the
+   * context menu", and both would land on top of the panel.
+   */
+  const onContextMenu = (event: MouseEvent): void => {
+    if (triggerFor(event.target)) event.preventDefault();
+  };
+
+  /** Where a player types or copies from: the two places selection is allowed. */
+  const SELECTABLE = 'input, textarea, .log-sheet__body';
+
+  function selectable(node: Node | null): boolean {
+    const element = node instanceof Element ? node : node?.parentElement ?? null;
+    return element?.closest(SELECTABLE) !== null;
+  }
+
+  /*
+   * **Message 4 of the docked sheet patch, 2026-09-26: the stylesheet was
+   * not enough.** With `user-select: none` on `body` and in the built CSS,
+   * iOS still selected the ability chip under a long press. So the layer
+   * refuses the selection itself, twice: `selectstart` is cancelled before
+   * a selection exists, and `selectionchange` clears one that got through
+   * anyway, since iOS shows its copy callout only while a selection stands.
+   * The inputs and the log sheet's body keep theirs.
+   */
+  const onSelectStart = (event: Event): void => {
+    if (event.target instanceof Node && selectable(event.target)) return;
     event.preventDefault();
-    event.stopPropagation();
-    open(trigger, false);
+  };
+
+  const onSelectionChange = (): void => {
+    const selection = host.ownerDocument.getSelection();
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
+    const anchor = selection.anchorNode;
+    if (!anchor || !host.contains(anchor) || selectable(anchor)) return;
+    selection.removeAllRanges();
   };
 
   const onKeyDown = (event: KeyboardEvent): void => {
@@ -257,8 +702,41 @@ export function createTooltips(host: HTMLElement): TooltipLayer {
   // Hover, strictly as an enhancement. It never opens over a panel the reader
   // opened deliberately, and it never leaves one behind.
   const onOver = (event: MouseEvent): void => {
+    /*
+     * **A hover is only a hover if a hovering device made it.** The
+     * inspect-on-touch patch; see `lastPointerType`.
+     *
+     * This is the one line that separates the two interactions on a phone. The
+     * gesture below is unchanged and so is the desktop enhancement; what is
+     * gone is the third path nobody designed, in which a tap borrowed the
+     * hover path and got a panel it had no way to dismiss.
+     */
+    if (lastPointerType !== 'mouse') return;
     const trigger = triggerFor(event.target);
     if (!trigger || (openFor && !transient)) return;
+    /*
+     * **Hover is for small targets, and a card is not one. M2.1.**
+     *
+     * Hover has always been a desktop enhancement over the tap interaction,
+     * and every trigger it was designed for is a chip, a badge, a pip or a
+     * glyph — something a cursor crosses deliberately. M2.1 made the whole
+     * move card a trigger, per R5's "long press on any card", and a
+     * card-sized hover target behaves differently in kind: the panel opens
+     * whenever the cursor passes over a card on its way somewhere, and then
+     * covers the card the player was reaching for.
+     *
+     * It is not a theoretical objection. The smoke bot drives a real mouse
+     * and rests it wherever the last click left it, which on the reward and
+     * party screens is inside a move card — so the panel opened unasked and
+     * its own dialog intercepted the next click. A player moving a cursor
+     * across three reward cards would have met the same thing.
+     *
+     * So a trigger may decline hover while keeping every other gesture. Tap
+     * still selects, the long press still opens, Enter and Space still open —
+     * which is the keyboard path D15 required — and nothing opens merely
+     * because the pointer went past.
+     */
+    if (trigger.dataset['tipHover'] === 'off') return;
     open(trigger, true);
   };
 
@@ -268,19 +746,35 @@ export function createTooltips(host: HTMLElement): TooltipLayer {
     if (trigger && trigger === openFor) close();
   };
 
+  host.addEventListener('pointerdown', onPointerDown, true);
+  host.addEventListener('pointermove', onPointerMove, true);
+  host.addEventListener('pointerup', onPointerUp, true);
+  host.addEventListener('pointercancel', onPointerCancel, true);
+  host.addEventListener('contextmenu', onContextMenu, true);
+  host.addEventListener('selectstart', onSelectStart, true);
+  host.ownerDocument.addEventListener('selectionchange', onSelectionChange);
   host.addEventListener('click', onClick, true);
   host.addEventListener('keydown', onKeyDown, true);
   host.addEventListener('mouseover', onOver);
   host.addEventListener('mouseout', onOut);
-  host.append(root);
+  host.append(scrim, root);
 
   return {
     root,
     destroy() {
+      cancelHold();
+      host.removeEventListener('pointerdown', onPointerDown, true);
+      host.removeEventListener('pointermove', onPointerMove, true);
+      host.removeEventListener('pointerup', onPointerUp, true);
+      host.removeEventListener('pointercancel', onPointerCancel, true);
+      host.removeEventListener('contextmenu', onContextMenu, true);
+      host.removeEventListener('selectstart', onSelectStart, true);
+      host.ownerDocument.removeEventListener('selectionchange', onSelectionChange);
       host.removeEventListener('click', onClick, true);
       host.removeEventListener('keydown', onKeyDown, true);
       host.removeEventListener('mouseover', onOver);
       host.removeEventListener('mouseout', onOut);
+      scrim.remove();
       root.remove();
     },
   };
@@ -318,7 +812,7 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
     case 'category':
       return renderCategory(id);
     case 'stat':
-      return renderStat(id, trigger?.dataset['value']);
+      return renderStat(id, trigger?.dataset['value'], trigger?.dataset['band'], trigger?.dataset['level']);
     case 'hp':
       return renderHp(trigger?.dataset['value']);
     case 'band':
@@ -329,6 +823,8 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
       return renderFlag(id);
     case 'archetype':
       return renderArchetypes();
+    case 'stats':
+      return renderMonStats(id, trigger?.dataset['detail'], trigger?.dataset['level']);
     case 'move':
       return renderMoveRows(id);
     case 'gym':
@@ -341,7 +837,239 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
       return renderStages(trigger?.dataset['detail']);
     case 'movefact':
       return renderMoveFact(id);
+    case 'power':
+      return renderPower(id);
+    case 'pp':
+      return renderPp(trigger?.dataset['value']);
+    case 'coverage':
+      return renderCoverage(trigger?.dataset['detail']);
+    case 'capability':
+      return renderCapability(id, trigger?.dataset['detail']);
+    case 'tier':
+      return renderTier(id);
+    case 'node':
+      return renderNodeKind(id, trigger?.dataset['detail']);
+    case 'currency':
+      return renderCurrency(id, trigger?.dataset['value']);
+    case 'coins':
+      return renderCoins(id, trigger?.dataset['detail']);
+    case 'restore':
+      return renderRestore(id);
+    case 'field':
+      return renderField(id, trigger?.dataset['suppressed'] === 'true');
+    case 'capability-band':
+      return renderCapabilityBand(id);
+    case 'reward-tier':
+      return renderRewardTier(id);
   }
+}
+
+/**
+ * A move's base power, and what a multi-hit move's number actually means.
+ *
+ * **Milestone M1.2, section 3's base-power row.** The largest number on the
+ * card was the one thing on it that answered nothing when held.
+ *
+ * Nothing here is written copy: the number is `describeMove`'s, the multi-hit
+ * sentence is `data/bandInfo.ts`'s, and the category line is
+ * `data/categoryInfo.ts`'s. R5 allows those three and this uses only those.
+ */
+function renderPower(id: string): HTMLElement | null {
+  const move = describeMove(id);
+  if (!move) return null;
+  if (move.category === 'Status') {
+    const body = panel('No base power');
+    const category = categoryInfo('status');
+    if (category) body.append(line(category.mechanics, 'tip__text'));
+    return body;
+  }
+  const body = panel(`${move.basePower} base power`);
+  const category = categoryInfo(move.category.toLowerCase());
+  if (category) body.append(line(category.mechanics, 'tip__text'));
+  // The one case where the number on the face is not the number a turn deals.
+  if (moveFactsOf(move).some((fact) => fact.id === 'multiHit')) {
+    body.append(line(BAND_MULTIHIT_NOTE, 'tip__note'));
+  }
+  return body;
+}
+
+/**
+ * PP, as remaining against max. **Milestone M1.2, section 3's PP row.**
+ *
+ * The value rides on the trigger because the surfaces disagree about which
+ * halves they show — a reward card has no remaining PP to print, a battle
+ * button has both — and section 3 says inspect shows "max and remaining"
+ * wherever it is opened.
+ */
+function renderPp(value?: string): HTMLElement | null {
+  if (!value) return null;
+  const [remaining, max] = value.split('/');
+  if (!max) return null;
+  /*
+   * The title is the whole panel, and that is deliberate.
+   *
+   * Section 3 says inspect shows "max and remaining", and "PP 12 of 24" is
+   * both. A sentence under it explaining what PP is would be copy written into
+   * a screen, which R5 forbids and R12 would make an amendment rather than a
+   * patch. If a playtest says the counter needs words, that is the amendment.
+   */
+  return panel(`PP ${remaining} of ${max}`);
+}
+
+/**
+ * The coverage rows on a capture card. **Milestone M1.2, and D5's ruling.**
+ *
+ * The sets ride on the trigger, written by the screen that computed them,
+ * because they are a fact about this capture rather than a table entry — the
+ * same shape a threat count and a stat-stage set already use.
+ *
+ * `data-detail` is two lines, `+` then `-`, each a tab-separated type list.
+ * Either may be empty, and an empty row renders nothing, which is section 3's
+ * default for this attribute.
+ */
+function renderCoverage(detail?: string): HTMLElement | null {
+  if (!detail) return null;
+  const body = panel('Coverage');
+  for (const entry of detail.split('\n')) {
+    const sign = entry.slice(0, 1);
+    const types = entry.slice(1).split('\t').filter(Boolean);
+    if (!types.length) continue;
+    body.append(row(sign === '+' ? 'Gains' : 'Loses', types, ''));
+  }
+  if (body.childElementCount <= 1) return null;
+  return body;
+}
+
+/**
+ * A capability gate: its name, and what satisfies it.
+ *
+ * **Milestone M1.2, section 3's capability row.** Both halves are lookups —
+ * the name from `data/eventCopy.ts`, the types from `data/capabilities.ts` —
+ * so the map card can stop carrying "Requires you have the relic" in prose,
+ * which is nine of the words the census found on a surface budgeted at zero.
+ */
+function renderCapability(id: string, rarity?: string): HTMLElement | null {
+  const label = CAPABILITY_LABELS[id as Capability];
+  if (!label) return null;
+  const body = panel(label);
+  const types = capabilityTypes(id as Capability);
+  if (types.length) body.append(row('Satisfied by', types, ''));
+  /*
+   * **Rarity, moved here from the card face by M5.2 and D37's ruling.**
+   *
+   * It is a third attribute of the same gate — which distribution this node's
+   * payout draws on — and section 3 gives it no row, so it spent a word at
+   * rest on every gated node on the map. C2 is why it is *here* rather than
+   * gone: it changes which tier a Gamble or an Attune lands on, so it changes
+   * a decision, and a fact that changes a decision is re-encoded rather than
+   * dropped. The press that already opens what satisfies the gate opens this
+   * too.
+   */
+  if (rarity) body.append(row('Rarity', [], rarity));
+  return body;
+}
+
+/** A map node's tier, in the three sentences `data/tierInfo.ts` already holds. */
+function renderTier(id: string): HTMLElement | null {
+  const text = TIER_INFO[id as Tier];
+  if (!text) return null;
+  const body = panel(id.slice(0, 1).toUpperCase() + id.slice(1));
+  body.append(line(text, 'tip__text'));
+  return body;
+}
+
+/**
+ * What a node kind is, behind its mark. **Patch 4.10.1, D46.**
+ *
+ * Section 3's node kind row sends inspect to `KIND_HINTS`, which is the copy
+ * the map's detail line printed for an untiered node and the tutorial's
+ * *What an option is* paraphrased. The title is the glyph's own word, so the
+ * panel and the exposure label cannot disagree on what to call the mark.
+ */
+function renderNodeKind(id: string, detail?: string): HTMLElement | null {
+  const hint = KIND_HINTS[id as keyof typeof KIND_HINTS];
+  if (!hint) return null;
+  const body = panel(GLYPH_LABELS[`node-${id}`] ?? id);
+  body.append(line(hint.long, 'tip__text'));
+  /*
+   * **The rest of the node card, for a row that does not carry it. Stage
+   * 5.0/4, D63.** Only the step being chosen from shows the detail line at
+   * rest; every other node's mark carries the same line on `data-detail`,
+   * composed by the map from the functions that compose the face (the
+   * payout, the AI tier, a shop's shelf), so the press shows what the card
+   * would have and nothing the card would not.
+   */
+  if (detail) body.append(line(detail, 'tip__text'));
+  return body;
+}
+
+/**
+ * A coin amount, behind the currency mark. **Stage 5.0/4, D54.**
+ *
+ * Section 3's *Coin amount* row: the inspect column is *"the word coins, and
+ * what the amount buys or pays"*. The number is on the trigger, the line is
+ * `CURRENCY_COPY`'s.
+ */
+function renderCurrency(id: string, value?: string): HTMLElement | null {
+  const context = CURRENCY_COPY[id as keyof typeof CURRENCY_COPY];
+  if (!context || value === undefined) return null;
+  const body = panel(`${value} coins`);
+  body.append(line(context, 'tip__text'));
+  return body;
+}
+
+/**
+ * What the board is doing, behind the field glyph. **Stage 4.11 Tier 2, D47.**
+ *
+ * Section 3's field state row sends inspect to `fieldCopy`: the name in full,
+ * which is where Extreme sun and Harsh sunlight part ways under one mark, and
+ * one effect line restating what the engine does. A suppressed weather adds
+ * the line saying so, because the mark is dimmed and a dimmed mark is a
+ * question.
+ */
+function renderField(id: string, suppressed: boolean): HTMLElement | null {
+  const effect = fieldEffect(id);
+  if (!effect) return null;
+  const body = panel(fieldName(id));
+  body.append(line(effect, 'tip__text'));
+  if (suppressed) body.append(line(FIELD_SUPPRESSED, 'tip__text'));
+  return body;
+}
+
+/**
+ * Where this run stands against the capability the chevron counts along.
+ *
+ * **Milestone M5.6, and the panel M5.2 owed.** Nothing written here: the title
+ * is the band's own name and the body is `BAND_LABELS`, the sentence the chip
+ * printed until the chevron replaced it. What the capability *is* stays on the
+ * glyph beside it, under `capability:`, because they are two facts.
+ */
+function renderCapabilityBand(id: string): HTMLElement | null {
+  const text = BAND_LABELS[id as CapabilityBand];
+  if (!text) return null;
+  const body = panel(id.slice(0, 1).toUpperCase() + id.slice(1));
+  body.append(line(text, 'tip__text'));
+  return body;
+}
+
+/**
+ * Which tiers an option can pay, one line each. **Milestone M5.6.**
+ *
+ * The id is the span the pips draw — `T2`, or `T0-T2` — so the panel walks the
+ * tiers inside it and prints `OUTCOME_TIER_INFO` for each. A single-tier span
+ * gives one line, which is the whole of what that option can pay.
+ */
+function renderRewardTier(id: string): HTMLElement | null {
+  const [low, high = low] = id.split('-');
+  if (!low) return null;
+  const first = OUTCOME_TIERS.indexOf(low as OutcomeTier);
+  const last = OUTCOME_TIERS.indexOf(high as OutcomeTier);
+  if (first < 0 || last < 0 || last < first) return null;
+  const body = panel(low === high ? low : `${low} to ${high}`);
+  for (const tier of OUTCOME_TIERS.slice(first, last + 1)) {
+    body.append(row(tier, [], OUTCOME_TIER_INFO[tier] ?? ''));
+  }
+  return body;
 }
 
 /** One fact strip icon, in words. The label is the title, the blurb the body. */
@@ -384,6 +1112,33 @@ function renderStages(detail?: string): HTMLElement | null {
     list.append(line);
   }
   body.append(list);
+  return body;
+}
+
+/**
+ * One Pokemon's six stats, from the battle panel it is standing on.
+ * **Milestone M3.1, discrepancy D18; mounting the shared component is D20.**
+ *
+ * It drew its own glyph, bar and number rows when M3.1 shipped, because
+ * `statBlock` was private to `ui/member-card.ts` and took a `SpecCard` and a
+ * `PokemonState` that this layer has no way to reach. D20 is the row that
+ * named that as a third rendering of one attribute cluster; `ui/stat-block.ts`
+ * takes six numbers now, which a serialized `data-detail` string can supply,
+ * so this mounts the component instead of resembling it.
+ *
+ * Nothing here is written copy: the marks are M1.1's sheet, the words are
+ * `data/statInfo.ts`'s, and the numbers arrive on the trigger.
+ */
+function renderMonStats(species: string, detail?: string, level?: string): HTMLElement | null {
+  const rows = (detail ?? '').split('\n').filter((row) => row.length > 0);
+  if (rows.length === 0) return null;
+  const values: Record<string, number> = {};
+  for (const entry of rows) {
+    const [stat = '', value = ''] = entry.split('\t');
+    values[stat] = Number(value);
+  }
+  const body = panel(species, 'tip__body--rows');
+  body.append(statBlock(values, level ? { level: Number(level) } : {}));
   return body;
 }
 
@@ -441,7 +1196,7 @@ function renderRelic(id: string): HTMLElement | null {
   const relic = relicById(id as Parameters<typeof relicById>[0]);
   if (!relic) return null;
   const body = panel(relic.name);
-  body.append(line(relic.playerDescription, 'tip__text'));
+  body.append(line(relicCopy(relic.id), 'tip__text'));
   body.append(line(CAPABILITY_LABELS[relic.grants], 'tip__note'));
   return body;
 }
@@ -530,11 +1285,37 @@ function renderAbility(id: string): HTMLElement | null {
   return body;
 }
 
+/**
+ * A coins card, in words. **Stage 5.0/3, D66.** Section 3's coin row: *"the
+ * word coins, and what the amount buys or pays"*. The balance rides on
+ * `data-detail` because it is a fact about this render (QA-003: the result
+ * screen shows the balance before the node folds its payout in).
+ */
+function renderCoins(id: string, detail?: string): HTMLElement | null {
+  const amount = Number(id);
+  if (!Number.isFinite(amount)) return null;
+  const body = panel(`+${amount} ${GLYPH_LABELS['currency-coin'] ?? ''}`.trim());
+  body.append(line(REWARD_COPY.coins.long, 'tip__text'));
+  const carrying = Number(detail);
+  if (detail && Number.isFinite(carrying)) body.append(line(carryingLine(carrying).long, 'tip__note'));
+  return body;
+}
+
+/** A restore card, in words. **Stage 5.0/3, D66.** What the share is of. */
+function renderRestore(id: string): HTMLElement | null {
+  const percent = Number(id);
+  if (!Number.isFinite(percent) || percent <= 0) return null;
+  const fraction = percent / 100;
+  const body = panel(restoreTitle(fraction));
+  body.append(line((fraction >= 1 ? REWARD_COPY.heal : REWARD_COPY.healPartial).long, 'tip__text'));
+  return body;
+}
+
 function renderItem(id: string): HTMLElement | null {
   const item = itemById(id);
   if (!item) return null;
   const body = panel(item.name);
-  body.append(line(item.blurb, 'tip__text'));
+  body.append(line(itemCopy(id), 'tip__text'));
   return body;
 }
 
@@ -568,7 +1349,7 @@ function renderCategory(id: string): HTMLElement | null {
  * also the closest this file comes to advice, and it stays on the safe side of
  * Part 4 by naming a term in the damage formula rather than a course of action.
  */
-function renderStat(id: string, value?: string): HTMLElement | null {
+function renderStat(id: string, value?: string, band?: string, level?: string): HTMLElement | null {
   const info = statInfo(id);
   if (!info) return null;
   // The value, when the trigger carries one: in Pocket the row is a bar and
@@ -579,6 +1360,9 @@ function renderStat(id: string, value?: string): HTMLElement | null {
   if (info.pairsWith) {
     body.append(line(`Resolved against the defender's ${info.pairsWith}.`, 'tip__note'));
   }
+  // The band the bar is drawn against (D88), when the cell drew one.
+  const [min, max] = (band ?? '').split('-');
+  if (min && max && level) body.append(line(STAT_BAND_COPY.line(level, min, max), 'tip__note'));
   return body;
 }
 
@@ -698,32 +1482,3 @@ function row(label: string, types: readonly string[], band: string): HTMLElement
 // ---------------------------------------------------------------------------
 // Placement
 // ---------------------------------------------------------------------------
-
-/**
- * Put the panel near its trigger without letting it leave the viewport.
- *
- * Fixed positioning against the trigger's client rect, flipped above when there
- * is no room below and clamped horizontally. Deliberately arithmetic rather
- * than a popover library: this is the whole of the requirement, and Stage 5's
- * responsive pass will want to change the rule rather than configure someone
- * else's.
- */
-function position(panel: HTMLElement, trigger: HTMLElement): void {
-  const margin = 8;
-  const anchor = trigger.getBoundingClientRect();
-
-  // Measured after the content is in, so the flip decision uses the real size.
-  panel.style.left = '0px';
-  panel.style.top = '0px';
-  const box = panel.getBoundingClientRect();
-
-  const spaceBelow = window.innerHeight - anchor.bottom;
-  const above = spaceBelow < box.height + margin && anchor.top > box.height + margin;
-  const top = above ? anchor.top - box.height - margin : anchor.bottom + margin;
-
-  const maxLeft = window.innerWidth - box.width - margin;
-  const left = Math.max(margin, Math.min(anchor.left, maxLeft));
-
-  panel.style.left = `${left}px`;
-  panel.style.top = `${Math.max(margin, top)}px`;
-}

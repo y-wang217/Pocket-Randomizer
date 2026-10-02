@@ -31,11 +31,19 @@
  *
  * ## Weight is not carried here, and must not be added
  *
- * There is no size, no colour and no emphasis field, because the visual pass's
- * rule is that a super effective flag word is not larger, brighter or
- * accent-coloured relative to a not-very-effective one. A `weight` column would
- * be the first place that rule broke, and it would break silently. The chip
- * component gives every one of these the same recipe.
+ * There is no size, no emphasis and no ranking field, because the visual pass's
+ * rule is that a super effective flag word is not larger, heavier or more
+ * emphatic than a not-very-effective one. A `weight` column would be the first
+ * place that rule broke, and it would break silently. The chip component gives
+ * every one of these the same recipe.
+ *
+ * **Colour is the one axis that moved, and it did not move here** (2026-09-21,
+ * D27). Section 2 gives the effectiveness family one colour across the forecast
+ * edge and the feedback flag, so `super`, `resisted` and `immune` wear the
+ * forecast's own tokens on screen — both directions of the one fact, drawn at
+ * the same weight, which is an encoding rather than a ranking. It lives in the
+ * stylesheet keyed off the kind, and there is still no colour field in this
+ * table: a word does not know what it is drawn in.
  *
  * ## This table must never enter `contentHash`
  *
@@ -138,13 +146,11 @@ const FIELD_WORDS: Record<string, string> = {
 
 /** The word each kind wears, before any detail is folded in. */
 const FLAG_WORDS: Record<FlagKind, string> = {
-  stab: 'STAB',
   super: 'Super effective',
   resisted: 'Not very effective',
   immune: 'No effect',
   crit: 'Critical hit',
   miss: 'Missed',
-  contact: 'Contact',
   priority: 'Priority',
   status: 'Status',
   berry: 'Berry',
@@ -214,13 +220,11 @@ export function flagWord(kind: FlagKind, detail: string | null): string {
  * `Missed` is a thing that happened.
  */
 export const FLAG_BLURBS: Record<FlagKind, string> = {
-  stab: 'The user shares this move’s type, which multiplied its damage by 1.5.',
   super: 'The defender’s types take more than normal damage from this move’s type.',
   resisted: 'The defender’s types take less than normal damage from this move’s type.',
   immune: 'The defender took no damage at all from this move’s type.',
   crit: 'A critical hit. Ignores the defender’s positive defence stages and multiplies damage.',
   miss: 'The accuracy check failed, so the move did nothing this turn.',
-  contact: 'This move makes physical contact, which is what abilities like Rough Skin and Static respond to.',
   priority: 'A priority bracket, not Speed, put this move first. A higher bracket moves before every lower one.',
   status: 'A status condition was inflicted and stays until it is cured or the battle ends.',
   berry: 'A held berry fired and was used up. It is gone from the Pokemon for the rest of the run.',

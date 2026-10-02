@@ -46,19 +46,13 @@ import type { AcquisitionOffer } from '../core/acquisition';
 import type { RewardOffer } from '../core/rewards';
 import { gymForSegment } from '../data/gyms';
 import { DEFAULT_TUNING } from '../data/tuning';
-import { createDensityGuard } from './density-guard';
 import { createDrawer } from './drawer';
 import { createMapDrawer } from './map-drawer';
-import {
-  anyShop,
-  finishedResult,
-  incomingMove,
-  lateState,
-  openingState,
-  targetedReward,
-  wordiestEvent,
-} from './gallery-fixtures';
+import { createNav } from './nav';
+import { presentAsScreen } from './overlay';
+import { anyShop, deepMapState, finishedResult, incomingMove, lateState, openingState, relicOffer, relicShop, targetedReward, wordiestEvent } from './gallery-fixtures';
 import { GALLERY_SURFACES, type GallerySurface } from './gallery-surfaces';
+import { labelExposures, watchExposures } from './exposure-labels';
 import { createHeader } from './header';
 import { createTutorial } from './tutorial';
 import type { TutorialScreen } from '../data/tutorial';
@@ -72,17 +66,17 @@ import { createMoveReplaceScreen } from './screens/move-replace';
 import { createPartyScreen } from './screens/party';
 import { createPreGymScreen } from './screens/pre-gym';
 import { createResultScreen } from './screens/result';
-import { createRouter, DRAWER_SURFACES, type ScreenName } from './screens/router';
+import { createRouter, type ScreenName } from './screens/router';
 import { createRunMap } from './screens/run-map';
 import { createShopScreen } from './screens/shop';
 import { createStarterSelect } from './screens/starter-select';
 import { createSummary } from './screens/summary';
 import { createSeedBar } from './seed-bar';
-import { DENSITIES, getDensity, initSettings, onSettingsChange, setDensity, type Density } from './settings';
+import { fillExposure, initSettings } from './settings';
 import { createStamps } from './stamps';
-import { applyDensity } from './theme/density';
 import { applyLocale } from './theme/locale';
 import { applyMotion } from './theme/motion';
+import { setBandMount } from './band';
 import { createTooltips } from './tooltips';
 
 const noop = (): void => undefined;
@@ -91,9 +85,8 @@ function isSurface(value: string): value is GallerySurface {
   return (GALLERY_SURFACES as readonly string[]).includes(value);
 }
 
-function isDensity(value: string | null): value is Density {
-  return value !== null && (DENSITIES as readonly string[]).includes(value);
-}
+/** A count past R7's third exposure, so no family's label is due. */
+const EXHAUSTED_EXPOSURE = 4;
 
 async function main(): Promise<void> {
   const params = new URLSearchParams(globalThis.location.hash.replace(/^#/, ''));
@@ -101,14 +94,15 @@ async function main(): Promise<void> {
   const requested = params.get('screen') ?? 'summary';
   const surface: GallerySurface = isSurface(requested) ? requested : 'summary';
 
-  /*
-   * The mode, from the store and then from the URL. The same holder and the
-   * same root attribute the app uses, so nothing here is a second path: a
-   * `density=` parameter is exactly a stored preference for this one page.
-   */
   initSettings();
-  const density = params.get('density');
-  if (isDensity(density)) setDensity(density);
+  /*
+   * The exposure state, **D44**. Every family past R7's third exposure unless
+   * the URL says `exposure=fresh`, because section 4 budgets the steady state
+   * and every height, baseline and census figure was taken on a face with no
+   * exposure label on it. `fresh` is a first launch: the face the census
+   * records in its first-run column and M6.1's starter recording reads.
+   */
+  fillExposure(params.get('exposure') === 'fresh' ? 0 : EXHAUSTED_EXPOSURE);
   /*
    * `fixture=loaded` renders the constructed worst case (`ui/gallery-fixtures.ts`,
    * ruling 3) under the app's whole chrome — header, seed bar, drawer bar —
@@ -120,8 +114,6 @@ async function main(): Promise<void> {
    * that instrument and keep measuring what they measured.
    */
   const loaded = params.get('fixture') === 'loaded';
-  applyDensity(getDensity());
-  onSettingsChange((settings) => applyDensity(settings.density));
   applyMotion(document.documentElement);
 
   const root = document.querySelector<HTMLElement>('#app');
@@ -161,24 +153,34 @@ async function main(): Promise<void> {
     },
     (name) => {
       shell.dataset['screen'] = name;
+      // As the app does: the opening painting before the first region (D87).
+      world.setOpening(name === 'starter' || name === 'locale');
     },
   );
   const seedBar = createSeedBar();
   const stamps = createStamps();
   const world = createWorldScene();
-  const drawerBar = el('div', 'shell__drawer-bar');
-  // Map then Party, the order the app mounts them in — the bar is right
-  // aligned, so the last child is the one against the edge.
-  drawerBar.append(mapDrawer.trigger(), drawer.trigger());
+  /*
+   * The shell nav, as the app mounts it (Stage 5.0/1), with the tab screens
+   * restyled the same way. Its tabs are drawn and do nothing here: the
+   * gallery stages a surface, and a tab opens a different one.
+   */
+  const nav = createNav();
+  for (const layer of [drawer.root, mapDrawer.root]) presentAsScreen(layer);
   const replayTutorial = document.createElement('button');
-  if (loaded) shell.append(createHeader(replayTutorial, seedBar.toggle), seedBar.root, drawerBar, router.root, drawer.root, mapDrawer.root, stamps.root);
+  if (loaded) shell.append(nav.root, createHeader(replayTutorial, seedBar.toggle), seedBar.root, router.root, drawer.root, mapDrawer.root, stamps.root);
   else shell.append(router.root, drawer.root, mapDrawer.root, stamps.root);
-  root.replaceChildren(world.root, shell);
+  const layout = el('div', 'layout');
+  layout.append(shell);
+  root.replaceChildren(world.root, layout);
   createTooltips(shell);
+  // The confirm band mounts where the tooltip layer listens, so a long press
+  // on a card inside it inspects like anywhere else (R5).
+  setBandMount(shell);
 
   const show = (name: ScreenName): void => {
     router.show(name);
-    drawerBar.hidden = !DRAWER_SURFACES.includes(name);
+    nav.setActive(name === 'map' ? 'map' : name === 'party' ? 'team' : null);
   };
   const setPhase = (phase: 'setup' | 'running'): void => {
     shell.dataset['phase'] = phase;
@@ -218,8 +220,10 @@ async function main(): Promise<void> {
     case 'map':
     case 'drawer':
     case 'map-drawer': {
-      const state = openingState(seed);
-      mapScreen.render(state, noop, noop);
+      // The map's worst case is deep in the run since 5.0/4 (`deepMapState`);
+      // the party drawer's is the opening map's widest party, as before.
+      const state = surface === 'drawer' ? openingState(seed) : deepMapState(seed);
+      mapScreen.render(state, noop);
       applyLocale(localeOf(state));
       stamp(state);
       show('map');
@@ -293,6 +297,46 @@ async function main(): Promise<void> {
       show('replace');
       break;
     }
+    /*
+     * The two confirm bands, staged open. **Milestone M5.5, discrepancy D31.**
+     *
+     * Each one renders its own screen and then **clicks the real control**,
+     * the way the event fixture reveals its outcome. The band measured here is
+     * therefore the one `ui/band.ts` builds on the player's tap, not one this
+     * file assembles — which matters because `test/band.test.ts` asserts that
+     * no screen builds its own confirm, and a fixture that built one would be
+     * measuring the thing that rule forbids.
+     */
+    case 'confirm-replace': {
+      const state = lateState(seed);
+      const member = state.party[0];
+      if (!member) throw new Error('no party');
+      replaceScreen.render(member, incomingMove(), noop, state.tuning);
+      applyLocale(localeOf(state));
+      stamp(state);
+      show('replace');
+      // The first of the four move chips: the victim carries its remaining PP,
+      // which is the fact the full card in the band exists to show.
+      replaceScreen.root.querySelector<HTMLElement>('.move--chip')?.click();
+      break;
+    }
+    case 'confirm-forfeit': {
+      const state = lateState(seed);
+      /*
+       * **`allowSkip` is true here and false on the `target` fixture**, which
+       * is why this surface exists rather than the band being staged over that
+       * one. The decline control renders only at the gym's guaranteed move, so
+       * the `target` surface has never drawn it and the census has never
+       * counted it — a smaller instance of the same gap D31 is about, left
+       * where it is so that surface's baseline does not move.
+       */
+      targetScreen.render(targetedReward(), state.party, noop, state.tuning, true);
+      applyLocale(localeOf(state));
+      stamp(state);
+      show('target');
+      targetScreen.root.querySelector<HTMLElement>('.target__decline')?.click();
+      break;
+    }
     case 'party': {
       const state = lateState(seed);
       partyScreen.render(
@@ -334,6 +378,32 @@ async function main(): Promise<void> {
       show('pre-gym');
       break;
     }
+    /*
+     * The two relic surfaces. **Milestone M5.1, D35.**
+     *
+     * Each stages a map-generated offer or shelf that really holds a relic,
+     * against a state holding none — see `relicOffer` and `relicShop` for why
+     * the ordinary `result` and `shop` fixtures cannot. They render the same
+     * screens with the same components; only the absence is constructed.
+     */
+    case 'result-relic': {
+      const found = relicOffer(lateState(seed));
+      if (!found) throw new Error('the map generates no relic offer');
+      resultScreen.render(null, found.offer, found.state, noop);
+      applyLocale(localeOf(found.state));
+      stamp(found.state);
+      show('result');
+      break;
+    }
+    case 'shop-relic': {
+      const found = relicShop(lateState(seed));
+      if (!found) throw new Error('the map generates no relic shelf');
+      shopScreen.render(found.stock, found.state, noop);
+      applyLocale(localeOf(found.state));
+      stamp(found.state);
+      show('shop');
+      break;
+    }
     case 'shop': {
       const state = lateState(seed);
       const stock = anyShop(state);
@@ -366,15 +436,40 @@ async function main(): Promise<void> {
 
   /*
    * `tutorial=fresh`: the coach marks, as a first launch would show them on
-   * this surface, through the same guard the app uses (`ui/density-guard.ts`).
-   * `test/visual-tutorial-guard.test.ts` reads how many marks the layer
-   * shows against how many have an anchor on the page: the assertion
-   * ruling 6 asked for, that no mark is ever dropped without a trace.
+   * this surface, in the page's own mode (M6.2 deleted the guard that forced
+   * Detailed under them). `test/visual-tutorial-anchors.test.ts` reads how
+   * many marks the layer shows against how many have an anchor on the page:
+   * the assertion ruling 6 asked for, that no mark is ever dropped without a
+   * trace.
    */
+  /*
+   * The exposure labels (M6.1), once, on whatever is on top: the drawer if one
+   * is open, the routed screen otherwise. The app runs the same pass on every
+   * redraw (`ui/app.ts`); a gallery page draws once. With the default
+   * `exposure=exhausted` every family is past its third exposure and nothing
+   * renders; `exposure=fresh` is the first launch.
+   */
+  const current = router.current();
+  const onTop = drawer.isOpen()
+    ? { screen: 'drawer', within: drawer.root as ParentNode }
+    : current
+      ? { screen: current, within: router.root.querySelector<HTMLElement>(`.screen[data-screen="${current}"]`) as ParentNode | null }
+      : null;
+  if (onTop?.within) {
+    const { screen, within } = onTop;
+    labelExposures(screen, within);
+    /*
+     * And again whenever the surface changes, as `app.ts` does. Since bible
+     * Rev 19 (D78) a tap on a starter card paints the stat glyphs in the
+     * detail panel after the first pass, and the app labels them then.
+     */
+    if (within instanceof HTMLElement) watchExposures(within, () => ({ screen, within }));
+  }
+
   if (params.get('tutorial') === 'fresh') {
     const screen = TUTORIAL_SURFACE[surface];
     if (screen) {
-      const marks = createDensityGuard(createTutorial(shell));
+      const marks = createTutorial(shell);
       const within = screen === 'drawer' ? drawer.root : router.root.querySelector<HTMLElement>(`.screen[data-screen="${screen}"]`);
       if (within) marks.showFor(screen, within);
     }
@@ -484,9 +579,28 @@ const HARVEST_ATTEMPTS = 12;
 const LOADED_LEAD: TeamSpec = [
   { species: 'Snorlax', ability: 'Thick Fat', moves: ['Swords Dance', 'Toxic', 'Body Slam', 'Rest'], level: 100 },
 ];
+/*
+ * Drizzle, since Stage 4.11 Tier 2, so the loaded board is played under rain
+ * and the header wears the field glyph: D41's family walk needs every family
+ * painted on some gallery surface, and this is the one surface with a board.
+ * Rain changes nothing this fixture measures — none of the eight moves is
+ * Water or Fire, and rain deals no chip damage — so the loop that loads both
+ * panels is untouched.
+ */
 const LOADED_P2: TeamSpec = [
-  { species: 'Golem', ability: 'Sturdy', moves: ['Rock Polish', 'Thunder Wave', 'Earthquake', 'Rollout'], level: 100 },
+  { species: 'Golem', ability: 'Drizzle', moves: ['Rock Polish', 'Thunder Wave', 'Earthquake', 'Rollout'], level: 100 },
 ];
+
+/**
+ * The field state the loaded board plays under, by the ability that sets it.
+ * **Stage 4.11 Tier 3.** `#weather=sun` puts Drought on the opponent instead
+ * of Drizzle; `#terrain=grassy` puts Grassy Surge on the player's lead. Real
+ * abilities on a real battle rather than attributes poked onto `<html>`, so
+ * the header glyph, the button's factor and the world all agree, which is
+ * what a screenshot of the surface is for. `none` clears the weather.
+ */
+const WEATHER_SETTERS: Record<string, string> = { rain: 'Drizzle', sun: 'Drought', sand: 'Sand Stream', snow: 'Snow Warning', wind: 'Delta Stream', none: 'Sturdy' };
+const TERRAIN_SETTERS: Record<string, string> = { electric: 'Electric Surge', grassy: 'Grassy Surge', misty: 'Misty Surge', psychic: 'Psychic Surge' };
 
 function mountLoadedBattle(
   battle: ReturnType<typeof createBattleScreen>,
@@ -495,21 +609,50 @@ function mountLoadedBattle(
   options: { history: boolean },
 ): void {
   const bench = party.slice(1).map((member) => member.spec);
-  const session = createBattle({ teams: { p1: [...LOADED_LEAD, ...bench], p2: LOADED_P2 }, seed });
+  const params = new URLSearchParams(globalThis.location.hash.replace(/^#/, ''));
+  const weather = WEATHER_SETTERS[params.get('weather') ?? ''];
+  const terrain = TERRAIN_SETTERS[params.get('terrain') ?? ''];
+  const lead = LOADED_LEAD.map((mon, index) => (index === 0 && terrain ? { ...mon, ability: terrain } : mon));
+  const foe = LOADED_P2.map((mon, index) => (index === 0 && weather ? { ...mon, ability: weather } : mon));
+  const session = createBattle({ teams: { p1: [...lead, ...bench], p2: foe }, seed });
 
+  /*
+   * **The node the census measures, and it is the run's own wording now.**
+   * Milestone M4.3, row D28.
+   *
+   * It read `A loaded board` with an opponent of `A trainer` — harness naming,
+   * five words the app never renders, charged to the battle screen every time
+   * the census ran. `core/encounters.ts` builds the real ones: a battle node's
+   * label is `Wild encounter` or `Trainer battle`, and `describeOpponent`
+   * writes `Trainer's <species>`. A fixture that measures a surface must render
+   * what the surface renders.
+   */
+  /*
+   * And a real kind. **Patch 4.10.1.** It read `battle`, which no node has
+   * ever had, and nothing noticed while the kind was a word the fixture set
+   * itself. The header wears the kind's *mark* now, looked up by kind, and a
+   * kind the sheet does not draw rendered an empty title — the same defect
+   * the label had, found the same way.
+   */
   const node = {
     id: 's1-1-0',
-    kind: 'battle',
+    kind: 'trainer',
     tier: 'normal',
-    label: 'A loaded board',
-    // A plain name. `boundaries.test.ts` reads every string literal under
-    // `src/ui/` for verdict vocabulary and does not care that this one is a
-    // harness — which is right, because the check cannot tell and should not
-    // have to.
-    encounter: { team: LOADED_P2, opponent: 'A trainer', simSeed: seed },
+    label: 'Trainer battle',
+    encounter: { team: LOADED_P2, opponent: `Trainer's ${LOADED_P2[0]?.species ?? 'Golem'}`, simSeed: seed },
     rewards: [],
   } as unknown as NodeSpec;
-  battle.attach(session, node, { ability: true, item: true, teamSize: true }, () => undefined);
+  /*
+   * **And the segment, which the census has never passed.**
+   *
+   * `screens/battle.ts` builds the AI tier line only when there is a segment,
+   * `ui/app.ts` passes `state.currentSegment`, and this fixture passed nothing
+   * — so `Rookie`, `Seasoned` and `Ace` have rendered on every real battle
+   * screen since the tiers patch and been counted on none. The number the
+   * census reported was lower than the screen a player sees, which is the one
+   * direction a measurement must never err in. Segment 1, the first.
+   */
+  battle.attach(session, node, { ability: true, item: true, teamSize: true }, () => undefined, 1);
 
   const loaded = (): boolean => {
     const facts = session.factsFor('p1');

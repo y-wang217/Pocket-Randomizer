@@ -38,8 +38,6 @@ function outcomeOf(grant: readonly ResolvedEffect[], cost: readonly ResolvedEffe
 function option(archetype: EventArchetype, paid: EventOutcome): EventOption {
   return {
     archetype,
-    label: 'Shift the rubble by hand',
-    hint: 'The pile is holding itself up.',
     toll: null,
     outcomes: { T0: paid, T1: paid, T2: paid, T3: paid },
     tierAt: { none: 'T0', latent: 'T0', known: 'T0' },
@@ -52,7 +50,6 @@ function collapsedShaft(paid: EventOutcome): EventInstance {
     eventId: 'cave-collapsed-shaft',
     locale: 'cave',
     rarity: 'common',
-    prompt: 'A collapsed shaft, and something metallic under the rubble.',
     requires: 'strength',
     options: [option('gamble', paid)],
   };

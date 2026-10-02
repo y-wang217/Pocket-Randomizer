@@ -96,7 +96,7 @@ export function stepsRangeFor(tuning: Tuning, segment: number): Range {
  *
  * The guarantee survives untouched, and it is the half that was ever
  * load-bearing: every route still offers somewhere to heal. What is gone is
- * the promise of a *second* one. `docs/generation.md` section 52.
+ * the promise of a *second* one. `docs/generation.md` section 99.
  */
 export function restFloorFor(tuning: Tuning, steps: number): number {
   void steps;
@@ -332,7 +332,7 @@ export interface Tuning {
    * **Two, not one**, and the difference matters: a second rest is a thing a
    * route may offer, not a thing it must. The floor underneath is
    * `minRestSteps`, which is 1, so "possible but never mandatory" is the whole
-   * of the rule. See `docs/generation.md` section 52.
+   * of the rule. See `docs/generation.md` section 99.
    */
   kindCapPerRoute: Partial<Record<ChoosableKind, number>>;
 

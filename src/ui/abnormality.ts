@@ -43,8 +43,11 @@ export interface AbnormalityMark {
 /**
  * Which class a kind belongs to, or `null` for one the stage already answers.
  *
- * A hit, a faint and a chunk have beats of their own; STAB, contact and
- * priority are properties of a move rather than events in a turn.
+ * A hit, a faint and a chunk have beats of their own, so the kinds that
+ * describe one — the effectiveness pair, the crit, the miss, the status and
+ * the berry — return `null` here and are animated by the stage. `priority` is
+ * the turn order, which the lunge already draws. STAB and contact were named in
+ * this list until M4.1 deleted the two kinds.
  */
 function classOf(kind: FlagKind): AbnormalityClass | null {
   switch (kind) {
@@ -106,7 +109,14 @@ export function abnormalityMarks(turns: readonly FlaggedTurn[] | undefined): Abn
     if (!seen.includes(action.side)) seen.push(action.side);
   }
 
-  /** First in protocol order wins, and the strip carries the rest. */
+  /**
+   * First in protocol order wins.
+   *
+   * This said "and the strip carries the rest" until M4.1, when R9 and D23 cut
+   * the strip to one flag per side per channel. The rest is in the log sheet
+   * now, one tap away, which is where C2's re-encoding of what leaves the board
+   * lives. The beat is unchanged: one mark per side either way.
+   */
   const marks = new Map<ActorSide, AbnormalityMark>();
   const note = (flag: Flag, slot: number): void => {
     const klass = classOf(flag.kind);
@@ -133,3 +143,54 @@ export function abnormalityMarks(turns: readonly FlaggedTurn[] | undefined): Abn
 
   return [...marks.values()];
 }
+
+/**
+ * A trait firing on a panel: the ability's name pulses in its slot, a berry's
+ * sprite pops in its. **Stage 4.11 Tier 4, D48 and section 6 steps 3 and 7.**
+ *
+ * A second reduction beside `abnormalityMarks`, not a sixth class inside it,
+ * because the two answer different elements. A mark is the actor's ring, one
+ * per side and first in protocol order; a weather set by Drizzle earns the
+ * `field` sweep there, and the ability that set it still fired. So the panel
+ * has its own list: every side whose turn carried an `ability` or a `berry`
+ * flag, with the slot it rides, at most one of each kind per side. The scene
+ * is handed this the way it is handed the marks, and reads no flag.
+ *
+ * Never weighted: the list says *which* panels fired and *when*, never which
+ * ability, and the stylesheet gives every one the same keyframe.
+ */
+export interface TraitFire {
+  side: ActorSide;
+  what: 'ability' | 'item';
+  /** The beat slot it rides, so it costs the turn no extra time. */
+  slot: number;
+}
+
+export function firedTraits(turns: readonly FlaggedTurn[] | undefined): TraitFire[] {
+  if (!turns || turns.length === 0) return [];
+  const reversed = [...turns].reverse();
+  const group =
+    reversed.find((turn) => turn.actions.some((each) => each.flags.length > 0) || turn.residual.length > 0) ??
+    reversed.find((turn) => turn.actions.length > 0);
+  if (!group) return [];
+
+  const seen: ActorSide[] = [];
+  for (const { action } of group.actions) {
+    if (!seen.includes(action.side)) seen.push(action.side);
+  }
+
+  const fires = new Map<string, TraitFire>();
+  const note = (flag: Flag, slot: number): void => {
+    const what = flag.kind === 'ability' ? 'ability' : flag.kind === 'berry' ? 'item' : null;
+    if (!what) return;
+    const key = `${flag.side}:${what}`;
+    if (!fires.has(key)) fires.set(key, { side: flag.side, what, slot });
+  };
+  for (const { action, flags } of group.actions) {
+    const slot = Math.max(1, seen.indexOf(action.side) + 1);
+    for (const flag of flags) note(flag, slot);
+  }
+  for (const flag of group.residual) note(flag, Math.max(seen.length, 1));
+  return [...fires.values()];
+}
+

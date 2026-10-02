@@ -42,6 +42,8 @@ import {
   createParty,
   isWiped,
   leadRefusal,
+  releaseMember,
+  reorderParty,
   levelParty,
   setLead,
   recoverParty,
@@ -98,6 +100,7 @@ import type {
   ItemAssignment,
   ItemId,
   ItemPlan,
+  PartyEdit,
   TmTeach,
   MoveSpec,
   PokemonSpec,
@@ -384,7 +387,21 @@ import { DEFAULT_TUNING, type NodeKind, type Tuning } from '../data/tuning';
  * table is touched.
  * `docs/spec/gymrun-patch-teach-now-and-gym-level-spread.md`.
  */
-export const RUN_LOG_VERSION = `gymrun-run-20/${ENGINE_VERSION}`;
+/*
+ * ## `-21`: a party edit is a logged decision
+ *
+ * **A decision is added**, `{ kind: 'party', edit }`, for the reorder and the
+ * release the party screen makes between questions. The opening playtest QA
+ * found a lead change lost on resume; the cause is that neither edit reached
+ * the log, so a replay rebuilt the party the other decisions produced and fed
+ * the moves logged against the edited party to a different one. A `-20` reader
+ * handed a `-21` log would meet a kind it does not know, and a `-21` reader
+ * cannot tell whether a `-20` log omitted edits, so the axis moves.
+ *
+ * `RANDOMIZER_VERSION` and `contentHash` hold: an edit draws nothing and no
+ * table is touched. `docs/spec/gymrun-patch-opening-playtest-qa.md`.
+ */
+export const RUN_LOG_VERSION = `gymrun-run-21/${ENGINE_VERSION}`;
 
 /**
  * The node kinds at which a **stored** TM may be spent. **Rest and shop only.**
@@ -888,6 +905,16 @@ export function chooseLocale(state: RunState, index: number): RunState {
  * silently turned into a different choice is a log that replays into a
  * different run.
  */
+/** Why a party edit is illegal against this party, or null. QA-001. */
+export function partyEditRefusal(party: readonly PokemonState[], edit: PartyEdit): string | null {
+  const inRange = (slot: number): boolean => Number.isInteger(slot) && slot >= 0 && slot < party.length;
+  if (edit.kind === 'reorder') {
+    return inRange(edit.from) && inRange(edit.to) ? null : `reorder ${edit.from} to ${edit.to} outside a party of ${party.length}`;
+  }
+  if (!inRange(edit.slot)) return `release of slot ${edit.slot} outside a party of ${party.length}`;
+  return party.length <= 1 ? 'the last member cannot be released' : null;
+}
+
 export function chooseLead(state: RunState, index: number): RunState {
   const refusal = leadRefusal(state.party, index);
   if (refusal) throw new RangeError(`Cannot lead with slot ${index}: ${refusal}`);
@@ -1430,6 +1457,17 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
 export interface RunPolicy {
   chooseStarter: (options: PokemonSpec[]) => Promise<number>;
   /**
+   * Handed the run's party editor once, before the first question. **The
+   * opening playtest QA, QA-001.**
+   *
+   * A party edit is not an answer to a question: the player makes it on the
+   * party screen while some other question (a node, a lead, an item plan) is
+   * open. So instead of asking, the run hands over the one function that
+   * applies an edit and records it, and a policy that offers the party screen
+   * calls it. A policy that never edits the party leaves this out.
+   */
+  bindPartyEditor?: (edit: (edit: PartyEdit) => void) => void;
+  /**
    * Which region to walk this segment through. An index into the offer.
    *
    * **Asked once per segment, before its first step, and it is not a node.**
@@ -1492,8 +1530,14 @@ export interface RunPolicy {
    * Returning a number for an offer that is null is a caller error and is
    * ignored; returning null for an offer that exists falls back to card 0,
    * because there is no skip.
+   *
+   * **`undefined` means this policy did not review this battle**, and the card
+   * is asked through `chooseReward` in its usual place, as for a policy with no
+   * hook. The replay policy is the one that answers it: a resumed run whose log
+   * still holds this node's answers replays them in logged order and shows no
+   * screen. The second QA pass, QA-006.
    */
-  reviewBattle?: (review: BattleReview, state: RunState) => Promise<number | null>;
+  reviewBattle?: (review: BattleReview, state: RunState) => Promise<number | null | undefined>;
   /**
    * Which shelf slots to buy. An array, because a shop visit is one decision.
    *
@@ -1706,6 +1750,29 @@ export async function playRun(
 
   let state = createRun(seed, tuning);
   options.onState?.(state);
+
+  /*
+   * **The party editor. QA-001.** Applied to the state the run holds *in
+   * place*, because the edit arrives while a question is open and whoever is
+   * answering it holds this object: an item plan composed after a reorder is
+   * reconciled against the reordered party, as it was when the UI made the
+   * edit itself. Refused rather than clamped, like every decision here.
+   */
+  const editParty = (edit: PartyEdit): void => {
+    const refusal = partyEditRefusal(state.party, edit);
+    if (refusal) throw new RangeError(`Party edit refused: ${refusal}`);
+    record({ kind: 'party', edit: { ...edit } });
+    if (edit.kind === 'reorder') {
+      state.party = reorderParty(state.party, edit.from, edit.to);
+    } else {
+      const released = releaseMember(state.party, edit.slot);
+      state.party = released.party;
+      // Their item goes to the bag, not with them.
+      if (released.freed) state.backpack = [...state.backpack, released.freed];
+    }
+    options.onState?.(state);
+  };
+  policy.bindPartyEditor?.(editParty);
 
   const starterIndex = await policy.chooseStarter(state.starterOptions);
   record({ kind: 'starter', index: starterIndex });
@@ -1961,7 +2028,7 @@ export async function playRun(
       );
       // Null for a node with no offer is the expected answer and records
       // nothing. A number there would be an answer to a question nobody asked.
-      if (reviewOffer) reviewedIndex = picked ?? 0;
+      if (reviewOffer && picked !== undefined) reviewedIndex = picked ?? 0;
 
       /*
        * **The card is taken, so a relic is the player's.** Second projection
@@ -2475,6 +2542,12 @@ function projectionOf(state: RunState, result: NodeResult, taken: Reward | null)
   if (result.battle?.consumed?.length) {
     party = spendItems({ party, backpack: state.backpack }, result.battle.consumed).party;
   }
+  // A restore card taken on the result screen lands on the party, and the
+  // capture block that follows it on the same screen reads this party (the
+  // opening playtest QA, QA-002). `recoverParty` is `applyReward`'s own call.
+  if (taken?.kind === 'heal') {
+    party = recoverParty(party, taken.fraction);
+  }
   if (result.acquisition) {
     // The capacity the decision was asked under, matching `resolveNode`'s own
     // reading. A battle fold changes no slot, so a decision legal against
@@ -2488,10 +2561,10 @@ function projectionOf(state: RunState, result: NodeResult, taken: Reward | null)
     ).party;
   }
 
-  // A relic is the one reward kind a readout carries before the fold: the
+  // A relic is the other reward kind a readout carries before the fold: the
   // player took the card, and the drawer lists relics. Everything else a card
-  // pays either lands on the party (already above) or in the backpack, which no
-  // read-only surface shows before the boundary.
+  // pays either lands on the party (the heal, above) or in the backpack, which
+  // no read-only surface shows before the boundary.
   const relics =
     taken?.kind === 'relic' && !state.relics.includes(taken.relic)
       ? [...state.relics, taken.relic]
@@ -2807,7 +2880,24 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
   assertReplayable(log);
   let cursor = 0;
 
+  /*
+   * **Party edits are applied, not answered. QA-001.** Recorded while a
+   * question was open, so each sits in the log just before that question's
+   * answer; applying every one found at the cursor before reading the answer
+   * puts the party where the player left it at the same point. Trailing edits,
+   * made while the question the run was saved on was open, land the same way
+   * before the live tail is asked.
+   */
+  let editor: ((edit: PartyEdit) => void) | null = null;
+  const applyEdits = (): void => {
+    for (let pending = log.decisions[cursor]; pending?.kind === 'party'; pending = log.decisions[cursor]) {
+      if (!editor) throw new Error(`RunLog holds a party edit at ${cursor} and the run bound no editor`);
+      cursor++;
+      editor(pending.edit);
+    }
+  };
   const next = (kind: RunDecision['kind']): RunDecision | null => {
+    applyEdits();
     const decision = log.decisions[cursor];
     if (!decision) return null;
     if (decision.kind !== kind) {
@@ -2821,8 +2911,33 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
     throw new Error(`RunLog ran out at decision ${cursor}, but the run wanted a ${kind}`);
   };
 
+  /*
+   * **The result screen, on the live tail only. The second QA pass, QA-006.**
+   *
+   * A replay answers the card through `chooseReward`, which the log holds after
+   * the node's capture. With no review here, a run resumed on a fight's result
+   * asked the live player the capture first and the cards after it, the
+   * reverse of the order they were asked in, and never showed the result. So
+   * where the log has nothing left, the live player gets the result screen as
+   * they would have; where it still holds this node's answers, `undefined`
+   * says nothing was reviewed and they replay in logged order. Absent without
+   * a live policy, so a pure replay is untouched.
+   */
+  const liveReview = live?.reviewBattle;
+  const reviewBattle: RunPolicy['reviewBattle'] = liveReview
+    ? async (review, state) => {
+        applyEdits();
+        return cursor < log.decisions.length ? undefined : liveReview(review, state);
+      }
+    : undefined;
+
   return {
     remaining: () => Math.max(0, log.decisions.length - cursor),
+    bindPartyEditor: (edit) => {
+      editor = edit;
+      live?.bindPartyEditor?.(edit);
+    },
+    ...(reviewBattle ? { reviewBattle } : {}),
     chooseStarter: async (options) => {
       const decision = next('starter');
       if (!decision) return live ? live.chooseStarter(options) : exhausted('starter');

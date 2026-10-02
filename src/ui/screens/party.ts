@@ -52,6 +52,7 @@ import { relicById, type RelicId } from '../../data/relics';
 import { CAPABILITY_LABELS } from '../../data/eventCopy';
 import type { ItemId, ItemPlan, PokemonState, TmTeach } from '../../core/types';
 import { itemById } from '../../data/items';
+import { itemCopy, relicCopy } from '../../data/itemCopy';
 import type { Tuning } from '../../data/tuning';
 import { openBand } from '../band';
 import { neutralChip } from '../chip';
@@ -59,7 +60,7 @@ import { collapsible } from '../collapse';
 import { el } from '../scene';
 import { setProse } from '../dom';
 import { PARTY_COPY } from '../copy/screens';
-import { renderSlots, slotNumber } from '../slots';
+import { itemIcon, renderSlots, slotNumber } from '../slots';
 
 import { createThreatReadout } from './threats';
 
@@ -614,7 +615,7 @@ function renderRelics(root: HTMLElement, held: readonly RelicId[]): void {
     const grants = neutralChip(CAPABILITY_LABELS[relic.grants], 'capability');
 
     const body = el('p', 'relics__text');
-    body.textContent = relic.playerDescription;
+    body.textContent = relicCopy(relic.id);
 
     row.append(name, grants, body);
     list.append(row);
@@ -671,24 +672,38 @@ function renderBackpack(
       const row = el('li', 'backpack__item');
       row.append(slotNumber(index));
 
-      const name = neutralChip(entry?.name ?? id, 'item', entry ? { tip: `item:${entry.id}` } : {});
+      /*
+       * **The item at rest, its controls on a tap. Bible Rev 20, R13 and
+       * D81.** A carried item's name and effect line are vital, so they are
+       * the row's face: sprite, name, effect, nothing folded. They folded
+       * behind a `+` until the author's *"the click to open sucks"*. What a tap
+       * on the item opens is what to do with it, the give and discard
+       * controls, one row at a time: six names on each of eight rows is a
+       * screen of buttons nobody reads, and choosing the item is the first
+       * half of giving it anyway.
+       */
+      const pick = document.createElement('button');
+      pick.type = 'button';
+      pick.className = 'backpack__pick';
+      const icon = el('span', 'backpack__icon');
+      if (entry) icon.append(itemIcon(entry.id));
+      // The name below names it; the sprite would say it a second time.
+      icon.setAttribute('aria-hidden', 'true');
+      const name = el('span', 'backpack__name');
+      name.textContent = entry?.name ?? id;
       /*
        * A berry is marked, because it is the one row on this screen whose
        * *lifetime* differs from every other. **Stage 4.6b.**
        *
        * Every other item here is permanent: give it away, take it back,
        * discard it, but it exists until the player says otherwise. A berry
-       * fires once and is gone — and a player who does not know that will
+       * fires once and is gone, and a player who does not know that will
        * assign one, count it against the cap, and find it missing after a
-       * fight with no explanation.
-       *
-       * It is a class on the badge and one word in the effect line, not a
-       * separate section. The berry occupies a backpack slot exactly like
-       * everything else, which is the whole reason it is a decision (see
-       * `BERRIES` in data/items.ts), and filing it apart on screen would say
-       * the opposite.
+       * fight with no explanation. It is a class and one sentence in the
+       * effect line, not a separate section: the berry occupies a backpack
+       * slot exactly like everything else.
        */
-      if (entry?.consumable) name.classList.add('badge--consumable');
+      if (entry?.consumable) row.classList.add('backpack__item--consumable');
 
       const effect = el('span', 'backpack__effect');
       // "Used up when it fires." is an attribute, and the one attribute this
@@ -696,9 +711,10 @@ function renderBackpack(
       // whether to carry it.
       effect.textContent = entry
         ? entry.consumable
-          ? `${entry.blurb} Used up when it fires.`
-          : entry.blurb
+          ? `${itemCopy(entry.id)} Used up when it fires.`
+          : itemCopy(entry.id)
         : '';
+      pick.append(icon, name, effect);
 
       const give = el('span', 'backpack__give');
       view.party.forEach((member, slot) => {
@@ -728,14 +744,21 @@ function renderBackpack(
         }),
       );
 
-      /*
-       * The item and its slot stay on the row in every mode; the effect line
-       * and the give and discard controls fold in Pocket, every row together.
-       * Density modes patch, through the one collapsible primitive.
-       */
-      row.append(name);
-      const fold = collapsible(row, [effect, give, drop], entry?.name ?? id);
-      row.append(fold.toggle);
+      const controls = el('div', 'backpack__controls collapse__body');
+      controls.append(give, drop);
+      row.dataset['collapsible'] = 'true';
+      pick.setAttribute('aria-expanded', 'false');
+      pick.addEventListener('click', () => {
+        const open = row.dataset['expanded'] !== 'true';
+        // One row's controls at a time: opening this one closes the others.
+        for (const other of rows.querySelectorAll<HTMLElement>('.backpack__item[data-expanded="true"]')) {
+          other.dataset['expanded'] = 'false';
+          other.querySelector('.backpack__pick')?.setAttribute('aria-expanded', 'false');
+        }
+        row.dataset['expanded'] = String(open);
+        pick.setAttribute('aria-expanded', String(open));
+      });
+      row.append(pick, controls);
       return row;
     }),
   );

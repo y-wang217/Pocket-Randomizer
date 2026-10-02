@@ -25,6 +25,18 @@ export const SEED_COPY = {
   runFailed:
     'This run stopped on an internal error and cannot continue. ' +
     'The seed is still in the box: Start begins it again from the top.',
+  /**
+   * **A saved run was resumed although the link named another seed.** The
+   * opening playtest QA: continuing is assumed on load, so a link no longer
+   * overwrites a run in progress. The linked seed is put in the box.
+   */
+  linkWaiting: 'Your run in progress was resumed. The linked seed is in the box: Start begins it, and ends this run.',
+  /**
+   * **A save this build cannot replay.** It used to be dropped with no word,
+   * which reads as a lost run. Says what happened and names no axis; the
+   * console has the version guard's own message.
+   */
+  saveOutdated: 'Your saved run was made on an earlier version and cannot continue here, so a new run has started.',
   /** The paste-time refusal. */
   foreign:
     'This seed was made on a different balance version ({theirs}; this build is {ours}) and will not reproduce here. ' +

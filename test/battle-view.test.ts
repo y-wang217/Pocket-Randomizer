@@ -56,6 +56,7 @@ function active(overrides: Partial<ActiveFacts> = {}): ActiveFacts {
     ability: null,
     item: null,
     speed: { engine: 100, abilityModified: false },
+    grounded: true,
     ...overrides,
   };
 }
@@ -74,6 +75,7 @@ function move(overrides: Partial<MoveFacts> = {}): MoveFacts {
     usable: true,
     flags: ['contact', 'protect'],
     typeMultiplier: 1,
+    flyingMultiplier: 1,
     /*
      * Stage 4.7: the adapter carries `describeMove`'s answer so the projection
      * can derive tags and a status readout. Real here rather than null, because
@@ -96,6 +98,7 @@ function facts(overrides: Partial<BattleFacts> = {}): BattleFacts {
     trapped: false,
     awaitingChoice: true,
     invertedSpeed: false,
+    field: { weather: null, terrain: null, suppressed: false },
     // A lone opponent, which is what every hand-built view in this file is
     // about. The roster readout has its own file.
     opponentRoster: { standing: 1, total: 1 },
@@ -519,3 +522,46 @@ describe('the generated type chart', () => {
     expect(ground?.noEffectAgainst).toContain('Flying');
   });
 });
+
+/**
+ * The board, folded into the button's number. **Stage 4.11 Tier 2b, D49.**
+ * The helper's own cases are in `effectiveness.test.ts`; these are the two
+ * things only the projection decides: which field it hands over, and whose
+ * grounding a hidden ability may reveal.
+ */
+describe('the field on the forecast', () => {
+  const RAIN = { weather: 'raindance', terrain: null, suppressed: false };
+  const ELECTRIC = { weather: null, terrain: 'electricterrain', suppressed: false };
+
+  it('folds the weather into the multiplier and names the cause', () => {
+    const view = buildBattleUiView(
+      facts({ field: RAIN, opponent: active({ types: ['Fire'] }), moves: [move({ id: 'surf', name: 'Surf', type: 'Water', typeMultiplier: 2 })] }),
+      REVEAL_ALL,
+      abilityEffects,
+    );
+    expect(view.moves[0]).toMatchObject({ effectiveness: 3, band: 'super', fieldFactor: 1.5, fieldCause: 'raindance' });
+  });
+
+  it('reads the defender\'s grounding off the engine only while its ability is visible', () => {
+    const levitating = active({ types: ['Rock'], ability: { id: 'levitate', name: 'Levitate' }, grounded: false });
+    const quake = move({ id: 'earthquake', name: 'Earthquake', type: 'Ground', typeMultiplier: 2 });
+    // Grassy Terrain halves Earthquake against a grounded target. Visible
+    // Levitate: not grounded, no halving. Hidden: the typing alone says
+    // grounded, so the halving shows — and so does the 2, since the immunity
+    // is hidden too. Neither number leaks the ability.
+    const shown = buildBattleUiView(facts({ field: { ...ELECTRIC, terrain: 'grassyterrain' }, opponent: levitating, moves: [quake] }), REVEAL_ALL, abilityEffects);
+    const hidden = buildBattleUiView(facts({ field: { ...ELECTRIC, terrain: 'grassyterrain' }, opponent: levitating, moves: [quake] }), { ...REVEAL_ALL, ability: false }, abilityEffects);
+    expect(shown.moves[0]?.fieldFactor).toBe(1);
+    expect(hidden.moves[0]?.fieldFactor).toBe(0.5);
+    expect(hidden.moves[0]?.effectiveness).toBe(1);
+  });
+
+  it('applies a terrain by the holder\'s own grounding', () => {
+    const bolt = move({ id: 'thunderbolt', name: 'Thunderbolt', type: 'Electric' });
+    const grounded = buildBattleUiView(facts({ field: ELECTRIC, moves: [bolt] }), REVEAL_ALL, abilityEffects);
+    const flying = buildBattleUiView(facts({ field: ELECTRIC, player: active({ grounded: false }), moves: [bolt] }), REVEAL_ALL, abilityEffects);
+    expect(grounded.moves[0]?.fieldFactor).toBe(1.3);
+    expect(flying.moves[0]?.fieldFactor).toBe(1);
+  });
+});
+

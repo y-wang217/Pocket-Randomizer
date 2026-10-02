@@ -40,7 +40,7 @@ async function accentButtons(page: Page): Promise<string[]> {
 /** To the party screen from the first map, with the Release band open. */
 async function openReleaseBand(page: Page): Promise<void> {
   await playUntil(page, (screen) => screen === 'map');
-  await page.locator(`${visible('map')} .party__header .button`).click();
+  await page.locator('[data-nav="team"]').click();
   await page.waitForSelector(visible('party'));
   // A party of one cannot release, so the button is disabled on this seed at
   // this point; the band is opened through the button's own handler anyway.
@@ -107,11 +107,18 @@ describe('the band', () => {
 });
 
 describe('the corner stamps', () => {
-  it('are fixed, out of flow, and clear of painted content on every screen', async () => {
+  /*
+   * "Fixed, out of flow" until Stage 5.0/1, when the frame took the page's
+   * height and the stamps became a strip at its foot, in flow and clear of
+   * the screens by construction. The collision sweep below is unchanged.
+   */
+  it('sit in the strip at the foot of the frame, clear of painted content on every screen', async () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
-    const positions = await page.evaluate(() => [...globalThis.document.querySelectorAll('.stamp')].map((s) => globalThis.getComputedStyle(s).position));
-    expect(positions.length).toBe(4);
-    expect(new Set(positions)).toEqual(new Set(['fixed']));
+    const placed = await page.evaluate(() =>
+      [...globalThis.document.querySelectorAll('.stamp')].map((stamp) => stamp.parentElement?.classList.contains('stamps') && stamp.parentElement.parentElement?.classList.contains('shell')),
+    );
+    expect(placed.length).toBe(4);
+    expect(new Set(placed)).toEqual(new Set([true]));
 
     const seen = new Set<string>();
     const collisions: string[] = [];
@@ -123,7 +130,7 @@ describe('the corner stamps', () => {
         continue;
       }
       if (screen === 'map' && !opened) {
-        await page.locator(`${visible('map')} .party__header .button`).click();
+        await page.locator('[data-nav="team"]').click();
         await page.waitForTimeout(50);
         opened = true;
         continue;

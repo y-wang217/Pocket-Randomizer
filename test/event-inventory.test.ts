@@ -38,8 +38,6 @@ function outcomeOf(grant: readonly ResolvedEffect[], cost: readonly ResolvedEffe
 function option(archetype: EventArchetype, paid: EventOutcome): EventOption {
   return {
     archetype,
-    label: archetype,
-    hint: archetype,
     toll: null,
     outcomes: { T0: paid, T1: paid, T2: paid, T3: paid },
     tierAt: { none: 'T1', latent: 'T1', known: 'T1' },
@@ -52,7 +50,6 @@ function eventWith(paid: EventOutcome): EventInstance {
     eventId: 'test',
     locale: 'forest',
     rarity: 'common',
-    prompt: 'p',
     requires: 'cut',
     options: [option('safe', paid)],
   };
