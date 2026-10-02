@@ -12609,13 +12609,13 @@ it has always been, not on the cards.
 - **The card's face** is a fan of three berry sprites in the item card's
   slot, the first three of the card's own table (the healing and status
   berries, never the resist ones, so the face cannot read as a hint). Once
-  answered, the chosen berry alone, with that berry's press. `screens/reward.ts`.
+  answered, the chosen berry alone, with that berry's press. `src/ui/screens/reward.ts`.
 - **The pick** is drawn on the result screen in the cards' place, after the
   claim band commits the card: fifteen `item` reward cards, five across, the
   same component, the same heading and badge, selected only after a tap and
   claimed by the band's commit (`This one?` / `Take` / `Back`). The band's
   cancel returns to the fifteen and never past them, since the card is taken.
-  `screens/result.ts`, `BerryPrompt`; `app.ts`, `chooseBerry`. No second
+  `src/ui/screens/result.ts`, `BerryPrompt`; `src/ui/app.ts`, `chooseBerry`. No second
   path by which a node completes.
 - **The decision feed** prints `Berry · <name>` at the `berry` entry and
   `Reward · Pick a berry` at the `reward` entry before it. The saved-log
@@ -12639,7 +12639,7 @@ because the canon would otherwise be silent on a face the tree draws.
   the data digest. Every seed's run moved, not only the ones that reach a gym
   page that deals the pick, because the scripted bot's index-0 answer on page
   2 lands on a different card wherever the weighted pick shifted, and the
-  bag, the shop and the fights after it follow. `battles/GYMRUN01.json` is
+  bag, the shop and the fights after it follow. `docs/visual/baseline/battles/GYMRUN01.json` is
   unmoved: no battle draw changed.
 - **`test/gym-held-items.test.ts`'s digest** is unmoved: it covers wild and
   trainer teams, and no team draw changed.
