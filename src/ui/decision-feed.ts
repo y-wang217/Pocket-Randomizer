@@ -41,7 +41,7 @@ import type { EventInstance } from '../core/events';
 import type { EvolutionQuestion } from '../core/evolution';
 import { describeReward, type RewardOffer } from '../core/rewards';
 import type { RunPolicy, RunState } from '../core/run';
-import type { BattleView, PokemonState, RunDecision, RunLog } from '../core/types';
+import type { BattleView, ItemPlan, PokemonState, RunDecision, RunLog } from '../core/types';
 import { eventLabel } from '../data/eventCopy';
 import { itemName } from '../data/items';
 import { localeById, type LocaleId } from '../data/locales';
@@ -99,6 +99,21 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
     party = namesOf(state.party);
   };
 
+  // One wording for a layout, whether a boundary's plan or an ad hoc
+  // `items` edit carried it (bible Rev 22, D91).
+  const describePlan = (plan: ItemPlan): string => {
+    const { assignments, teaches, discards, discardTms } = plan;
+    const parts = [
+      ...assignments.map((assignment) =>
+        assignment.item ? FEED_COPY.held(itemName(assignment.item), party[assignment.slot] ?? '') : FEED_COPY.unheld(party[assignment.slot] ?? ''),
+      ),
+      ...teaches.map((teach) => FEED_COPY.taught(teach.move, party[teach.slot] ?? '')),
+      ...discards.map((id) => FEED_COPY.discarded(itemName(id))),
+      ...discardTms.map((move) => FEED_COPY.discarded(move)),
+    ];
+    return FEED_COPY.items(parts);
+  };
+
   const line = (decision: RunDecision): string => {
     switch (decision.kind) {
       case 'starter':
@@ -136,22 +151,13 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
         const released = acquisition?.party[answer.slot] ?? '';
         return FEED_COPY.caughtReleasing(species, released);
       }
-      case 'items': {
-        const { assignments, teaches, discards, discardTms } = decision.plan;
-        const parts = [
-          ...assignments.map((assignment) =>
-            assignment.item ? FEED_COPY.held(itemName(assignment.item), party[assignment.slot] ?? '') : FEED_COPY.unheld(party[assignment.slot] ?? ''),
-          ),
-          ...teaches.map((teach) => FEED_COPY.taught(teach.move, party[teach.slot] ?? '')),
-          ...discards.map((id) => FEED_COPY.discarded(itemName(id))),
-          ...discardTms.map((move) => FEED_COPY.discarded(move)),
-        ];
-        return FEED_COPY.items(parts);
-      }
+      case 'items':
+        return describePlan(decision.plan);
       case 'lead':
         return FEED_COPY.lead(leadParty[decision.index] ?? '');
       case 'party': {
         const edit = decision.edit;
+        if (edit.kind === 'items') return describePlan(edit.plan);
         if (edit.kind === 'release') {
           const name = party[edit.slot] ?? '';
           party = party.filter((_, slot) => slot !== edit.slot);

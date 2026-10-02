@@ -12465,3 +12465,27 @@ moves (the bible names neither the palette nor the PP glyph's drawing).
 5. **Gates, this container.** Type check, lint, build, the node suite (151
    files, 2,000 tests). Browser half: everything else passes after items 2
    and 4; `test/visual-chips.test.ts` is reported in the PR.
+
+## 98. Writable tabs, Team and Bag, the stage in the stat cell
+
+2026-10-02. Bible Rev 22, D91 to D95, from
+[`spec/gymrun-patch-tabs-writable-and-stage-cells.md`](spec/gymrun-patch-tabs-writable-and-stage-cells.md).
+`RUN_LOG_VERSION` moves to `-22`; `RANDOMIZER_VERSION`, `AI_VERSION` and
+`contentHash` hold.
+
+1. **An item layout made between nodes was not held in the next fight.**
+   The party screen held the layout it was left with (`pendingPlan`), and
+   `chooseItemPlan` spent it at the boundary *after* the next node, so an item
+   moved on the map took effect one fight late. The fix is in `core/`: a party
+   edit kind, `{ kind: 'items', plan }`, applied by `playRun`'s party editor in
+   place through `applyItemPlan` with the boundary's own capacity and
+   `teachableNow`, and recorded only once applied, so a refused layout never
+   reaches the log. Replay applies it where the log holds it, before the next
+   answer, exactly as a reorder. `test/item-edit-ad-hoc.test.ts`.
+2. **The boundary that follows no longer re-equips what the player put
+   away.** `run.defaultItemPlan` fills every empty hand; with the layout
+   already applied, that would undo an unequip. The app answers the boundary
+   with `items.keepLayoutPlan`: the current layout, an empty hand filled only
+   from `items.arrivedItems` (what the node put in the bag). Headless policies
+   keep `defaultItemPlan`, so no balance figure moves; the sim fixture's diff
+   is the version line alone.

@@ -214,6 +214,10 @@ function isRunDecision(value: unknown): boolean {
     case 'party': {
       const edit = decision.edit as { kind?: unknown; from?: unknown; to?: unknown; slot?: unknown } | undefined;
       if (edit?.kind === 'reorder') return typeof edit.from === 'number' && typeof edit.to === 'number';
+      if (edit?.kind === 'items') {
+        const plan = (edit as { plan?: { assignments?: unknown; discards?: unknown } }).plan;
+        return Array.isArray(plan?.assignments) && Array.isArray(plan?.discards);
+      }
       return edit?.kind === 'release' && typeof edit.slot === 'number';
     }
     default:

@@ -52,7 +52,7 @@
  * so the cycle is a call graph rather than an evaluation order.
  */
 import { replacementNeeded, teachApplies, teachMove } from './party';
-import type { ItemId, ItemPlan, PokemonSpec, PokemonState, TmTeach } from './types';
+import type { ItemAssignment, ItemId, ItemPlan, PokemonSpec, PokemonState, TmTeach } from './types';
 import { itemById, type ItemEntry } from '../data/items';
 import type { Tuning } from '../data/tuning';
 import { NO_RELIC_EFFECTS, type RelicEffects } from './relics';
@@ -430,6 +430,56 @@ export function applyItemPlan<
   }
 
   return { ...state, party, backpack: pool, tms };
+}
+
+/**
+ * The plan that keeps the layout the player left, and equips only what is new.
+ * **Bible Rev 22, D91.**
+ *
+ * A layout made between nodes is applied when it is made, so by the next
+ * boundary there is nothing held to answer it with. `run.defaultItemPlan` would
+ * answer by filling every empty hand from the bag, and that would put back an
+ * item the player had just taken off on purpose. This fills an empty hand only
+ * from `arrived` — what the node just put in the bag, in the order it arrived —
+ * which is the part of the default the player relied on (a reward lands in a
+ * free hand) without the part that overrode them.
+ *
+ * Names nothing it leaves alone: an unnamed slot keeps its item. Over-capacity
+ * is not handled here; the caller passes the result through
+ * `reconcileItemPlan`, whose rule 4 discards from the front as the default does.
+ */
+export function keepLayoutPlan(
+  state: { party: readonly PokemonState[]; backpack: readonly ItemId[] },
+  arrived: readonly ItemId[],
+): ItemPlan {
+  const bag = [...state.backpack];
+  const fresh = arrived.filter((item) => {
+    const at = bag.indexOf(item);
+    if (at === -1) return false;
+    bag.splice(at, 1);
+    return true;
+  });
+  const assignments: ItemAssignment[] = [];
+  state.party.forEach((member, slot) => {
+    if (member.item !== undefined) return;
+    const item = fresh.shift();
+    if (item !== undefined) assignments.push({ slot, item });
+  });
+  return { assignments, discards: [], teaches: [], discardTms: [] };
+}
+
+/**
+ * What a node put in the bag: `after` less `before`, as multisets, in the
+ * order `after` holds them. The input `keepLayoutPlan` fills empty hands from.
+ */
+export function arrivedItems(before: readonly ItemId[], after: readonly ItemId[]): ItemId[] {
+  const pool = [...before];
+  return after.filter((item) => {
+    const at = pool.indexOf(item);
+    if (at === -1) return true;
+    pool.splice(at, 1);
+    return false;
+  });
 }
 
 /**

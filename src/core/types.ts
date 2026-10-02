@@ -714,8 +714,20 @@ export interface TmTeach {
  * deterministic policy, so recording the opponent's choices would be recording
  * the engine's output rather than the player's input.
  */
-/** One edit a player makes on the party screen between questions. */
-export type PartyEdit = { kind: 'reorder'; from: number; to: number } | { kind: 'release'; slot: number };
+/**
+ * One edit a player makes on the party screen between questions.
+ *
+ * **`items` is the layout the player left the party screen with, applied the
+ * moment the next question is answered. Bible Rev 22, D91.** A layout composed
+ * between nodes used to be held until the boundary *after* the next node, so
+ * an item moved on the map was not held in the fight it was moved for. It is
+ * one entry per committed layout, never one per tap, which is the rule
+ * `ItemPlan` itself states: the log records the decision, not the fidgeting.
+ */
+export type PartyEdit =
+  | { kind: 'reorder'; from: number; to: number }
+  | { kind: 'release'; slot: number }
+  | { kind: 'items'; plan: ItemPlan };
 
 export type RunDecision =
   /*
