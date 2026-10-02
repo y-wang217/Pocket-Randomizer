@@ -12456,7 +12456,7 @@ moves (the bible names neither the palette nor the PP glyph's drawing).
    on, the round is a 24-by-9 sliver at 16px; upright it fills the cell and
    reads as a round beside the number. Same id, family, label and slot. The
    M1.1 glyph sheets are regenerated.
-4. **A test rule narrowed.** `test/visual-v1` and `test/visual-v3` held a
+4. **A test rule narrowed.** `test/visual-v1.test.ts` and `test/visual-v3.test.ts` held a
    style on an unchanged surface to *equal* its V0 contrast. The dark palette
    put the map node's detail line, its type chip and the battle panel's HP
    text back on V0's surfaces, where 5.0's heavier text reads 13.56, 8.07 and
