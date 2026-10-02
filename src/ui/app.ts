@@ -58,10 +58,10 @@ import { TEACH_CANCELLED, createItemTargetScreen } from './screens/item-target';
 import { createMoveReplaceScreen } from './screens/move-replace';
 import { describeMove } from '../core/battle/driver';
 import { replacementNeeded } from '../core/party';
-import { createPartyScreen } from './screens/party';
+import { createPartyScreen, type PartyFocus } from './screens/party';
 import { createLocaleSelect } from './screens/locale-select';
 import { createResultScreen } from './screens/result';
-import { createRouter, DRAWER_SURFACES, type ScreenName } from './screens/router';
+import { createRouter, DRAWER_SURFACES, PARTY_EDIT_SURFACES, WRITABLE_TAB_SURFACES, type ScreenName } from './screens/router';
 import { createHeader } from './header';
 import { createShopScreen } from './screens/shop';
 import { createRunMap } from './screens/run-map';
@@ -361,6 +361,8 @@ export function mountApp(root: HTMLElement): void {
    * the real map was the party screen's own control underneath.
    */
   let leavePartyForMap: () => boolean = () => false;
+  /** Redraw the open party screen as the other tab's. Assigned by `start()`. */
+  let switchPartyFocus: (focus: PartyFocus) => void = () => undefined;
 
   nav.onPress((id, button) => {
     const name = router.current();
@@ -372,7 +374,8 @@ export function mountApp(root: HTMLElement): void {
       closeTabScreens();
       if (name === 'party' && id !== partyVia) {
         partyVia = id === 'bag' ? 'bag' : 'team';
-        if (id === 'bag') partyScreen.root.querySelector('.backpack')?.scrollIntoView?.({ block: 'start' });
+        // Two screens over one working copy (D92): the held plan carries over.
+        switchPartyFocus(partyVia);
       }
       refreshNav();
       return;
@@ -396,9 +399,8 @@ export function mountApp(root: HTMLElement): void {
         }
         const view = readDrawer();
         if (!view) break;
-        drawer.open({ ...view, inBattle: name === 'battle' }, button);
+        drawer.open({ ...view, inBattle: name === 'battle', focus: id }, button);
         openTab = id;
-        if (id === 'bag') drawer.showBag();
         marks.showFor('drawer', drawer.root);
         break;
       }
@@ -914,7 +916,9 @@ export function mountApp(root: HTMLElement): void {
         if (teachableNow(state).size > 0) {
           live = state;
           atTeachBoundary = true;
-          showParty(partyReturn === 'pre-gym' ? 'pre-gym' : 'map');
+          // On the Bag, where the TMs are (bible Rev 22, D92).
+          partyVia = 'bag';
+          showParty(partyReturn === 'pre-gym' ? 'pre-gym' : 'map', 'bag');
           const composed = await itemPlanPick.wait();
           atTeachBoundary = false;
           holdPlan(null);
@@ -1149,13 +1153,22 @@ export function mountApp(root: HTMLElement): void {
      * two surfaces whose Manage buttons already lead there. Everywhere else
      * the tab opens the read-only drawer. Stage 5.0/1, the guard.
      */
+    /*
+     * **Every surface outside a battle, since bible Rev 22 (D91).** It was the
+     * map and pre-gym only, so a player on a result, a shop or an event could
+     * look at their items and not move one. Mid-node the screen offers items
+     * and not reorder or release, and the layout rides the node's boundary.
+     */
     openPartyRoute = (bag) => {
       const name = router.current();
-      if (!live || (name !== 'map' && name !== 'pre-gym')) return false;
+      if (!live || !name || !WRITABLE_TAB_SURFACES.includes(name)) return false;
       atTeachBoundary = false;
-      showParty(name);
-      if (bag) partyScreen.root.querySelector('.backpack')?.scrollIntoView?.({ block: 'start' });
+      showParty(name, bag ? 'bag' : 'team');
       return true;
+    };
+    switchPartyFocus = (focus) => {
+      if (router.current() !== 'party') return;
+      showParty(partyReturn, focus);
     };
     leavePartyForMap = () => {
       if (!live || router.current() !== 'party' || partyReturn !== 'map' || itemPlanPick.isWaiting()) return false;
@@ -1308,6 +1321,8 @@ export function mountApp(root: HTMLElement): void {
      * — and a redraw must not quietly retarget the way out.
      */
     let partyReturn: ScreenName = 'map';
+    /** Which tab's screen the party screen is drawn as. Bible Rev 22, D92. */
+    let partyFocus: PartyFocus = 'team';
 
     /*
      * Whether the party screen is open **at** the boundary that may spend a TM.
@@ -1357,20 +1372,31 @@ export function mountApp(root: HTMLElement): void {
      * added the control that submits a lead; this makes the detour come back to
      * it.
      */
-    const showParty = (returnTo: ScreenName): void => {
+    const showParty = (returnTo: ScreenName, focus: PartyFocus = partyFocus): void => {
       const state = live;
       if (!state) return;
       partyReturn = returnTo;
+      partyFocus = focus;
+      const betweenNodes = PARTY_EDIT_SURFACES.includes(returnTo);
       partyScreen.render(
         {
-          party: state.party,
+          /*
+           * Mid-node, the party as the node will leave it (D91): a plan names
+           * slots, and the boundary that spends it reads the resolved party,
+           * a caught Pokemon included. Between nodes that is `state.party`.
+           */
+          party: betweenNodes ? state.party : (decidedParty ?? state.party),
+          focus,
+          canEditParty: betweenNodes,
           backpack: state.backpack,
           tms: state.tms,
           teachable: atTeachBoundary ? teachableNow(state) : new Set<string>(),
           relics: state.relics,
           tuning: state.tuning,
           slots: partyCapacity(state),
-          backTo: returnTo === 'pre-gym' ? 'Back to the gym' : 'Back to the map',
+          // Named for where it goes; from a result, a shop or an event (D91)
+          // the screen under it is the one the player left, so plain Back.
+          backTo: returnTo === 'pre-gym' ? 'Back to the gym' : returnTo === 'map' ? 'Back to the map' : 'Back',
           plan: pendingPlan,
         },
         {
@@ -1388,14 +1414,14 @@ export function mountApp(root: HTMLElement): void {
             holdPlan(null);
             editParty?.({ kind: 'reorder', from, to });
             showParty(partyReturn);
-            mapScreen.render(state, (index) => nodePick.submit(index));
+            if (partyReturn !== 'locale') mapScreen.render(state, (index) => nodePick.submit(index));
           },
           onRelease: (slot) => {
             holdPlan(null);
             // The item goes to the bag, in `core/run.ts`'s editor.
             editParty?.({ kind: 'release', slot });
             showParty(partyReturn);
-            mapScreen.render(state, (index) => nodePick.submit(index));
+            if (partyReturn !== 'locale') mapScreen.render(state, (index) => nodePick.submit(index));
           },
           onPlan: (plan) => {
             holdPlan(plan);

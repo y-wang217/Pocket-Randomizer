@@ -1365,6 +1365,14 @@ body {
 }
 .stat__delta--up { color: var(--stage-up); }
 .stat__delta--down { color: var(--stage-down); }
+/* A battle stage in its own cell (bible Rev 22, D95): the stat as it stands,
+   the signed count beneath, both in the stage colours. */
+.stat__stage { display: block; font-size: var(--fs-xs); font-weight: 700; line-height: 1; text-align: center; }
+.stat__stage--up { color: var(--stage-up); }
+.stat__stage--down { color: var(--stage-down); }
+.stat[data-stage] { animation: stat-stage-pulse 420ms ease-out 1; }
+@keyframes stat-stage-pulse { 0% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .stat[data-stage] { animation: none; } }
 .stat[data-change="up"] { box-shadow: inset 0 calc(-1 * var(--space-h)) 0 color-mix(in srgb, var(--stage-up) 55%, transparent); }
 .stat[data-change="down"] { box-shadow: inset 0 calc(-1 * var(--space-h)) 0 color-mix(in srgb, var(--stage-down) 55%, transparent); }
 
@@ -1472,7 +1480,7 @@ body {
    and the effect line at rest; a tapped tile takes the whole line for its
    give and discard controls. */
 .backpack__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.backpack__item[data-expanded="true"] { grid-column: 1 / -1; }
+.backpack__item[data-picked="true"] { grid-column: 1 / -1; }
 
 /* The threat readout's counts: beside the chip in Detailed and Simple, on the
    chip's tip in Pocket. */
@@ -1646,7 +1654,7 @@ body {
 
 /* Backpack tiles: the slot, then the item as one tap target (R13, D81). */
 .backpack__item { gap: var(--space-1); align-items: flex-start; flex-wrap: nowrap; }
-.backpack__item[data-expanded="true"] { flex-wrap: wrap; }
+.backpack__item[data-picked="true"] { flex-wrap: wrap; }
 .collapse__toggle.party__member-toggle { padding: 0 var(--space-1h); }
 
 /* Relics in Pocket: the list folds behind the title, which carries the count
@@ -1887,13 +1895,139 @@ body {
 .backpack__pick:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
 .backpack__icon { grid-row: span 2; display: inline-flex; line-height: 0; }
 .backpack__name { font-weight: 700; font-size: var(--fs-sm); }
-.backpack__item[data-expanded="true"] { outline: var(--hairline) solid var(--selected); }
+.backpack__item[data-picked="true"] { outline: var(--hairline) solid var(--selected); }
 .backpack__controls {
   flex-basis: 100%;
   flex-wrap: wrap;
   gap: var(--space-1h);
+  display: none;
 }
-.backpack__item[data-expanded="true"] > .backpack__controls { display: flex; }
+.backpack__item[data-picked="true"] > .backpack__controls { display: flex; }
+.backpack__put-away { justify-self: start; margin: var(--space-1) 0; }
+
+/* ---------- the Team and Bag screens (bible Rev 22, D92 to D94) ---------- */
+
+/* Two halves over one working copy; `hidden` wins over the display below. */
+.party__team[hidden],
+.party__bag[hidden],
+.screen--party .screen__blurb[hidden],
+.drawer__members[hidden],
+.drawer__relics[hidden],
+.drawer__held-section[hidden],
+.drawer__bag[hidden] { display: none; }
+.drawer__held .drawer__item > .slot__number { flex: none; }
+.party__team,
+.party__bag { display: flex; flex-direction: column; gap: calc(var(--space-2) * var(--chrome-gap)); }
+
+/* The view switch: three equal segments, the one up pressed. A control, not
+   a ranking: the order is the bible's, Stats, Moves, Coverage. */
+.party__views {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.party__view-tab {
+  min-height: 40px;
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  background: var(--bg-sunken);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: var(--fs-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.party__view-tab + .party__view-tab { border-left: var(--hairline) solid var(--border-strong); }
+.party__view-tab[aria-selected="true"] { background: var(--bg-raised); color: var(--text); font-weight: 700; }
+.party__view-tab:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: calc(-1 * var(--space-h)); }
+.party__view { display: flex; flex-direction: column; gap: calc(var(--space-2) * var(--chrome-gap)); }
+
+/* The sort: the player's, starting in party order (D93). Pressed is the one
+   they asked for; nothing else is marked. */
+.party__sort { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); }
+.party__sort-label { font-size: var(--fs-xs); color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; }
+.party__sort-key {
+  min-height: 36px;
+  min-width: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-1h);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--bg-sunken);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.party__sort-key[aria-pressed="true"] { border-color: var(--selected); outline: var(--hairline) solid var(--selected); }
+.party__sort-key .glyph { width: 18px; height: 18px; }
+
+/* Moves: one row per member, its four chips two to a line on a phone. */
+.moves-grid { display: flex; flex-direction: column; gap: calc(var(--space-2) * var(--chrome-gap)); }
+.moves-grid__row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: calc(var(--space-2) * var(--chrome-pad));
+  border-radius: var(--radius-card);
+  background: var(--bg-sunken);
+}
+.moves-grid__who { display: flex; align-items: center; gap: var(--space-1); font-weight: 700; }
+.moves-grid__moves { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-1); }
+@media (min-width: 720px) {
+  .moves-grid__moves { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.moves-grid .move--chip { min-width: 0; }
+
+/* Coverage: the summary's wheel, centred. */
+.party__view > .coverage__box { align-self: center; }
+
+/* Held: one row per member, the item at rest (R13), two taps to move it. */
+.held__title { margin: 0; font-size: var(--fs-md); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+.held__list { list-style: none; margin: var(--space-1) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.held__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  padding: calc(var(--space-1h) * var(--chrome-pad)) calc(var(--space-2h) * var(--chrome-pad));
+  border-radius: var(--radius-card);
+  background: var(--bg-sunken);
+}
+.held__item[data-picked="true"] { outline: var(--hairline) solid var(--selected); }
+/* With something picked up, every member is a place it can go: the same
+   dashed edge on all of them, never on one. */
+.held[data-picking] .held__item:not([data-picked="true"]) { outline: var(--hairline) dashed var(--border-strong); }
+.held__pick {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 7.5em) auto minmax(0, 1fr);
+  grid-template-areas: "slot member icon name" "slot member icon effect";
+  align-items: center;
+  column-gap: var(--space-1h);
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.held__pick:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
+.held__pick > .slot__number { grid-area: slot; }
+.held__member { grid-area: member; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.held__icon { grid-area: icon; display: inline-flex; line-height: 0; min-width: 24px; }
+.held__name { grid-area: name; font-size: var(--fs-sm); }
+.held__item--empty .held__name { color: var(--text-dim); }
+.held__effect { grid-area: effect; font-size: var(--fs-xs); line-height: 1.3; color: var(--text-dim); }
+.held__effect:empty { display: none; }
 
 .backpack__empty,
 .backpack__discarded {

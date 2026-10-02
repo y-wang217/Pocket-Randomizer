@@ -565,7 +565,9 @@ describe('the loaded board', () => {
         panels: panels.map((panel) => ({
           height: r(panel.getBoundingClientRect().height),
           status: panel.querySelectorAll('.badge--status:not([hidden])').length,
-          stages: panel.querySelectorAll('.panel__stages .chip--stage').length,
+          // A stage chip, or on the player's side a staged stat cell (bible
+          // Rev 22, D95): the board is still loaded with a stage on each side.
+          stages: panel.querySelectorAll('.panel__stages .chip--stage, .stat[data-stage]').length,
         })),
       };
     });

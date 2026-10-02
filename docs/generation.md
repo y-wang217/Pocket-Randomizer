@@ -12499,3 +12499,32 @@ moves (the bible names neither the palette nor the PP glyph's drawing).
    which comes before the next fight. The boundary with nothing held answers
    `keepLayoutPlan(state, nodeArrived)`, where `nodeArrived` is read off
    `onNodeResolved`, which a resume's replay fires too.
+4. **The tabs are writable outside a battle** (D91). `screens/router.ts`
+   gains `PARTY_EDIT_SURFACES` (map, pre-gym, locale) and
+   `WRITABLE_TAB_SURFACES` (those, plus result, shop and event). Team and Bag
+   open the party screen from any of the second list; reorder and release are
+   drawn only on the first, because the run folds a fight onto the party by
+   slot. Mid-node the screen shows the projected party, so a plan names the
+   slots the boundary will read. The teach screens stay readouts, since the
+   party screen is waiting on their answer. The teach boundary opens on the
+   Bag, where the TMs are. In a battle the readout draws no editing control:
+   its fold is a disclosure chevron (`collapsible`'s `readout` option), not
+   `+`.
+5. **Team and Bag are two screens over one working copy** (D92 to D94).
+   `screens/party.ts` takes a `focus`. Team: the threats line, then Stats
+   (the member cards with a player-chosen sort that starts in party order and
+   is not remembered), Moves (`moveChip` rows with PP) and Coverage (the
+   summary's wheel, moved to `ui/coverage-wheel.ts` so both call it). Bag:
+   the held list, the backpack, TMs and relics; any item is moved in two
+   taps, member to member included. The party hotbar left the screen (R3
+   with the held list) and the per-species give buttons with it. The drawer
+   follows the same split.
+6. **The stage is in its stat cell** (D95). `statBlock` takes `stages`; on
+   the player's panel a staged cell draws the effective stat with the signed
+   count beneath, `data-stage` colours both through the rule the stylesheet
+   has carried unused since V5, and the label's press adds base, stage and
+   multiplier. The player's five leave the chip row and its marker; accuracy,
+   evasion and every foe stage keep them. **Deviation from the bible's
+   section 6 step 9 as amended:** the cell pulses on every redraw that
+   carries a stage, not only on the turn the stage changes, because the
+   block is rebuilt rather than patched.

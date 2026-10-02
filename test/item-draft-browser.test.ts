@@ -74,47 +74,71 @@ describe('the unspent item plan across a reload', () => {
 
   // A seed whose smoke walk puts an item in a member's hands early; SMOKE24's
   // does not before its first loss.
-  it('keeps an item moved to the bag from the map, after a reload', async () => {
-    const { page, context, problems } = await openApp(harness.browser, harness.url, 'SMK49-2');
-    // The Team tab, which from the map opens the writable party screen (5.0/4:
-    // the map's Manage button went with its party HUD).
-    const manage = page.locator('[data-nav="team"]');
-    const toBag = page.locator(`${visible('party')} button`, { hasText: 'To bag' }).first();
-
-    // Walk until a member is holding something, looking from the map.
-    let holding = false;
-    for (let step = 0; step < 900 && !holding; step++) {
+  //
+  // **On the Bag tab since bible Rev 22 (D94)**, where *To bag* is the picked
+  // held item's own control, and **the layout now reaches the next fight
+  // (D91)**: it is logged, as a party edit, just before the node it was made
+  // for, rather than held to the boundary after it.
+  async function walkToHolder(page: Page): Promise<boolean> {
+    const bagTab = page.locator('[data-nav="bag"]');
+    for (let step = 0; step < 900; step++) {
       const screen = await openScreen(page);
-      if (screen === 'summary') break;
-      if (screen === 'map' && (await manage.count())) {
-        await manage.click();
+      if (screen === 'summary') return false;
+      if (screen === 'map' && (await bagTab.count())) {
+        await bagTab.click();
         await settle(page);
-        holding = (await toBag.count()) > 0;
-        if (holding) break;
+        if ((await page.locator(`${visible('party')} .held__item:not(.held__item--empty)`).count()) > 0) return true;
         await page.locator(`${visible('party')} .primary-action`).first().click();
         await settle(page);
       }
       await stepOnce(page, await openScreen(page));
     }
-    expect(holding, 'no member ever held an item').toBe(true);
+    return false;
+  }
 
-    // The one face folds every member card (Stage 5.0/1; it ran in Detailed,
-    // unfolded, until then). Open the holder's card to reach its control.
-    const holder = page.locator(`${visible('party')} .party__member`, { has: page.locator('button', { hasText: 'To bag' }) }).first();
-    await holder.locator('.party__member-toggle').click();
+  async function putFirstHeldAway(page: Page): Promise<void> {
+    const holder = page.locator(`${visible('party')} .held__item:not(.held__item--empty)`).first();
+    await holder.locator('.held__pick').click();
     await settle(page);
-    await toBag.click();
+    await page.locator(`${visible('party')} .held__away`).click();
     await settle(page);
+  }
+
+  it('keeps an item moved to the bag from the map, after a reload', async () => {
+    const { page, context, problems } = await openApp(harness.browser, harness.url, 'SMK49-2');
+    expect(await walkToHolder(page), 'no member ever held an item').toBe(true);
+    await putFirstHeldAway(page);
     const before = await partyText(page);
     expect(before).not.toBe('');
 
     await page.reload({ waitUntil: 'load' });
     await page.waitForSelector(visible('map'), { timeout: 30_000 });
     await settle(page);
-    await manage.click();
+    await page.locator('[data-nav="bag"]').click();
     await settle(page);
 
     expect(await partyText(page), 'the item stays in the bag').toBe(before);
+    expect(problems).toEqual([]);
+    await context.close();
+  }, 480_000);
+
+  it('logs the layout just before the next node, so the next fight is fought with it', async () => {
+    const { page, context, problems } = await openApp(harness.browser, harness.url, 'SMK49-2');
+    expect(await walkToHolder(page), 'no member ever held an item').toBe(true);
+    await putFirstHeldAway(page);
+    await page.locator(`${visible('party')} .primary-action`).first().click();
+    await settle(page);
+    expect(await openScreen(page)).toBe('map');
+
+    const logged = (): Promise<{ kind: string; edit?: { kind: string } }[]> =>
+      page.evaluate(() => JSON.parse(globalThis.localStorage.getItem('gymrun.lastRun') ?? '{"decisions":[]}').decisions);
+    const before = (await logged()).length;
+    await stepOnce(page, 'map');
+    await settle(page);
+    const after = (await logged()).slice(before);
+    expect(after[0]?.kind, 'the layout is logged first').toBe('party');
+    expect(after[0]?.edit?.kind).toBe('items');
+    expect(after[1]?.kind, 'and the node it was made for right after it').toBe('node');
     expect(problems).toEqual([]);
     await context.close();
   }, 480_000);

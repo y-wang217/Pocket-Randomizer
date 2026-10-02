@@ -22,7 +22,6 @@
  * nothing about whether that was enough; the route is what was walked.
  */
 import { describeSpecCard, describeMove } from '../../core/battle/driver';
-import { offensiveCoverage } from '../../core/coverage';
 import { routeAt } from '../../core/encounters';
 import { hpState } from '../../core/hpCopy';
 import { formatSeedString } from '../../core/seedString';
@@ -42,7 +41,7 @@ import { nextSlotUnlock } from '../../data/partyTuning';
 import { deathLine, shareText, type ShareView } from '../copy/share';
 import { localeById } from '../../data/locales';
 import { relicById } from '../../data/relics';
-import { WHEEL_TYPES } from '../../core/battle/driver';
+import { coverageWheel } from '../coverage-wheel';
 import { abilityChip, monTypeChip } from '../chip';
 import { OUTCOME_WORDS, TIER_ROWS, tierRowFor } from '../copy/summary';
 import { el, levelAria, levelText, moveCard } from '../scene';
@@ -277,7 +276,7 @@ export function createSummary(): Summary {
       graveHeading.hidden = deaths.length === 0;
       grave.hidden = deaths.length === 0;
 
-      coverage.replaceChildren(renderCoverage(state));
+      coverage.replaceChildren(coverageWheel(state.party));
       list.replaceChildren(...state.history.map((visit) => renderVisit(visit, state)));
       shareable = shareText(shareViewOf(state, result.outcome, cleared, score, deaths));
     },
@@ -456,35 +455,6 @@ function renderMember(member: RunState['party'][number], index: number, tuning: 
 
   card.append(header, figure, meta, moves, renderContribution(member));
   return card;
-}
-
-/**
- * The coverage wheel: eighteen spokes, one per type in the chart's order,
- * the ones the party's damaging moves reach filled. Read from
- * `offensiveCoverage` and nothing else. No score, no count, no colour that
- * says whether eleven of eighteen is good.
- */
-function renderCoverage(state: RunState): HTMLElement {
-  const covered = new Set(offensiveCoverage(state.party));
-  const size = 120;
-  const centre = size / 2;
-  const spokes = WHEEL_TYPES.map((type, index) => {
-    const angle = (index / WHEEL_TYPES.length) * Math.PI * 2 - Math.PI / 2;
-    const x = centre + Math.cos(angle) * (centre - 14);
-    const y = centre + Math.sin(angle) * (centre - 14);
-    const hit = covered.has(type);
-    return (
-      `<line x1="${centre}" y1="${centre}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" class="coverage__spoke${hit ? ' coverage__spoke--covered' : ''}" data-type="${type}"/>` +
-      `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${hit ? 4 : 2}" class="coverage__tip${hit ? ' coverage__tip--covered' : ''}" data-type="${type}"><title>${type}${hit ? '' : ' (not reached)'}</title></circle>`
-    );
-  });
-  const wheel = el('div', 'coverage__wheel');
-  wheel.innerHTML = `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="Types the party's moves reach">${spokes.join('')}</svg>`;
-  const legend = el('p', 'coverage__legend');
-  legend.textContent = covered.size === 0 ? 'No damaging moves.' : `Reaches ${[...covered].join(', ')}.`;
-  const box = el('div', 'coverage__box');
-  box.append(wheel, legend);
-  return box;
 }
 
 /**

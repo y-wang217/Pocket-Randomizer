@@ -48,7 +48,14 @@ describe('renderSlots', () => {
 });
 
 describe('the party screen', () => {
-  it('renders party and backpack slots in state order, and reorders with the state', () => {
+  /*
+   * **The party hotbar left the party screen with bible Rev 22 (D94).** The
+   * Bag's held list names each member's item at rest, and a hotbar beside it
+   * was the same fact in a second channel (R3). The list keeps what the
+   * hotbar held this test to: state order, the item in its member's row, and
+   * a reorder followed rather than sorted.
+   */
+  it('renders the held list and backpack slots in state order, and reorders with the state', () => {
     const screen = createPartyScreen();
     let party = [member('Bulbasaur', 'leftovers'), member('Charmander'), member('Squirtle', 'sitrusberry')];
     const view = {
@@ -64,15 +71,12 @@ describe('the party screen', () => {
       backTo: 'Back to the map',
       plan: null,
     };
+    const held = (): string[] => [...screen.root.querySelectorAll('.held__item')].map((row) => `${row.querySelector('.held__member')?.textContent}:${row.querySelector('.held__name')?.textContent}`);
 
     screen.render(view, handlers);
-    expect(labels(screen.root, '.slots--party')).toEqual(['Bulbasaur', 'Charmander', 'Squirtle', ...Array(THREE_UP - 3).fill('')]);
-    expect(screen.root.querySelectorAll('.slots--party .slot')).toHaveLength(THREE_UP);
-    // The held item rides in its member's slot.
-    const partySlots = [...screen.root.querySelectorAll('.slots--party .slot')];
-    expect(partySlots[0]?.querySelector('.slot__icon')?.getAttribute('aria-label')).toBe('Leftovers');
-    expect(partySlots[1]?.querySelector('.slot__icon')).toBeNull();
-    // The cards beneath carry the same numbers in the same order.
+    expect(screen.root.querySelectorAll('.slots--party')).toHaveLength(0);
+    expect(held()).toEqual(['Bulbasaur:Leftovers', 'Charmander:Nothing held', 'Squirtle:Sitrus Berry']);
+    // The cards on the Team half carry the same slot numbers in the same order.
     expect([...screen.root.querySelectorAll('.party--manage .party__member .slot__number')].map((n) => n.textContent)).toEqual(['1', '2', '3']);
 
     const backpackSlots = [...screen.root.querySelectorAll('.slots--backpack .slot')];
@@ -80,10 +84,9 @@ describe('the party screen', () => {
     expect(labels(screen.root, '.slots--backpack').slice(0, 2)).toEqual(['Oran Berry', 'Charcoal']);
     expect(backpackSlots.slice(2).every((slot) => slot.classList.contains('slot--empty'))).toBe(true);
 
-    // Reorder the state: slot 3 to the lead. The slots follow, nothing sorts.
+    // Reorder the state: slot 3 to the lead. The list follows, nothing sorts.
     party = reorderParty(party, 2, 0);
     screen.render({ ...view, party }, handlers);
-    expect(labels(screen.root, '.slots--party').slice(0, 3)).toEqual(['Squirtle', 'Bulbasaur', 'Charmander']);
-    expect([...screen.root.querySelectorAll('.slots--party .slot')][0]?.querySelector('.slot__icon')?.getAttribute('aria-label')).toBe('Sitrus Berry');
+    expect(held()).toEqual(['Squirtle:Sitrus Berry', 'Bulbasaur:Leftovers', 'Charmander:Nothing held']);
   });
 });

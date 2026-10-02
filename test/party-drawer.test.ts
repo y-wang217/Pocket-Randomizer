@@ -180,7 +180,9 @@ describe('the drawer itself', () => {
      */
     // Detailed, Pocket and Simple left with the density picker at Stage 5.0/1,
     // and the three speeds moved to the Settings screen the same stage.
-    expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual(['+', 'Close']);
+    // The fold's control is a disclosure chevron on a readout, not `+`, which
+    // read as an edit (bible Rev 22, D91).
+    expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual(['Close', '\u25BE']);
 
     /*
      * **The card is not a `<button>`, so the sweep above cannot see it, and

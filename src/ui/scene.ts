@@ -1104,10 +1104,22 @@ function updateSidePanel(
    * The player's six numbers at rest (D83), redrawn only when the body or its
    * numbers change: a level-up mid-run and a switch are the two that do.
    */
-  if (!isFoe && panel.root.dataset['detail'] !== detail) {
+  /*
+   * **And when a stage changes. Bible Rev 22, D95.** The player's stages are
+   * drawn in their own cells, so the block redraws on a stage as it does on a
+   * switch; the key is the six base numbers plus the five stages.
+   */
+  const staged = BOOSTABLE_STATS.map((stat) => `${stat}:${active.stats[stat].stage}:${active.stats[stat].effective}`).join(',');
+  if (!isFoe && panel.stats.dataset['key'] !== `${detail}|${staged}`) {
     const values: Record<string, number> = { hp: active.hp.max };
-    for (const stat of BOOSTABLE_STATS) values[stat] = active.stats[stat].base;
-    panel.stats.replaceChildren(statBlock(values, { layout: 'row', level: active.level }));
+    const stages: Record<string, { stage: number; effective: number; multiplier: string }> = {};
+    for (const stat of BOOSTABLE_STATS) {
+      values[stat] = active.stats[stat].base;
+      const { stage, effective } = active.stats[stat];
+      if (stage !== 0) stages[stat] = { stage, effective, multiplier: formatStageMultiplier(stage) };
+    }
+    panel.stats.replaceChildren(statBlock(values, { layout: 'row', level: active.level, stages }));
+    panel.stats.dataset['key'] = `${detail}|${staged}`;
   }
   panel.root.dataset['detail'] = detail;
 
@@ -1197,7 +1209,13 @@ function updateSidePanel(
    * archetype label rather than as numbers. That is the plan's budget, and the
    * V5 report records it as the one thing this stage takes away.
    */
-  const stages = BOOSTABLE_STATS.filter((stat) => active.stats[stat].stage !== 0).map((stat) =>
+  /*
+   * **The foe's five only, since bible Rev 22 (D95).** The player's five are
+   * drawn in their own stat cells, and a chip here as well would be one stage
+   * in two channels on one surface (R3). The foe has no block on its panel
+   * (D83), so its stages stay here.
+   */
+  const stages = (isFoe ? BOOSTABLE_STATS : []).filter((stat) => active.stats[stat].stage !== 0).map((stat) =>
     stageChip(active.stats[stat].stage, STAT_LABELS[stat]),
   );
 
@@ -1233,7 +1251,7 @@ function updateSidePanel(
    * rides on `data-detail` rather than being looked up, for the same reason a
    * threat count does: it is a fact about *this* render, not a table entry.
    */
-  if (stages.length > 0) stages.unshift(stageMarker(stages.length, active));
+  if (stages.length > 0) stages.unshift(stageMarker(stages.length, active, isFoe));
 
   /*
    * The speed marker survives the block that used to carry it.
@@ -1308,9 +1326,11 @@ function statDetail(active: ActiveUiView): string {
  * folded; "boosted" or "weakened" would be a reading of whether the fold is
  * good news, which is the editorial rule's exact prohibition.
  */
-function stageMarker(count: number, active: ActiveUiView): HTMLElement {
+function stageMarker(count: number, active: ActiveUiView, withStats: boolean): HTMLElement {
+  // The five stats ride the marker on the foe's side only (D95).
+  const five = withStats ? BOOSTABLE_STATS : [];
   const rows: string[] = [];
-  for (const stat of BOOSTABLE_STATS) {
+  for (const stat of five) {
     const stage = active.stats[stat].stage;
     if (stage !== 0) rows.push(`${STAT_LABELS[stat]}\t${formatStageMultiplier(stage)}\t${formatStage(stage)}`);
   }
@@ -1342,7 +1362,7 @@ function stageMarker(count: number, active: ActiveUiView): HTMLElement {
    * marks gets the number instead of them.
    */
   const marker = neutralChip('', 'stages', { tip: 'stages:active' });
-  for (const stat of BOOSTABLE_STATS) {
+  for (const stat of five) {
     if (active.stats[stat].stage === 0) continue;
     const mark = glyphNode(`stat-${stat}`, { label: STAT_LABELS[stat] });
     if (mark) marker.append(mark);

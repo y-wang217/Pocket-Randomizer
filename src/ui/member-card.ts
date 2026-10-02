@@ -45,6 +45,12 @@ export interface MemberCardOptions {
    */
   index?: number;
   /**
+   * Drawn on a readout, with no write path (the drawer). The fold's control
+   * is then a disclosure chevron rather than `+`, which reads as an edit.
+   * Bible Rev 22, D91.
+   */
+  readout?: boolean;
+  /**
    * A running contribution readout, or nothing. **Stage 4.7, Part 5.**
    *
    * Off by default because most surfaces do not want it, and a *fact about
@@ -179,7 +185,7 @@ export function memberCardContents(
    */
   const body: HTMLElement[] = [moveList(member, spec, options.tuning)];
   if (options.contribution) body.push(contributionRow(member));
-  const fold = collapsible(card, body, spec.species);
+  const fold = collapsible(card, body, spec.species, { readout: options.readout ?? false });
   fold.toggle.classList.add('party__member-toggle');
   meta.append(fold.toggle);
 
