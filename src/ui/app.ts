@@ -16,7 +16,6 @@ import type { NodeSpec } from '../core/encounters';
 import type { AcquisitionDecision } from '../core/acquisition';
 import { applyBattleState } from '../core/party';
 import {
-  defaultItemPlan,
   gymClearLevel,
   describeVersionMismatch,
   isReplayable,
@@ -34,9 +33,9 @@ import {
 } from '../core/run';
 import { previewEvolutions } from '../core/evolution';
 
-import type { Choice, ItemPlan, PartyEdit, PokemonSpec, PokemonState, RunLog } from '../core/types';
+import type { Choice, ItemId, ItemPlan, PartyEdit, PokemonSpec, PokemonState, RunLog } from '../core/types';
 import { applyRelicPassives } from '../core/relics';
-import { backpackCapacity, reconcileItemPlan } from '../core/items';
+import { applyItemPlan, arrivedItems, backpackCapacity, keepLayoutPlan, reconcileItemPlan } from '../core/items';
 import { DEFAULT_TUNING } from '../data/tuning';
 import { SEED_COPY } from '../data/seedCopy';
 import type { EventArchetype } from '../data/eventPools';
@@ -658,6 +657,40 @@ export function mountApp(root: HTMLElement): void {
      * where no log could see it.
      */
     let editParty: ((edit: PartyEdit) => void) | null = null;
+    let nodeArrived: ItemId[] = [];
+
+    /*
+     * **The layout the party screen was left with, applied as the next
+     * question is answered. Bible Rev 22, D91.**
+     *
+     * It used to wait for the boundary after the next node, so an item moved
+     * on the map was not held in the fight it was moved for. Now the answer
+     * that starts the next step — a locale, a node, a lead — first hands the
+     * held layout to the run's party editor, which applies it in place and
+     * logs it just before the answer. One entry per committed layout, and none
+     * at all for a layout that changes nothing. Reconciled first, as the
+     * boundary is, so a layout the run has moved on from is brought forward
+     * rather than refused.
+     *
+     * Not at a teach boundary: there the screen answers `chooseItemPlan`
+     * itself and the plan is that answer.
+     */
+    const flushedBefore = <T,>(answer: T): T => {
+      const plan = pendingPlan;
+      const state = live;
+      if (!plan || !state || !editParty || atTeachBoundary) return answer;
+      holdPlan(null);
+      const capacity = backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics));
+      const teachable = teachableNow(state);
+      const brought = reconcileItemPlan(state, plan, capacity, teachable);
+      const applied = applyItemPlan(state, brought, capacity, teachable);
+      const same =
+        applied.party.every((member, slot) => member.item === state.party[slot]?.item && member.spec.moves.join() === state.party[slot]?.spec.moves.join()) &&
+        applied.backpack.join() === state.backpack.join() &&
+        applied.tms.join() === state.tms.join();
+      if (!same) editParty({ kind: 'items', plan: brought });
+      return answer;
+    };
 
     const policy: RunPolicy = {
       bindPartyEditor: (edit) => {
@@ -683,7 +716,7 @@ export function mountApp(root: HTMLElement): void {
           (index) => localePick.submit(index),
         );
         showScreen('locale');
-        return localePick.wait();
+        return localePick.wait().then(flushedBefore);
       },
 
       /*
@@ -712,13 +745,13 @@ export function mountApp(root: HTMLElement): void {
         pendingGym = gym;
         renderPreGym();
         showScreen('pre-gym');
-        return leadPick.wait();
+        return leadPick.wait().then(flushedBefore);
       },
       chooseNode: (options: NodeSpec[]) => {
         // The map is already rendered by onState; this only arms the buttons.
         void options;
         showScreen('map');
-        return nodePick.wait();
+        return nodePick.wait().then(flushedBefore);
       },
       /*
        * Every battle completion, win or loss, cards or none.
@@ -894,7 +927,21 @@ export function mountApp(root: HTMLElement): void {
         }
         const plan = pendingPlan;
         holdPlan(null);
-        if (!plan) return defaultItemPlan(state, teachableNow(state));
+        /*
+         * **Nothing held: keep the layout the run has, and equip only what this
+         * node brought. Bible Rev 22, D91.** A layout made on the map is already
+         * applied (`flushedBefore`), so the old answer here, `defaultItemPlan`,
+         * would fill every empty hand and put back an item the player had just
+         * taken off. `keepLayoutPlan` fills a hand only from `nodeArrived`.
+         */
+        if (!plan) {
+          return reconcileItemPlan(
+            state,
+            keepLayoutPlan(state, nodeArrived),
+            backpackCapacity(partyCapacity(state), state.tuning, applyRelicPassives(state.relics)),
+            teachableNow(state),
+          );
+        }
         /*
          * **Brought forward before it is answered with, and this is the fix
          * for the Carry on soft lock.**
@@ -1580,6 +1627,11 @@ export function mountApp(root: HTMLElement): void {
         onState,
         onBattle,
         onProjection,
+        // What each node put in the bag, for the boundary's `keepLayoutPlan`.
+        // Observed on replay too, so a resumed run answers the same way.
+        onNodeResolved: (before: RunState, after: RunState) => {
+          nodeArrived = arrivedItems(before.backpack, after.backpack);
+        },
         // The first decision of a fresh run replaces the save the button pointed at.
         onDecision: (log: RunLog) => {
           feed.record(log);

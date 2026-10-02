@@ -12489,3 +12489,13 @@ moves (the bible names neither the palette nor the PP glyph's drawing).
    from `items.arrivedItems` (what the node put in the bag). Headless policies
    keep `defaultItemPlan`, so no balance figure moves; the sim fixture's diff
    is the version line alone.
+3. **The app applies the held layout as the next question is answered.**
+   `ui/app.ts`, `flushedBefore`: the answers to `chooseLocale`, `chooseNode`
+   and `chooseLead` first hand `pendingPlan` to the party editor, reconciled
+   as the boundary reconciles, and skip it when it would change nothing, so
+   the log gains one entry per committed layout. At a teach boundary the
+   screen still answers `chooseItemPlan` itself. A layout made while a node is
+   resolving (result, shop, event) is still answered at that node's boundary,
+   which comes before the next fight. The boundary with nothing held answers
+   `keepLayoutPlan(state, nodeArrived)`, where `nodeArrived` is read off
+   `onNodeResolved`, which a resume's replay fires too.
