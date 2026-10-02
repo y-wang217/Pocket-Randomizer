@@ -348,7 +348,35 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * `docs/spec/gymrun-patch-wild-strength-and-early-gym-levels.md`,
  * `docs/generation.md` section 78.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-22';
+/*
+ * ## `-23`: the route's ceiling, and the floor under its fights
+ *
+ * **Built 2026-09-19 as `-22` and renumbered on 2026-10-02**, because it was
+ * reapplied onto a `main` that had taken `-22` for the level columns above in
+ * the meantime. The number is a position in this file's sequence rather than a
+ * property of the change, so renumbering costs nothing — and holding the
+ * collision would have been two different generators answering to one string,
+ * which is the exact failure the axis exists to announce.
+ *
+ * Three changes to how a route's shape is drawn, all in
+ * `encounters.buildRoute` and `enforceComposition`:
+ *
+ *   1. A kind that has spent its `kindCapPerRoute` allowance leaves the
+ *      allowed list for every later step, so the *same* draw off the *same*
+ *      key now picks from a different pool.
+ *   2. `ensureBattleSteps` converts steps to a straight wild-versus-trainer
+ *      choice until the route meets `battleStepFloorFor`, drawing two values
+ *      per conversion.
+ *   3. `restStepsPerGuarantee` is deleted, so `ensureKind`'s rest pass has a
+ *      smaller floor to meet and converts fewer steps, drawing less.
+ *
+ * All three change which values the shape stream hands back **and** how many
+ * it hands out, so every recorded map moves — the routes and the tiers on
+ * them, and through the tiers the contents. `contentHash` moves beside it for
+ * the table. `RUN_LOG_VERSION` holds: a step is still a step and a node is
+ * still picked by index. `docs/generation.md` section 100.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-23';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

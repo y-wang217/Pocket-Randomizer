@@ -71,14 +71,24 @@ describe('the family walk (D41)', () => {
     /*
      * SMOKE24 is the census seed, and no SMOKE24 surface paints a priority
      * move. S49B-1's starters carried one until bible Rev 19 (D78) made their
-     * moves chips, which carry no chevron. PRIO-3's party fixture carries Beak
+     * moves chips, which carry no chevron. PRIO-39's party fixture carries Beak
      * Blast, a negative bracket, on its first member card, which folds in
      * Pocket: the walk opens that card.
+     *
+     * **It was PRIO-3 until `gymrun-randomizer-23`.** A gallery party fixture
+     * draws its moves off the seed's own map, so a generator bump can take the
+     * priority move out of it — and when it did, this walk reported the
+     * `priority` family as painted by no surface at all, which reads as a
+     * missing glyph rather than as a moved fixture. PRIO-39 is the first seed
+     * of its prefix whose first member still carries a negative bracket, which
+     * keeps the sentence above true rather than merely green.
+     * `test/seed-search.ts` carries the general lesson; a pinned seed is used
+     * here rather than a search because each walk opens a real browser page.
      */
-    const walks: [GallerySurface, string][] = [...GALLERY_SURFACES.map((surface): [GallerySurface, string] => [surface, 'SMOKE24']), ['party', 'PRIO-3']];
+    const walks: [GallerySurface, string][] = [...GALLERY_SURFACES.map((surface): [GallerySurface, string] => [surface, 'SMOKE24']), ['party', 'PRIO-39']];
     for (const [surface, seed] of walks) {
       const { page, close } = await open(surface, seed, 'exhausted');
-      if (seed === 'PRIO-3') {
+      if (seed === 'PRIO-39') {
         await page.locator('.party__member-toggle').first().click();
         await page.waitForTimeout(200);
       }

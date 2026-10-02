@@ -12537,3 +12537,307 @@ moves (the bible names neither the palette nor the PP glyph's drawing).
    **Rev 23, D94 to D98**, placed above it; every citation in the tree was
    moved. The branch's earlier commit messages still say *Rev 22, D91 to
    D95*, and mean these five.
+
+> **Sections 99 and 100 were renumbered twice.** They were written as 51 and 52
+> on a branch cut at `970c2a2`, became 98 and 99 when that branch was reapplied
+> onto a `main` that had reached 97, and moved again when PR #89 reached `main`
+> first and took 98 for itself. The numbers are positions in this file, not
+> names. The accounts are unchanged except for the cross-references, and for
+> the version numbers and the benchmark row that the reapplication itself
+> moved — each noted where it appears.
+
+## 99. A price that charged nothing, and the rule that outlives it
+
+**2026-09-19**, on `claude/t2-berry-inventory-gating-7gvcye`. Prompt:
+[`spec/gymrun-patch-toll-affordability-gate.md`](spec/gymrun-patch-toll-affordability-gate.md).
+
+### 99.1 The report
+
+> New bug i can pick the t2 result even when i didnt have a berry in inventory.
+
+The screenshot is a `cave`-family event at `neither`, its Toll labelled
+`Costs A berry` `Reward: T2`, taken by a run whose bag held no berry. The
+reveal printed `Paid: A berry` in red and `Quick Attack` in green. Nothing was
+taken and the `T2` was paid in full.
+
+### 99.2 What was actually broken, which is not the berry
+
+`applyEffect`'s `loseItem` branch ended `if (index < 0) return state`, which is
+correct — of a **drawn** cost. A `T0` consolation that takes a berry from a bag
+with none is a setback that no-ops, and `core/events.ts` has carried the note
+saying so, and the reason, since the rejig.
+
+A Toll is not a drawn cost. It is a price the player read on the button and
+agreed to by pressing, and it buys a **guaranteed** `T2`. The no-op turns that
+into a free `T2` with a cost written on it — which is worse than a bug in the
+economy, because the label is a promise the game then does not keep.
+
+Three of the five `TollPrice` kinds had the same hole, and only one of them was
+screenshotted:
+
+| kind | against | charged |
+|---|---|---|
+| `berry` | a bag with no berry | nothing |
+| `gold`, `goldFixed` | an empty purse | nothing, by the `max(0, …)` clamp |
+| `hp` | a party at `tuning.eventDamageFloor` (0.05) | nothing, by the floor |
+| `discard` | an empty bag | nothing |
+
+So the patch is defined over `TollPrice` and not over berries. A rule that said
+a price must be charged, and then exempted the kinds that had not yet been
+reported, would be a rule already being violated on the day it was written.
+
+### 99.3 The gate is the fold
+
+`pricePayable(state, toll)` answers *would charging this take anything* by
+**charging it** — `applyToll` against a throwaway state, then a comparison of
+the three things a price can move: coins, bag length, standing HP.
+
+Writing a predicate instead was the obvious shape and is the one that fails.
+A predicate is a second opinion about what a price does, and the first time the
+two disagree the screen offers a button that charges nothing — which is this
+bug, rebuilt by the fix for it. Since `applyEffect` takes no stream, a price
+cannot draw, so asking and then charging is free of consequence. **A gate that
+had to draw to answer could not exist in this codebase at all**, and that is
+the property that makes this shape available.
+
+`forfeits(effect, backpack)` is the same argument one layer down: the screen
+has to name the berry it is about to take, and a second walk written beside the
+fold is a second walk that can disagree with it. So there is one walk, and
+`applyEffect` and `describePrice` both read it.
+
+### 99.4 Dimmed, not withdrawn
+
+The Attune gate removes an option, because Attune is a thing the run does not
+have. A Toll is a thing the run cannot afford **yet**, so it stays on the menu,
+disabled, with a `Cannot pay` chip beside the price it is short of. A player
+who can see the price can go and get the berry; a player shown three buttons
+where there were four learns nothing at all.
+
+`presentedOptions` is untouched, so the list is still three long without the
+relic and four with, and `test/event-bands.test.ts` reads the same as it did.
+
+### 99.5 The price names its victim
+
+`describeToll` says `A berry`, because a `TollPrice` genuinely does not know
+which one. `describePrice` says `Sitrus Berry`, because the bag is standing
+right there and the walk that will take it is the one it reads. Both the button
+and the reveal use it; the reveal reads the bag as it stood when the screen
+opened, which is the bag the charge came out of.
+
+The precedent is `concreteEffect`, and the argument is the same: name a fact
+the run can answer, leave generic a fact it cannot. The generic wording now
+only ever appears on a price that cannot be paid — which is a button that is
+dimmed anyway.
+
+It is not a Part 4 violation and it is the same carve-out the price chip has
+always sat on: it states what the button costs, which is an attribute of the
+button, against a bag that does not move while the screen is open. It ranks
+nothing and forecasts nothing.
+
+### 99.6 Two layers, because a log is not a screen
+
+The screen dims the button. `playRun` refuses the archetype, in the shape the
+`attune` refusal already had, because a decision log can reach a button a
+screen cannot — and a decision the run would not present is not a decision the
+run may replay.
+
+### 99.7 No axis moves, and what follows from that
+
+- `RANDOMIZER_VERSION` — no draw is added, removed or relocated, and no drawn
+  value changes. Every option is still built for every run, Attune included.
+- `contentHash` — `data/eventCopy.ts` is on the exclusion list and nothing else
+  under `data/` changed. Unmoved at `d4e080`.
+- `AI_VERSION` — untouched.
+- `RUN_LOG_VERSION` — **held, deliberately.** No logged decision is added,
+  removed, reordered or reshaped. What narrowed is which *answers* `playRun`
+  accepts for an entry whose shape is unchanged, which is exactly what the
+  `attune` refusal did and has never carried an axis.
+
+The consequence is recorded rather than versioned: **a pre-patch log that names
+an unpayable Toll now fails loudly on replay instead of replaying a free `T2`.**
+That is the correct end state under "never silently reinterpret a seed" — the
+old reading was the bug, and reproducing it faithfully would mean keeping it.
+
+### 99.8 What the simulator's numbers now mean
+
+`scripts/sim.ts` scores over the payable options rather than the presented
+ones, so the scored policy no longer counts a free `T2` among its candidates.
+`event-gambler` and `event-safe` never name a Toll, so they are unaffected.
+The event columns of a report run after this patch are not comparable across
+it. **Balance is not a gate**: the number is recorded and the work continues.
+
+### 99.9 One fixture was a run no player can be in
+
+`test/event-screen.test.ts` built its state with no party below `latent`, an
+empty bag and no coins, and clicked every button on it. That was harmless
+while nothing read the bag and became a silent pass the moment a button could
+be dimmed — a dimmed button opens nothing, and every assertion after the click
+would have been made against a screen that never revealed anything.
+
+So the fixture is a solvent run at every band (a member, a berry, a bag item,
+200 coins), the member below `latent` being one whose type says nothing about
+the capability, which keeps both the claimed band and the holders row true.
+The empty run is the *subject* of `test/event-price-gate.test.ts` now, rather
+than the backdrop of a screen test. The two played-run policies that answered
+a bare `'toll'` fall back to Safe where the price cannot be paid, which is what
+a player faces.
+
+## 100. A ceiling on a region, and a floor under its fights
+
+**2026-09-19**, on `claude/t2-berry-inventory-gating-7gvcye`. Prompt and report:
+[`spec/gymrun-patch-region-node-composition.md`](spec/gymrun-patch-region-node-composition.md).
+Checkpoint 1 of two.
+
+### 100.1 What the census found, which is not what the brief assumed
+
+The brief asked for a cap on rests and shops per region and, before any code,
+for the current limit. **There was no ceiling anywhere in the generator — only
+floors** — and the double rest the brief calls out was not a bad roll:
+
+`restFloorFor` was `max(minRestSteps, floor(steps / restStepsPerGuarantee))`
+= `max(1, floor(steps / 3))`. Segments 5 and 6 draw six or seven steps, so
+their floor was **2**, and `enforceComposition` converted options until it was
+met. **100% of segment 5 and 6 routes offered a double rest**, by construction.
+
+So the brief's first sentence did not add a rule on top of the existing ones.
+It contradicted one. That is a design call and it was put to the author rather
+than resolved in code: the answer was **cap 2, floor 1** — a second rest
+becomes a thing a route may offer and never a thing it must.
+
+### 100.2 The measurement, before and after
+
+400 seeds, 998 routes per segment, `DEFAULT_TUNING`.
+
+| | before | after |
+|---|---|---|
+| routes offering ≥2 rests, segments 5-6 | **100%** | 21% |
+| routes offering ≥2 rests, segments 2-4 | 62% | 17% |
+| routes offering ≥3 rests | up to 14% | **0%** |
+| routes offering ≥3 shops | up to 26% | **0%** |
+| most shops on one route | **5** | 2 |
+| forced fights, segments 0-1 | 1.35 of 4.5 | 1.67 |
+| forced fights, segments 2-4 | 1.43 of 5.5 | 2.54 |
+| forced fights, segments 5-6 | 1.53 of 6.5 | 3.03 |
+| minimum forced fights, any route | 1 | **1 / 2 / 3 by length** |
+| greedy walk: rests taken in a run | 14.1 | 10.2 |
+| greedy walk: shops taken in a run | 16.2 | 10.5 |
+| greedy walk: non-fight steps of a run | **33.6 of 46** | 25.2 of 45 |
+
+### 100.3 The cap is spent during the draw, not fixed up afterwards
+
+`buildRoute` carries an allowance per kind down the route and drops a kind from
+the allowed list once it is spent. **The draw count does not move**: one value
+per pick, exactly as before, so a ceiling costs nothing in draws.
+
+The conversion pass that suggests itself instead — draw the route, then rewrite
+surplus rests — costs one draw per surplus, which makes the number of draws a
+function of what was drawn. `assignTiers`'s own header states the discipline
+this violates, so the allowance is the shape that keeps it.
+
+It runs down the route in step order, which makes it order-dependent in one
+legible direction: an early step may spend the last rest and a later one then
+cannot offer it. That is the correct direction — a player reads a route
+forwards.
+
+### 100.4 The battle-step floor, and the two ways of getting it wrong
+
+`ensureBattleSteps` guarantees `battleStepFloorFor` steps whose every option is
+a fight. It is `placeBattlePair` generalised: that rule is this rule already,
+hardcoded to segment 7 and to two adjacent steps, and both it and the
+guaranteed wild step now count towards the floor rather than sitting beside it.
+
+The floor is `max(minBattleStepsPerRoute, floor(steps / 2))` clamped to
+`steps - minEventSteps - minRestSteps - 1`, which is the same argument
+`hasBattlePair` makes about room: a guarantee that eats the whole route makes
+every route of that length identical, which is a different failure from the one
+being fixed. At the shipped curve: 4 steps → 1, 5 → 2, 6 → 3, 7 → 3.
+
+**Both mistakes available here were made, and each survived one measurement:**
+
+1. **Claiming every battle-only step the draw produced.** The event and rest
+   floors take unclaimed steps, so claiming the surplus starved them: 4% of
+   opening routes shipped with **no rest at all** — the one guarantee
+   `minRestSteps` exists to make unbreakable.
+2. **Not counting the steps the pair and the wild step had already claimed.**
+   The fix for (1) skipped claimed steps when counting, so the floor saw zero
+   and converted a second set on top of them. Segment 7 came out with six
+   battle-only steps of six and a mean of 6.00 forced fights.
+
+What counts is a battle-only step that is **also claimed**; a surplus stays
+unclaimed so a later floor may convert an option of it, which cannot drop the
+route under the floor because the steps holding it up are the claimed ones.
+The census now reports zero floor breaks across 7,984 routes.
+
+### 100.5 `restStepsPerGuarantee` is deleted, not flagged
+
+A floor that mandates what a ceiling forbids is not a tuning disagreement. The
+density went; the guarantee stayed, and it is the half that was ever
+load-bearing — every route still offers somewhere to heal. `restFloorFor`
+survives the collapse as the single reader, and `restFloorForRoute` with it,
+because a caller that had to know whether a density applied would be a second
+place holding the answer. `test/node-curve.test.ts` swaps the two tests that
+pinned the density for one that pins its absence and one that pins the floor
+strictly below the cap.
+
+### 100.6 Axes
+
+- `RANDOMIZER_VERSION` → `gymrun-randomizer-22`. All three changes move the
+  shape stream's values **and** how many it hands out.
+- `contentHash` → `637670`. `data/tuning.ts` loses a field and gains three.
+- `RUN_LOG_VERSION` — **held.** A step is still a step and a node is still
+  picked by index.
+- `AI_VERSION` — untouched.
+
+### 100.7 What it cost, recorded and not chased
+
+**Measured twice, on two different trees, and the second measurement is the
+one that counts.**
+
+Built against a tree at 1.085 mean gyms it read **0.92**, a −0.165. Reapplied
+onto a `main` carrying the wild and early-gym level columns, the same change
+reads **1.47 against a 1.55 baseline — a −0.08** (200 seeds, `RETUNE`,
+`--ai pinned`, both arms on the same prefix and count). The cost roughly
+halved and **the reason is the baseline rather than the patch**: a run with
+more headroom absorbs the extra fights.
+
+The original row is withdrawn rather than carried over. Reading a −0.165
+delta across a moved `RANDOMIZER_VERSION` and a moved `contentHash` is reading
+across a yardstick that moved, which `balance.md` section 0 forbids — so the
+pair of arms was re-measured on the tree the patch actually lands on.
+
+Gym 1 and gym 2 are the only columns deep enough to carry a signal and both
+are flat: −1.5pt on 148 parties and −2.3pt on 93. Everything from gym 6
+rightward is six to fifteen seeds, and the 33.3% → 16.7% at gym 7 is three
+runs becoming one.
+
+The standing policy is to record it and keep going rather than retune between
+checkpoints. `battleStepsPerGuarantee` is the dial if the number is to come
+back; moving it from 2 to 3 returns the opening segments to roughly their old
+pressure and keeps the caps.
+
+### 100.8 Five pinned seeds stopped reaching, and the lesson became a function
+
+A shorter run means pinned seeds stop exercising what they were pinned for.
+Five files broke at once — a gym never reached, a capture never offered, a
+switch never forced — which is the point at which the loop
+`test/lead-selection.test.ts` has carried since the `-18` bump stops being
+copied and becomes `test/seed-search.ts`. Searching does not weaken those
+assertions: the test still asserts on a real played run, and `firstRunWhere`
+throws rather than skipping when no seed qualifies, because a vacuous pass is
+the failure the pinning was already producing.
+
+`test/evolution-run.test.ts` is the one that could not be fixed by searching
+alone, and what it found is worth more than the fix: **no seed in 400 reached
+an evolution fork**, on the tree this was built against. A fork needs a
+branching species in the party at a gym clear, and at 0.92 mean gyms a gym
+clear is most of a run's difficulty. The test no longer names Hitmonlee — any
+species with two targets in the pool forks, and the rule is about the fork —
+and it pins two seeds found by scanning two thousand, with a search behind
+them.
+
+**That 400-seed figure was not retaken on the reapplied tree and should not be
+quoted as if it were.** What is known on this tree: the two pinned seeds still
+fork, and `main`'s level columns take gym 1's clear rate to 78% on 148 parties,
+which pushes reachability the other way. Whether a fork is now common enough
+to meet by playing is the open item in `README.md` section 5, and it is a
+difficulty question for the author rather than an assertion for a file.

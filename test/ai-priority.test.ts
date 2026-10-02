@@ -442,8 +442,15 @@ describe('the version axes', () => {
      * ordinary case: two columns of `data/scaling.ts`, and `gymrun-randomizer-22`
      * arrives beside it because the level a seed draws moved.
      * `docs/generation.md` section 78.
+     *
+     * And again for the region composition patch: `data/tuning.ts` loses
+     * `restStepsPerGuarantee` and gains `kindCapPerRoute`,
+     * `minBattleStepsPerRoute` and `battleStepsPerGuarantee`, with
+     * `gymrun-randomizer-23` beside it because a capped kind leaves the
+     * allowed list and the battle-step floor converts steps the old table left
+     * alone. `docs/generation.md` section 100.
      */
-    expect(CONTENT_HASH).toBe('7151221289a1ea991d5186775e58b13ab17dbf2205de94c751df78dd186c7c79');
+    expect(CONTENT_HASH).toBe('d4af80078075e0ec97fcbef717b22e31cf90ab00b2b89638f2201f36d8691394');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

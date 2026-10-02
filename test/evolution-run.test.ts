@@ -37,26 +37,90 @@ import { hasRoom } from '../src/core/acquisition';
 import { greedyAiPolicy } from '../src/core/battle/ai';
 import { playRun, replayRun, scriptedRunPolicy, type RunPolicy } from '../src/core/run';
 import { DEFAULT_TUNING } from '../src/data/tuning';
+import { firstRunWhere, seedRange } from './seed-search';
 import type { RunLog } from '../src/core/types';
 import { clearRunLog, loadRunLog, saveRunLog } from '../src/ui/storage';
 
 const SEED = 'S49B-840';
 
-function capturePolicy(branch = 0): RunPolicy {
+/**
+ * The species each branch would produce, recorded as the fork is answered.
+ *
+ * **The tests below used to name Hitmonlee and Hitmonchan**, on a seed pinned
+ * to a run that captured a Tyrogue and cleared a gym with it. Two things were
+ * wrong with that and the `-22` bump made both bite at once: which species a
+ * seed hands you is a property of the draw that every bump reshuffles (see
+ * `test/seed-search.ts`), and Tyrogue is not the subject — **any** species
+ * with two targets in the pool forks, and the rule is about the fork.
+ *
+ * So the fork records what it was offered, the seed is searched for, and the
+ * assertions read the recording. The test is stronger for it: it now holds for
+ * every branching species in the table rather than for the one in one seed.
+ */
+interface Fork {
+  from: string;
+  options: string[];
+  taken: string;
+}
+
+function capturePolicy(branch = 0, forks: Fork[] = []): RunPolicy {
   return {
     ...scriptedRunPolicy(greedyAiPolicy),
     chooseAcquisition: async (_offer, party, capacity) =>
       hasRoom(party, capacity) ? { kind: 'accept' } : { kind: 'decline' },
-    chooseEvolution: async () => branch,
+    chooseEvolution: async (question) => {
+      const index = Math.min(branch, question.options.length - 1);
+      forks.push({
+        from: question.member.spec.species,
+        options: question.options.map((entry) => entry.species),
+        taken: question.options[index]?.species ?? '',
+      });
+      return index;
+    },
   };
+}
+
+/**
+ * Seeds known to reach a fork, then a search behind them.
+ *
+ * **A fork is rare and got rarer.** It needs a branching species in the party
+ * at a gym clear, and at `-22`'s difficulty a gym clear is most of a run: no
+ * seed in the first 400 reaches one, and these two were found by scanning two
+ * thousand. Both fork a Tyrogue three ways. That rarity is filed as an open
+ * item in `docs/README.md` section 5 — it is a question about whether Stage
+ * 4.9's mechanic is reachable at all, and not something a test may tune away.
+ *
+ * So the list is pinned *and* searched. The pinned pair makes the common case
+ * instant; the range behind them means the next bump that moves these two does
+ * not leave the file asserting nothing, and `firstRunWhere` throws with
+ * "widen the search" rather than passing vacuously when the range runs out.
+ */
+const FORK_SEEDS = ['S49B-1706', 'S49B-2470', ...seedRange('S49B-', 400)];
+
+/** A seed whose run reaches a fork with at least `options` branches on it. */
+async function seedWithFork(options: number): Promise<{ seed: string; forks: Fork[] }> {
+  let forks: Fork[] = [];
+  const { seed } = await firstRunWhere(
+    FORK_SEEDS,
+    (candidate) => {
+      forks = [];
+      return playRun(candidate, capturePolicy(0, forks), DEFAULT_TUNING);
+    },
+    () => forks.length === 1 && (forks[0]?.options.length ?? 0) >= options,
+    `reached exactly one evolution fork with ${options} or more branches`,
+  );
+  return { seed, forks };
 }
 
 describe('the evolve decision in a played run', () => {
   it('is asked once at the fork, logged, and applied to the party', async () => {
-    const run = await playRun(SEED, capturePolicy(0), DEFAULT_TUNING);
+    const { seed, forks } = await seedWithFork(1);
+    const run = await playRun(seed, capturePolicy(0), DEFAULT_TUNING);
     const evolves = run.log.decisions.filter((decision) => decision.kind === 'evolve');
     expect(evolves).toHaveLength(1);
-    expect(run.state.party.map((member) => member.spec.species)).toContain('Hitmonlee');
+    // The branch that was taken is the species standing in the party, and the
+    // one it grew out of is gone.
+    expect(run.state.party.map((member) => member.spec.species)).toContain(forks[0]!.taken);
     // The fork is asked after the gym is won and before its cards: the entry
     // sits after that gym's battle decisions and before the next reward.
     const at = run.log.decisions.findIndex((decision) => decision.kind === 'evolve');
@@ -76,17 +140,25 @@ describe('the evolve decision in a played run', () => {
   }, 120_000);
 
   it('is a decision: the other branch changes the party and nothing the seed drew', async () => {
-    const hitmonlee = await playRun(SEED, capturePolicy(0), DEFAULT_TUNING);
-    const hitmonchan = await playRun(SEED, capturePolicy(1), DEFAULT_TUNING);
-    expect(hitmonchan.state.party.map((member) => member.spec.species)).toContain('Hitmonchan');
+    // Two branches or more, because a fork with one option is not a decision
+    // and this is the test that the decision is one.
+    const { seed, forks } = await seedWithFork(2);
+    const first = await playRun(seed, capturePolicy(0), DEFAULT_TUNING);
+    const secondForks: Fork[] = [];
+    const second = await playRun(seed, capturePolicy(1, secondForks), DEFAULT_TUNING);
+
+    // The other branch is a different species, and it is the one on offer.
+    expect(secondForks[0]!.taken).not.toBe(forks[0]!.taken);
+    expect(forks[0]!.options).toContain(secondForks[0]!.taken);
+    expect(second.state.party.map((member) => member.spec.species)).toContain(secondForks[0]!.taken);
     // Player decisions consume no RNG: the map, drawn before any decision, is
     // the same map, every node's team and reward included.
-    expect(hitmonchan.state.segments).toEqual(hitmonlee.state.segments);
+    expect(second.state.segments).toEqual(first.state.segments);
     // And the two logs agree on every entry up to the fork.
-    const at = hitmonlee.log.decisions.findIndex((decision) => decision.kind === 'evolve');
-    expect(hitmonchan.log.decisions.slice(0, at)).toEqual(hitmonlee.log.decisions.slice(0, at));
-    expect(hitmonchan.log.decisions[at]).toEqual({ kind: 'evolve', index: 1 });
-  }, 120_000);
+    const at = first.log.decisions.findIndex((decision) => decision.kind === 'evolve');
+    expect(second.log.decisions.slice(0, at)).toEqual(first.log.decisions.slice(0, at));
+    expect(second.log.decisions[at]).toEqual({ kind: 'evolve', index: 1 });
+  }, 240_000);
 
   it('saves and reloads through storage', async () => {
     clearRunLog();

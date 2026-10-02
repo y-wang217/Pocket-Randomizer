@@ -40,7 +40,9 @@ import {
   type RunPolicy,
   type RunState,
 } from '../src/core/run';
-import { grantedMove, type EventInstance, type EventOption, type EventOutcome } from '../src/core/events';
+import { grantedMove, optionPayable, presentedOptions, type EventInstance, type EventOption, type EventOutcome } from '../src/core/events';
+import { resolveCapability } from '../src/core/capabilities';
+import { seedRange } from './seed-search';
 import type { EventArchetype } from '../src/data/eventPools';
 import type { RunDecision } from '../src/core/types';
 import { DEFAULT_TUNING } from '../src/data/tuning';
@@ -157,7 +159,12 @@ describe('the version axes this patch moved', () => {
      * the same key lands a gym member somewhere in a range instead of on one
      * number.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-22');
+    /*
+     * `-22` is the wild and early-gym level columns, and `-23` the region
+     * composition patch: a per-route ceiling on rests and shops, spent during
+     * the draw, and a floor of battle-only steps.
+     */
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-23');
   });
 });
 
@@ -168,7 +175,17 @@ describe('the version axes this patch moved', () => {
 describe('a played run that walks into a paying question mark', () => {
   /** Always the priced option, which buys a guaranteed `T2`. */
   function tollPolicy(): RunPolicy {
-    return { ...scriptedRunPolicy(greedyAiPolicy), chooseEventOption: async () => 'toll' };
+    return {
+      ...scriptedRunPolicy(greedyAiPolicy),
+      // The priced button where the run can pay for it, and Safe where it
+      // cannot — `playRun` refuses an unpayable price since the price gate,
+      // and a `T2` move can be bought either way.
+      chooseEventOption: async (event, state) => {
+        const band = resolveCapability(state, event.requires);
+        const toll = presentedOptions(event, band).find((option) => option.archetype === 'toll');
+        return toll && optionPayable(state, toll) ? 'toll' : 'safe';
+      },
+    };
   }
 
   it('records a target for the move, and replays to the same movesets', async () => {
@@ -216,8 +233,18 @@ describe('a played run that walks into a paying question mark', () => {
      * Asserted across seeds for the reason above: which of the four `T2`
      * entries a node drew is a property of the seed.
      */
+    /*
+     * **The seed list is widened rather than pinned longer**, and `-22` is why:
+     * a shorter run walks fewer question marks, so eight seeds stopped
+     * covering a `T2` relic between them. `test/seed-search.ts` states the
+     * rule this file is another case of — how far a seed gets is a property of
+     * the draw, and every bump reshuffles it.
+     *
+     * The sweep is still every seed, because "no relic twice" is a claim about
+     * all of them rather than about the first one that qualifies.
+     */
     let held = 0;
-    for (const seed of SEEDS) {
+    for (const seed of [...SEEDS, ...seedRange('S49R-', 24)]) {
       const live = await playRun(seed, tollPolicy(), DEFAULT_TUNING);
       held += live.state.relics.length;
       // No relic twice, whatever route put it there.
