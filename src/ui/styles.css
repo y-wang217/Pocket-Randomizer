@@ -1365,7 +1365,7 @@ body {
 }
 .stat__delta--up { color: var(--stage-up); }
 .stat__delta--down { color: var(--stage-down); }
-/* A battle stage in its own cell (bible Rev 22, D95): the stat as it stands,
+/* A battle stage in its own cell (bible Rev 23, D98): the stat as it stands,
    the signed count beneath, both in the stage colours. */
 .stat__stage { display: block; font-size: var(--fs-xs); font-weight: 700; line-height: 1; text-align: center; }
 .stat__stage--up { color: var(--stage-up); }
@@ -1905,7 +1905,7 @@ body {
 .backpack__item[data-picked="true"] > .backpack__controls { display: flex; }
 .backpack__put-away { justify-self: start; margin: var(--space-1) 0; }
 
-/* ---------- the Team and Bag screens (bible Rev 22, D92 to D94) ---------- */
+/* ---------- the Team and Bag screens (bible Rev 23, D95 to D97) ---------- */
 
 /* Two halves over one working copy; `hidden` wins over the display below. */
 .party__team[hidden],
@@ -1945,7 +1945,7 @@ body {
 .party__view-tab:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: calc(-1 * var(--space-h)); }
 .party__view { display: flex; flex-direction: column; gap: calc(var(--space-2) * var(--chrome-gap)); }
 
-/* The sort: the player's, starting in party order (D93). Pressed is the one
+/* The sort: the player's, starting in party order (D96). Pressed is the one
    they asked for; nothing else is marked. */
 .party__sort { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); }
 .party__sort-label { font-size: var(--fs-xs); color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; }
@@ -7440,6 +7440,63 @@ button,
 .screen--battle .moves .move[data-effect='super'] { border-left-color: var(--stage-up); }
 .screen--battle .moves .move[data-effect='resisted'],
 .screen--battle .moves .move[data-effect='none'] { border-left-color: var(--stage-down); }
+
+/*
+ * **Lit and greyed. The effectiveness emphasis patch, bible D91.**
+ *
+ * `data-has-super` is on the bar only while a usable move is super effective
+ * (`markSuper` in ui/scene.ts). That move is lit: a tint of the forecast's
+ * green and a heavier edge. Every other damaging move goes grey, neutral
+ * included, and stays a live control, so the grey is a filter and not the
+ * disabled state's opacity: a greyed move still presses and still holds for
+ * inspect. A status move carries no `data-damaging` and is never greyed.
+ * Without the flag none of this applies and the bar reads as it did before
+ * D91, so neutral is never marked on its own (R4). Here rather than beside
+ * the base edge rule, because the battle screen's heavy edge above is what
+ * it has to outrank.
+ */
+.screen--battle .moves[data-has-super] .move[data-effect='super'] {
+  border-left-width: calc(var(--rule-heavy) * 4);
+  background: color-mix(in srgb, var(--stage-up) 18%, var(--bg-raised));
+}
+.screen--battle .moves[data-has-super] .move[data-damaging]:not([data-effect='super']):not(:disabled) {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+/*
+ * **The bench's forecast. Bible D92.** Each benched member's damaging moves
+ * against the Pokemon on the field: the type chip, the multiplier when it is
+ * not neutral, the same edge family, and the same lit and greyed rule, per
+ * member. A line of its own under the row's head, with the figure's gutter
+ * kept clear at the right.
+ */
+.bench__moves {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding-right: calc(var(--space-8) + var(--space-2));
+}
+.bench__move {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-h);
+  padding-left: var(--space-h);
+  border-left: 3px solid transparent;
+  border-radius: var(--radius-card);
+}
+.bench__move[data-effect='super'] { border-left-color: var(--stage-up); }
+.bench__move[data-effect='resisted'],
+.bench__move[data-effect='none'] { border-left-color: var(--stage-down); }
+.bench__moves[data-has-super] .bench__move[data-effect='super'] {
+  border-left-width: 5px;
+  background: color-mix(in srgb, var(--stage-up) 18%, transparent);
+}
+.bench__moves[data-has-super] .bench__move:not([data-effect='super']) {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
 
 /* The secondary row, and the bench behind it (D59). The pane is one attribute
    on the scene: the moves at rest, the bench when Switch is pressed or the

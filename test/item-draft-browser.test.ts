@@ -75,9 +75,9 @@ describe('the unspent item plan across a reload', () => {
   // A seed whose smoke walk puts an item in a member's hands early; SMOKE24's
   // does not before its first loss.
   //
-  // **On the Bag tab since bible Rev 22 (D94)**, where *To bag* is the picked
+  // **On the Bag tab since bible Rev 23 (D97)**, where *To bag* is the picked
   // held item's own control, and **the layout now reaches the next fight
-  // (D91)**: it is logged, as a party edit, just before the node it was made
+  // (D94)**: it is logged, as a party edit, just before the node it was made
   // for, rather than held to the boundary after it.
   async function walkToHolder(page: Page): Promise<boolean> {
     const bagTab = page.locator('[data-nav="bag"]');

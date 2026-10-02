@@ -1363,7 +1363,7 @@ function renderStat(id: string, value?: string, band?: string, level?: string, d
   // The band the bar is drawn against (D88), when the cell drew one.
   const [min, max] = (band ?? '').split('-');
   if (min && max && level) body.append(line(STAT_BAND_COPY.line(level, min, max), 'tip__note'));
-  // A staged cell's base and stage (D95), which its face no longer prints.
+  // A staged cell's base and stage (D98), which its face no longer prints.
   if (data?.['base'] && data['stage'] && data['multiplier']) {
     body.append(line(STAT_BAND_COPY.stage(data['base'], data['stage'], data['multiplier']), 'tip__note'));
   }

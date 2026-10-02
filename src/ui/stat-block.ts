@@ -92,8 +92,8 @@ export interface StatBlockOptions {
    */
   level?: number;
   /**
-   * The battle's stat stages, per stat, on the player's panel. **Bible Rev 22,
-   * D95.** A cell with a stage draws the stat as the stage makes it, with the
+   * The battle's stat stages, per stat, on the player's panel. **Bible Rev 23,
+   * D98.** A cell with a stage draws the stat as the stage makes it, with the
    * signed stage count beneath, and `data-stage` up or down colours both. The
    * base number, the multiplier and the count ride on the label's press.
    * Absent everywhere but the battle panel, and a zero stage draws nothing
@@ -161,7 +161,7 @@ export function statBlock(values: StatValues, options: StatBlockOptions = {}): H
     label.setAttribute('role', 'button');
 
     // The number, at rest (R13). On a staged cell, the stat as it stands
-    // (D95): the number the fight is using.
+    // (D98): the number the fight is using.
     const staged = options.stages?.[stat];
     const shown = staged && staged.stage !== 0 ? staged.effective : value;
     const number = el('span', 'stat__value');

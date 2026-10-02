@@ -70,13 +70,13 @@ export const DRAWER_SURFACES: readonly ScreenName[] = [
 
 /**
  * Where reorder and release may be made: between nodes, where no fight is
- * waiting to be folded onto the party by slot. **Bible Rev 22, D91.**
+ * waiting to be folded onto the party by slot. **Bible Rev 23, D94.**
  */
 export const PARTY_EDIT_SURFACES: readonly ScreenName[] = ['map', 'pre-gym', 'locale'];
 
 /**
  * Where the Team and Bag tabs open the writable screen rather than the
- * readout: everywhere outside a battle that has a party to edit. **D91.** The
+ * readout: everywhere outside a battle that has a party to edit. **D94.** The
  * teach screens are left out because they are a question the party screen
  * itself asked, and leaving them would strand its answer.
  */

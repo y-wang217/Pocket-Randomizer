@@ -718,7 +718,7 @@ export interface TmTeach {
  * One edit a player makes on the party screen between questions.
  *
  * **`items` is the layout the player left the party screen with, applied the
- * moment the next question is answered. Bible Rev 22, D91.** A layout composed
+ * moment the next question is answered. Bible Rev 23, D94.** A layout composed
  * between nodes used to be held until the boundary *after* the next node, so
  * an item moved on the map was not held in the fight it was moved for. It is
  * one entry per committed layout, never one per tap, which is the rule

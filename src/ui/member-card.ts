@@ -47,7 +47,7 @@ export interface MemberCardOptions {
   /**
    * Drawn on a readout, with no write path (the drawer). The fold's control
    * is then a disclosure chevron rather than `+`, which reads as an edit.
-   * Bible Rev 22, D91.
+   * Bible Rev 23, D94.
    */
   readout?: boolean;
   /**

@@ -1,6 +1,6 @@
 /**
- * An item layout made between nodes reaches the next fight. **Bible Rev 22,
- * D91.**
+ * An item layout made between nodes reaches the next fight. **Bible Rev 23,
+ * D94.**
  *
  * A layout composed on the map used to be held and spent at the boundary
  * *after* the next node, so the fight it was composed for was fought with the

@@ -148,7 +148,15 @@ export const TUTORIAL: Readonly<Record<TutorialScreen, readonly TutorialMark[]>>
       id: 'move',
       anchor: '[data-tutorial="move"]',
       title: 'A move button',
-      text: 'Tapping a move uses it. Holding it explains it, and never uses it.',
+      /*
+       * The lit and greyed bar, said once (bible D93). Folded into this mark
+       * rather than added as an eighteenth, under the author's cap of
+       * seventeen. A fact about the board, never an instruction (section 8).
+       */
+      text:
+        'Tapping a move uses it. Holding it explains it, and never uses it. ' +
+        'A move lit green hits the Pokemon on the field for double or more, and the other attacks grey out. ' +
+        'Switch shows the same for each benched Pokemon’s moves.',
     },
     {
       id: 'flags',

@@ -4,8 +4,8 @@
  * `offensiveCoverage` and nothing else. No score, no count, no colour that
  * says whether eleven of eighteen is good.
  *
- * **Its own module since the Team screen's *Coverage* view (bible Rev 22,
- * D93) became its second call site.** It was the summary's private function;
+ * **Its own module since the Team screen's *Coverage* view (bible Rev 23,
+ * D96) became its second call site.** It was the summary's private function;
  * two copies of one readout is how the two would drift.
  */
 import { WHEEL_TYPES } from '../core/battle/driver';

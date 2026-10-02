@@ -74,8 +74,8 @@ describe('the tabs are readouts over a pending decision', () => {
       expect(await savedLog(page), `${tab}: nothing was submitted`).toBe(before);
     }
 
-    // The readout over a fight has no editing control on it (bible Rev 22,
-    // D91): Close, and the cards' disclosure chevrons, and nothing else.
+    // The readout over a fight has no editing control on it (bible Rev 23,
+    // D94): Close, and the cards' disclosure chevrons, and nothing else.
     await page.locator('[data-nav="team"]').click();
     await page.waitForTimeout(120);
     const controls = await page.locator('.drawer button:visible').allTextContents();

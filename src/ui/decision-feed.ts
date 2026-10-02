@@ -100,7 +100,7 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
   };
 
   // One wording for a layout, whether a boundary's plan or an ad hoc
-  // `items` edit carried it (bible Rev 22, D91).
+  // `items` edit carried it (bible Rev 23, D94).
   const describePlan = (plan: ItemPlan): string => {
     const { assignments, teaches, discards, discardTms } = plan;
     const parts = [

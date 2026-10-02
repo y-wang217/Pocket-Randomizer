@@ -55,7 +55,7 @@ export const STARTER_LABELS = {
 export const STAT_BAND_COPY = {
   line: (level: string, min: string, max: string): string => `At level ${level}, the pool runs ${min} to ${max}.`,
   /**
-   * A staged cell's press (bible Rev 22, D95): the number before the stage,
+   * A staged cell's press (bible Rev 23, D98): the number before the stage,
    * and the stage as count and multiplier. The cell's face is the number now.
    */
   stage: (base: string, stage: string, multiplier: string): string => `Base ${base}, stage ${stage} (${multiplier}).`,
@@ -95,7 +95,7 @@ export const PARTY_COPY = {
 } as const satisfies Record<string, Prose>;
 
 /**
- * The Team and Bag screens' labels. **Bible Rev 22, D92 to D94.** Single words
+ * The Team and Bag screens' labels. **Bible Rev 23, D95 to D97.** Single words
  * on controls and headings, no sentence at rest: the view switch, the sort,
  * and the bag's sections and two acts.
  */

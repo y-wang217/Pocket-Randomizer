@@ -220,6 +220,35 @@ export interface MoveFacts {
 }
 
 /**
+ * One move a benched member knows, as the forecast needs it. **The
+ * effectiveness emphasis patch, bible D92.**
+ *
+ * Read off the member's move slots rather than a request: a benched Pokemon
+ * has no request, and the question is what its moves would do to the Pokemon
+ * on the field, not which of them the sim would accept this turn. The chart
+ * lookup is the adapter's, as `MoveFacts.typeMultiplier` is.
+ */
+export interface BenchMoveFacts {
+  id: string;
+  name: string;
+  type: string;
+  category: 'Physical' | 'Special' | 'Status';
+  flags: readonly string[];
+  /** The naive chart against the defender's current types. */
+  typeMultiplier: number;
+  /** The chart against Flying alone, for Strong winds. */
+  flyingMultiplier: number;
+}
+
+/** A benched member's moves, keyed by the slot `SwitchView` carries. */
+export interface BenchFacts {
+  slot: number;
+  /** The engine's own grounding answer, for terrain. */
+  grounded: boolean;
+  moves: BenchMoveFacts[];
+}
+
+/**
  * Everything the adapter hands over for one turn.
  *
  * The switch panel and the three request flags are carried through unchanged
@@ -329,6 +358,11 @@ export interface BattleFacts {
   moves: MoveFacts[];
   /** This side's bench, exactly as the policy view reports it. */
   switches: SwitchView[];
+  /**
+   * Each benched member's moves against the defender. **D92.** Optional so a
+   * hand-built view in a test need not state a bench it is not testing.
+   */
+  bench?: BenchFacts[];
   /** The sim wants a switch and will not accept a move. */
   forceSwitch: boolean;
   /** The sim says the active Pokemon may not switch out. */
@@ -595,10 +629,30 @@ export interface BattleUiView {
    * narrowed by the reveal policy: see `FieldFacts`.
    */
   field: FieldUiView;
-  switches: SwitchView[];
+  switches: SwitchUiView[];
   forceSwitch: boolean;
   trapped: boolean;
   awaitingChoice: boolean;
+}
+
+/**
+ * A benched member's move, forecast against the Pokemon on the field.
+ * **The effectiveness emphasis patch, bible D92.** The same answer
+ * `MoveUiView.effectiveness` and `band` give, from the same helper.
+ */
+export interface BenchMoveUiView {
+  id: string;
+  name: string;
+  type: string;
+  category: 'Physical' | 'Special' | 'Status';
+  /** Null for a status move, exactly as on the move button. */
+  effectiveness: number | null;
+  band: Effectiveness | null;
+}
+
+/** A bench row: the policy's switch record, plus its moves' forecast. */
+export interface SwitchUiView extends SwitchView {
+  forecast: BenchMoveUiView[];
 }
 
 // ---------------------------------------------------------------------------
@@ -699,11 +753,50 @@ export function buildBattleUiView(
       total: reveal.teamSize ? facts.opponentRoster.total : null,
     },
     field: toFieldUiView(facts.field),
-    switches: facts.switches,
+    switches: facts.switches.map((member) => ({
+      ...member,
+      forecast: benchForecast(facts.bench?.find((entry) => entry.slot === member.slot), facts, reveal, abilityEffects),
+    })),
     forceSwitch: facts.forceSwitch,
     trapped: facts.trapped,
     awaitingChoice: facts.awaitingChoice,
   };
+}
+
+/**
+ * A benched member's moves against the Pokemon on the field. **D92.**
+ *
+ * The move button's own helper, called with the bench member as the attacker:
+ * R8's forecast comes from `moveEffectiveness` and nothing else, on the bench
+ * as on the bar. The defender's grounding follows the same reveal rule
+ * `toMoveUiView` applies, so a hidden Levitate leaks through neither.
+ */
+function benchForecast(
+  entry: BenchFacts | undefined,
+  facts: BattleFacts,
+  reveal: RevealPolicy,
+  abilityEffects: AbilityEffects,
+): BenchMoveUiView[] {
+  if (!entry) return [];
+  const defender = facts.opponent;
+  return entry.moves.map((move) => {
+    const result = moveEffectiveness(move, defender, () => move.typeMultiplier, abilityEffects, reveal, {
+      weather: facts.field.weather,
+      terrain: facts.field.terrain,
+      suppressed: facts.field.suppressed,
+      attackerGrounded: entry.grounded,
+      defenderGrounded: reveal.ability ? defender.grounded : !defender.types.includes('Flying'),
+      flyingWeakness: move.flyingMultiplier,
+    });
+    return {
+      id: move.id,
+      name: move.name,
+      type: move.type,
+      category: move.category,
+      effectiveness: result.multiplier,
+      band: result.band,
+    };
+  });
 }
 
 /** The board state, with each id given its mark. Carries no word. */

@@ -1101,7 +1101,7 @@ Source: `src/data/tutorial.ts` · 17 strings
 | `map.options` | **The current step** — Each step offers two or three options, and exactly one is taken. Steps below are done; steps above are still to come, up to the gym. |  |
 | `map.tier` | **How hard a fight is** — The pips are a fight’s tier. Each filled pip is a harder fight that pays a larger reward. |  |
 | `map.gate` | **An event’s requirement** — An event shows the capability it asks for, and the chevron beside it the party’s standing: known, latent or none. The standing decides which outcome applies. |  |
-| `battle.move` | **A move button** — Tapping a move uses it. Holding it explains it, and never uses it. |  |
+| `battle.move` | **A move button** — Tapping a move uses it. Holding it explains it, and never uses it. A move lit green hits the Pokemon on the field for double or more, and the other attacks grey out. Switch shows the same for each benched Pokemon’s moves. | Bible D93, 2026-10-01 |
 | `battle.flags` | **What just happened** — After each turn this strip says what happened. Every turn so far is in the battle history. |  |
 | `battle.fainting` | **Fainting** — A Pokemon at zero HP faints, and stays in the party. The run ends only when every member has fainted. |  |
 | `result.rewards` | **Three cards** — A win pays three cards, and exactly one is taken. There is no skipping and no redrawing. |  |

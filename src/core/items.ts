@@ -434,7 +434,7 @@ export function applyItemPlan<
 
 /**
  * The plan that keeps the layout the player left, and equips only what is new.
- * **Bible Rev 22, D91.**
+ * **Bible Rev 23, D94.**
  *
  * A layout made between nodes is applied when it is made, so by the next
  * boundary there is nothing held to answer it with. `run.defaultItemPlan` would

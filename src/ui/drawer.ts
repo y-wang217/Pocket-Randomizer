@@ -81,7 +81,7 @@ export interface DrawerView {
    */
   inBattle?: boolean;
   /**
-   * Which tab opened it. **Bible Rev 22, D92.** Team draws the party and the
+   * Which tab opened it. **Bible Rev 23, D95.** Team draws the party and the
    * relics, Bag who holds what and what is carried; the readout follows the
    * same split as the writable screens. Defaults to Team.
    */

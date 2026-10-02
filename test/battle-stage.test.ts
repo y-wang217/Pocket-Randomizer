@@ -161,7 +161,7 @@ describe('the floating panel', () => {
     scene.update(buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects), () => {});
 
     /*
-     * **The player's stage is in its own cell since bible Rev 22 (D95).** The
+     * **The player's stage is in its own cell since bible Rev 23 (D98).** The
      * Attack cell carries the stat as the stage makes it and the signed count
      * beneath, coloured up; the multiplier and the base are on the cell's
      * press. Nothing for Attack is left on the player's chip row (R3).
@@ -503,7 +503,7 @@ describe('the panel at rest', () => {
 
     /*
      * On the player's side the marker folds accuracy and evasion only: the
-     * five stats are in their cells since bible Rev 22 (D95), and a mark for
+     * five stats are in their cells since bible Rev 23 (D98), and a mark for
      * Attack here as well would be the stage in a second channel (R3).
      */
     const marker = panelOf(scene, 'me').querySelector('.badge--stages') as HTMLElement;

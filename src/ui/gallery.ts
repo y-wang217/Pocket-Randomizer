@@ -76,6 +76,7 @@ import { fillExposure, initSettings } from './settings';
 import { createStamps } from './stamps';
 import { applyLocale } from './theme/locale';
 import { applyMotion } from './theme/motion';
+import { setBandMount } from './band';
 import { createTooltips } from './tooltips';
 
 const noop = (): void => undefined;
@@ -173,6 +174,9 @@ async function main(): Promise<void> {
   layout.append(shell);
   root.replaceChildren(world.root, layout);
   createTooltips(shell);
+  // The confirm band mounts where the tooltip layer listens, so a long press
+  // on a card inside it inspects like anywhere else (R5).
+  setBandMount(shell);
 
   const show = (name: ScreenName): void => {
     router.show(name);
@@ -350,7 +354,7 @@ async function main(): Promise<void> {
           backTo: 'Back to the map',
           plan: null,
           // `focus=bag` draws the Bag tab's screen, and `view=` picks the
-          // Team screen's view (bible Rev 22, D92 and D93).
+          // Team screen's view (bible Rev 23, D95 and D96).
           focus: params.get('focus') === 'bag' ? 'bag' : 'team',
         },
         { onReorder: noop, onRelease: noop, onPlan: noop, onTeach: noop, onDone: noop },

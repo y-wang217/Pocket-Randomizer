@@ -56,8 +56,8 @@ export interface Collapsible {
  * screen of six identical "More" buttons is six controls with one name.
  */
 /**
- * The disclosure marks a readout draws instead of `+` and `−`. **Bible Rev 22,
- * D91.** On a surface with no write path a `+` reads as "add", which is an
+ * The disclosure marks a readout draws instead of `+` and `−`. **Bible Rev 23,
+ * D94.** On a surface with no write path a `+` reads as "add", which is an
  * edit, so the readout's fold says what it is: more below, or less.
  */
 const READOUT_SHOW = '\u25BE';

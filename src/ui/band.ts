@@ -60,6 +60,29 @@ export interface Band {
 
 let open: Band | null = null;
 
+/**
+ * Where the band's element goes, when not straight into `host`. **The band
+ * long-press patch, 2026-10-01.**
+ *
+ * The band mounted on `<body>`, and the inspect layer is delegated from the
+ * shell (`app.ts` mounts it there), so a long press on a card inside a band
+ * never reached it: the claim band showed a move card that R5 says one long
+ * press explains, and the press did nothing. Two things were wrong, and moving
+ * the element fixes both. The events now bubble through the shell, and the
+ * band shares the shell's stacking context with the docked sheet, whose 40
+ * sits above the band's 30 there; from `<body>` the band's 30 covered the
+ * whole shell, sheet included.
+ *
+ * Only the element moves. `<body data-band-open>` and the Escape listener stay
+ * on `host`, so every stylesheet rule and caller is untouched.
+ */
+let mount: HTMLElement | null = null;
+
+/** Set once by the app beside `createTooltips`, with the same element. */
+export function setBandMount(element: HTMLElement | null): void {
+  mount = element;
+}
+
 /** The band currently up, if any. For tests and for the one-at-a-time rule. */
 export function openBandOf(): Band | null {
   return open;
@@ -141,7 +164,7 @@ export function openBand(spec: BandSpec, host: HTMLElement = document.body): Ban
   host.addEventListener('keydown', onKey, true);
 
   host.dataset['bandOpen'] = 'true';
-  host.append(root);
+  (mount?.isConnected ? mount : host).append(root);
   open = band;
   confirm.focus();
   return band;

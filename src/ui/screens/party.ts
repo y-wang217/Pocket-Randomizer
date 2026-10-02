@@ -159,14 +159,14 @@ export interface PartyView {
    */
   plan: ItemPlan | null;
   /**
-   * Which of the two screens this is. **Bible Rev 22, D92.** The Team tab
+   * Which of the two screens this is. **Bible Rev 23, D95.** The Team tab
    * draws the party, the Bag tab what it holds and carries. One working copy
    * behind both, so a layout made on the Bag survives a look at the Team.
    * Defaults to the Team.
    */
   focus?: PartyFocus;
   /**
-   * Whether reorder and release are offered. **D91.** True between nodes; false
+   * Whether reorder and release are offered. **D94.** True between nodes; false
    * on a result, a shop or an event, where the node has not resolved and a
    * changed slot would fold the fight onto the wrong member. Defaults to true.
    */
@@ -197,11 +197,11 @@ export function createPartyScreen(): PartyScreen {
   const threats = createThreatReadout();
 
   /*
-   * **Two screens over one working copy. Bible Rev 22, D92.**
+   * **Two screens over one working copy. Bible Rev 23, D95.**
    *
    * The Team half: the threats line, then three views of the party behind a
-   * segmented switch, never combined (D93). The Bag half: who holds what, the
-   * backpack, the TMs and the relics (D94). The hotbar that stood above the
+   * segmented switch, never combined (D96). The Bag half: who holds what, the
+   * backpack, the TMs and the relics (D97). The hotbar that stood above the
    * cards is gone from here: the Bag's held list names the same items at
    * rest, and two channels for one fact on one surface is R3.
    */
@@ -229,10 +229,10 @@ export function createPartyScreen(): PartyScreen {
 
   // Which Team view is up, and the player's sort on the Stats view. Held for
   // the visit: reset by `render`, never persisted, and the sort starts in
-  // party order (D93).
+  // party order (D96).
   let teamView: TeamView = 'stats';
   let sortBy: string | null = null;
-  // The item picked for a two-tap move on the Bag (D94): a held one by slot,
+  // The item picked for a two-tap move on the Bag (D97): a held one by slot,
   // or a loose one by its index in the backpack.
   let picked: { from: 'held'; slot: number } | { from: 'bag'; index: number } | null = null;
 
@@ -463,7 +463,7 @@ export function createPartyScreen(): PartyScreen {
       };
 
       /*
-       * The sort, the player's and nobody else's (D93). Six stat marks and a
+       * The sort, the player's and nobody else's (D96). Six stat marks and a
        * way back to party order. The active sort is shown as pressed, which
        * says what the player asked for; nothing marks a stat or a member the
        * UI would pick.
@@ -669,9 +669,9 @@ function renderManaged(
   const card = memberCardContents(member, { holding, tuning, isLead: index === 0, index });
   card.dataset['slot'] = String(index);
   /*
-   * **No item control here any more. Bible Rev 22, D92.** The held item is a
+   * **No item control here any more. Bible Rev 23, D95.** The held item is a
    * fact on the card; moving it is the Bag's. And no lead or release while a
-   * node is resolving (D91): the run folds the fight onto members by slot, so
+   * node is resolving (D94): the run folds the fight onto members by slot, so
    * the controls are not drawn rather than drawn dead.
    */
   if (!canEditParty) return card;
@@ -715,7 +715,7 @@ function renderManaged(
 
 /**
  * The Team screen's *Moves* view: one row per member, its four moves as move
- * chips with PP. **Bible Rev 22, D93.** Party order, always: this view has no
+ * chips with PP. **Bible Rev 23, D96.** Party order, always: this view has no
  * sort, and the chips are readouts (`pickable: false`) with their inspect
  * trigger, so a long press opens the full card as everywhere else.
  */
@@ -751,7 +751,7 @@ function movesGrid(party: readonly PokemonState[]): HTMLElement {
 }
 
 /**
- * Who holds what, at rest. **Bible Rev 22, D94.** One row per member: the
+ * Who holds what, at rest. **Bible Rev 23, D97.** One row per member: the
  * item's sprite, name and effect line (R13: a carried item's name and effect
  * are vital), or that the hand is empty.
  *
@@ -978,7 +978,7 @@ function renderBackpack(
       );
 
       /*
-       * **A tap picks the item up. Bible Rev 22, D94.** It used to open a row
+       * **A tap picks the item up. Bible Rev 23, D97.** It used to open a row
        * of give buttons, one per species; the Bag's held list is now where it
        * goes, one tap away, and a picked item's own row carries the one act
        * that does not need a destination, the discard.

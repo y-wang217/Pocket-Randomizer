@@ -1,5 +1,5 @@
 /**
- * The Team and Bag screens. **Bible Rev 22, D92 to D94.**
+ * The Team and Bag screens. **Bible Rev 23, D95 to D97.**
  *
  * Team: three views behind a switch, a sort that is the player's and starts in
  * party order, and a moves view with one row per member. Bag: who holds what at

@@ -177,7 +177,7 @@ describe('the party surfaces', () => {
     noNickname(drawer.root, 'the party drawer');
   });
 
-  // The give buttons went with bible Rev 22 (D94): the Bag's held list names
+  // The give buttons went with bible Rev 23 (D97): the Bag's held list names
   // each member instead, and is checked here.
   it('party management: cards, the held list, and the release confirm', () => {
     const screen = createPartyScreen();

@@ -49,7 +49,7 @@ describe('renderSlots', () => {
 
 describe('the party screen', () => {
   /*
-   * **The party hotbar left the party screen with bible Rev 22 (D94).** The
+   * **The party hotbar left the party screen with bible Rev 23 (D97).** The
    * Bag's held list names each member's item at rest, and a hotbar beside it
    * was the same fact in a second channel (R3). The list keeps what the
    * hotbar held this test to: state order, the item in its member's row, and

@@ -408,7 +408,7 @@ import { DEFAULT_TUNING, type NodeKind, type Tuning } from '../data/tuning';
  * moved for. It is now applied, through the party editor, when the next
  * question is answered, and sits in the log just before that answer, exactly
  * where a reorder does. A `-21` reader meets an edit kind it does not know, so
- * the axis moves. Bible Rev 22, D91.
+ * the axis moves. Bible Rev 23, D94.
  *
  * `RANDOMIZER_VERSION` and `contentHash` hold: the edit draws nothing and no
  * table is touched. `docs/spec/gymrun-patch-tabs-writable-and-stage-cells.md`.
@@ -1778,7 +1778,7 @@ export async function playRun(
     if (refusal) throw new RangeError(`Party edit refused: ${refusal}`);
     if (edit.kind === 'items') {
       /*
-       * **Applied in place and before it is recorded. Bible Rev 22, D91.** The
+       * **Applied in place and before it is recorded. Bible Rev 23, D94.** The
        * same call and the same two arguments as the boundary's plan, so an
        * ad hoc layout is legal exactly where a boundary's would be; a TM is
        * spent only where `teachableNow` already allows it. Applied first so a

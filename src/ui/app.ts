@@ -47,6 +47,7 @@ import { createIntro } from './intro';
 import { TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
 import { applyLocale } from './theme/locale';
 import { applyField } from './theme/field';
+import { setBandMount } from './band';
 import { createTooltips } from './tooltips';
 import { createWorldScene, el, type OutroKind } from './scene';
 import { newSeed, seedFromLocation, writeSeedToLocation } from './seed';
@@ -374,7 +375,7 @@ export function mountApp(root: HTMLElement): void {
       closeTabScreens();
       if (name === 'party' && id !== partyVia) {
         partyVia = id === 'bag' ? 'bag' : 'team';
-        // Two screens over one working copy (D92): the held plan carries over.
+        // Two screens over one working copy (D95): the held plan carries over.
         switchPartyFocus(partyVia);
       }
       refreshNav();
@@ -509,6 +510,9 @@ export function mountApp(root: HTMLElement): void {
    * that Pokemon's randomized moveset. See `scene.typeChip`.
    */
   createTooltips(shell);
+  // The confirm band mounts where the tooltip layer listens, so a long press
+  // on a card inside it inspects like anywhere else (R5).
+  setBandMount(shell);
 
   /*
    * The coach marks, one layer for the whole app, mounted once like the
@@ -663,7 +667,7 @@ export function mountApp(root: HTMLElement): void {
 
     /*
      * **The layout the party screen was left with, applied as the next
-     * question is answered. Bible Rev 22, D91.**
+     * question is answered. Bible Rev 23, D94.**
      *
      * It used to wait for the boundary after the next node, so an item moved
      * on the map was not held in the fight it was moved for. Now the answer
@@ -916,7 +920,7 @@ export function mountApp(root: HTMLElement): void {
         if (teachableNow(state).size > 0) {
           live = state;
           atTeachBoundary = true;
-          // On the Bag, where the TMs are (bible Rev 22, D92).
+          // On the Bag, where the TMs are (bible Rev 23, D95).
           partyVia = 'bag';
           showParty(partyReturn === 'pre-gym' ? 'pre-gym' : 'map', 'bag');
           const composed = await itemPlanPick.wait();
@@ -933,7 +937,7 @@ export function mountApp(root: HTMLElement): void {
         holdPlan(null);
         /*
          * **Nothing held: keep the layout the run has, and equip only what this
-         * node brought. Bible Rev 22, D91.** A layout made on the map is already
+         * node brought. Bible Rev 23, D94.** A layout made on the map is already
          * applied (`flushedBefore`), so the old answer here, `defaultItemPlan`,
          * would fill every empty hand and put back an item the player had just
          * taken off. `keepLayoutPlan` fills a hand only from `nodeArrived`.
@@ -1154,7 +1158,7 @@ export function mountApp(root: HTMLElement): void {
      * the tab opens the read-only drawer. Stage 5.0/1, the guard.
      */
     /*
-     * **Every surface outside a battle, since bible Rev 22 (D91).** It was the
+     * **Every surface outside a battle, since bible Rev 23 (D94).** It was the
      * map and pre-gym only, so a player on a result, a shop or an event could
      * look at their items and not move one. Mid-node the screen offers items
      * and not reorder or release, and the layout rides the node's boundary.
@@ -1321,7 +1325,7 @@ export function mountApp(root: HTMLElement): void {
      * — and a redraw must not quietly retarget the way out.
      */
     let partyReturn: ScreenName = 'map';
-    /** Which tab's screen the party screen is drawn as. Bible Rev 22, D92. */
+    /** Which tab's screen the party screen is drawn as. Bible Rev 23, D95. */
     let partyFocus: PartyFocus = 'team';
 
     /*
@@ -1381,7 +1385,7 @@ export function mountApp(root: HTMLElement): void {
       partyScreen.render(
         {
           /*
-           * Mid-node, the party as the node will leave it (D91): a plan names
+           * Mid-node, the party as the node will leave it (D94): a plan names
            * slots, and the boundary that spends it reads the resolved party,
            * a caught Pokemon included. Between nodes that is `state.party`.
            */
@@ -1394,7 +1398,7 @@ export function mountApp(root: HTMLElement): void {
           relics: state.relics,
           tuning: state.tuning,
           slots: partyCapacity(state),
-          // Named for where it goes; from a result, a shop or an event (D91)
+          // Named for where it goes; from a result, a shop or an event (D94)
           // the screen under it is the one the player left, so plain Back.
           backTo: returnTo === 'pre-gym' ? 'Back to the gym' : returnTo === 'map' ? 'Back to the map' : 'Back',
           plan: pendingPlan,

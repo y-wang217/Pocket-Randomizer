@@ -54,7 +54,7 @@ import { SPECIES_POOL } from '../../data/speciesPools';
 import { stageAllowedAt } from '../../data/evolution';
 import { isSpeciesBlacklisted } from '../../data/blacklists';
 import { rejectionReason } from './switching';
-import type { ActiveFacts, BattleFacts, MoveFacts } from './view';
+import type { ActiveFacts, BattleFacts, BenchFacts, MoveFacts } from './view';
 import type { SeenKnowledge } from '../types';
 
 /**
@@ -778,6 +778,43 @@ function readSwitches(battle: Battle, side: SideId): SwitchView[] {
   });
 }
 
+/**
+ * Each benched member's moves against the defender's types. **The
+ * effectiveness emphasis patch, bible D92.**
+ *
+ * The move slots rather than a request, because a benched Pokemon has none:
+ * the question is what its moves would do to what is standing there now. The
+ * chart is the same `typeMultiplier` the move button's facts read, and
+ * `view.ts` layers abilities and the field onto it with the same helper.
+ * A dex read, not a draw: nothing here touches RNG.
+ */
+function readBench(battle: Battle, side: SideId, defenderTypes: readonly string[]): BenchFacts[] {
+  const simSide = battle.sides[sideIndex(side)];
+  if (!simSide) return [];
+  const dex = Dex.forGen(GYMRUN_GEN);
+  return simSide.pokemon.flatMap((mon, index) => {
+    if (mon.isActive) return [];
+    return [
+      {
+        slot: index + 1,
+        grounded: mon.isGrounded() === true,
+        moves: mon.moveSlots.map((slot) => {
+          const data = dex.moves.get(slot.id);
+          return {
+            id: data.id,
+            name: data.name,
+            type: data.type,
+            category: data.category,
+            flags: Object.keys(data.flags),
+            typeMultiplier: typeMultiplier(data.type, defenderTypes),
+            flyingMultiplier: typeMultiplier(data.type, ['Flying']),
+          };
+        }),
+      },
+    ];
+  });
+}
+
 function sideIndex(side: SideId): number {
   return side === 'p1' ? 0 : 1;
 }
@@ -1072,6 +1109,7 @@ export function createBattle(options: BattleOptions): BattleSession {
       opponent: toActiveFacts(foe, false),
       moves,
       switches: awaiting ? readSwitches(battle, side) : [],
+      bench: awaiting ? readBench(battle, side, defenderTypes) : [],
       forceSwitch,
       trapped: awaiting && !forceSwitch && readTrapping(request) !== null,
       awaitingChoice: awaiting,
