@@ -51,3 +51,16 @@ kind rather than a table edit:
 Whether it is that, or a "pick a berry" that draws three berries and offers
 them as a three-card page, or something else, is the author's call and is
 not decided here.
+
+---
+
+## The ruling, verbatim
+
+2026-10-02, after the report above was put to the author:
+
+> build the card that opesn a pick. then check main to see if this still applies. if so, reapply changes
+
+`main` had moved from `da2a601` to `c1d527d` (PRs #70 to #89) between the
+filing and the ruling. Merged into the branch before any code; the finding
+held, since the gym pool was untouched by any of them. Built on the merged
+tree. Record: [`../generation.md`](../generation.md) section 99.
