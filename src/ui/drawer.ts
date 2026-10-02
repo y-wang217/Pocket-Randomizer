@@ -53,9 +53,9 @@ import type { Tuning } from '../data/tuning';
 import { el } from './scene';
 import { setProse } from './dom';
 import { createOverlay } from './overlay';
-import { DRAWER_BAG_HEADING, DRAWER_COPY } from './copy/screens';
+import { DRAWER_BAG_HEADING, DRAWER_COPY, PARTY_LABELS } from './copy/screens';
 import { itemById } from '../data/items';
-import { itemIcon, renderSlots } from './slots';
+import { itemIcon, renderSlots, slotNumber } from './slots';
 import { itemCopy } from '../data/itemCopy';
 import { memberCardContents } from './member-card';
 
@@ -80,6 +80,12 @@ export interface DrawerView {
    * state would be reading a number about a different moment.
    */
   inBattle?: boolean;
+  /**
+   * Which tab opened it. **Bible Rev 23, D95.** Team draws the party and the
+   * relics, Bag who holds what and what is carried; the readout follows the
+   * same split as the writable screens. Defaults to Team.
+   */
+  focus?: 'team' | 'bag';
 }
 
 export interface Drawer {
@@ -144,7 +150,8 @@ export function createDrawer(): Drawer {
   const note = el('p', 'drawer__note');
   setProse(note, DRAWER_COPY.note);
 
-  overlay.body.append(blurb, members, relics, bag, note);
+  const held = el('div', 'drawer__held-section');
+  overlay.body.append(blurb, members, relics, held, bag, note);
 
   return {
     root: overlay.root,
@@ -172,6 +179,39 @@ export function createDrawer(): Drawer {
     open(view, opener) {
       setProse(blurb, view.inBattle ? DRAWER_COPY.inBattle : DRAWER_COPY.carrying);
 
+      const focus = view.focus ?? 'team';
+      overlay.root.dataset['focus'] = focus;
+      members.hidden = focus !== 'team';
+      relics.hidden = focus !== 'team';
+      held.hidden = focus !== 'bag';
+      bag.hidden = focus !== 'bag';
+
+      // Who holds what, read only: the Bag's held list without its taps.
+      held.replaceChildren();
+      const heldHeading = el('h3', 'drawer__section');
+      heldHeading.textContent = PARTY_LABELS.held;
+      const heldRows = el('ul', 'drawer__items drawer__held');
+      view.party.forEach((member, index) => {
+        const id = view.holding[index] ?? null;
+        const entry = id ? itemById(id) : undefined;
+        const row = el('li', 'drawer__item');
+        const icon = el('span', 'drawer__item-icon');
+        if (entry) icon.append(itemIcon(entry.id));
+        icon.setAttribute('aria-hidden', 'true');
+        const name = el('span', 'drawer__item-name');
+        name.textContent = `${member.spec.species}: ${entry?.name ?? PARTY_LABELS.nothingHeld}`;
+        if (entry) {
+          name.dataset['tip'] = `item:${entry.id}`;
+          name.tabIndex = 0;
+          name.setAttribute('role', 'button');
+        }
+        const effect = el('span', 'drawer__item-effect');
+        effect.textContent = entry ? `${itemCopy(entry.id)}${entry.consumable ? ' Used up when it fires.' : ''}` : '';
+        row.append(slotNumber(index), icon, name, effect);
+        heldRows.append(row);
+      });
+      held.append(heldHeading, heldRows);
+
       members.replaceChildren(
         ...view.party.map((member, index) =>
           memberCardContents(member, {
@@ -179,6 +219,7 @@ export function createDrawer(): Drawer {
             tuning: view.tuning,
             isLead: index === 0,
             index,
+            readout: true,
             // Segment-to-date contribution, compact, on every card. A fact
             // about what already happened — see the note on the row itself.
             contribution: 'segment',

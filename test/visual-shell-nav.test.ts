@@ -73,6 +73,40 @@ describe('the tabs are readouts over a pending decision', () => {
       expect(await openScreen(page), `${tab}: the fight is still on screen`).toBe('battle');
       expect(await savedLog(page), `${tab}: nothing was submitted`).toBe(before);
     }
+
+    // The readout over a fight has no editing control on it (bible Rev 23,
+    // D94): Close, and the cards' disclosure chevrons, and nothing else.
+    await page.locator('[data-nav="team"]').click();
+    await page.waitForTimeout(120);
+    const controls = await page.locator('.drawer button:visible').allTextContents();
+    expect(controls.filter((label) => label !== 'Close' && label !== '\u25BE' && label !== '\u25B4')).toEqual([]);
+    await page.locator('.drawer .overlay__close').click();
+    await context.close();
+  }, 600_000);
+
+  it('opens the writable screen from a fight\u2019s result, without lead or release, and comes back to it', async () => {
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
+    await playUntil(page, (screen) => screen === 'result');
+    await page.waitForTimeout(300);
+    const before = await savedLog(page);
+
+    await page.locator('[data-nav="bag"]').click();
+    await page.waitForTimeout(150);
+    expect(await openTabScreen(page), 'the writable screen, not the readout').toBeNull();
+    expect(await openScreen(page)).toBe('party');
+    expect(await page.locator('.screen--party .held__item').count()).toBeGreaterThan(0);
+
+    await page.locator('[data-nav="team"]').click();
+    await page.waitForTimeout(150);
+    expect(await openScreen(page)).toBe('party');
+    const labels = await page.locator('.screen--party button').allTextContents();
+    expect(labels, 'no reorder or release while the node resolves').not.toContain('Lead');
+    expect(labels).not.toContain('Release');
+
+    await page.locator('.screen--party .primary-action').click();
+    await page.waitForTimeout(150);
+    expect(await openScreen(page), 'Back returns to the result it left').toBe('result');
+    expect(await savedLog(page), 'nothing was submitted').toBe(before);
     await context.close();
   }, 600_000);
 

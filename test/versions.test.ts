@@ -93,8 +93,11 @@ describe('the versions block', () => {
      *
      * `-21` adds a decision, the party edit, which is the plain case of the
      * four-word rule. `docs/generation.md` section 85.
+     *
+     * `-22` adds a party edit kind, the item layout applied when it is made
+     * (bible Rev 23, D94). `docs/generation.md` section 98.
      */
-    expect(RUN_LOG_VERSION.startsWith('gymrun-run-21/')).toBe(true);
+    expect(RUN_LOG_VERSION.startsWith('gymrun-run-22/')).toBe(true);
     expect(RUN_LOG_VERSION).not.toContain('gymrun-run-14/');
   });
 });

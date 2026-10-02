@@ -54,6 +54,11 @@ export const STARTER_LABELS = {
  */
 export const STAT_BAND_COPY = {
   line: (level: string, min: string, max: string): string => `At level ${level}, the pool runs ${min} to ${max}.`,
+  /**
+   * A staged cell's press (bible Rev 23, D98): the number before the stage,
+   * and the stage as count and multiplier. The cell's face is the number now.
+   */
+  stage: (base: string, stage: string, multiplier: string): string => `Base ${base}, stage ${stage} (${multiplier}).`,
 } as const;
 
 export const LOCALE_COPY = {
@@ -88,6 +93,23 @@ export const PARTY_COPY = {
   },
   emptyBag: { long: 'Nothing loose. Items you win arrive here.', short: 'Nothing loose.' },
 } as const satisfies Record<string, Prose>;
+
+/**
+ * The Team and Bag screens' labels. **Bible Rev 23, D95 to D97.** Single words
+ * on controls and headings, no sentence at rest: the view switch, the sort,
+ * and the bag's sections and two acts.
+ */
+export const PARTY_LABELS = {
+  teamTitle: 'Your party',
+  bagTitle: 'Bag',
+  views: { stats: 'Stats', moves: 'Moves', coverage: 'Coverage' },
+  sortBy: 'Sort',
+  partyOrder: 'Party order',
+  held: 'Held',
+  nothingHeld: 'Nothing held',
+  toBag: 'To bag',
+  discard: 'Discard',
+} as const;
 
 export const REPLACE_COPY = {
   blurb: {

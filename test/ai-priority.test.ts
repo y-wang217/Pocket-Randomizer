@@ -325,8 +325,11 @@ describe('the version axes', () => {
      *
      * `-21` is the opening playtest QA: a party edit is a logged decision.
      * `docs/generation.md` section 85.
+     *
+     * `-22` is the writable tabs patch: an item layout is a party edit.
+     * `docs/generation.md` section 98.
      */
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-21/gymrun-0.3.0');
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-22/gymrun-0.3.0');
     /*
      * Pinned literally, as the Branch 1 value was: a hash nobody can read off
      * the tree by eye is exactly the kind that moves without anyone noticing.

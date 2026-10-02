@@ -177,7 +177,9 @@ describe('the party surfaces', () => {
     noNickname(drawer.root, 'the party drawer');
   });
 
-  it('party management: cards, slot labels, the release confirm and the give buttons', () => {
+  // The give buttons went with bible Rev 23 (D97): the Bag's held list names
+  // each member instead, and is checked here.
+  it('party management: cards, the held list, and the release confirm', () => {
     const screen = createPartyScreen();
     document.body.replaceChildren(screen.root);
     screen.render(
@@ -185,7 +187,7 @@ describe('the party surfaces', () => {
       { onReorder: () => undefined, onRelease: () => undefined, onPlan: () => undefined, onTeach: () => undefined, onDone: () => undefined },
     );
     expect(texts(screen.root, '.panel__name')).toEqual(['Snorlax', 'Gengar']);
-    expect(texts(screen.root, '.slot__label').slice(0, 2)).toEqual(['Snorlax', 'Gengar']);
+    expect(texts(screen.root, '.held__member')).toEqual(['Snorlax', 'Gengar']);
     noNickname(screen.root, 'the party screen');
     (screen.root.querySelector('.party__release') as HTMLButtonElement | null)?.click();
     noNickname(document.body, 'the release confirm');

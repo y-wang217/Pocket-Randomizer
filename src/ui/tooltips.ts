@@ -812,7 +812,7 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
     case 'category':
       return renderCategory(id);
     case 'stat':
-      return renderStat(id, trigger?.dataset['value'], trigger?.dataset['band'], trigger?.dataset['level']);
+      return renderStat(id, trigger?.dataset['value'], trigger?.dataset['band'], trigger?.dataset['level'], trigger?.dataset);
     case 'hp':
       return renderHp(trigger?.dataset['value']);
     case 'band':
@@ -1349,7 +1349,7 @@ function renderCategory(id: string): HTMLElement | null {
  * also the closest this file comes to advice, and it stays on the safe side of
  * Part 4 by naming a term in the damage formula rather than a course of action.
  */
-function renderStat(id: string, value?: string, band?: string, level?: string): HTMLElement | null {
+function renderStat(id: string, value?: string, band?: string, level?: string, data?: DOMStringMap): HTMLElement | null {
   const info = statInfo(id);
   if (!info) return null;
   // The value, when the trigger carries one: in Pocket the row is a bar and
@@ -1363,6 +1363,10 @@ function renderStat(id: string, value?: string, band?: string, level?: string): 
   // The band the bar is drawn against (D88), when the cell drew one.
   const [min, max] = (band ?? '').split('-');
   if (min && max && level) body.append(line(STAT_BAND_COPY.line(level, min, max), 'tip__note'));
+  // A staged cell's base and stage (D98), which its face no longer prints.
+  if (data?.['base'] && data['stage'] && data['multiplier']) {
+    body.append(line(STAT_BAND_COPY.stage(data['base'], data['stage'], data['multiplier']), 'tip__note'));
+  }
   return body;
 }
 

@@ -12456,7 +12456,7 @@ moves (the bible names neither the palette nor the PP glyph's drawing).
    on, the round is a 24-by-9 sliver at 16px; upright it fills the cell and
    reads as a round beside the number. Same id, family, label and slot. The
    M1.1 glyph sheets are regenerated.
-4. **A test rule narrowed.** `test/visual-v1` and `test/visual-v3` held a
+4. **A test rule narrowed.** `test/visual-v1.test.ts` and `test/visual-v3.test.ts` held a
    style on an unchanged surface to *equal* its V0 contrast. The dark palette
    put the map node's detail line, its type chip and the battle panel's HP
    text back on V0's surfaces, where 5.0's heavier text reads 13.56, 8.07 and
@@ -12465,3 +12465,75 @@ moves (the bible names neither the palette nor the PP glyph's drawing).
 5. **Gates, this container.** Type check, lint, build, the node suite (151
    files, 2,000 tests). Browser half: everything else passes after items 2
    and 4; `test/visual-chips.test.ts` is reported in the PR.
+
+## 98. Writable tabs, Team and Bag, the stage in the stat cell
+
+2026-10-02. Bible Rev 23, D94 to D98, from
+[`spec/gymrun-patch-tabs-writable-and-stage-cells.md`](spec/gymrun-patch-tabs-writable-and-stage-cells.md).
+`RUN_LOG_VERSION` moves to `-22`; `RANDOMIZER_VERSION`, `AI_VERSION` and
+`contentHash` hold.
+
+1. **An item layout made between nodes was not held in the next fight.**
+   The party screen held the layout it was left with (`pendingPlan`), and
+   `chooseItemPlan` spent it at the boundary *after* the next node, so an item
+   moved on the map took effect one fight late. The fix is in `core/`: a party
+   edit kind, `{ kind: 'items', plan }`, applied by `playRun`'s party editor in
+   place through `applyItemPlan` with the boundary's own capacity and
+   `teachableNow`, and recorded only once applied, so a refused layout never
+   reaches the log. Replay applies it where the log holds it, before the next
+   answer, exactly as a reorder. `test/item-edit-ad-hoc.test.ts`.
+2. **The boundary that follows no longer re-equips what the player put
+   away.** `run.defaultItemPlan` fills every empty hand; with the layout
+   already applied, that would undo an unequip. The app answers the boundary
+   with `items.keepLayoutPlan`: the current layout, an empty hand filled only
+   from `items.arrivedItems` (what the node put in the bag). Headless policies
+   keep `defaultItemPlan`, so no balance figure moves; the sim fixture's diff
+   is the version line alone.
+3. **The app applies the held layout as the next question is answered.**
+   `src/ui/app.ts`, `flushedBefore`: the answers to `chooseLocale`, `chooseNode`
+   and `chooseLead` first hand `pendingPlan` to the party editor, reconciled
+   as the boundary reconciles, and skip it when it would change nothing, so
+   the log gains one entry per committed layout. At a teach boundary the
+   screen still answers `chooseItemPlan` itself. A layout made while a node is
+   resolving (result, shop, event) is still answered at that node's boundary,
+   which comes before the next fight. The boundary with nothing held answers
+   `keepLayoutPlan(state, nodeArrived)`, where `nodeArrived` is read off
+   `onNodeResolved`, which a resume's replay fires too.
+4. **The tabs are writable outside a battle** (D94). `src/ui/screens/router.ts`
+   gains `PARTY_EDIT_SURFACES` (map, pre-gym, locale) and
+   `WRITABLE_TAB_SURFACES` (those, plus result, shop and event). Team and Bag
+   open the party screen from any of the second list; reorder and release are
+   drawn only on the first, because the run folds a fight onto the party by
+   slot. Mid-node the screen shows the projected party, so a plan names the
+   slots the boundary will read. The teach screens stay readouts, since the
+   party screen is waiting on their answer. The teach boundary opens on the
+   Bag, where the TMs are. In a battle the readout draws no editing control:
+   its fold is a disclosure chevron (`collapsible`'s `readout` option), not
+   `+`.
+5. **Team and Bag are two screens over one working copy** (D95 to D97).
+   `src/ui/screens/party.ts` takes a `focus`. Team: the threats line, then Stats
+   (the member cards with a player-chosen sort that starts in party order and
+   is not remembered), Moves (`moveChip` rows with PP) and Coverage (the
+   summary's wheel, moved to `src/ui/coverage-wheel.ts` so both call it). Bag:
+   the held list, the backpack, TMs and relics; any item is moved in two
+   taps, member to member included. The party hotbar left the screen (R3
+   with the held list) and the per-species give buttons with it. The drawer
+   follows the same split.
+6. **The stage is in its stat cell** (D98). `statBlock` takes `stages`; on
+   the player's panel a staged cell draws the effective stat with the signed
+   count beneath, `data-stage` colours both through the rule the stylesheet
+   has carried unused since V5, and the label's press adds base, stage and
+   multiplier. The player's five leave the chip row and its marker; accuracy,
+   evasion and every foe stage keep them. **Deviation from the bible's
+   section 6 step 9 as amended:** the cell pulses on every redraw that
+   carries a stage, not only on the turn the stage changes, because the
+   block is rebuilt rather than patched. Its length is three motion beats,
+   `--motion-duration` derived, so `test/visual-tokens.test.ts` stays at 17.
+7. **Re-recorded with the version.** `docs/visual/baseline/` and
+   `test/fixtures/sim-report.json` move by the `runLog` string alone; every
+   decision, outcome and protocol in them is byte identical.
+8. **Renumbered on merge, 2026-10-02.** PR #88 reached `main` first with its
+   own bible Rev 22, D91 to D93 (the effectiveness emphasis). This work is
+   **Rev 23, D94 to D98**, placed above it; every citation in the tree was
+   moved. The branch's earlier commit messages still say *Rev 22, D91 to
+   D95*, and mean these five.
