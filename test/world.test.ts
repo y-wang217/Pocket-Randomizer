@@ -102,6 +102,22 @@ describe('the world scene', () => {
     world.destroy();
   });
 
+  /** **Bible Rev 20, D87.** The opening painting, before the first region. */
+  it('shows the opening painting only while asked and no locale is up', () => {
+    const world = createWorldScene(null);
+    world.setOpening(true);
+    expect(world.root.hidden).toBe(false);
+    expect(world.root.dataset['opening']).toBe('true');
+    expect(world.root.querySelector<HTMLElement>('.world__opening')?.dataset['backdrop']).toBe('opening-backdrop');
+    world.setLocale(LOCALE_IDS[0]!);
+    expect(world.root.dataset['opening']).toBeUndefined();
+    world.setLocale(null);
+    expect(world.root.dataset['opening']).toBe('true');
+    world.setOpening(false);
+    expect(world.root.hidden).toBe(true);
+    world.destroy();
+  });
+
   it('draws every locale into all three layers with one moving element', () => {
     const world = createWorldScene(null);
     for (const id of LOCALE_IDS) {
@@ -158,3 +174,37 @@ describe('the world scene', () => {
     world.destroy();
   });
 });
+
+/**
+ * The field on the world. **Stage 4.11 Tier 3, D47.** The stylesheet paints
+ * every weather kind the projection can name and tints the ground for every
+ * terrain kind; a kind with no rule would be a mark with no sky behind it.
+ */
+describe('the field', () => {
+  const styles = readFileSync(join(process.cwd(), 'src', 'ui', 'styles.css'), 'utf8');
+  const WEATHERS = ['rain', 'sun', 'sand', 'snow', 'wind'];
+  const TERRAINS = ['electric', 'grassy', 'misty', 'psychic'];
+
+  it('paints every weather kind, each with its own keyframes', () => {
+    for (const kind of WEATHERS) {
+      expect(styles, `data-weather='${kind}'`).toContain(`:root[data-weather='${kind}'] .world__weather`);
+      expect(styles, `@keyframes weather-${kind}`).toContain(`@keyframes weather-${kind} `);
+    }
+  });
+
+  it('tints the ground for every terrain kind, and moves nothing for it', () => {
+    for (const kind of TERRAINS) {
+      expect(styles, `data-terrain='${kind}'`).toContain(`:root[data-terrain='${kind}'] .world__layer--near`);
+    }
+    expect(styles).not.toMatch(/data-terrain=[^\n]*animation/);
+  });
+
+  it('mixes every wash from a global token and never adds a locale token', () => {
+    const tokens = readFileSync(join(process.cwd(), 'src', 'ui', 'theme', 'tokens.css'), 'utf8');
+    for (const kind of WEATHERS) expect(tokens).toContain(`--weather-${kind}:`);
+    for (const kind of TERRAINS) expect(tokens).toContain(`--terrain-${kind}:`);
+    const locales = readFileSync(join(process.cwd(), 'src', 'ui', 'theme', 'locales.css'), 'utf8');
+    expect(locales).not.toMatch(/--weather-|--terrain-/);
+  });
+});
+

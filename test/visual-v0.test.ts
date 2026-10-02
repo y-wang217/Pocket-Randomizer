@@ -63,6 +63,19 @@ describe('the vertical budget', () => {
     expect(measured.map.decisionBottom, 'map: last offered node card').toBeLessThanOrEqual(740);
     expect(measured.battle.decisionBottom, 'battle: fourth move button').toBeLessThanOrEqual(740);
   }, 180_000);
+
+  /*
+   * **And neither screen scrolls inside the frame.** Stage 5.0/2, the plan's
+   * test 2 (`docs/spec/gymrun-stage5.0-visual-redesign.md`): every decision
+   * surface fits 390x844 with no scroll. Since 5.0/1 the page cannot scroll at
+   * all, so the question is asked of the frame's scroller, which the
+   * instrument now reads.
+   */
+  it('scrolls neither guarded screen inside the frame at 390x844', async () => {
+    const measured = await measureGuardedScreens(harness.url, harness.browser);
+    expect(measured.map.scrollHeight, 'map: frame scroller').toBeLessThanOrEqual(measured.map.clientHeight);
+    expect(measured.battle.scrollHeight, 'battle: frame scroller').toBeLessThanOrEqual(measured.battle.clientHeight);
+  }, 180_000);
 });
 
 /** The computed properties the plan names for sibling cards. */
@@ -84,7 +97,7 @@ async function signatures(page: Page, selector: string): Promise<string[]> {
 }
 
 describe('siblings', () => {
-  it('render starter, locale, reward and capture cards on one surface', async () => {
+  it('render locale, reward and capture cards on one surface, and the three starters alike', async () => {
     const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
     const groups: Record<string, string[]> = {};
 
@@ -105,7 +118,15 @@ describe('siblings', () => {
       expect(group.length, `${name} cards present`).toBeGreaterThan(0);
       expect(new Set(group).size, `${name} cards identical: ${group.join(' | ')}`).toBe(1);
     }
-    const surfaces = new Set(Object.values(groups).map((group) => group[0]));
+    /*
+     * **The starter card left the shared surface at bible Rev 19 (D78).** The
+     * author asked for that screen alone to go a step darker, so it wears the
+     * window rule and the toned panel fill; its three cards still match each
+     * other above. The other three kinds still share one surface.
+     */
+    const { starter: _starter, ...shared } = groups;
+    void _starter;
+    const surfaces = new Set(Object.values(shared).map((group) => group[0]));
     expect(surfaces.size, `one surface across kinds: ${[...surfaces].join(' | ')}`).toBe(1);
   }, 180_000);
 });
@@ -166,7 +187,7 @@ describe('one accent', () => {
         }
       }
       if (screen === 'map' && !opened) {
-        await page.locator(`${visible('map')} .party__header .button`).click();
+        await page.locator('[data-nav="team"]').click();
         await page.waitForTimeout(30);
         opened = true;
         continue;

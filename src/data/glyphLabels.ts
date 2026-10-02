@@ -62,6 +62,26 @@ export const GLYPH_LABELS: Readonly<Record<string, string>> = {
   'stat-spd': 'Special Defense',
   'stat-spe': 'Speed',
 
+  'node-wild': 'Wild',
+  'node-trainer': 'Trainer',
+  'node-rest': 'Rest',
+  'node-gym': 'Gym',
+  'node-shop': 'Shop',
+  'node-event': 'Event',
+  // The field family, nine marks. Stage 4.11 Tier 2, D47. Present tense: the
+  // state of the board, the same vocabulary `fieldCopy.ts` names in full.
+  'field-rain': 'Rain',
+  'field-sun': 'Sun',
+  'field-sand': 'Sand',
+  'field-snow': 'Snow',
+  'field-wind': 'Wind',
+  'field-electric': 'Electric',
+  'field-grassy': 'Grassy',
+  'field-misty': 'Misty',
+  'field-psychic': 'Psychic',
+  // The currency family, one mark. D54, drawn in 5.0/3.
+  'currency-coin': 'Coins',
+
   'capability-cut': 'Cut',
   'capability-surf': 'Surf',
   'capability-strength': 'Strength',

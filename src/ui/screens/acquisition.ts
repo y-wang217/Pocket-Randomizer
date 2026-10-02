@@ -37,9 +37,8 @@
  * after a battle it won, so a `species` reward card lands in the same place a
  * wild capture does. Two screens for one decision is how the two drift.
  */
-import { describeOffer, type AcquisitionDecision, type AcquisitionOffer } from '../../core/acquisition';
+import { describeOffer, joiningSpec, type AcquisitionDecision, type AcquisitionOffer } from '../../core/acquisition';
 import { describeSpecCard } from '../../core/battle/driver';
-import { archetypeChip } from '../archetype-chip';
 import { createBar } from '../bar';
 import { coverageAfterSwap, coverageDelta, offensiveCoverage } from '../../core/coverage';
 import { hpState, ppState } from '../../core/hpCopy';
@@ -48,7 +47,7 @@ import { createPartyMember, hpFraction, ppTotals } from '../../core/party';
 import type { PokemonSpec, PokemonState } from '../../core/types';
 
 import { el, levelAria, levelText, movePower } from '../scene';
-import { statBlock } from '../stat-block';
+import { statBlock, type StatValues } from '../stat-block';
 import { prose } from '../dom';
 import { CAPTURE_FULL, CAPTURE_SOURCE, RELEASE_LABEL, RETURNS_TO_BAG } from '../copy/screens';
 import { hpTip } from '../member-card';
@@ -79,12 +78,22 @@ export function renderCaptureOffer(
    * answer against, so the screen and the rule cannot disagree.
    */
   capacity: number,
+  /**
+   * The segment the run is in, so the card draws the Pokemon that joins rather
+   * than the one that was fought: `joiningSpec` is the same call
+   * `applyAcquisition` builds the member from. Omitted, the card draws the
+   * offer as fought, which is what fixtures without a run want.
+   */
+  segment?: number,
 ): HTMLElement {
   const section = el('div', 'acquire');
   const full = party.length >= capacity;
+  // The heading and the card read one spec, so neither can name a level the
+  // other does not.
+  const joining = segment === undefined ? offer : { ...offer, spec: joiningSpec(offer.spec, segment) };
 
   const title = el('h3', 'result__heading');
-  title.textContent = describeOffer(offer);
+  title.textContent = describeOffer(joining);
 
   // Where it came from, and at a full party the rule that follows. Both
   // forms of both sentences, from `ui/copy/screens.ts`; never what it is worth.
@@ -93,7 +102,7 @@ export function renderCaptureOffer(
   if (full) blurb.append(prose(CAPTURE_FULL));
 
   const offered = el('div', 'acquire__offer');
-  offered.replaceChildren(renderOffered(offer.spec));
+  offered.replaceChildren(renderOffered(joining.spec));
 
   /*
    * The coverage line, before and after, exactly as the species reward card
@@ -157,7 +166,16 @@ export function renderCaptureOffer(
     : `Your party (${party.length} of ${capacity})`;
 
   const list = el('div', 'party party--compare');
-  list.replaceChildren(...party.map((member, index) => renderExisting(member, index, full, onDecide)));
+  /*
+   * **The swap's stat change. Bible Rev 20, D84.** At a full party every
+   * member card carries its six numbers and, beside each, what the incoming
+   * Pokemon would put in that slot instead, signed and coloured by its sign.
+   * All six on every card, in party order: R10's permit, never a marker on
+   * the member to drop. With room to spare nothing is replaced, so no change.
+   */
+  const incoming = describeSpecCard(joining.spec);
+  const against = full ? { ...incoming.baseStatsAtLevel, hp: incoming.maxHp } : undefined;
+  list.replaceChildren(...party.map((member, index) => renderExisting(member, index, full, onDecide, against)));
 
   const actions = el('div', 'acquire__actions');
   const decline = document.createElement('button');
@@ -314,8 +332,8 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
   const meta = el('div', 'panel__meta');
   const hp = el('span', 'panel__hp-text');
   /*
-   * Full HP, and from 4.6a at the level it was fought at rather than below the
-   * curve. The discount was the price of a free Pokemon; the price is the step
+   * Full HP, at the level it joins at when the caller passes the segment (the
+   * opening playtest QA), which since 4.7 is the party's level. The discount was the price of a free Pokemon; the price is the step
    * the encounter occupied and the slot it takes.
    */
   hp.textContent = `${hpState(detail.maxHp, detail.maxHp)} · joins at full health`;
@@ -353,7 +371,7 @@ function renderOffered(spec: PokemonSpec): HTMLElement {
     header,
     meta,
     // The shared stat block, six across, as the starter card draws it. M3.2, D20.
-    statBlock({ ...detail.baseStatsAtLevel, hp: detail.maxHp }, { layout: 'row' }),
+    statBlock({ ...detail.baseStatsAtLevel, hp: detail.maxHp }, { layout: 'row', level: detail.level }),
     moves,
   );
   return card;
@@ -366,6 +384,7 @@ function renderExisting(
   index: number,
   full: boolean,
   onDecide: (decision: AcquisitionDecision) => void,
+  against?: StatValues,
 ): HTMLElement {
   const card = el('div', 'party__member');
   const detail = describeSpecCard(member.spec);
@@ -380,7 +399,9 @@ function renderExisting(
   // in for the result screen's slot row in Pocket, where that row is off
   // screen, and a slot is the one fact the row had that the card did not.
   // Density modes patch, Part 4.
-  header.append(slotNumber(index), name, level, archetypeChip(detail.baseStats), ...detail.types.map(monTypeChip));
+  // No archetype chip: the six numbers are on this card now (D84), and
+  // section 3 draws the label nowhere the numbers already are.
+  header.append(slotNumber(index), name, level, ...detail.types.map(monTypeChip));
 
   const bar = createBar();
   bar.set(hpFraction(member));
@@ -412,7 +433,14 @@ function renderExisting(
   }
 
   // The body, phased by slot as the party screen's cards are. Idle-sprites patch.
-  card.append(spriteFigure(detail.species, { phase: index }), header, track, meta);
+  // The six numbers at rest (R13), with the swap's change on a full party (D84).
+  card.append(
+    spriteFigure(detail.species, { phase: index }),
+    header,
+    track,
+    meta,
+    statBlock({ ...detail.baseStatsAtLevel, hp: member.maxHp }, { layout: 'row', against, level: detail.level }),
+  );
 
   if (full) {
     const release = document.createElement('button');

@@ -1,5 +1,5 @@
 /**
- * The two guarded screens, measured at 390x844, in all three density modes.
+ * The two guarded screens, measured at 390x844, on the one face.
  *
  * The plan's vertical budget names two screens: the battle screen with four
  * move buttons above the fold, and the map screen with the current step's
@@ -40,19 +40,9 @@ try {
   if (compare) {
     const expected = JSON.parse(readFileSync(compare, 'utf8'));
     const differences = [];
-    // Detailed at the top level, the other two modes under `modes`. Density patch.
-    const readings = [
-      ['', expected, measured],
-      ...Object.keys(expected.modes ?? {}).map((mode) => [`modes.${mode}.`, expected.modes[mode], measured.modes?.[mode] ?? {}]),
-      // The move bar layouts, each in all three densities. Four-column patch.
-      ...Object.entries(expected.layouts ?? {}).flatMap(([layout, densities]) =>
-        Object.keys(densities).map((mode) => [
-          `layouts.${layout}.${mode}.`,
-          densities[mode],
-          measured.layouts?.[layout]?.[mode] ?? {},
-        ]),
-      ),
-    ];
+    // One face since Stage 5.0/1: the density patch's `modes` and the
+    // four-column `layouts` are gone with the modes.
+    const readings = [['', expected, measured]];
     for (const [prefix, want, got] of readings) {
       for (const screen of ['map', 'battle']) {
         for (const key of Object.keys(want[screen] ?? {})) {

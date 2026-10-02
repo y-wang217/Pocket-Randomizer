@@ -459,7 +459,30 @@ is M6.0, M6.2, M6.3, M6.1, and the table below is in it.
 | M6.2 Coach marks re-anchored | **done** | — (guard deleted; nine marks rewritten; `test/visual-tutorial-anchors.test.ts` runs in Pocket, 29 of 29. [`../generation.md` §74](../generation.md)) |
 | M6.3 Pocket default | **done** | — (fresh store Pocket, existing stores kept; retirement recorded open in section 9. [`../generation.md` §75](../generation.md)) |
 | M6.1 Exposure labels | **done** | — (ten families, labels on exposures 1 and 3; D41 built with its family walk; starter recorded at [`../visual/m6.1-starter-first-run.png`](../visual/m6.1-starter-first-run.png). [`../generation.md` §76](../generation.md)) |
-| M6.4 Retire Simple and Detailed | open | — (D11 ruled: two rounds) |
+| M6.4 Retire Simple and Detailed | **superseded** 2026-09-30 | D50: the author ruled the validation cycle done; Stage 5.0/1 deletes the setting |
+
+**Patch 4.10.1, between Tier 6 and Tier 7 (2026-09-25).** Not one of the
+twenty-four items: a lead-designer prompt, filed at
+[`../spec/gymrun-patch-4.10.1-map-node-icons.md`](../spec/gymrun-patch-4.10.1-map-node-icons.md),
+that the map's node kinds become marks. It reopened D37 as that row's own
+option 2 and reversed D28 as a reversal, under **D46**; the bible went to Rev
+13 and section 2 reads eleven families. Landed before M7.1 on purpose, so the
+playtest sees the face that section 9's family-size hypothesis now describes.
+Record [`../generation.md` §80](../generation.md).
+
+**Stage 4.11, between patch 4.10.1 and Tier 7 (2026-09-25).** Not one of
+the twenty-four items either: a lead-designer prompt, filed at
+[`../spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md`](../spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md)
+with its investigation and a six-tier plan, that the weather and terrain on
+the board become a state the player can see and that an ability firing is
+marked where its name sits. Ruled under **D47**, **D48** and **D49** (the
+third against the recommendation), bible Rev 14, section 2 reads twelve
+families and section 6 gains two steps. Tiers 0 to 4 built in one session:
+the census, the state headless, the `field` glyph on the header, the field's
+factor on the move button, the wash and the tint on the world, and the
+triggers. Landed before M7.1 for 4.10.1's reason: the playtest should see the
+twelve-family face. Record [`../generation.md` §82](../generation.md), handoff
+[`../handoff/4.11-prep.md`](../handoff/4.11-prep.md).
 
 ### Tier 7: validation
 

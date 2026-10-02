@@ -61,7 +61,8 @@ import { TYPE_ICON_NAMES, TYPE_ICON_VIEWBOX, typeIconPath } from './typeIcons';
 export const GLYPH_VIEWBOX = TYPE_ICON_VIEWBOX;
 
 /**
- * The nine families of design bible section 2. Adding a tenth is an amendment.
+ * The families of design bible section 2, twelve since D47, eleven under D46. Adding one is an
+ * amendment.
  *
  * **The roster lives in `data/glyphFamilies.ts` since M1.3** and is re-exported
  * here, so the sheet stays the one place to ask what a family *looks* like
@@ -173,9 +174,12 @@ export const GLYPHS: readonly Glyph[] = [
     art: { kind: 'markup', markup: '<circle cx="12" cy="12" r="6.2" fill="none" stroke="currentColor" stroke-width="1.2"/>' },
   },
 
-  // PP: a drop. A supply that is spent, which is the fact the number beside it
-  // quantifies. Distinct from every round shape in the sheet by its point.
-  { id: 'pp', family: 'pp', label: labelOf('pp'), art: path('M12 2.5c0 0 7 7.8 7 11.6A7 7 0 1 1 5 14.1C5 10.3 12 2.5 12 2.5z') },
+  // PP: a cartridge, upright. Ammunition, which is what PP is: a count of
+  // uses spent one per use (the author, 2026-10-01: *"Its essentially ammo"*;
+  // it was a drop until then). Bullet, case and rim are three parts with a
+  // gap between each, so the round reads as a round at 16 and is told from
+  // every other tall shape in the sheet by its point over a straight case.
+  { id: 'pp', family: 'pp', label: labelOf('pp'), art: path('M9 9.5C9 6 10.4 3.6 12 2c1.6 1.6 3 4 3 7.5zM8.5 10.5h7v9h-7zM7.5 20.5h9V22h-9z') },
 
   // Accuracy: a bullseye, and a dart for the move that cannot miss. Rings
   // against a solid wedge — the pair the kills-it condition is really about.
@@ -260,6 +264,67 @@ export const GLYPHS: readonly Glyph[] = [
     label: labelOf('capability-band-off'),
     art: { kind: 'markup', markup: '<path d="M12 7.6l5.6 7.2H6.4z" fill="none" stroke="currentColor" stroke-width="1.4"/>' },
   },
+
+  /*
+   * **Node: the eleventh family. D46, 2026-09-25. Patch 4.10.1.**
+   *
+   * One mark per node kind, where the map printed a word and the battle
+   * header printed the same word. The prompt named two of them — *"Trainer is
+   * a head symbol. Wild is a bush symbol"* — and said to take the shop and the
+   * event from what exists: the event's `?` has been the map's own mark since
+   * Stage 3, and the shop's bag is the item sheet's silhouette. The rest and
+   * the gym were the plan's defaults, a tent and an eight-pointed badge, and
+   * the ruling took them.
+   *
+   * Six silhouettes in one family, so drawn for outline rather than detail: a
+   * head on shoulders, three lobes on a stem, a triangle with a door cut
+   * even-odd, a star, a bag with a hole for the handle, and a `?` thick enough
+   * to survive 16px. The head against the bush and the tent against the badge
+   * are the pairs the separation sheet is there to catch.
+   */
+  { id: 'node-wild', family: 'node', label: labelOf('node-wild'), art: path('M12 3.5a4.2 4.2 0 0 1 4.1 3.3 4 4 0 0 1 4.4 4 4 4 0 0 1-2.4 3.7c.3 2-1.2 3.7-3.2 3.7h-1.6V21h-2.6v-2.8H9.1c-2 0-3.5-1.7-3.2-3.7A4 4 0 0 1 3.5 10.8a4 4 0 0 1 4.4-4A4.2 4.2 0 0 1 12 3.5z') },
+  { id: 'node-trainer', family: 'node', label: labelOf('node-trainer'), art: path('M12 2.5a4.6 4.6 0 0 1 4.6 4.6v1.2A4.6 4.6 0 0 1 12 12.9a4.6 4.6 0 0 1-4.6-4.6V7.1A4.6 4.6 0 0 1 12 2.5zM3 21.5c0-4.3 3.6-7.4 9-7.4s9 3.1 9 7.4z') },
+  { id: 'node-rest', family: 'node', label: labelOf('node-rest'), art: path('M12 2.5l10.5 18.5h-21zm0 9.2l-3.4 6.3h6.8z', 'evenodd') },
+  { id: 'node-gym', family: 'node', label: labelOf('node-gym'), art: path('M12 2l2.4 5.6 5.8-1.8-3.4 5.2 5.2 3.4-5.8 1.6L14.4 22 12 16.6 9.6 22l-1.8-6-5.8-1.6 5.2-3.4-3.4-5.2 5.8 1.8z') },
+  { id: 'node-shop', family: 'node', label: labelOf('node-shop'), art: path('M8.5 8.5V7a3.5 3.5 0 0 1 7 0v1.5h3.2l1.3 13H4l1.3-13zm2.2 0h2.6V7a1.3 1.3 0 0 0-2.6 0z', 'evenodd') },
+  { id: 'node-event', family: 'node', label: labelOf('node-event'), art: path('M12 2.5c3.6 0 6.2 2.3 6.2 5.5 0 2.3-1.3 3.6-2.6 4.6-1.1.8-1.7 1.4-1.7 2.6v.6h-3.6v-.9c0-2.2 1-3.4 2.4-4.4 1.1-.8 1.7-1.4 1.7-2.4 0-1.2-1-2.1-2.4-2.1-1.5 0-2.5 1-2.6 2.5H5.7c.1-3.6 2.7-6 6.3-6zM10.1 17.7h3.8v3.8h-3.8z') },
+
+  /*
+   * The field family. **Stage 4.11 Tier 2, D47.** Nine marks for the state of
+   * the board: what the sky is doing, and what the ground is doing.
+   *
+   * Two shapes on purpose. The five weathers float, each a silhouette of the
+   * thing itself. The four terrains all stand on a ground bar along the
+   * bottom, which is the family's own cue that this is the ground and not the
+   * sky, and the mark above the bar is the type the terrain favours: a bolt,
+   * blades, a bank of mist, an eye. Heavy rain wears the rain mark and Extreme
+   * sun the sun mark, by the ruling; inspect tells them apart.
+   *
+   * The pairs to watch on the separation sheet: sand against wind (both
+   * horizontal), misty against sand (both banded), and grassy against
+   * electric (both spikes on a bar). Sand is a filled dune, wind is three
+   * stroked lines, mist is three stacked bars of unequal width, and the bolt
+   * is one shape where the blades are three.
+   */
+  { id: 'field-rain', family: 'field', label: labelOf('field-rain'), art: path('M7 12.5a4.2 4.2 0 0 1-.4-8.4A5.5 5.5 0 0 1 17.2 5a3.8 3.8 0 0 1 .3 7.5zM7.2 15l-2 4.2h2.2l2-4.2zm4.4 0l-2 4.2h2.2l2-4.2zm4.4 0l-2 4.2h2.2l2-4.2z') },
+  { id: 'field-sun', family: 'field', label: labelOf('field-sun'), art: path('M12 7.2a4.8 4.8 0 1 1 0 9.6 4.8 4.8 0 0 1 0-9.6zM11 1.5h2v3.4h-2zm0 17.6h2v3.4h-2zM1.5 11h3.4v2H1.5zm17.6 0h3.4v2h-3.4zM4.2 5.6l1.4-1.4 2.4 2.4-1.4 1.4zm12.8 12.8l1.4-1.4 2.4 2.4-1.4 1.4zM4.2 18.4l2.4-2.4 1.4 1.4-2.4 2.4zM17 6.6l2.4-2.4 1.4 1.4-2.4 2.4z') },
+  { id: 'field-sand', family: 'field', label: labelOf('field-sand'), art: path('M2 19.5c2.4-5.6 5.2-8.4 8.4-8.4 2.3 0 3.6 1.4 5 3.2 1.4 1.8 2.9 3.4 6.6 3.4v1.8zM5.5 6.5h2v2h-2zm5-3h2v2h-2zm5.5 2h2v2h-2zM8 10.2h2v2H8zm8.5-1.4h2v2h-2z') },
+  { id: 'field-snow', family: 'field', label: labelOf('field-snow'), art: path('M11 2h2v20h-2zM2 11h20v2H2zM4.6 6l1.4-1.4L19.4 18 18 19.4zM4.6 18L18 4.6 19.4 6 6 19.4zM9.2 3.8L12 6.6l2.8-2.8 1.4 1.4L12 9.4 7.8 5.2zm0 16.4L12 17.4l2.8 2.8 1.4-1.4L12 14.6l-4.2 4.2zM3.8 9.2L6.6 12l-2.8 2.8 1.4 1.4L9.4 12 5.2 7.8zm16.4 0L17.4 12l2.8 2.8-1.4 1.4L14.6 12l4.2-4.2z') },
+  { id: 'field-wind', family: 'field', label: labelOf('field-wind'), art: path('M2 6.5h11.5a2.8 2.8 0 1 0-2.6-3.7l1.9.6a.8.8 0 1 1 .7 1.1H2zm0 5h16.2a3.3 3.3 0 1 0-3.1-4.4l1.9.7a1.3 1.3 0 1 1 1.2 1.7H2zm0 5h12.4a2.8 2.8 0 1 1-2.6 3.7l1.9-.6a.8.8 0 1 0 .7-1.1H2z') },
+  { id: 'field-electric', family: 'field', label: labelOf('field-electric'), art: path('M13.5 2L5.5 12.5h5l-1.6 6.2 8-10.2h-5zM2 20.5h20v2H2z') },
+  { id: 'field-grassy', family: 'field', label: labelOf('field-grassy'), art: path('M6.5 18.5c-.8-4.6.2-9.4 2-13.5.9 3.8 1 8.5.4 13.5zm5.2 0c-1-5.2-.2-10.6 2.3-15.5.5 4.7 0 10.4-.6 15.5zm4.9 0c-.6-3.8.3-7.8 1.9-11.2.6 3.2.5 7.4-.2 11.2zM2 20.5h20v2H2z') },
+  { id: 'field-misty', family: 'field', label: labelOf('field-misty'), art: path('M4 5.5h12v2.4H4zm4 4.6h14v2.4H8zM2 14.7h13v2.4H2zM2 20.5h20v2H2z') },
+  { id: 'field-psychic', family: 'field', label: labelOf('field-psychic'), art: path('M12 5.5c4.6 0 8.2 3 9.7 6-1.5 3-5.1 6-9.7 6s-8.2-3-9.7-6c1.5-3 5.1-6 9.7-6zm0 2.4a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 0 0 0-7.2zm0 1.8a1.8 1.8 0 1 1 0 3.6 1.8 1.8 0 0 1 0-3.6zM2 20.5h20v2H2z') },
+
+  /*
+   * The currency family. **Ruled under D54, drawn in Stage 5.0/3 (D66).** One
+   * mark, beside a bare number wherever a coin amount appears.
+   *
+   * A stack of three coins seen from the side. Not a disc: a filled disc
+   * with a slot read as an info mark at 16px, and a hollow one is the
+   * category ring.
+   */
+  { id: 'currency-coin', family: 'currency', label: labelOf('currency-coin'), art: path('M4 6.5a8 3.5 0 1 0 16 0 8 3.5 0 1 0-16 0zM4 9.2v2.8c0 1.9 3.6 3.5 8 3.5s8-1.6 8-3.5V9.2c-1.3 1.6-4.4 2.7-8 2.7s-6.7-1.1-8-2.7zm0 5.5v2.8c0 1.9 3.6 3.5 8 3.5s8-1.6 8-3.5v-2.8c-1.3 1.6-4.4 2.7-8 2.7s-6.7-1.1-8-2.7z') },
 ];
 
 /** The glyphs of one family, in sheet order. */

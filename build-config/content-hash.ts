@@ -101,6 +101,10 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
     why: 'the words a post-resolution flag is shown as; the truths are read in core/battle/flags.ts, which does not import this',
   },
   {
+    path: 'src/data/fieldCopy.ts',
+    why: 'the words and effect lines for the weather and terrain on the board; the ids are read in core/battle/driver.ts, which does not import this',
+  },
+  {
     path: 'src/data/flagPrecedence.ts',
     why: 'which flag the strip shows when several are true; R9 puts the order in data and D12 put it in a split file, because core/ reads the protocol and the renderer reads this',
   },
@@ -155,10 +159,6 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
   {
     path: 'src/data/displayTuning.ts',
     why: "how long a battle beat lingers and the chip legibility floors; read by ui/theme/motion.ts and the visual tests only, and a number parked for a playtest must be movable when the playtest arrives without refusing every shared seed",
-  },
-  {
-    path: 'src/data/densityTuning.ts',
-    why: 'the three density modes\' chrome scales and the phone Pocket is measured on; read by ui/theme/density.ts only, and a display scale must not move the hash it sits beside',
   },
   {
     path: 'src/data/statStages.ts',

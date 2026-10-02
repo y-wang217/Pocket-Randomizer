@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { BAND_PIPS } from '../src/data/bandInfo';
+import { glyphArtKey } from '../src/ui/assets/manifest';
 import { TYPE_ICON_NAMES } from '../src/ui/theme/typeIcons';
 import {
   GLYPHS,
@@ -37,6 +38,8 @@ const SEPARATION = join(process.cwd(), 'docs/visual/m1.1-glyph-separation.json')
 
 interface SeparationFile {
   floor: number;
+  /** The glyphs measured as their class C drawing (5.0/5). */
+  drawn: string[];
   worst: { family: string; a: string; b: string; simulation: string; score: number }[];
   all: { family: string; a: string; b: string; simulation: string; score: number }[];
 }
@@ -64,15 +67,19 @@ describe('the glyph sheet', () => {
   });
 
   /*
-   * **Ten since 2026-09-22, and the count is still the point.** D37 added
+   * **Eleven since 2026-09-25, and the count is still the point.** D37 added
    * `capability`, which section 3's map-node row had specified since Rev 1
    * while section 2's roster never carried it — a table corrected to agree
-   * with a rule, not a new claim. The assertion is unchanged in force: an
-   * eleventh family fails here, which is what makes section 10.3's
-   * stop-and-file a gate rather than a hope.
+   * with a rule, not a new claim. D46 added `node`, which *was* a new claim,
+   * and it went through section 10.3's stop-and-file: a row, a ruling, Rev
+   * 13, then this line. The assertion is unchanged in force: a twelfth family
+   * fails here, which is what makes the stop-and-file a gate rather than a
+   * hope.
    */
-  it('fills all ten families of section 2, and no eleventh', () => {
-    expect(GLYPH_FAMILIES).toHaveLength(10);
+  // Thirteen since Stage 5.0/3: `currency`, ruled under D54 (Rev 15) and
+  // first drawn for the shop price and the coins card (D66, Rev 17).
+  it('fills all thirteen families of section 2, and no fourteenth', () => {
+    expect(GLYPH_FAMILIES).toHaveLength(13);
     for (const family of GLYPH_FAMILIES) expect(glyphsOf(family), family).not.toHaveLength(0);
     const drawn = new Set(GLYPHS.map((glyph) => glyph.family));
     expect([...drawn].sort()).toEqual([...GLYPH_FAMILIES].sort());
@@ -94,6 +101,10 @@ describe('the glyph sheet', () => {
       'FRZ',
     ]);
     expect(glyphsOf('stat')).toHaveLength(6);
+    // Section 2's node row, D46: one mark per kind, in the map's own order.
+    expect(glyphsOf('node').map((glyph) => glyph.label)).toEqual(['Wild', 'Trainer', 'Rest', 'Gym', 'Shop', 'Event']);
+    // Section 2's field row, D47: five weathers then four terrains, nine marks.
+    expect(glyphsOf('field').map((glyph) => glyph.label)).toEqual(['Rain', 'Sun', 'Sand', 'Snow', 'Wind', 'Electric', 'Grassy', 'Misty', 'Psychic']);
   });
 
   it('wears the fist and the ring on the Atk and SpA stat rows', () => {
@@ -159,6 +170,19 @@ describe('the 16px separation', () => {
     const pairable = GLYPH_FAMILIES.filter((family) => glyphsOf(family).length > 1) as GlyphFamily[];
     for (const family of pairable) {
       for (const glyph of glyphsOf(family)) expect(measured, `${glyph.id} unmeasured; re-run the sheet`).toContain(glyph.id);
+    }
+  });
+
+  /*
+   * Stage 5.0/5, D61: the node, capability and currency marks are class C
+   * drawings now, and *"M1.1's colour-blind check is re-run on the new art
+   * before 5.0/5 mounts it."* The table names the glyphs it measured as their
+   * drawing, so one measured on the SVGs they replaced fails here.
+   */
+  it('measured every glyph with a drawing as the drawing', () => {
+    const drawn = new Set(separation().drawn);
+    for (const glyph of GLYPHS.filter((entry) => glyphArtKey(entry.id) !== null)) {
+      expect(drawn, `${glyph.id} measured as its SVG; re-run the sheet`).toContain(glyph.id);
     }
   });
 

@@ -14,11 +14,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { greedyAiPolicy } from '../src/core/battle/ai';
 import { currentVersions, isReplayable, playRun, scriptedRunPolicy } from '../src/core/run';
-import type { RunLog } from '../src/core/types';
-import { clearRunLog, loadRunLog, saveRunLog } from '../src/ui/storage';
+import type { ItemPlan, RunDecision, RunLog } from '../src/core/types';
+import { clearItemDraft, clearRunLog, loadItemDraft, loadRunLog, saveItemDraft, saveRunLog } from '../src/ui/storage';
 
 beforeEach(() => {
   clearRunLog();
+  clearItemDraft();
 });
 
 describe('the run log round trip', () => {
@@ -51,5 +52,53 @@ describe('the run log round trip', () => {
       JSON.stringify({ seed: 'X', versions: currentVersions(), decisions: [{ kind: 'wish', index: 1 }] }),
     );
     expect(loadRunLog()).toBeNull();
+  });
+});
+
+/**
+ * The plan composed on the party screen and not yet spent survives a reload.
+ * **The second QA pass, QA-008 and QA-009:** a taught TM and an item moved to
+ * the bag both lived only in `app.ts` memory until the next boundary.
+ */
+describe('the unspent item plan across a reload', () => {
+  const teach: ItemPlan = {
+    assignments: [{ slot: 0, item: null }],
+    discards: [],
+    teaches: [{ move: 'Icy Wind', slot: 1, replaceSlot: 2 }],
+    discardTms: [],
+  };
+  const log = (decisions: RunDecision[]): RunLog => ({ seed: 'QA-008', versions: currentVersions(), decisions });
+  const head: RunDecision[] = [
+    { kind: 'starter', index: 0 },
+    { kind: 'locale', index: 0 },
+    { kind: 'node', index: 0 },
+  ];
+
+  it('comes back for the run and the moment it was composed in', () => {
+    saveItemDraft({ seed: 'QA-008', decisions: head.length, plan: teach });
+    expect(loadItemDraft(log(head))).toEqual(teach);
+    // Walking on without spending it keeps it: it is spent at the next boundary.
+    expect(loadItemDraft(log([...head, { kind: 'node', index: 1 }]))).toEqual(teach);
+  });
+
+  it('does not come back into another run, or past the entry that spent it', () => {
+    saveItemDraft({ seed: 'QA-008', decisions: head.length, plan: teach });
+    expect(loadItemDraft({ ...log(head), seed: 'OTHER' })).toBeNull();
+    expect(loadItemDraft(log(head.slice(0, 1)))).toBeNull();
+    expect(loadItemDraft(log([...head, { kind: 'items', plan: teach }]))).toBeNull();
+    expect(loadItemDraft(log([...head, { kind: 'party', edit: { kind: 'reorder', from: 1, to: 0 } }]))).toBeNull();
+    expect(
+      loadItemDraft(log([...head, { kind: 'acquisition', decision: { kind: 'release', slot: 1 } }])),
+    ).toBeNull();
+    // An accepted capture appends and moves no slot, so the plan still stands.
+    expect(loadItemDraft(log([...head, { kind: 'acquisition', decision: { kind: 'accept' } }]))).toEqual(teach);
+  });
+
+  it('is gone once cleared, and refuses a draft that is not a plan', () => {
+    saveItemDraft({ seed: 'QA-008', decisions: head.length, plan: teach });
+    clearItemDraft();
+    expect(loadItemDraft(log(head))).toBeNull();
+    globalThis.localStorage.setItem('gymrun.itemDraft', JSON.stringify({ seed: 'QA-008', decisions: 0, plan: {} }));
+    expect(loadItemDraft(log(head))).toBeNull();
   });
 });

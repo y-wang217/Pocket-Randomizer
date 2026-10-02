@@ -1,0 +1,227 @@
+<!doctype html>
+<!--
+  Stage 5.0/0 spike: the segment map. Throwaway, static, not wired into the app.
+  Node data is real, from previewRun (spike/map-data.json, written by
+  spike/gen-map-data.ts); the player's position and path are illustrative,
+  since a preview has no decisions in it.
+
+  ?case=0..4  one of the five seeds.  ?case=worst  a synthetic seven-step
+  segment with three nodes on every step, the widest the tuning can draw.
+
+  Node positions are presentational: a per-backdrop slot grid plus a small
+  offset hashed from the node id. No RNG stream, nothing from core.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spike: map</title>
+<link rel="stylesheet" href="spike.css">
+<style>
+  .map { position: relative; flex: 1; min-height: 0; background: var(--ground); overflow: hidden; }
+  .map__edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .edge { stroke: var(--border); stroke-width: 4; fill: none; stroke-linecap: round; }
+  .edge--next { stroke-dasharray: 2 9; stroke-width: 4; }
+  .map__tag { position: absolute; left: 6px; bottom: 4px; font-size: 9px; color: var(--ink); opacity: .7; }
+
+  .node {
+    position: absolute; transform: translate(-50%, -50%);
+    width: 52px; height: 60px; padding: 0; border: 0; background: none; font: inherit; color: var(--ink);
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  .node__mark {
+    width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; position: relative;
+    background: var(--panel); border: 3px solid var(--border);
+  }
+  .node__mark .ph { --ph: 26px; border-width: 0; font-size: 16px; }
+  .node--next .node__mark { border-color: var(--selected); background: var(--highlight-fill); outline: 3px solid var(--panel); }
+  /* Dimmed by fill, not opacity, so the path drawn beneath stays beneath. */
+  .node--visited .node__mark, .node--passed .node__mark { background: color-mix(in srgb, var(--panel) 45%, var(--ground)); border-color: color-mix(in srgb, var(--border) 55%, var(--ground)); color: color-mix(in srgb, var(--ink) 55%, var(--ground)); }
+  .node--passed .node__mark { border-style: dashed; }
+  .node--visited .pips, .node--passed .pips, .node--visited .node__cap, .node--passed .node__cap { filter: grayscale(1) opacity(.5); }
+  .node--later .node__mark { background: color-mix(in srgb, var(--panel) 80%, var(--ground)); }
+  .node .pips i { width: 7px; height: 7px; }
+  .node .pips { background: var(--panel); padding: 1px 2px; border: 2px solid var(--border); border-radius: 2px; }
+  .node__cap {
+    position: absolute; right: -8px; top: -6px; width: 20px; height: 20px; border-radius: 3px;
+    display: grid; place-items: center; font-size: 10px; font-weight: 800;
+    border: 2px solid var(--border); background: var(--panel);
+  }
+  .node__cap--held { background: var(--highlight); }
+  .node__cap--unheld { border-style: dashed; color: var(--ink-soft); }
+  .node--gym { width: 120px; height: 72px; }
+  .node--gym .node__mark { width: 56px; height: 56px; border-radius: 6px; }
+  .node__gymname { font-size: 11px; font-weight: 700; background: var(--panel); border: 2px solid var(--border); border-radius: 2px; padding: 0 4px; white-space: nowrap; }
+
+  .player { position: absolute; transform: translate(-50%, -100%); width: 40px; height: 40px; pointer-events: none; z-index: 2; }
+  .player img { width: 40px; height: 40px; image-rendering: pixelated; object-fit: cover; object-position: 50% 10%; }
+  .start { position: absolute; transform: translate(-50%, -50%); width: 28px; height: 14px; border-radius: 50%; background: var(--border); opacity: .5; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <main class="frame" id="frame">
+    <nav class="nav" aria-label="Run">
+      <button class="nav__tab nav__tab--on"><span class="ph" style="--ph:20px">M</span>Map</button>
+      <button class="nav__tab"><span class="ph" style="--ph:20px">T</span>Team</button>
+      <button class="nav__tab"><span class="ph" style="--ph:20px">B</span>Bag</button>
+      <button class="nav__tab"><span class="ph" style="--ph:20px">R</span>Run Info</button>
+      <button class="nav__tab"><span class="ph" style="--ph:20px">S</span>Settings</button>
+    </nav>
+    <div class="titlebar"><span id="title"></span><span class="coins"><span class="ph" style="--ph:14px">¢</span>212</span></div>
+    <section class="map" id="map">
+      <svg class="map__edges" id="edges"></svg>
+      <span class="map__tag" id="tag"></span>
+    </section>
+  </main>
+  <aside class="sidebar" aria-label="Run">
+    <div class="window wordmark"><span class="ph" style="--ph:28px">W</span>GYMRUN</div>
+    <div class="window"><h3>Run progress</h3><div id="progress-label" style="margin-bottom:6px"></div><div class="progress" id="progress"></div></div>
+    <div class="window"><h3>Current team</h3><div class="slots" id="slots"></div></div>
+    <div class="window" style="flex:1;min-height:0;overflow:hidden">
+      <h3>Recent events</h3>
+      <ul class="events">
+        <li><span class="ph" style="--ph:16px">T</span>Beat a trainer</li>
+        <li><span class="ph" style="--ph:16px">W</span>Caught Sandslash</li>
+        <li><span class="ph" style="--ph:16px">L</span>Entered the locale</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+<script type="module">
+  import { renderSlots } from './sidebar.js';
+
+  const KIND_LETTER = { wild: 'W', trainer: 'T', rest: 'R', shop: '$', event: '?', gym: 'G' };
+  const TIERS = ['normal', 'hard', 'elite'];
+  const CAP_LETTER = (cap) => cap.slice(0, 2).toUpperCase();
+  // Illustrative only: a preview has no party, so "held" is faked for one capability.
+  const HELD = new Set(['cut', 'surf']);
+
+  // FNV-1a over the node id: presentational jitter, not a draw.
+  const hash = (s) => { let h = 0x811c9dc5; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 0x01000193); } return h >>> 0; };
+
+  const data = await (await fetch('map-data.json')).json();
+  const q = new URLSearchParams(location.search).get('case') ?? '0';
+  let c;
+  if (q === 'worst') {
+    const kinds = ['trainer', 'event', 'wild'];
+    c = {
+      seed: 'synthetic', segment: 7, locale: 'city', localeName: 'City', leader: 'Nox', gymType: 'Dark', gymTeamSize: 6,
+      steps: Array.from({ length: 7 }, (_, s) => kinds.map((k, o) => ({ id: `s7-city-${s}-${o}`, kind: k, tier: k === 'event' ? null : TIERS[(s + o) % 3], requires: k === 'event' ? ['cut', 'surf', 'flash', 'strength'][s % 4] : null }))),
+      gym: { id: 's7-gym', kind: 'gym', tier: null, requires: null },
+    };
+  } else c = data[Number(q)];
+
+  // Illustrative position: case 0 stands at the entrance, the rest partway in.
+  const position = q === '0' ? -1 : q === 'worst' ? 3 : Math.floor(c.steps.length / 2);
+  const taken = c.steps.map((opts, s) => (s <= position ? hash(c.seed + s) % opts.length : null));
+
+  document.getElementById('title').innerHTML = `${c.localeName} <small>· Gym ${c.segment + 1} of 8 · ${c.leader}</small>`;
+  document.getElementById('tag').textContent = `placeholder backdrop: ${c.locale} tint · ${c.seed}`;
+  document.getElementById('map').classList.add(`locale--${c.locale}`);
+  document.getElementById('progress-label').textContent = `${c.localeName} · Gym ${c.segment + 1} of 8`;
+  document.getElementById('progress').append(...Array.from({ length: 8 }, (_, i) => { const d = document.createElement('i'); if (i < c.segment) d.className = 'done'; if (i === c.segment) d.className = 'now'; return d; }));
+  renderSlots(document.getElementById('slots'), ['magneton', 'sandslash', 'swablu', 'geodude'], Math.min(c.segment, 8));
+
+  const map = document.getElementById('map');
+  const svg = document.getElementById('edges');
+  function layout() {
+    map.querySelectorAll('.node, .player, .start').forEach((n) => n.remove());
+    svg.replaceChildren();
+    const W = map.clientWidth, H = map.clientHeight;
+    const rows = c.steps.length + 2; // entrance, steps, gym
+    const padTop = 52, padBottom = 30;
+    const pitch = (H - padTop - padBottom) / (rows - 1);
+    // Row r=0 is the entrance at the bottom; the gym is the top row.
+    const yOf = (r) => H - padBottom - r * pitch;
+    // The per-backdrop slot grid: fractions of the width by node count.
+    const GRID = { 1: [0.5], 2: [0.3, 0.7], 3: [0.18, 0.5, 0.82] };
+    const pos = (node, o, n, r) => {
+      const h = hash(node.id);
+      const dx = ((h & 0xff) / 255 - 0.5) * 22;
+      const dy = (((h >> 8) & 0xff) / 255 - 0.5) * Math.min(14, pitch * 0.18);
+      return { x: GRID[n][o] * W + dx, y: yOf(r) + dy };
+    };
+    const points = c.steps.map((opts, s) => opts.map((node, o) => pos(node, o, opts.length, s + 1)));
+    const gymPt = { x: W / 2, y: yOf(rows - 1) };
+    const entrance = { x: W / 2, y: yOf(0) };
+    const here = position < 0 ? entrance : points[position][taken[position]];
+
+    const line = (a, b, cls) => {
+      const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      l.setAttribute('x1', a.x); l.setAttribute('y1', a.y); l.setAttribute('x2', b.x); l.setAttribute('y2', b.y);
+      l.setAttribute('class', `edge ${cls}`);
+      svg.append(l);
+    };
+    // Travelled path, solid.
+    let prev = entrance;
+    for (let s = 0; s <= position; s++) { const p = points[s][taken[s]]; line(prev, p, 'edge--done'); prev = p; }
+    // Edges from the current node to every next-step node, dashed. Later steps: none.
+    const nextRow = position + 1;
+    const nextPts = nextRow < c.steps.length ? points[nextRow] : [gymPt];
+    for (const p of nextPts) line(here, p, 'edge--next');
+
+    const start = document.createElement('div');
+    start.className = 'start'; start.style.left = `${entrance.x}px`; start.style.top = `${entrance.y}px`;
+    map.append(start);
+
+    const fit = { rows, pitch: Math.round(pitch), nodes: 0, tappable: 0, minTap: Infinity, overlaps: 0 };
+    const rects = [];
+    const draw = (node, p, phase, isGym) => {
+      const tappable = phase === 'next';
+      const b = document.createElement(tappable ? 'button' : 'div');
+      b.className = `node node--${phase}${isGym ? ' node--gym' : ''}`;
+      if (tappable) { b.type = 'button'; b.dataset.tap = ''; }
+      b.style.left = `${p.x}px`; b.style.top = `${p.y}px`;
+      b.setAttribute('aria-label', `${node.kind}${node.tier ? `, ${node.tier}` : ''}`);
+      const mark = document.createElement('span');
+      mark.className = 'node__mark';
+      mark.innerHTML = `<span class="ph">${KIND_LETTER[node.kind]}</span>`;
+      if (node.requires) {
+        const cap = document.createElement('span');
+        const held = HELD.has(node.requires);
+        cap.className = `node__cap node__cap--${held ? 'held' : 'unheld'}`;
+        cap.textContent = CAP_LETTER(node.requires);
+        cap.title = `${node.requires}: ${held ? 'relic held' : 'relic not held'}`;
+        mark.append(cap);
+      }
+      b.append(mark);
+      if (node.tier) {
+        const pips = document.createElement('span');
+        pips.className = 'pips';
+        const n = TIERS.indexOf(node.tier) + 1;
+        pips.innerHTML = [0, 1, 2].map((i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
+        b.append(pips);
+      }
+      if (isGym) {
+        const name = document.createElement('span');
+        name.className = 'node__gymname';
+        name.textContent = `${c.leader} · ${c.gymTeamSize}`;
+        b.append(name);
+      }
+      map.append(b);
+      const r = b.getBoundingClientRect();
+      for (const o of rects) if (r.left < o.right && r.right > o.left && r.top < o.bottom && r.bottom > o.top) fit.overlaps++;
+      rects.push(r);
+      fit.nodes++;
+      if (tappable) { fit.tappable++; fit.minTap = Math.min(fit.minTap, r.width, r.height); }
+    };
+    c.steps.forEach((opts, s) => opts.forEach((node, o) => {
+      const phase = s < position ? (o === taken[s] ? 'visited' : 'passed') : s === position ? (o === taken[s] ? 'visited' : 'passed') : s === nextRow ? 'next' : 'later';
+      draw(node, points[s][o], phase, false);
+    }));
+    draw(c.gym, gymPt, nextRow >= c.steps.length ? 'next' : 'later', true);
+
+    const player = document.createElement('div');
+    player.className = 'player';
+    player.style.left = `${here.x - 38}px`; player.style.top = `${here.y + 20}px`;
+    player.innerHTML = '<img src="https://play.pokemonshowdown.com/sprites/trainers/lucas.png" alt="You">';
+    map.append(player);
+    fit.topNodeTop = Math.round(Math.min(...rects.map((r) => r.top)) - map.getBoundingClientRect().top);
+    window.__fit = fit;
+  }
+  layout();
+  addEventListener('resize', layout);
+</script>
+</body>
+</html>

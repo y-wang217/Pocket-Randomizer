@@ -4,8 +4,10 @@
  * @vitest-environment jsdom
  *
  * Design bible R5: *"Long press on any card, chip, glyph, badge or pip opens
- * its full explanation. Release closes. Tap still selects. There is exactly one
- * mechanism."*
+ * its full explanation. It stays open until a tap outside it, its close
+ * control or Escape. Tap still selects. There is exactly one mechanism."*
+ * (Amended 2026-09-25 by the docked sheet patch; it read "Release closes"
+ * before that.)
  *
  * Discrepancy D4 ruled what "every" means here: **the acceptance test
  * enumerates every row of section 3's inspect column except archetype**, which
@@ -28,9 +30,16 @@ async function longPress(element: HTMLElement): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-/** Release, which is what closes a held panel. */
+/** Release. Since the docked sheet patch this leaves the panel open. */
 function release(element: HTMLElement): void {
   element.dispatchEvent(new MouseEvent('pointerup', { bubbles: true }));
+}
+
+/** The tap that closes a held panel: on the scrim under it. */
+function tapAway(host: HTMLElement): void {
+  const scrim = host.querySelector<HTMLElement>('.tip-scrim');
+  if (!scrim) throw new Error('no scrim mounted');
+  scrim.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
 }
 
 /**
@@ -88,6 +97,8 @@ const SECTION_3_ROWS: { row: string; tip: string; data?: Record<string, string> 
   { row: 'Coverage change', tip: 'coverage:capture', data: { detail: '+Dragon\tSteel\n-Ghost' } },
   { row: 'Capability requirement', tip: 'capability:surf' },
   { row: 'Tier (map node)', tip: 'tier:hard' },
+  // Stage 4.11 Tier 2, D47: the state of the board, keyed by the sim id.
+  { row: 'Field state (weather, terrain)', tip: 'field:raindance' },
 ];
 
 describe('inspect opens on every row of the encoding table', () => {
@@ -100,6 +111,7 @@ describe('inspect opens on every row of the encoding table', () => {
       const text = (layer.root.textContent ?? '').trim();
       if (layer.root.hidden || text.length === 0) silent.push(`${row} (${tip})`);
       release(node);
+      tapAway(host);
     }
     // Named rather than counted: a failure should say which row opens nothing.
     expect(silent).toEqual([]);
@@ -108,22 +120,102 @@ describe('inspect opens on every row of the encoding table', () => {
 
   it('is one row short of the encoding table, and the short one is archetype', () => {
     // A guard on the list above, so a row added to section 3 and not to this
-    // file is noticed. Nineteen rows in the table, archetype excluded by D4.
-    expect(SECTION_3_ROWS).toHaveLength(19 - 1);
+    // file is noticed. Twenty rows in the table since D47, archetype excluded by D4.
+    expect(SECTION_3_ROWS).toHaveLength(20 - 1);
     expect(SECTION_3_ROWS.some((entry) => entry.row.toLowerCase().includes('archetype'))).toBe(false);
   });
 });
 
 describe('the gesture', () => {
-  it('opens on a hold and closes on release', async () => {
+  /**
+   * **The docked sheet patch, 2026-09-25.** R5 read "Release closes" until
+   * this patch, and the author's playtest said why that was wrong on a phone:
+   * the panel sat under the thumb and left with it. It now stays open on
+   * release and closes on a tap anywhere outside it, which the scrim takes so
+   * that the tap is a dismissal and nothing else.
+   */
+  it('opens on a hold, stays open on release, and closes on a tap away', async () => {
     const { host, layer, done } = mount();
     const node = trigger(host, 'band:3');
+    const scrim = host.querySelector<HTMLElement>('.tip-scrim');
+    if (!scrim) throw new Error('no scrim mounted');
 
     expect(layer.root.hidden).toBe(true);
     await longPress(node);
     expect(layer.root.hidden).toBe(false);
+    // Not yet: the click a fast tap leaves behind may still be the player's.
+    expect(scrim.hidden, 'the scrim arms on release, not on open').toBe(true);
     release(node);
-    // R5: "Release closes."
+    expect(layer.root.hidden, 'release closed the sheet').toBe(false);
+    expect(scrim.hidden, 'release did not arm the scrim').toBe(false);
+    // The click the hold leaves behind is eaten and closes nothing.
+    node.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(layer.root.hidden, 'the hold\'s own click closed the sheet').toBe(false);
+
+    tapAway(host);
+    expect(layer.root.hidden).toBe(true);
+    expect(scrim.hidden).toBe(true);
+    done();
+  });
+
+  it('closes on its own close control', async () => {
+    const { host, layer, done } = mount();
+    const node = trigger(host, 'band:3');
+    await longPress(node);
+    release(node);
+    // The click the hold leaves behind, eaten before the reader's next tap.
+    node.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    const close = layer.root.querySelector<HTMLElement>('.tip__close');
+    expect(close?.getAttribute('aria-label')).toBe('Close');
+    close?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(layer.root.hidden).toBe(true);
+    done();
+  });
+
+  /**
+   * The dismissal must not be a submission. The sheet on the battle screen
+   * sits over the board and the scrim over the move bar; a tap that closed
+   * the sheet *and* chose the move under it would be R5's forbid by another
+   * route.
+   */
+  it('the tap that closes the sheet goes no further', async () => {
+    const { host, layer, done } = mount();
+    const button = document.createElement('button');
+    button.dataset['tip'] = 'move:flamethrower';
+    let submitted = 0;
+    button.addEventListener('click', () => {
+      submitted += 1;
+    });
+    host.append(button);
+    let reachedHost = 0;
+    host.addEventListener('click', () => {
+      reachedHost += 1;
+    });
+
+    await longPress(button);
+    release(button);
+    button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(layer.root.hidden).toBe(false);
+
+    tapAway(host);
+    expect(layer.root.hidden).toBe(true);
+    expect(submitted).toBe(0);
+    expect(reachedHost, 'the scrim\'s click bubbled past the layer').toBe(0);
+    done();
+  });
+
+  /**
+   * A cancelled pointer is how iOS reported the selection callout taking
+   * over. With the text unselectable that path is gone, but a scroll still
+   * cancels, and a reader mid-sentence should not lose the sheet to it.
+   */
+  it('survives a cancelled pointer', async () => {
+    const { host, layer, done } = mount();
+    const node = trigger(host, 'band:3');
+    await longPress(node);
+    node.dispatchEvent(new MouseEvent('pointercancel', { bubbles: true }));
+    expect(layer.root.hidden).toBe(false);
+    tapAway(host);
     expect(layer.root.hidden).toBe(true);
     done();
   });
@@ -180,6 +272,7 @@ describe('R5 enforcement: a long press on a move button spends no turn', () => {
     button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
     expect(submitted, 'a long press submitted the move').toBe(0);
+    expect(layer.root.hidden, 'the sheet should outlive the release').toBe(false);
     done();
   });
 
@@ -391,6 +484,87 @@ describe('a phone tap is not a hover', () => {
     button.dispatchEvent(click);
 
     expect(submitted, 'a cancelled hold ate the next turn').toBe(1);
+    done();
+  });
+});
+
+describe('nothing on the board is a text field', () => {
+  /**
+   * The report's first sentence, and the one no script could fix: iOS reads a
+   * long press on selectable text as "select this word" and its copy callout
+   * cancels the pointer. The rule lives in the stylesheet, so this reads the
+   * stylesheet. The whole UI declines selection, the inputs and the log body
+   * are the exceptions, and every button carries the hit slop.
+   */
+  it('declines selection and the callout, and grows every button', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const css = readFileSync(join(process.cwd(), 'src', 'ui', 'styles.css'), 'utf8');
+    const tokens = readFileSync(join(process.cwd(), 'src', 'ui', 'theme', 'tokens.css'), 'utf8');
+    // On every element, not `body` alone: message 4 found iOS ignoring the
+    // inherited value on a chip.
+    expect(css).toMatch(/html,\s*body,\s*body \*,\s*body \*::before,\s*body \*::after\s*\{[^}]*user-select:\s*none;[^}]*-webkit-touch-callout:\s*none;/);
+    expect(css).toMatch(/input,\s*textarea,\s*\.log-sheet__body,\s*\.log-sheet__body \*\s*\{[^}]*user-select:\s*text;/);
+    expect(css).toMatch(/:where\(button, \[role='button'\]\)::after\s*\{[^}]*inset:\s*max\(-5%, calc\(-1 \* var\(--space-3\)\)\);/);
+    // The slop sits *behind* the control's content, in the control's own
+    // stacking context. Painted on top it took every press meant for a chip
+    // inside a move card or a panel, and the ability and type triggers were
+    // unreachable; hit-tested in Chromium on the starter and battle screens.
+    expect(css).toMatch(/:where\(button, \[role='button'\]\)\s*\{[^}]*isolation:\s*isolate;/);
+    expect(css).toMatch(/:where\(button, \[role='button'\]\)::after\s*\{[^}]*z-index:\s*-1;/);
+    expect(tokens).toMatch(/--tap-scale:\s*1\.1;/);
+    expect(css).toMatch(/\.tip\s*\{[^}]*position:\s*fixed;[^}]*top:/);
+  });
+});
+
+describe('the layer refuses a selection the stylesheet did not stop', () => {
+  /**
+   * Message 4 of the docked sheet patch: iOS selected the ability chip with
+   * `user-select: none` in the built stylesheet. The layer cancels
+   * `selectstart` on anything but an input or the log body, and clears a
+   * selection that lands inside the host anyway.
+   */
+  it('cancels selectstart on a trigger and leaves the log body alone', () => {
+    const { host, done } = mount();
+    const node = trigger(host, 'ability:intimidate');
+    node.textContent = 'Intimidate';
+    const log = document.createElement('div');
+    log.className = 'log-sheet__body';
+    log.textContent = 'Turn 1';
+    host.append(log);
+
+    const onChip = new Event('selectstart', { bubbles: true, cancelable: true });
+    node.dispatchEvent(onChip);
+    expect(onChip.defaultPrevented, 'a chip started a selection').toBe(true);
+
+    const onLog = new Event('selectstart', { bubbles: true, cancelable: true });
+    log.dispatchEvent(onLog);
+    expect(onLog.defaultPrevented, 'the log body must stay copyable').toBe(false);
+    done();
+  });
+
+  it('clears a selection that lands on a chip, and keeps one in the log body', () => {
+    const { host, done } = mount();
+    const node = trigger(host, 'ability:intimidate');
+    node.textContent = 'Intimidate';
+    const log = document.createElement('div');
+    log.className = 'log-sheet__body';
+    log.textContent = 'Turn 1';
+    host.append(log);
+
+    const select = (target: HTMLElement): Selection => {
+      const selection = document.getSelection();
+      if (!selection) throw new Error('no selection API');
+      selection.removeAllRanges();
+      const range = document.createRange();
+      range.selectNodeContents(target);
+      selection.addRange(range);
+      document.dispatchEvent(new Event('selectionchange'));
+      return selection;
+    };
+
+    expect(select(node).rangeCount, 'the chip kept its selection').toBe(0);
+    expect(select(log).rangeCount, 'the log body lost its selection').toBe(1);
     done();
   });
 });

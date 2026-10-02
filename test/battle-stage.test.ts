@@ -116,10 +116,16 @@ describe('the floating panel', () => {
     }
   });
 
-  it('carries no six-stat block, and says the stages as V2 chips instead', () => {
+  /**
+   * **Rewritten at Bible Rev 20, D83.** The panel carried no stat block from
+   * V5 to Rev 19; the player's side carries one now, at rest, because the
+   * stats are vital (R13). The foe's keeps its long press (D18) and no block.
+   */
+  it("carries the player's six numbers and no foe block, and says the stages as V2 chips", () => {
     const { scene } = sceneFor();
-    expect(scene.root.querySelectorAll('.stats')).toHaveLength(0);
-    expect(scene.root.querySelectorAll('.stat__label')).toHaveLength(0);
+    expect(panelOf(scene, 'me').querySelectorAll('.panel__stats .stats .stat')).toHaveLength(6);
+    expect(panelOf(scene, 'me').querySelectorAll('.stat__value')).toHaveLength(6);
+    expect(panelOf(scene, 'foe').querySelectorAll('.stats')).toHaveLength(0);
 
     // Nothing has moved a stage yet, so there is nothing to say and the row
     // holds no chip at all — the same rule the flag strip follows one band
@@ -154,17 +160,23 @@ describe('the floating panel', () => {
     }
     scene.update(buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects), () => {});
 
-    const chips = [...panelOf(scene, 'me').querySelectorAll('.panel__stages .chip--stage')];
-    expect(chips.length).toBeGreaterThan(0);
-    expect(chips.map((chip) => chip.textContent)).toContain(`Atk ${formatStageMultiplier(2)}`);
-    // And the stage itself is still reachable: it is what the ladder draws,
-    // and it is on the ladder's label as a signed number.
-    const boosted = chips.find((chip) => chip.textContent?.startsWith('Atk'))!;
-    expect(boosted.querySelectorAll('.stage-ladder__seg[data-on="true"]')).toHaveLength(2);
-    expect(boosted.querySelector('.stage-ladder')?.getAttribute('aria-label')).toContain('+2');
-    // Through the V2 component, whose docstring has said "for the battle panel
-    // to adopt in V5" since that stage landed.
-    for (const chip of chips) expect(chip.classList.contains('chip')).toBe(true);
+    /*
+     * **The player's stage is in its own cell since bible Rev 23 (D98).** The
+     * Attack cell carries the stat as the stage makes it and the signed count
+     * beneath, coloured up; the multiplier and the base are on the cell's
+     * press. Nothing for Attack is left on the player's chip row (R3).
+     */
+    const me = panelOf(scene, 'me');
+    const cell = me.querySelector('.stat[data-row="atk"]') as HTMLElement;
+    expect(cell.dataset['stage']).toBe('up');
+    expect(cell.querySelector('.stat__stage')?.textContent).toBe('+2');
+    const label = cell.querySelector('.stat__label') as HTMLElement;
+    expect(label.dataset['multiplier']).toBe(formatStageMultiplier(2));
+    expect(label.dataset['stage']).toBe('+2');
+    expect(Number(cell.querySelector('.stat__value')?.textContent)).toBe(Number(label.dataset['value']));
+    expect(Number(label.dataset['value'])).toBeGreaterThan(Number(label.dataset['base']));
+    expect(me.querySelectorAll('.panel__stages .chip--stage')).toHaveLength(0);
+
   });
 
   it('keeps the speed marker the six rows used to carry', () => {
@@ -486,22 +498,32 @@ describe('the panel at rest', () => {
      */
     view.player.stats.atk.stage = 2;
     view.player.accuracyStages.evasion = -1;
+    view.opponent.stats.def.stage = -1;
     scene.update(view, () => {});
 
+    /*
+     * On the player's side the marker folds accuracy and evasion only: the
+     * five stats are in their cells since bible Rev 23 (D98), and a mark for
+     * Attack here as well would be the stage in a second channel (R3).
+     */
     const marker = panelOf(scene, 'me').querySelector('.badge--stages') as HTMLElement;
-    expect(marker, 'the Pocket fold is still built in every mode').not.toBeNull();
+    expect(marker, 'the fold is still built').not.toBeNull();
     // No word, and no count either: the marks are the count, and a numeral
     // beside them would be the same fact in a second channel (R3).
     expect(marker.textContent).toBe('');
-    expect([...marker.querySelectorAll('.glyph')].map((g) => g.getAttribute('data-glyph'))).toEqual([
-      'stat-atk',
-      'accuracy-target',
-    ]);
-    // The sentence is where a reader who cannot count marks still finds it.
-    expect(marker.getAttribute('aria-label')).toBe('STAGES 2');
-    // And the set itself is unchanged behind the press.
-    expect(marker.dataset['detail']).toContain('Atk');
+    expect([...marker.querySelectorAll('.glyph')].map((g) => g.getAttribute('data-glyph'))).toEqual(['accuracy-target']);
+    expect(marker.getAttribute('aria-label')).toBe('STAGES 1');
     expect(marker.dataset['detail']).toContain('Eva');
+    expect(marker.dataset['detail']).not.toContain('Atk');
+    expect(panelOf(scene, 'me').querySelector('.stat[data-row="atk"]')?.getAttribute('data-stage')).toBe('up');
+
+    // The foe keeps all of its stages on the marker, stat marks included.
+    const foe = panelOf(scene, 'foe').querySelector('.badge--stages') as HTMLElement;
+    expect([...foe.querySelectorAll('.glyph')].map((g) => g.getAttribute('data-glyph'))).toEqual(['stat-def']);
+    expect(foe.dataset['detail']).toContain('Def');
+    // And the named chip with its ladder: the multiplier names its stat.
+    const chips = [...panelOf(scene, 'foe').querySelectorAll('.panel__stages .chip--stage')].map((chip) => chip.textContent);
+    expect(chips).toContain(`Def ${formatStageMultiplier(-1)}`);
   });
 
   it('draws the held item as a sprite in a fixed slot, and nothing when there is none', () => {

@@ -80,6 +80,17 @@ describe('the result screen', () => {
     expect(actions ?? Infinity).toBeLessThanOrEqual(844);
     await close();
   }, 180_000);
+
+  // The capture card ability patch: the offered card never folds open, so a
+  // fold rule that hid its ability hid it for good.
+  it('shows the offered Pokemon its ability at rest', async () => {
+    const { page, close } = await openGallery('S49B-1', 'result-capture');
+    const ability = page.locator('.party__member--offered .party__ability');
+    expect(await ability.count()).toBe(1);
+    expect(await ability.isVisible()).toBe(true);
+    expect((await ability.textContent())?.trim()).not.toBe('');
+    await close();
+  }, 180_000);
 });
 
 describe('the summary', () => {

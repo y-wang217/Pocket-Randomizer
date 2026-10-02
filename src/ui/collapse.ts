@@ -55,7 +55,22 @@ export interface Collapsible {
  * `label` names the row for a screen reader ("Snorlax: more"), because a
  * screen of six identical "More" buttons is six controls with one name.
  */
-export function collapsible(host: HTMLElement, parts: readonly HTMLElement[], label: string): Collapsible {
+/**
+ * The disclosure marks a readout draws instead of `+` and `−`. **Bible Rev 23,
+ * D94.** On a surface with no write path a `+` reads as "add", which is an
+ * edit, so the readout's fold says what it is: more below, or less.
+ */
+const READOUT_SHOW = '\u25BE';
+const READOUT_HIDE = '\u25B4';
+
+export function collapsible(
+  host: HTMLElement,
+  parts: readonly HTMLElement[],
+  label: string,
+  options: { readout?: boolean } = {},
+): Collapsible {
+  const show = options.readout ? READOUT_SHOW : SHOW_GLYPH;
+  const hide = options.readout ? READOUT_HIDE : HIDE_GLYPH;
   const body = el('div', 'collapse__body');
   body.append(...parts);
   host.dataset['collapsible'] = 'true';
@@ -66,7 +81,7 @@ export function collapsible(host: HTMLElement, parts: readonly HTMLElement[], la
   toggle.className = 'button button--small collapse__toggle';
   const paint = (): void => {
     const open = host.dataset['expanded'] === 'true';
-    toggle.textContent = open ? HIDE_GLYPH : SHOW_GLYPH;
+    toggle.textContent = open ? hide : show;
     toggle.setAttribute('aria-expanded', String(open));
     toggle.setAttribute('aria-label', `${label}: ${open ? HIDE : SHOW}`);
   };

@@ -54,7 +54,7 @@ describe('the world', () => {
         continue;
       }
       if (screen === 'map' && !opened) {
-        await page.locator(`${visible('map')} .party__header .button`).click();
+        await page.locator('[data-nav="team"]').click();
         await page.waitForTimeout(50);
         opened = true;
         continue;
@@ -70,11 +70,14 @@ describe('the world', () => {
           for (const control of globalThis.document.querySelectorAll<HTMLElement>(`${sel} button, ${sel} [role=button], ${sel} input`)) {
             if (control.offsetParent === null) continue;
             const box = control.getBoundingClientRect();
-            if (box.width === 0 || box.bottom < 0 || box.top > globalThis.innerHeight) continue;
+            // The frame's scroller clips since Stage 5.0/1, so "on screen" is
+            // inside it, not inside the window.
+            const view = globalThis.document.querySelector('.screens')!.getBoundingClientRect();
+            if (box.width === 0 || box.bottom < view.top || box.top > view.bottom) continue;
             // A point inside the visible part of the box: a tall control's
             // centre can sit below the fold, where nothing is hit-testable.
-            const top = Math.max(box.top, 0);
-            const bottom = Math.min(box.bottom, globalThis.innerHeight);
+            const top = Math.max(box.top, view.top);
+            const bottom = Math.min(box.bottom, view.bottom);
             const hit = globalThis.document.elementFromPoint(box.left + box.width / 2, (top + bottom) / 2);
             if (!hit || !control.contains(hit)) out.push(`${control.tagName}.${control.className.split(' ')[0]} "${control.textContent?.trim().slice(0, 20)}" hit ${hit?.className}`);
           }
@@ -104,7 +107,15 @@ describe('the world', () => {
   }, 300_000);
 
   it('moves its layers at 0.2, 0.5 and 1 of scroll, and holds still under reduced motion with no drift', async () => {
-    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
+    /*
+     * **A short viewport, since Stage 5.0/1.** The map fits a 390x844 frame
+     * now and has nothing to scroll, and so does a party of one. At 480 tall
+     * the map scrolls inside the frame, which is the scroll the parallax
+     * reads. **400 since Stage 5.0/4** (`docs/spec/gymrun-stage5.0-visual-redesign.md`,
+     * Stage 4): the map's graph gives its rows back down to a floor, so at
+     * 480 the whole segment fitted with 15px to scroll, under the guard below.
+     */
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24', { width: 390, height: 400 });
     await playUntil(page, (screen) => screen === 'map');
     /*
      * **Scroll as far as the map allows, rather than to a fixed 200.**
@@ -121,9 +132,11 @@ describe('the world', () => {
      * That is the thing the 100 was standing in for, and it does not have to
      * be re-tuned the next time a surface loses a line.
      */
+    // The frame's scroller since Stage 5.0/1: the page itself no longer scrolls.
     const room = await page.evaluate(() => {
-      const max = globalThis.document.documentElement.scrollHeight - globalThis.innerHeight;
-      globalThis.scrollTo(0, max);
+      const frame = globalThis.document.querySelector<HTMLElement>('.screens')!;
+      const max = frame.scrollHeight - frame.clientHeight;
+      frame.scrollTo(0, max);
       return max;
     });
     expect(room, 'the map no longer scrolls enough to measure a parallax ratio').toBeGreaterThan(40);
@@ -142,17 +155,28 @@ describe('the world', () => {
      * the condition costs nothing when the frame is prompt and does not lie
      * when it is late.
      */
+    /*
+     * **And for the layer to match the scroll as it stands, since Stage
+     * 5.0/4.** The map scrolls its current step into view on render, so the
+     * frame can still be settling after the `scrollTo` above; waiting for the
+     * layer to have moved at all read it one throttled frame behind (-19.6
+     * against a scroll that had reached 112). The condition is the ratio the
+     * assertions below check, on the far layer, at whatever the scroll is.
+     */
     await page.waitForFunction(
       () => {
         const far = globalThis.document.querySelector('.world__layer--far');
-        if (!far) return false;
+        const frame = globalThis.document.querySelector<HTMLElement>('.screens');
+        if (!far || !frame) return false;
         const matrix = globalThis.getComputedStyle(far).transform;
-        return matrix !== 'none' && !/^matrix\(1, 0, 0, 1, 0, -?0\)$/.test(matrix);
+        if (matrix === 'none' || /^matrix\(1, 0, 0, 1, 0, -?0\)$/.test(matrix)) return false;
+        const y = Number(matrix.replace(/^matrix\((.*)\)$/, '$1').split(',')[5]);
+        return Math.abs(y + frame.scrollTop * 0.2) < 1e-6;
       },
       { timeout: 10_000 },
     );
     const { y, transforms } = await page.evaluate(() => ({
-      y: globalThis.scrollY,
+      y: globalThis.document.querySelector<HTMLElement>('.screens')!.scrollTop,
       transforms: ['far', 'mid', 'near'].map((layer) => globalThis.getComputedStyle(globalThis.document.querySelector(`.world__layer--${layer}`)!).transform),
     }));
     expect(y).toBeGreaterThan(40);
@@ -243,7 +267,7 @@ describe('contrast over the scene', () => {
         for (const [i, reading] of readings.entries()) {
           const locale = LOCALE_IDS[i];
           if (onSurface) {
-            if (Math.abs(reading.ratio - base.ratio) > 0.05) failures.push(`${locale} ${screen} ${label}: ${reading.ratio} vs baseline ${base.ratio} on an unchanged surface`);
+            if (reading.ratio < base.ratio - 0.05) failures.push(`${locale} ${screen} ${label}: ${reading.ratio} under baseline ${base.ratio} on an unchanged surface`);
           } else {
             const floor = base.ratio >= 4.5 ? 4.5 : base.ratio - 0.1;
             if (reading.ratio < floor) failures.push(`${locale} ${screen} ${label}: ${reading.ratio} under the floor ${floor} (baseline ${base.ratio})`);

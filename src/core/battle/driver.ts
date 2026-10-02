@@ -49,9 +49,12 @@ import { GYMRUN_GEN, TURN_LIMIT, gymrunFormat } from './format';
 import { bandOfMove } from '../../data/moveOverrides';
 import type { Policy } from './policy';
 import { readContribution } from './contribution';
-import { statsAtLevel } from './stats';
+import { DISPLAY_STATS, statsAtLevel } from './stats';
+import { SPECIES_POOL } from '../../data/speciesPools';
+import { stageAllowedAt } from '../../data/evolution';
+import { isSpeciesBlacklisted } from '../../data/blacklists';
 import { rejectionReason } from './switching';
-import type { ActiveFacts, BattleFacts, MoveFacts } from './view';
+import type { ActiveFacts, BattleFacts, BenchFacts, MoveFacts } from './view';
 import type { SeenKnowledge } from '../types';
 
 /**
@@ -637,6 +640,10 @@ function toActiveFacts(pokemon: SimPokemon, own: boolean): ActiveFacts {
     volatiles: Object.keys(pokemon.volatiles),
     ability: ability?.exists ? { id: ability.id, name: ability.name } : null,
     item: item?.exists ? { id: item.id, name: item.name } : null,
+    // The engine's own answer; `null` is its "not grounded, but Ground moves
+    // still land" case (Levitate under Gravity is the shape), and terrain
+    // does not apply there either.
+    grounded: pokemon.isGrounded() === true,
     speed: {
       /*
        * The engine's own answer, not a reimplementation.
@@ -768,6 +775,43 @@ function readSwitches(battle: Battle, side: SideId): SwitchView[] {
       usable: block === null,
       block,
     };
+  });
+}
+
+/**
+ * Each benched member's moves against the defender's types. **The
+ * effectiveness emphasis patch, bible D92.**
+ *
+ * The move slots rather than a request, because a benched Pokemon has none:
+ * the question is what its moves would do to what is standing there now. The
+ * chart is the same `typeMultiplier` the move button's facts read, and
+ * `view.ts` layers abilities and the field onto it with the same helper.
+ * A dex read, not a draw: nothing here touches RNG.
+ */
+function readBench(battle: Battle, side: SideId, defenderTypes: readonly string[]): BenchFacts[] {
+  const simSide = battle.sides[sideIndex(side)];
+  if (!simSide) return [];
+  const dex = Dex.forGen(GYMRUN_GEN);
+  return simSide.pokemon.flatMap((mon, index) => {
+    if (mon.isActive) return [];
+    return [
+      {
+        slot: index + 1,
+        grounded: mon.isGrounded() === true,
+        moves: mon.moveSlots.map((slot) => {
+          const data = dex.moves.get(slot.id);
+          return {
+            id: data.id,
+            name: data.name,
+            type: data.type,
+            category: data.category,
+            flags: Object.keys(data.flags),
+            typeMultiplier: typeMultiplier(data.type, defenderTypes),
+            flyingMultiplier: typeMultiplier(data.type, ['Flying']),
+          };
+        }),
+      },
+    ];
   });
 }
 
@@ -1041,6 +1085,7 @@ export function createBattle(options: BattleOptions): BattleSession {
       usable: move.usable,
       flags: Object.keys(Dex.forGen(GYMRUN_GEN).moves.get(move.id).flags),
       typeMultiplier: typeMultiplier(move.type, defenderTypes),
+      flyingMultiplier: typeMultiplier(move.type, ['Flying']),
       /*
        * The full explanation, carried so the projection can derive tags and a
        * status readout. **Stage 4.7, Part 6.**
@@ -1064,12 +1109,26 @@ export function createBattle(options: BattleOptions): BattleSession {
       opponent: toActiveFacts(foe, false),
       moves,
       switches: awaiting ? readSwitches(battle, side) : [],
+      bench: awaiting ? readBench(battle, side, defenderTypes) : [],
       forceSwitch,
       trapped: awaiting && !forceSwitch && readTrapping(request) !== null,
       awaitingChoice: awaiting,
       // Trick Room inverts the comparison rather than the numbers, which is why
       // it is a flag on the facts rather than a modifier folded into a speed.
       invertedSpeed: 'trickroom' in battle.field.pseudoWeather,
+      /*
+       * The board's weather and terrain, off the sim's `Field`. **Stage 4.11,
+       * Tier 1.** The ids are the engine's; `suppressingWeather()` is its own
+       * answer to whether Cloud Nine or Air Lock is on the board, asked here
+       * rather than re-derived from the two abilities' names so that a third
+       * suppressor the dex adds is read for free. Remaining duration is on
+       * `weatherState` and deliberately not carried: the games never show it.
+       */
+      field: {
+        weather: battle.field.weather || null,
+        terrain: battle.field.terrain || null,
+        suppressed: Boolean(battle.field.weather) && battle.field.suppressingWeather(),
+      },
       opponentRoster: rosterCount(opposingSide(side)),
     };
   }
@@ -1404,6 +1463,55 @@ export function moveIdentity(nameOrId: string): MoveIdentity | null {
 export function speciesTypes(species: string): readonly string[] {
   const data = Dex.forGen(GYMRUN_GEN).species.get(species);
   return data.exists ? data.types : [];
+}
+
+/** The lowest and highest value one stat takes at one level. */
+export interface StatRange {
+  min: number;
+  max: number;
+}
+
+/** The six ranges, keyed as `DISPLAY_STATS` spells them. HP is max HP. */
+export type StatBand = Readonly<Record<keyof StatsTable, StatRange>>;
+
+const bandCache = new Map<number, StatBand>();
+
+/**
+ * The band each stat can take at a level. **Stage 5.1, bible Rev 21, D88.**
+ *
+ * The stat bar's scale: empty at the floor, full at the ceiling. The floor and
+ * ceiling are the lowest and highest value of that stat across every species
+ * the randomizer may field at `level`, which is the same filter
+ * `bandedSpeciesPool` gates on (`stageAllowedAt` and the blacklist), each base
+ * stat run through `statsAtLevel`. Every Pokemon sits on one spread (Serious,
+ * 31 IVs, 0 EVs), so species and level are the whole of a stat and the band is
+ * exact rather than an estimate.
+ *
+ * Read off the pool and the dex, in pool order, so nothing is drawn and no
+ * version axis can move. Cached per level, because the party screen asks for
+ * six Pokemon at a handful of levels on every render.
+ */
+export function statBandAt(level: number): StatBand {
+  const cached = bandCache.get(level);
+  if (cached) return cached;
+  const dex = Dex.forGen(GYMRUN_GEN);
+  const band = Object.fromEntries(DISPLAY_STATS.map((stat) => [stat, { min: Infinity, max: -Infinity }])) as Record<
+    keyof StatsTable,
+    StatRange
+  >;
+  for (const entry of SPECIES_POOL) {
+    if (!stageAllowedAt(entry, level) || isSpeciesBlacklisted(entry.id)) continue;
+    const species = dex.species.get(entry.id);
+    if (!species.exists) continue;
+    const stats = statsAtLevel(species.baseStats, level, species.maxHP);
+    for (const stat of DISPLAY_STATS) {
+      const range = band[stat];
+      range.min = Math.min(range.min, stats[stat]);
+      range.max = Math.max(range.max, stats[stat]);
+    }
+  }
+  bandCache.set(level, band);
+  return band;
 }
 
 /** A move's one-line description, for the move tooltip. */

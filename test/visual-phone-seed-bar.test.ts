@@ -74,10 +74,17 @@ describe('the seed bar on a phone', () => {
     await context.close();
   }, 120_000);
 
-  it('is the whole bar, with no toggle, on a desktop', async () => {
+  /*
+   * This was "the whole bar, with no toggle, on a desktop". Stage 5.0/1 made
+   * the desktop the phone's frame beside a sidebar (the plan's ruling 1,
+   * phone first), and the frame's narrow rules are container queries now, so
+   * a desktop gets exactly the phone's bar: collapsed during a run, one
+   * toggle away.
+   */
+  it('is the phone bar on a desktop, because the desktop frame is the phone frame', async () => {
     const { page, context, problems } = await openApp(harness.browser, harness.url, 'SMOKE24', DESKTOP);
-    expect(await page.locator('.seedbar').isVisible()).toBe(true);
-    expect(await page.locator('.seedbar__toggle').isVisible()).toBe(false);
+    expect(await page.locator('.seedbar__toggle').isVisible()).toBe(true);
+    await page.locator('.seedbar__toggle').click();
     expect(await page.locator('.seedbar .button', { hasText: 'New seed' }).isVisible()).toBe(true);
     expect(problems).toEqual([]);
     await context.close();

@@ -19,6 +19,7 @@
  * existing tests are untouched. What changed is that no screen builds one by
  * hand any more; `test/chip.test.ts` scans for that.
  */
+import type { FieldKind } from '../core/battle/view';
 import { el } from './dom';
 import { categoryGlyphId, glyphNode, markFamily, typeGlyphId } from './theme/glyph';
 import { BAND_PIPS } from '../data/bandInfo';
@@ -31,6 +32,8 @@ import {
 
 export type ChipVariant =
   | 'type'
+  /** The field glyph on the battle header. Stage 4.11 Tier 2, D47. */
+  | 'field'
   | 'tier'
   | 'reward-tier'
   | 'band'
@@ -38,6 +41,7 @@ export type ChipVariant =
   | 'stage'
   | 'capability'
   | 'capability-band'
+  | 'node'
   | 'category'
   | 'effect'
   | 'flag'
@@ -306,6 +310,52 @@ export function capabilityGlyph(capability: string, label: string): HTMLElement 
 }
 
 /**
+ * The kind of a node, as its mark. **Patch 4.10.1, D46.**
+ *
+ * One builder for the two surfaces that carry the kind, the map node card and
+ * the battle screen header, because R1 forbids the same attribute encoded two
+ * ways: the head the player routed toward is the head the fight is under. The
+ * size is the one thing the surfaces differ on, 24 on the card where the mark
+ * is the face and 16 on the header where it sits beside text, and section 5
+ * carries both numbers.
+ *
+ * The word is the glyph's accessible name and R7's exposure label, and nothing
+ * else: `KIND_LABELS` went with the build. The hint behind the mark is the
+ * `node:` tip, fed by `KIND_HINTS`, which is the copy the detail line printed
+ * for an untiered node and the tutorial paraphrased.
+ */
+export function nodeKindGlyph(kind: string, label: string, size: 24 | 16): HTMLElement {
+  const node = build('node', 'node__kind', '', { tip: `node:${kind}` });
+  const mark = glyphNode(`node-${kind}`, { label, size });
+  if (mark) node.append(mark);
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  return node;
+}
+
+/**
+ * The state of the board, as its mark. **Stage 4.11 Tier 2, D47.**
+ *
+ * One builder for the weather and the terrain, because they are one family
+ * and one slot: the battle header, after the AI tier, at 16. `id` is the sim's
+ * own (`raindance`, `desolateland`) and it is what the tip is keyed by, so
+ * Extreme sun and Harsh sunlight wear one mark and open two panels — which is
+ * the D47 ruling on the primal weathers. `suppressed` is the second fact the
+ * mark can carry: the weather is set and an ability is holding it off, drawn
+ * dimmed rather than absent because the rain returns the moment that Pokemon
+ * leaves.
+ */
+export function fieldGlyph(kind: FieldKind, id: string, label: string, suppressed = false): HTMLElement {
+  const node = build('field', 'battle__field-mark', '', { tip: `field:${id}` });
+  const mark = glyphNode(`field-${kind}`, { label, size: 16 });
+  if (mark) node.append(mark);
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  if (suppressed) node.dataset['suppressed'] = 'true';
+  return node;
+}
+
+/**
  * Where the run stands against that capability, as the band chevron. **M5.2.**
  *
  * Three states — none, latent, known — drawn as two chevrons with none, one or
@@ -325,6 +375,23 @@ export function capabilityBandChevron(band: string, label: string): HTMLElement 
       node.append(mark);
     }
   }
+  return node;
+}
+
+/**
+ * A coin amount that inspects, for the map. **Stage 5.0/4.** `coinAmount`
+ * below (5.0/3) is the mark and the number; this adds the `currency:` tip,
+ * because section 3's *Coin amount* row puts *"the word coins, and what the
+ * amount buys or pays"* on inspect and a map amount is a fact the player
+ * routes by. `context` picks that line (`payout` for what a node pays,
+ * `price` for a shelf's cheapest, `wallet` for the run's coins); the number
+ * rides on `data-value`, the way a stat label carries its value.
+ */
+export function currencyAmount(amount: number, context: 'payout' | 'price' | 'wallet'): HTMLElement {
+  const node = coinAmount(String(amount));
+  node.dataset['tip'] = `currency:${context}`;
+  node.dataset['value'] = String(amount);
+  node.setAttribute('aria-label', `${amount} coins`);
   return node;
 }
 
@@ -471,4 +538,21 @@ export function flagChip(kind: string, text: string, options: ChipOptions = {}):
 /** A plain neutral badge: lead, item, ability, volatile, relic. */
 export function neutralChip(text: string, modifier: string, options: ChipOptions = {}): HTMLElement {
   return build('neutral', `badge badge--${modifier}`, text, options);
+}
+
+/**
+ * A coin amount: the currency glyph beside a bare number. **Section 2's
+ * currency family, ruled under D54, first drawn in Stage 5.0/3.** The shop's
+ * price and the coins card; the wallet and the map node's payout follow as
+ * their stages reach them. Not a chip: the mark qualifies the number beside
+ * it, and the number is the fact.
+ */
+export function coinAmount(amount: string, className = ''): HTMLElement {
+  const node = el('span', `coin-amount${className ? ` ${className}` : ''}`);
+  const mark = glyphNode('currency-coin');
+  if (mark) node.append(mark);
+  const value = el('span', 'coin-amount__value');
+  value.textContent = amount;
+  node.append(value);
+  return node;
 }

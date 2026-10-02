@@ -32,6 +32,19 @@
  * rules on them with M7.1's evidence, and a density change stays a stylesheet
  * change rather than a re-render.
  *
+ * ## Numbers, at rest, and a bar against the band
+ *
+ * **Bible Rev 20, R13, D81 and D82.** The stats are vital information: on the
+ * face, as numbers, on every call site, never behind a fold or a press. The
+ * bar drawn against a flat ceiling was retired (*"bars suck"*).
+ *
+ * **Bible Rev 21, D88 (Stage 5.1).** The bar is back beside the number, and
+ * its scale is the **band**: the lowest and highest value that stat takes at
+ * this Pokemon's level across the species pool (`statBandAt`). Empty at the
+ * floor, full at the ceiling, so a Munchlax with near the most HP a level-15
+ * Pokemon can have reads as a nearly full bar, where the old ceiling of 200
+ * drew every early-game stat as a stub. The number is never replaced by it.
+ *
  * ## What it does not do
  *
  * No sort, no conditional emphasis, no total, no marker on the largest number.
@@ -41,7 +54,8 @@
  * order is `STAT_ORDER`, which is Showdown's, so a number a player learns here
  * is in the place they will look for it during a fight.
  */
-import { STAT_BAR_CEILING, STAT_ORDER, statInfo } from '../data/statInfo';
+import { statBandAt, type StatBand } from '../core/battle/driver';
+import { STAT_ORDER, statInfo } from '../data/statInfo';
 import { el } from './dom';
 import { glyphNode } from './theme/glyph';
 
@@ -63,10 +77,43 @@ export interface StatBlockOptions {
    * so the mark keeps resolving to exactly one element.
    */
   tutorial?: string;
+  /**
+   * The swap's stat change. **Bible Rev 20, D84.** The incoming Pokemon's six
+   * numbers, on a member card the capture offer would release: each cell
+   * carries `incoming - value` beside its own number, signed, green up and
+   * red down, zero rendering nothing. All six, on every member card, never
+   * one: R10's permit, and the colour says the sign again, never who to drop.
+   */
+  against?: StatValues;
+  /**
+   * The Pokemon's level, which picks the band each bar is measured against.
+   * **Bible Rev 21, D88.** Every call site that knows whose stats these are
+   * passes it; without one the cell is the glyph and the number alone.
+   */
+  level?: number;
+  /**
+   * The battle's stat stages, per stat, on the player's panel. **Bible Rev 23,
+   * D98.** A cell with a stage draws the stat as the stage makes it, with the
+   * signed stage count beneath, and `data-stage` up or down colours both. The
+   * base number, the multiplier and the count ride on the label's press.
+   * Absent everywhere but the battle panel, and a zero stage draws nothing
+   * (R4).
+   */
+  stages?: Readonly<Record<string, { stage: number; effective: number; multiplier: string }>>;
 }
 
 /**
- * Six rows of glyph, bar and number, always all six, in `STAT_ORDER`.
+ * Where a value sits in its band, 0 at the floor and 1 at the ceiling.
+ * Clamped, so a number off the band's edge draws an empty or a full bar
+ * rather than one that leaves its track.
+ */
+export function bandFraction(value: number, range: { min: number; max: number }): number {
+  if (!Number.isFinite(range.min) || !Number.isFinite(range.max) || range.max <= range.min) return 1;
+  return Math.max(0, Math.min(1, (value - range.min) / (range.max - range.min)));
+}
+
+/**
+ * Six cells of glyph, number and band bar, always all six, in `STAT_ORDER`.
  *
  * `values` is the whole input. A caller with a `PokemonState` spreads its
  * base stats and its max HP; the inspect layer parses a serialized string.
@@ -76,6 +123,8 @@ export interface StatBlockOptions {
 export function statBlock(values: StatValues, options: StatBlockOptions = {}): HTMLElement {
   const root = el('div', `stats stats--${options.layout ?? 'grid'}`);
   if (options.tutorial) root.dataset['tutorial'] = options.tutorial;
+  const band: StatBand | null = options.level === undefined ? null : statBandAt(options.level);
+  if (options.level !== undefined) root.dataset['level'] = String(options.level);
 
   for (const stat of STAT_ORDER) {
     const value = values[stat] ?? 0;
@@ -111,21 +160,55 @@ export function statBlock(values: StatValues, options: StatBlockOptions = {}): H
     label.tabIndex = 0;
     label.setAttribute('role', 'button');
 
-    /*
-     * **Both, always, in every mode. Patch 4.7.2, ruling 3.** The number and
-     * the bar are both rendered and `[data-density]` on the root decides what
-     * is shown, which is what lets a mode change reach a card already on
-     * screen without anything re-rendering it.
-     */
+    // The number, at rest (R13). On a staged cell, the stat as it stands
+    // (D98): the number the fight is using.
+    const staged = options.stages?.[stat];
+    const shown = staged && staged.stage !== 0 ? staged.effective : value;
     const number = el('span', 'stat__value');
-    number.textContent = String(value);
+    number.textContent = String(shown);
+    row.append(label, number);
+    if (staged && staged.stage !== 0) {
+      const up = staged.stage > 0;
+      row.dataset['stage'] = up ? 'up' : 'down';
+      const count = el('span', `stat__stage stat__stage--${up ? 'up' : 'down'}`);
+      count.textContent = up ? `+${staged.stage}` : `\u2212${-staged.stage}`;
+      count.setAttribute('aria-label', `${info?.label ?? stat} stage ${up ? '+' : '-'}${Math.abs(staged.stage)}, ${staged.multiplier}`);
+      row.append(count);
+      label.dataset['value'] = String(staged.effective);
+      label.dataset['base'] = String(value);
+      label.dataset['stage'] = up ? `+${staged.stage}` : `-${-staged.stage}`;
+      label.dataset['multiplier'] = staged.multiplier;
+    }
 
-    const bar = el('span', 'stat__bar');
-    const fill = el('span', 'stat__bar-fill');
-    fill.style.width = `${Math.min(100, (value / STAT_BAR_CEILING) * 100)}%`;
-    bar.append(fill);
+    /*
+     * The bar against the band (D88). Decorative to a reader, because the
+     * number beside it is the fact and the band is on the label's press;
+     * the range rides on the label for that press.
+     */
+    const range = band?.[stat as keyof StatBand];
+    if (range) {
+      const fraction = bandFraction(shown, range);
+      const bar = el('span', 'stat__bar');
+      bar.setAttribute('aria-hidden', 'true');
+      const fill = el('span', 'stat__bar-fill');
+      fill.style.width = `${Math.round(fraction * 1000) / 10}%`;
+      bar.append(fill);
+      row.dataset['fraction'] = fraction.toFixed(3);
+      label.dataset['band'] = `${range.min}-${range.max}`;
+      label.dataset['level'] = String(options.level);
+      row.append(bar);
+    }
 
-    row.append(label, number, bar);
+    if (options.against) {
+      const change = (options.against[stat] ?? 0) - value;
+      if (change !== 0) {
+        const delta = el('span', `stat__delta stat__delta--${change > 0 ? 'up' : 'down'}`);
+        delta.textContent = change > 0 ? `+${change}` : `\u2212${-change}`;
+        delta.setAttribute('aria-label', `${info?.label ?? stat} ${change > 0 ? 'rises' : 'falls'} by ${Math.abs(change)}`);
+        row.dataset['change'] = change > 0 ? 'up' : 'down';
+        row.append(delta);
+      }
+    }
     root.append(row);
   }
   return root;

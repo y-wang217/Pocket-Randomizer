@@ -47,13 +47,26 @@ body {
   /* Above the world (V3), which sits at the root's z-index 0. */
   position: relative;
   z-index: 1;
-  max-width: 1040px;
+  /*
+   * **The frame. Stage 5.0/1.** A portrait column, phone first: the viewport
+   * on a phone, the same column beside a sidebar on a desktop. It is a size
+   * container, so every rule written for a narrow screen asks the frame
+   * rather than the viewport (`@container frame`), and a 1366-wide desktop
+   * gets the phone layout inside its frame instead of the wide one.
+   *
+   * One screen's height and no more: the nav stays put and the screens
+   * scroll inside `.screens`, so the page itself never scrolls.
+   */
+  container: frame / inline-size;
+  width: 100%;
+  max-width: var(--frame-max);
+  height: 100dvh;
   margin: 0 auto;
-  /* Top and bottom scale with the mode; the side gutter is a thumb's clearance and does not. */
-  padding: calc(var(--space-6) * var(--density-gap)) var(--space-4) calc(var(--space-12) * var(--density-gap));
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-3) * var(--density-gap));
+  overflow: hidden;
+  background: var(--frame-fill);
 }
 
 /* ---------- header ---------- */
@@ -67,7 +80,7 @@ body {
 }
 
 .header__subtitle {
-  margin: calc(var(--space-h) * var(--density-gap)) 0 0;
+  margin: calc(var(--space-h) * var(--chrome-gap)) 0 0;
   color: var(--text-faint);
   font-family: var(--font-body);
   font-size: var(--fs-md);
@@ -80,7 +93,7 @@ body {
   align-items: center;
   gap: var(--space-2);
   flex-wrap: wrap;
-  padding: calc(var(--space-2h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad));
+  padding: calc(var(--space-2h) * var(--chrome-pad)) calc(var(--space-3) * var(--chrome-pad));
   background: var(--bg-raised);
   border: var(--hairline) solid var(--border);
   border-radius: var(--radius-card);
@@ -177,9 +190,11 @@ body {
 }
 
 .button {
-  padding: calc(var(--space-1h) + var(--hairline)) var(--space-3h);
-  background: var(--bg-sunken);
-  border: var(--hairline) solid var(--border-strong);
+  /* A window button, Stage 5.0/1: the heavy dark border, and a hairline less
+     padding so the outer size is what it was. */
+  padding: calc(var(--space-1h) * var(--tap-scale)) calc(var(--space-3h) * var(--tap-scale) - var(--hairline));
+  background: var(--bg-raised);
+  border: var(--rule-heavy) solid var(--border-heavy);
   border-radius: var(--radius-card);
   color: var(--text);
   font: inherit;
@@ -187,16 +202,19 @@ body {
   cursor: pointer;
 }
 
-.button:hover:not(:disabled) { border-color: var(--emphasis); }
+.button:hover:not(:disabled) { border-color: var(--selected); }
+/* The four states, Stage 5.0/1: rest above, pressed, selected, disabled. */
+.button:active:not(:disabled) { background: var(--bg-sunken); }
+.button[aria-pressed='true'] { border-color: var(--selected); background: color-mix(in srgb, var(--highlight) 30%, var(--bg-raised)); }
 
 /* Disabled rather than hidden, everywhere: a control that disappears from one
    row and not another reads as a bug, and the greyed-out version is what tells
    the player the action exists at all. */
-.button:disabled { opacity: 0.35; cursor: not-allowed; }
+.button:disabled { opacity: 0.6; color: var(--disabled); border-color: var(--disabled); cursor: not-allowed; }
 
 .primary-action {
   background: var(--accent);
-  border-color: var(--accent);
+  border-color: var(--border-heavy);
   color: var(--accent-ink);
   font-weight: 700;
 }
@@ -219,8 +237,8 @@ body {
    in this file and ties on specificity, so the bare class lost on source order.
    The same shape of mistake the drawer's `[hidden]` note records twice, caught
    here by the measurement rather than by the rule looking wrong. */
-.screen.screen--battle { gap: calc(var(--space-2) * var(--density-gap)); }
-.screen--battle .board { gap: calc(var(--space-2) * var(--density-gap)); }
+.screen.screen--battle { gap: calc(var(--space-2) * var(--chrome-gap)); }
+.screen--battle .board { gap: calc(var(--space-2) * var(--chrome-gap)); }
 
 /* V5.2: two children, one column, every viewport.
 
@@ -233,14 +251,14 @@ body {
 .board {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-3) * var(--density-gap));
+  gap: calc(var(--space-3) * var(--chrome-gap));
   align-items: stretch;
 }
 
 .scene {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-3) * var(--density-gap));
+  gap: calc(var(--space-3) * var(--chrome-gap));
 }
 
 /* An empty bench takes no room at all. **V5.3.**
@@ -271,6 +289,95 @@ body {
 .stage {
   position: relative;
   height: var(--stage-height);
+  /*
+   * **The placeholder battle backdrop. Stage 5.0/1.** The stage stood on the
+   * world until the frame went opaque; it now carries its own, the plan's
+   * placeholder for a battle backdrop: a flat locale tint, sky above and
+   * ground below, from the locale's own three tokens. Real art replaces it
+   * through the asset manifest (`battle-backdrop:<locale>`).
+   *
+   * The field goes with it. The weather wash and the terrain tint were drawn
+   * on the world (Stage 4.11, D47); with the world behind an opaque frame
+   * they are drawn here too, from the same global tokens, so the board's
+   * weather is still on the board.
+   */
+  isolation: isolate;
+  /*
+   * **The scene backdrop. Stage 5.0/2, D60.** Two bases, sky and ground,
+   * which the placeholder paints and a drawing replaces. A locale's are its
+   * own tokens; the gym's are the gym tint below. `--backdrop-image` is set
+   * by `applyBackdrop` only when the manifest resolves a file, and it sits
+   * on top of the placeholder sky, so a file that fails to load leaves the
+   * placeholder at the stage's own size. The world behind the frame is not
+   * this: it stays as it is (D60).
+   */
+  --stage-sky-base: var(--locale-mid);
+  --stage-ground-base: var(--locale-glow);
+  /* A drawing sits at whole art pixels (`--art-px` each), anchored to the
+     stage's bottom edge and centred: a narrow frame trims the sides and the
+     2px the window border takes comes off the sky, never the ground. */
+  background: var(--backdrop-image, none) center bottom / calc(var(--backdrop-w, 0) * var(--art-px)) calc(var(--backdrop-h, 0) * var(--art-px)) no-repeat, var(--stage-sky, var(--stage-sky-base));
+  image-rendering: pixelated;
+  border: var(--rule-heavy) solid var(--border-heavy);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.stage[data-backdrop='battle-backdrop:gym'] {
+  --stage-sky-base: var(--gym-sky);
+  --stage-ground-base: var(--gym-ground);
+}
+.stage::before,
+.stage::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+}
+.stage::before { inset: 55% 0 0 0; background: var(--stage-ground, var(--stage-ground-base)); }
+/* A drawing carries its own ground, so the placeholder's steps aside for it
+   and the layer carries only a terrain's tint, over the drawing's ground from
+   its horizon down. Transparent when no terrain is set (R4). */
+.stage[data-art='file']::before { inset: 40% 0 0 0; background: var(--stage-terrain, transparent); }
+.stage::after { inset: 0; background: var(--stage-wash, transparent); }
+:root[data-weather='rain'] .stage { --stage-wash: color-mix(in srgb, var(--weather-rain) calc(var(--weather-wash) * 100%), transparent); }
+:root[data-weather='sun'] .stage { --stage-wash: color-mix(in srgb, var(--weather-sun) calc(var(--weather-wash) * 100%), transparent); }
+:root[data-weather='sand'] .stage { --stage-wash: color-mix(in srgb, var(--weather-sand) calc(var(--weather-wash) * 100%), transparent); }
+:root[data-weather='snow'] .stage { --stage-wash: color-mix(in srgb, var(--weather-snow) calc(var(--weather-wash) * 100%), transparent); }
+:root[data-weather='wind'] .stage { --stage-wash: color-mix(in srgb, var(--weather-wind) calc(var(--weather-wash) * 100%), transparent); }
+:root[data-terrain='electric'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-electric) 32%, var(--stage-ground-base)); --stage-terrain: color-mix(in srgb, var(--terrain-electric) 32%, transparent); }
+:root[data-terrain='grassy'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-grassy) 32%, var(--stage-ground-base)); --stage-terrain: color-mix(in srgb, var(--terrain-grassy) 32%, transparent); }
+:root[data-terrain='misty'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-misty) 32%, var(--stage-ground-base)); --stage-terrain: color-mix(in srgb, var(--terrain-misty) 32%, transparent); }
+:root[data-terrain='psychic'] .stage { --stage-ground: color-mix(in srgb, var(--terrain-psychic) 32%, var(--stage-ground-base)); --stage-terrain: color-mix(in srgb, var(--terrain-psychic) 32%, transparent); }
+
+/* The platforms. **Stage 5.0/2**, class B: a CSS ellipse under each sprite,
+   the ground's own colour darkened, never a file. Fixed to the sprite's box so
+   a Pokemon stands on it whatever its art does, and outside the actor so a
+   beat that moves the body leaves the ground where it is. */
+.stage__platform {
+  position: absolute;
+  z-index: 0;
+  width: calc(var(--sprite-size) * 1.3);
+  height: calc(var(--sprite-size) * 0.26);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--border-heavy) 22%, var(--stage-ground, var(--stage-ground-base)));
+  border: var(--rule-heavy) solid color-mix(in srgb, var(--border-heavy) 40%, var(--stage-ground, var(--stage-ground-base)));
+  pointer-events: none;
+}
+/* On a drawing the platform is a shadow on the drawing's own ground: the
+   locale's tint belongs to the placeholder, and on painted art it read as a
+   purple disc on sand. Translucent ink, so every backdrop's ground shows
+   through in its own colour. */
+.stage[data-art='file'] .stage__platform {
+  background: color-mix(in srgb, var(--border-heavy) 40%, transparent);
+  border-color: color-mix(in srgb, var(--border-heavy) 60%, transparent);
+}
+.stage__platform--foe {
+  top: calc(var(--sprite-size) * 0.78);
+  right: calc(var(--sprite-size) * -0.15);
+}
+.stage__platform--me {
+  bottom: calc(var(--sprite-size) * 0.02);
+  left: calc(var(--sprite-size) * -0.15);
 }
 
 .stage__actor {
@@ -333,10 +440,10 @@ body {
      Order is deliberate: the prefixed form first so an engine that understands
      both takes the standard one, which is the cascade's own rule for a vendor
      prefix and not a preference expressed here. */
-  -webkit-backdrop-filter: blur(var(--panel-blur));
-  backdrop-filter: blur(var(--panel-blur));
-  border: 0;
-  border-left: 0;
+  /* Stage 5.0/1: a solid window, the plan's GBA HP box. The blur and the
+     translucent scrim above were V5's, over the world; the frame is opaque
+     now and the plan forbids `backdrop-filter`. */
+  border: var(--rule-heavy) solid var(--border-heavy);
   border-radius: var(--radius-card);
 }
 
@@ -356,9 +463,6 @@ body {
    `@supports not` rather than a feature test in JavaScript, so it answers
    itself on the engine rather than at startup, and so a page that never runs
    `ui/` at all still renders a legible panel. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .stage .panel { background: var(--panel-scrim-solid); }
-}
 
 /* Each panel runs from its own edge of the band to where the sprite opposite
    it begins, rather than to a percentage. The sprite's width is the constraint,
@@ -444,8 +548,8 @@ body {
   gap: var(--space-h);
 }
 .panel__stages .badge--first { display: inline-flex; }
-:root[data-density="pocket"] .panel__stages .badge--stage { display: none; }
-:root[data-density="pocket"] .panel__stages .badge--stages { display: inline-flex; }
+.panel__stages .badge--stage { display: none; }
+.panel__stages .badge--stages { display: inline-flex; }
 
 .panel__header {
   display: flex;
@@ -1056,9 +1160,9 @@ body {
 .stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: calc(var(--space-h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad));
-  margin-top: calc(var(--space-2) * var(--density-pad));
-  padding-top: calc(var(--space-2) * var(--density-pad));
+  gap: calc(var(--space-h) * var(--chrome-pad)) calc(var(--space-3) * var(--chrome-pad));
+  margin-top: calc(var(--space-2) * var(--chrome-pad));
+  padding-top: calc(var(--space-2) * var(--chrome-pad));
   border-top: var(--hairline) solid var(--border);
 }
 
@@ -1069,9 +1173,9 @@ body {
    where a wide card wants two columns and a narrow pick card wants six. */
 .stats--row {
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: calc(var(--space-1) * var(--density-pad));
-  margin: calc(var(--space-2) * var(--density-pad)) 0 0;
-  padding: calc(var(--space-2) * var(--density-pad)) 0 0;
+  gap: calc(var(--space-1) * var(--chrome-pad));
+  margin: calc(var(--space-2) * var(--chrome-pad)) 0 0;
+  padding: calc(var(--space-2) * var(--chrome-pad)) 0 0;
 }
 
 /* Matched to `.statline__stat`, which this replaced and which was measured
@@ -1084,7 +1188,7 @@ body {
 .stats--row .stat {
   flex-direction: column;
   align-items: stretch;
-  gap: var(--hairline);
+  gap: var(--space-h);
   line-height: 1.2;
 }
 
@@ -1097,9 +1201,7 @@ body {
    full name, because a two-column card has room for one. */
 .stats--row .stat__label { min-width: 0; font-size: var(--fs-xs); }
 .stats--row .stat__label-long { display: none; }
-:root:not([data-density="pocket"]) .stats--row .stat__label-short { display: inline; }
 .stats--row .stat__value { min-width: 0; text-align: left; font-size: var(--fs-md); color: var(--text); }
-.stats--row .stat__bar { min-width: 0; flex: none; }
 
 /* The stat mark, from M1.1's sheet. **M3.2.** Section 3: glyph, bar, number.
    Which of the mark and the words is shown is decided with the rest of the
@@ -1189,97 +1291,32 @@ body {
 .stat[data-stat="hp"] { grid-column: 1 / -1; }
 .stat[data-stat="spe"] { grid-column: 1 / -1; }
 
-/*
- * The bar, shown in both modes. **Patch 4.7.2, ruling 3.**
- *
- * Through V5 the bar and the number were swapped by `hidden` and never both
- * shown, so Detailed was the number alone. Ruling 3 is that Detailed shows the
- * pair and Simple the bar alone — a change to Detailed, not only to Simple —
- * so the component now renders both and the two rules at the end of this block
- * decide what is visible.
- *
- * `flex: 1` rather than a fixed width so the bar fills whatever the label and
- * the number leave, which keeps the two halves of a stat pair the same length
- * and therefore comparable at a glance. The number's box is reserved at `3ch`
- * (see `.stat__value`), so the bar starts at the same x on all six rows and
- * flipping the mode cannot reflow the row under the reader.
- */
-.stat__bar {
-  flex: 1;
-  height: 6px;
-  min-width: 40px;
-  border-radius: var(--radius-chip);
-  background: var(--bg-sunken);
-  overflow: hidden;
-}
+
+/* ---------- the one face ---------- */
 
 /*
- * **`display: block` is the whole of the stat-bar fix, and it is here rather
- * than as a `div` in the component. Patch 4.7.2.**
+ * **What the compact face shows, in one place.** This block was the density
+ * modes' (patch 4.7.2, then the density modes patch): Detailed, Simple and
+ * Pocket, keyed on a `data-density` attribute on `<html>`. Stage 5.0/1
+ * retired Simple and Detailed (bible R6, D50) and made every Pocket rule
+ * unconditional, verified by diffing the computed style of every element on
+ * every gallery surface against the old Pocket face.
  *
- * This rule shipped without it, on an `el('span', …)`, and `width` and `height`
- * do not apply to a non-replaced *inline* box — so the fill computed to 0x0 and
- * was never painted, whatever percentage the component wrote onto it. Measured
- * on the real party screen: `width: 47%` set, `getBoundingClientRect()` 0x0.
- * What the player saw was the track alone, a flat dark line, on all six rows.
- * `.hp__fill` escaped the identical bug only by being a `div`.
+ * Components still render some two-form markup (`prose`'s long and short
+ * spans, the stat block's word labels, a chip's word form) that only the
+ * retired modes painted. These rules hide it. Removing the markup itself is
+ * recorded as a follow-up in `docs/generation.md` §87.
  *
- * Fixed on the rule and not on the tag deliberately: the rule is the thing that
- * asks for a width, so the rule is the thing that has to make the width mean
- * something. A component that later swaps the element cannot reintroduce it,
- * and `test/visual-inline-box.test.ts` now fails the whole class of bug.
- */
-.stat__bar-fill {
-  display: block;
-  height: 100%;
-  border-radius: var(--radius-chip);
-  background: var(--text-faint);
-  transition: width 120ms ease-out;
-}
-
-/* A boosted row colours its bar, exactly as it colours its number. Hiding the
-   digits must not hide that something changed them. */
-.stat[data-stage="up"] .stat__bar-fill { background: var(--stage-up); }
-.stat[data-stage="down"] .stat__bar-fill { background: var(--stage-down); }
-
-/* ---------- the density modes ---------- */
-
-/*
- * **What each mode shows, in one place. Patch 4.7.2's block, rewritten by the
- * density modes patch.**
- *
- * `data-density` is written onto `<html>` by the shell, from one
- * subscription, and this file is its only reader — see `ui/theme/density.ts`
- * for why the mode is an attribute rather than a re-render. Components render
- * the whole readout in every mode; these rules decide what paints.
- *
- * The axis is how much space and prose a fact costs, never which facts exist:
- *
- *   - **Detailed** is the default and is the absence of the other two values,
- *     so nothing below names it. Every fact on screen, full labels, full
- *     prose, the chrome at scale 1.
- *   - **Simple** shows every fact, zero taps: the short form of every two-form
- *     string, the stat abbreviations, the chrome at its own scale
- *     (`data/densityTuning.ts`, through the three `--density-*` multipliers
- *     the chrome rules read).
- *   - **Pocket** fits a 390x844 phone with zero scroll on every decision
- *     surface (`test/visual-pocket.test.ts`). The chrome tightens further,
- *     and secondary facts move one tap away — *uniformly across peers*: all
- *     six stats become bars together, all four move cards drop the same
- *     regions together, every member card folds together, every backpack row
- *     folds together. Never one of a set.
- *
- * Three things stay in every mode, because they are the live board: the flag
- * strip, the type chips, and the effectiveness markers.
+ * Secondary facts sit one long press away, *uniformly across peers*: all six
+ * stats are bars together, all four move cards drop the same regions
+ * together, every member card folds together. Never one of a set. The flag
+ * strip, the type chips and the effectiveness markers are always on screen,
+ * because they are the live board.
  */
 
-/* Two-form strings (`ui/dom.ts`, `prose`): the long form in Detailed, the
-   short one in the other two. */
-.copy__short { display: none; }
-:root[data-density="simple"] .copy__long,
-:root[data-density="pocket"] .copy__long { display: none; }
-:root[data-density="simple"] .copy__short,
-:root[data-density="pocket"] .copy__short { display: inline; }
+/* Two-form strings (`ui/dom.ts`, `prose`): the short form. */
+.copy__long { display: none; }
+.copy__short { display: inline; }
 
 /* The stat block's labels: full names in Detailed, abbreviations in Simple,
    and **neither in Pocket, where the glyph is the label**. M3.2: section 3's
@@ -1287,27 +1324,79 @@ body {
    the mark from M1.1's sheet is the encoding and the two word forms are the
    labelled face D16 keeps in the other two modes until M6.4 rules on them. */
 .stat__label-short { display: none; }
-:root[data-density="simple"] .stat__label-long,
-:root[data-density="pocket"] .stat__label-long { display: none; }
-:root[data-density="simple"] .stat__label-short { display: inline; }
-:root[data-density="pocket"] .stat__label-short { display: none; }
+.stat__label-long { display: none; }
+.stat__label-short { display: none; }
 
-/* The stat block's numbers, in Detailed and Simple; bars in Pocket, six in a
-   row, the number one tap away on the label. All six together. */
-:root:not([data-density="pocket"]) .stat__bar { display: none; }
-:root[data-density="pocket"] .stat__value { display: none; }
-:root[data-density="pocket"] .stats {
+/* The stat block: six cells across, the mark over the number, at rest on
+   every call site. Bible Rev 20: the stats are vital (R13, D81) and the bar
+   is retired (D82), so a cell is the glyph and the number, all six together. */
+.stats {
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: var(--space-1);
 }
-:root[data-density="pocket"] .stat {
+.stat {
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   gap: var(--space-h);
-  line-height: 1.2;
+  padding: var(--space-h) 0;
+  border-radius: var(--radius-chip);
+  background: color-mix(in srgb, var(--bg-sunken) 70%, transparent);
+  line-height: 1.1;
 }
-:root[data-density="pocket"] .stat__label { min-width: 0; font-size: var(--fs-xs); }
-:root[data-density="pocket"] .stat__bar { min-width: 0; flex: none; }
+/* The mark a step darker than the faint label it was beside a bar: the cell's
+   own tint is a step darker than the card under it, and the floor holds. */
+.stat__label { min-width: 0; font-size: var(--fs-xs); color: var(--text-dim); }
+.stat .stat__value {
+  display: block;
+  min-width: 0;
+  text-align: center;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* The swap's stat change (D84): the signed difference under the number,
+   green up and red down, the colour saying the sign again. */
+.stat__delta {
+  font-family: var(--font-numeral);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+.stat__delta--up { color: var(--stage-up); }
+.stat__delta--down { color: var(--stage-down); }
+/* A battle stage in its own cell (bible Rev 23, D98): the stat as it stands,
+   the signed count beneath, both in the stage colours. */
+.stat__stage { display: block; font-size: var(--fs-xs); font-weight: 700; line-height: 1; text-align: center; }
+.stat__stage--up { color: var(--stage-up); }
+.stat__stage--down { color: var(--stage-down); }
+.stat[data-stage] { animation: stat-stage-pulse calc(var(--motion-beat) * 3) ease-out 1; }
+@keyframes stat-stage-pulse { 0% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .stat[data-stage] { animation: none; } }
+.stat[data-change="up"] { box-shadow: inset 0 calc(-1 * var(--space-h)) 0 color-mix(in srgb, var(--stage-up) 55%, transparent); }
+.stat[data-change="down"] { box-shadow: inset 0 calc(-1 * var(--space-h)) 0 color-mix(in srgb, var(--stage-down) 55%, transparent); }
+
+/* The band bar, under the number. **Bible Rev 21, D88 (Stage 5.1).** Empty
+   at the lowest value the stat takes at this Pokemon's level across the pool,
+   full at the highest, one colour at every fraction. `display: block` on both
+   boxes, because a width on an inline box paints nothing: the 4.7.2 bug,
+   which `test/visual-inline-box.test.ts` guards by class. */
+.stat__bar {
+  display: block;
+  align-self: stretch;
+  height: 4px;
+  margin: 0 var(--space-1);
+  border-radius: var(--radius-chip);
+  background: var(--stat-bar-track);
+  overflow: hidden;
+}
+.stat__bar-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: var(--stat-bar);
+}
 
 
 /*
@@ -1329,8 +1418,8 @@ body {
  * until M6.4 decides whether they survive at all — which is R6's own density
  * ruling rather than an exception to it.
  */
-:root[data-density="pocket"] .move__label,
-:root[data-density="pocket"] .chip__word { display: none; }
+.move__label,
+.chip__word { display: none; }
 
 /*
  * **The status readout sits behind the press in Pocket. D17A, ruled 2026-09-20.**
@@ -1356,7 +1445,7 @@ body {
  *
  * Detailed and Simple keep it on the face, per D16.
  */
-:root[data-density="pocket"] .move .move__effect { display: none; }
+.move .move__effect { display: none; }
 
 /*
  * And the reverse: the glyph is Pocket's encoding of a fact the other two modes
@@ -1375,75 +1464,61 @@ body {
  * can be true: a screen does not get to decide how a type is encoded, which is
  * the whole of R1.
  */
-:root:not([data-density="pocket"]) .chip--type > .glyph,
-:root:not([data-density="pocket"]) .badge--category > .glyph,
-:root:not([data-density="pocket"]) .stat__label > .glyph,
-:root:not([data-density="pocket"]) .move__pp > .glyph { display: none; }
 
 /* Folding rows (`ui/collapse.ts`): the member card's body, a backpack row's
    controls, a relic's description. The toggle exists only in Pocket, and a
    row not expanded hides its body — every row of a kind together. */
-.collapse__toggle { display: none; }
-:root[data-density="pocket"] .collapse__toggle { display: inline-flex; }
-:root[data-density="pocket"] [data-collapsible]:not([data-expanded="true"]) > .collapse__body { display: none; }
-:root[data-density="pocket"] .party__member-toggle { margin-left: auto; }
+.collapse__toggle { display: inline-flex; }
+[data-collapsible]:not([data-expanded="true"]) > .collapse__body { display: none; }
+.party__member-toggle { margin-left: auto; }
 
 /* The party screen's two hotbars in Pocket: each is the collection beside it
    at a second size — slot, species, item — and the cards and rows below carry
    every fact they do. Two rows of backpack items rather than one. */
-:root[data-density="pocket"] .screen--party .slots { display: none; }
-:root[data-density="pocket"] .backpack__list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-:root[data-density="pocket"] .backpack__item[data-expanded="true"] { grid-column: 1 / -1; }
+.screen--party .slots { display: none; }
+/* Backpack tiles, two to a line (Bible Rev 20, D81): the sprite, the name
+   and the effect line at rest; a tapped tile takes the whole line for its
+   give and discard controls. */
+.backpack__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.backpack__item[data-picked="true"] { grid-column: 1 / -1; }
 
 /* The threat readout's counts: beside the chip in Detailed and Simple, on the
    chip's tip in Pocket. */
-:root[data-density="pocket"] .threats__count { display: none; }
+.threats__count { display: none; }
 
 /* The leader's flavour line on the map and the pre-gym screen: the title's
    `gym:` tip says it in Pocket. */
-:root[data-density="pocket"] .map__blurb,
-:root[data-density="pocket"] .screen--pre-gym .screen__blurb { display: none; }
+.map__blurb,
+.screen--pre-gym .screen__blurb { display: none; }
 
 /* The bench in Pocket: one line per member; the number says the HP. */
-:root[data-density="pocket"] .bench__member {
+.bench__member {
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
   column-gap: var(--space-2);
 }
-:root[data-density="pocket"] .bench .hp--slim { display: none; }
+.bench .hp--slim { display: none; }
 
 /* **Removed at M3.3**, with the HP-text carve-out it paired with. It hid the
    bar on this screen because the card was a `<button>` — a button is one tap
    already, so no tip could live inside it, and the number had to stay as text.
    The card is the party row now and is not a control, so the bar is the
    readout here exactly as it is in the drawer. */
-:root[data-density="pocket"] .party--compare .party__actions { margin-top: 0; }
-:root[data-density="pocket"] .party--compare .hp { margin-top: var(--space-h); }
+.party--compare .party__actions { margin-top: 0; }
+.party--compare .hp { margin-top: var(--space-h); }
 
-/* The chrome in Pocket: one row. The title, the control row and the drawer
-   trigger share the shell's first line — the shell becomes a two-column grid
-   with the header in the first column and the drawer bar in the second, and
-   everything below spans both. The screens are `display: contents`, so each
-   screen is a grid item of its own. */
-:root[data-density="pocket"] .shell {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-}
-:root[data-density="pocket"] .shell > .seedbar,
-:root[data-density="pocket"] .screens > .screen { grid-column: 1 / -1; }
-:root[data-density="pocket"] .header {
+/* The chrome in Pocket was one row: the shell a two-column grid, the header
+   in the first column and the drawer bar in the second. Stage 5.0/1 put the
+   nav above the header and made the shell a column, so the grid is gone. */
+.header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   column-gap: var(--space-2);
 }
-:root[data-density="pocket"] .header__controls { margin: 0 0 0 auto; }
-:root[data-density="pocket"] .shell__drawer-bar { padding: 0; }
+.header__controls { margin: 0 0 0 auto; }
+
 
 /* The member card's head in Pocket: one line of identity — slot, name,
    level, types, the lead mark — and one line of state: HP, status, the held
@@ -1452,24 +1527,31 @@ body {
    the surface the same way, and a tap on the card opens all of it. Measured
    on the worst-case party: a head that kept the archetype and the ability
    wrapped to five lines at 390 and put six cards at 238px each. */
-:root[data-density="pocket"] .drawer__members { gap: var(--space-1); }
+.drawer__members { gap: var(--space-1); }
 /* Two-up on the party and pre-gym screens, where six of them share the page
    with the bag, the relics or the lead controls; an opened card takes both
    columns. Measured: single-column heads with the item control on a third
    line ran 90px each, two-up runs three rows. */
-:root[data-density="pocket"] .party--manage,
-:root[data-density="pocket"] .pre-gym__party {
+.party.party--manage,
+.pre-gym__party {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-1);
 }
-:root[data-density="pocket"] .party__member[data-expanded="true"],
-:root[data-density="pocket"] .pre-gym__slot:has(.party__member[data-expanded="true"]) { grid-column: 1 / -1; }
-:root[data-density="pocket"] .party__member:not([data-expanded="true"]) .badge--archetype,
-:root[data-density="pocket"] .party__member:not([data-expanded="true"]) .party__ability { display: none; }
-:root[data-density="pocket"] .party__member .panel__header { gap: var(--space-1); margin-bottom: var(--space-h); }
-:root[data-density="pocket"] .party__member .party__ability { margin-left: 0; }
-:root[data-density="pocket"] .party__member .hp { height: 4px; }
+.party__member[data-expanded="true"],
+.pre-gym__slot:has(.party__member[data-expanded="true"]) { grid-column: 1 / -1; }
+.party__member:not([data-expanded="true"]) .badge--archetype,
+.party__member:not([data-expanded="true"]):not(.party__member--offered) .party__ability { display: none; }
+/* **The offered card is not a member card that folds.** It wears
+   `.party__member` for the shape (`screens/acquisition.ts`) but has no fold
+   control, so `data-expanded` is never set on it and the rule above hid its
+   ability for good: on a phone the incoming Pokemon's ability was on no face
+   and behind no press, which is C2. The ability is the encoding table's
+   "name, in a fixed slot", and taking a Pokemon is a decision made largely
+   on it. Capture card ability patch, 2026-10-02. */
+.party__member .panel__header { gap: var(--space-1); margin-bottom: var(--space-h); }
+.party__member .party__ability { margin-left: 0; }
+.party__member .hp { height: 4px; }
 /* The HP line in Pocket: the bar is the readout and the number is its tap
    (`member-card.ts`, `hpTip`), the stat block's own rule. Measured on the
    worst case: the line wrapped to two at half a phone's width and put 33px
@@ -1483,60 +1565,63 @@ body {
    the row's rule like every other surface — the bar is the readout, the
    numbers are its tap — and the exception was costing `HP` and `PP` twelve
    times on a card budgeted at zero. */
-:root[data-density="pocket"] .party__member .panel__hp-text:not([data-fainted]) { display: none; }
-:root[data-density="pocket"] .party__member .hp[data-tip] { overflow: visible; cursor: help; }
-:root[data-density="pocket"] .party__member .hp[data-tip]::after { content: ''; position: absolute; inset: calc(-1 * var(--space-2)) 0; }
+.party__member .panel__hp-text:not([data-fainted]) { display: none; }
+.party__member .hp[data-tip] { overflow: visible; cursor: help; }
+.party__member .hp[data-tip]::after { content: ''; position: absolute; inset: calc(-1 * var(--space-2)) 0; }
 /* The item's "to bag" control folds with the body: a control on a card is
    one tap away in Pocket, as the lead and release controls are. */
-:root[data-density="pocket"] .party__member:not([data-expanded="true"]) .party__item .button { display: none; }
-:root[data-density="pocket"] .party__member .panel__meta,
-:root[data-density="pocket"] .party__member .party__item {
+.party__member:not([data-expanded="true"]) .party__item .button { display: none; }
+.party__member .panel__meta,
+.party__member .party__item {
   display: inline-flex;
   vertical-align: middle;
   margin: var(--space-h) var(--space-1) 0 0;
   min-height: 0;
   gap: var(--space-1);
 }
-:root[data-density="pocket"] .party__member .panel__hp-text { font-size: var(--fs-sm); }
-:root[data-density="pocket"] .party__member .party__actions { margin-top: var(--space-1); flex-wrap: wrap; }
+.party__member .panel__hp-text { font-size: var(--fs-sm); }
+.party__member .party__actions { margin-top: var(--space-1); flex-wrap: wrap; }
 
 /* The target screen's buttons and the capture block's comparison two-up in
    Pocket: those cards are a head with no fold, and two fit a line. */
-:root[data-density="pocket"] .party--target,
-:root[data-density="pocket"] .party--compare {
+.party.party--target,
+.party.party--compare {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-1h);
 }
-:root[data-density="pocket"] .party--compare .panel__header,
-:root[data-density="pocket"] .party--target .panel__header { gap: var(--space-1); margin-bottom: var(--space-h); }
-:root[data-density="pocket"] .party--compare .panel__meta,
-:root[data-density="pocket"] .party--target .panel__meta { margin-top: var(--space-h); min-height: 0; flex-wrap: wrap; }
+.party--compare .panel__header,
+.party--target .panel__header { gap: var(--space-1); margin-bottom: var(--space-h); }
+.party--compare .panel__meta,
+.party--target .panel__meta { margin-top: var(--space-h); min-height: 0; flex-wrap: wrap; }
 /* The capture block's cards: the item, its note and a status on one line at
    half a phone's width. Measured: a burned member holding an item wrapped. */
-:root[data-density="pocket"] .party--compare .party__member { padding: var(--space-1) var(--space-1) var(--space-1h); }
-:root[data-density="pocket"] .party--compare .panel__meta { gap: var(--space-1); }
-:root[data-density="pocket"] .acquire__coverage,
-:root[data-density="pocket"] .acquire__actions { margin-top: var(--space-1); }
+.party--compare .party__member { padding: var(--space-1) var(--space-1) var(--space-1h); }
+.party--compare .panel__meta { gap: var(--space-1); }
+.acquire__coverage,
+.acquire__actions { margin-top: var(--space-1); }
 
 /* The capture block in Pocket: the offer's four moves two-up, and the result
    screen's slot row and its heading off screen while the block is up — the
    comparison list below is the same six members with the same HP, PP (on
    the bar's tap), status, item and slot, and the release control besides.
    Measured on the worst case: the two together were 1204px against 844. */
-:root[data-density="pocket"] .party__member--offered .party__moves { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-3); }
-:root[data-density="pocket"] .screen--result:has(.acquire) .result__party,
-:root[data-density="pocket"] .screen--result:has(.acquire) > .result__heading:first-of-type { display: none; }
+.party__member--offered .party__moves { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-3); }
+.screen--result:has(.acquire) .result__party,
+.screen--result:has(.acquire) > .result__heading:first-of-type { display: none; }
 
 /* The pre-gym screen's heading and its one question on one line in Pocket. */
-:root[data-density="pocket"] .pre-gym__header { display: inline-flex; margin-right: var(--space-2); }
-:root[data-density="pocket"] .pre-gym__prompt { display: inline; margin: 0; }
-:root[data-density="pocket"] /*
+.pre-gym__header { display: inline-flex; margin-right: var(--space-2); }
+.pre-gym__prompt { display: inline; margin: 0; }
+/*
  * The member card as the control. **Milestone M5.3.**
  *
  * A bare button: no background, no border, no type scale of its own, because
  * what it contains is a party row and the row's own typography is the one the
  * player has learned everywhere else. The hit area is the card.
+ *
+ * Until 5.0/1 a comment sat inside this rule's selector, after the Pocket
+ * prefix, so the reset applied in Pocket only. Pocket is the one face now.
  */
 .pre-gym__choose {
   display: block;
@@ -1558,61 +1643,47 @@ body {
 
 /* The party screen's sections in Pocket: the threat explainer is the title's
    tip, the backpack's title and count share a line. */
-:root[data-density="pocket"] .threats__explainer { display: none; }
-:root[data-density="pocket"] .backpack__title,
-:root[data-density="pocket"] .backpack__count { display: inline; margin: 0 var(--space-2) 0 0; }
+.threats__explainer { display: none; }
+.backpack__title,
+.backpack__count { display: inline; margin: 0 var(--space-2) 0 0; }
 
 /* The map's upcoming steps in Pocket: one line per node. The current step's
    cards keep their detail line — the trade is the decision. */
-:root[data-density="pocket"] .step--upcoming .node__detail:empty { display: none; }
-:root[data-density="pocket"] .step--upcoming .node { padding: var(--space-h) var(--space-1h); }
+.step--upcoming .node__detail:empty { display: none; }
+.step--upcoming .node { padding: var(--space-h) var(--space-1h); }
 
-/* Backpack rows in Pocket: the slot, the item and a compact fold control on
-   one line, two rows to a line. */
-:root[data-density="pocket"] .backpack__item { gap: var(--space-1); }
-:root[data-density="pocket"] .backpack__item > .collapse__toggle,
-:root[data-density="pocket"] .party__member-toggle { padding: 0 var(--space-1h); }
-/* The drawer's mode picker in Pocket: the three choices at the fold controls'
-   height, so the sheet stays under its own gate with the picker on it. */
-:root[data-density="pocket"] .density__choice { padding: 0 var(--space-1h); }
+/* Backpack tiles: the slot, then the item as one tap target (R13, D81). */
+.backpack__item { gap: var(--space-1); align-items: flex-start; flex-wrap: nowrap; }
+.backpack__item[data-picked="true"] { flex-wrap: wrap; }
+.collapse__toggle.party__member-toggle { padding: 0 var(--space-1h); }
 
 /* Relics in Pocket: the list folds behind the title, which carries the count
    (`party.ts`, `renderRelics`); opened, the rows flow as name chips and the
    description is the name's tip. Every row together. */
-:root[data-density="pocket"] .relics { margin-top: calc(var(--space-3) * var(--density-gap)); padding-top: calc(var(--space-2) * var(--density-gap)); }
-:root[data-density="pocket"] .relics__title { display: flex; align-items: center; gap: var(--space-2); margin: 0; }
-:root[data-density="pocket"] .relics[data-expanded="true"] .relics__title { margin-bottom: var(--space-1h); }
-:root[data-density="pocket"] .relics__toggle { padding: 0 var(--space-1h); }
-:root[data-density="pocket"] .relics__list {
+.relics { margin-top: calc(var(--space-3) * var(--chrome-gap)); padding-top: calc(var(--space-2) * var(--chrome-gap)); }
+.relics__title { display: flex; align-items: center; gap: var(--space-2); margin: 0; }
+.relics[data-expanded="true"] .relics__title { margin-bottom: var(--space-1h); }
+.collapse__toggle.relics__toggle { padding: 0 var(--space-1h); }
+.relics__list {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
 }
-:root[data-density="pocket"] .relics__item {
+.relics__item {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-h) var(--space-1h);
 }
-:root[data-density="pocket"] .relics__text,
-:root[data-density="pocket"] .relics__item .badge--capability { display: none; }
+.relics__text,
+.relics__item .badge--capability { display: none; }
 
-/* The map's HUD in Pocket: the wallet and the party line share a row, the
-   members go two-up so a long name has a line to itself. */
-:root[data-density="pocket"] .screen--map .party { flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
-:root[data-density="pocket"] .screen--map .party__wallet { padding: var(--space-h) var(--space-1h); }
-:root[data-density="pocket"] .screen--map .party__header { flex: 1; }
-:root[data-density="pocket"] .screen--map .party__members { flex-basis: 100%; }
-:root[data-density="pocket"] .map__heading { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-2); }
-:root[data-density="pocket"] .map__region { flex-basis: 100%; }
-:root[data-density="pocket"] .screen--map .party__wallet-value { font-size: var(--fs-base); }
-:root[data-density="pocket"] .party__members { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-1); }
-:root[data-density="pocket"] .screen--map .party__member .panel__header { margin-bottom: var(--space-h); }
-:root[data-density="pocket"] .screen--map .party__member .panel__meta { margin-top: var(--space-h); min-height: 0; }
-:root[data-density="pocket"] .screen--map .party__member .hp { height: 4px; }
+/* The map's heading in Pocket. (The map's party HUD rules that stood here
+   went with the HUD in 5.0/4.) */
+.map__heading { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-2); }
+.map__region { flex-basis: 100%; }
+.party__members { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-1); }
 
-/* The shell's foot in Pocket: the stamps are texture, and the fold is the budget. */
-:root[data-density="pocket"] .shell { padding-bottom: var(--space-4); }
 
 /* The card's stat block: six rows, two columns, same rows as a pick card's six
    across so the two read as the same object seen in two places. **Renamed from
@@ -1622,9 +1693,9 @@ body {
    one. It names the layout, which is what it selects. */
 .stats--grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: calc(var(--space-h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad));
-  margin: calc(var(--space-2) * var(--density-pad)) 0;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-1);
+  margin: calc(var(--space-2) * var(--chrome-pad)) 0;
 }
 
 /*
@@ -1638,14 +1709,14 @@ body {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-top: calc(var(--space-2) * var(--density-gap));
+  margin-top: 0;
 }
 
 /* The mode picker, in the drawer: three named options, a line each saying
    what the mode does. The pressed one is the store's value. */
 /* The drawer's settings pickers. One rule set, one per setting: the block
    classes below it exist so a suite that names one picker finds one picker. */
-.picker__options { display: flex; flex-direction: column; gap: calc(var(--space-1) * var(--density-gap)); }
+.picker__options { display: flex; flex-direction: column; gap: calc(var(--space-1) * var(--chrome-gap)); }
 .picker__option { display: flex; align-items: baseline; gap: var(--space-2); }
 .picker__choice { flex: none; }
 .picker__choice[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
@@ -1665,13 +1736,13 @@ body {
  * on screen in Detailed and Simple, which is the mode a player reads a setting
  * in for the first time.
  */
-[data-density='pocket'] .picker__options {
+.picker__options {
   flex-direction: row;
   flex-wrap: wrap;
   gap: var(--space-1);
 }
 
-[data-density='pocket'] .picker__desc { display: none; }
+.picker__desc { display: none; }
 
 /*
  * The backpack, below the party on the same screen.
@@ -1697,8 +1768,8 @@ body {
  * of it.
  */
 .threats {
-  margin: calc(var(--space-1) * var(--density-gap)) 0 calc(var(--space-3h) * var(--density-gap));
-  padding-top: calc(var(--space-3) * var(--density-gap));
+  margin: calc(var(--space-1) * var(--chrome-gap)) 0 calc(var(--space-3h) * var(--chrome-gap));
+  padding-top: calc(var(--space-3) * var(--chrome-gap));
   border-top: var(--hairline) solid var(--border);
 }
 
@@ -1752,19 +1823,19 @@ body {
 }
 
 .backpack {
-  margin-top: calc(var(--space-4h) * var(--density-gap));
-  padding-top: calc(var(--space-3h) * var(--density-gap));
+  margin-top: calc(var(--space-4h) * var(--chrome-gap));
+  padding-top: calc(var(--space-3h) * var(--chrome-gap));
   border-top: var(--hairline) solid var(--border);
 }
 
 .backpack__title {
-  margin: 0 0 var(--space-1);
+  margin: 0 var(--space-2) 0 0;
   font-size: var(--fs-base);
   letter-spacing: 0.04em;
 }
 
 .backpack__count {
-  margin: 0 0 var(--space-2h);
+  margin: 0 var(--space-2) 0 0;
   font-family: var(--font-body);
   font-size: var(--fs-sm);
   color: var(--text-faint);
@@ -1778,25 +1849,25 @@ body {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
+  display: grid;
   flex-direction: column;
-  gap: calc(var(--space-2) * var(--density-gap));
+  gap: calc(var(--space-2) * var(--chrome-gap));
 }
 
 .backpack__item {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--space-2);
-  padding: calc(var(--space-2) * var(--density-pad)) calc(var(--space-2h) * var(--density-pad));
+  gap: var(--space-1);
+  padding: calc(var(--space-2) * var(--chrome-pad)) calc(var(--space-2h) * var(--chrome-pad));
   border-radius: var(--radius-card);
   background: var(--bg-sunken);
 }
 
 .backpack__effect {
-  flex: 1;
-  min-width: 180px;
-  font-size: var(--fs-md);
+  min-width: 0;
+  font-size: var(--fs-xs);
+  line-height: 1.3;
   color: var(--text-dim);
 }
 
@@ -1805,6 +1876,158 @@ body {
   gap: var(--space-1h);
   flex-wrap: wrap;
 }
+
+.backpack__pick {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-1h);
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.backpack__pick:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
+.backpack__icon { grid-row: span 2; display: inline-flex; line-height: 0; }
+.backpack__name { font-weight: 700; font-size: var(--fs-sm); }
+.backpack__item[data-picked="true"] { outline: var(--hairline) solid var(--selected); }
+.backpack__controls {
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: var(--space-1h);
+  display: none;
+}
+.backpack__item[data-picked="true"] > .backpack__controls { display: flex; }
+.backpack__put-away { justify-self: start; margin: var(--space-1) 0; }
+
+/* ---------- the Team and Bag screens (bible Rev 23, D95 to D97) ---------- */
+
+/* Two halves over one working copy; `hidden` wins over the display below. */
+.party__team[hidden],
+.party__bag[hidden],
+.screen--party .screen__blurb[hidden],
+.drawer__members[hidden],
+.drawer__relics[hidden],
+.drawer__held-section[hidden],
+.drawer__bag[hidden] { display: none; }
+.drawer__held .drawer__item > .slot__number { flex: none; }
+.party__team,
+.party__bag { display: flex; flex-direction: column; gap: calc(var(--space-2) * var(--chrome-gap)); }
+
+/* The view switch: three equal segments, the one up pressed. A control, not
+   a ranking: the order is the bible's, Stats, Moves, Coverage. */
+.party__views {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.party__view-tab {
+  min-height: 40px;
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  background: var(--bg-sunken);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: var(--fs-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.party__view-tab + .party__view-tab { border-left: var(--hairline) solid var(--border-strong); }
+.party__view-tab[aria-selected="true"] { background: var(--bg-raised); color: var(--text); font-weight: 700; }
+.party__view-tab:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: calc(-1 * var(--space-h)); }
+.party__view { display: flex; flex-direction: column; gap: calc(var(--space-2) * var(--chrome-gap)); }
+
+/* The sort: the player's, starting in party order (D96). Pressed is the one
+   they asked for; nothing else is marked. */
+.party__sort { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); }
+.party__sort-label { font-size: var(--fs-xs); color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; }
+.party__sort-key {
+  min-height: 36px;
+  min-width: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-1h);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--bg-sunken);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.party__sort-key[aria-pressed="true"] { border-color: var(--selected); outline: var(--hairline) solid var(--selected); }
+.party__sort-key .glyph { width: 18px; height: 18px; }
+
+/* Moves: one row per member, its four chips two to a line on a phone. */
+.moves-grid { display: flex; flex-direction: column; gap: calc(var(--space-2) * var(--chrome-gap)); }
+.moves-grid__row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: calc(var(--space-2) * var(--chrome-pad));
+  border-radius: var(--radius-card);
+  background: var(--bg-sunken);
+}
+.moves-grid__who { display: flex; align-items: center; gap: var(--space-1); font-weight: 700; }
+.moves-grid__moves { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-1); }
+@media (min-width: 720px) {
+  .moves-grid__moves { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.moves-grid .move--chip { min-width: 0; }
+
+/* Coverage: the summary's wheel, centred. */
+.party__view > .coverage__box { align-self: center; }
+
+/* Held: one row per member, the item at rest (R13), two taps to move it. */
+.held__title { margin: 0; font-size: var(--fs-md); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+.held__list { list-style: none; margin: var(--space-1) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.held__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  padding: calc(var(--space-1h) * var(--chrome-pad)) calc(var(--space-2h) * var(--chrome-pad));
+  border-radius: var(--radius-card);
+  background: var(--bg-sunken);
+}
+.held__item[data-picked="true"] { outline: var(--hairline) solid var(--selected); }
+/* With something picked up, every member is a place it can go: the same
+   dashed edge on all of them, never on one. */
+.held[data-picking] .held__item:not([data-picked="true"]) { outline: var(--hairline) dashed var(--border-strong); }
+.held__pick {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 7.5em) auto minmax(0, 1fr);
+  grid-template-areas: "slot member icon name" "slot member icon effect";
+  align-items: center;
+  column-gap: var(--space-1h);
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.held__pick:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
+.held__pick > .slot__number { grid-area: slot; }
+.held__member { grid-area: member; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.held__icon { grid-area: icon; display: inline-flex; line-height: 0; min-width: 24px; }
+.held__name { grid-area: name; font-size: var(--fs-sm); }
+.held__item--empty .held__name { color: var(--text-dim); }
+.held__effect { grid-area: effect; font-size: var(--fs-xs); line-height: 1.3; color: var(--text-dim); }
+.held__effect:empty { display: none; }
 
 .backpack__empty,
 .backpack__discarded {
@@ -1817,8 +2040,8 @@ body {
    and a held item compete for one capacity, and nothing here ranks one TM
    against another — acquisition order, no markers, no emphasis. */
 .tms {
-  margin-top: calc(var(--space-4h) * var(--density-gap));
-  padding-top: calc(var(--space-3h) * var(--density-gap));
+  margin-top: calc(var(--space-4h) * var(--chrome-gap));
+  padding-top: calc(var(--space-3h) * var(--chrome-gap));
   border-top: var(--hairline) solid var(--border);
 }
 
@@ -1841,7 +2064,7 @@ body {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-2) * var(--density-gap));
+  gap: calc(var(--space-2) * var(--chrome-gap));
 }
 
 .tms__item {
@@ -1849,7 +2072,7 @@ body {
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-2);
-  padding: calc(var(--space-2) * var(--density-pad)) calc(var(--space-2h) * var(--density-pad));
+  padding: calc(var(--space-2) * var(--chrome-pad)) calc(var(--space-2h) * var(--chrome-pad));
   border-radius: var(--radius-card);
   background: var(--bg-sunken);
 }
@@ -1874,7 +2097,7 @@ body {
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-2);
-  margin: calc(var(--space-2) * var(--density-pad)) 0;
+  margin: calc(var(--space-2) * var(--chrome-pad)) 0;
 }
 
 /* The held item's fixed slot on a party card. **M3.2.** The same 24px cell the
@@ -2041,16 +2264,17 @@ body {
 .moves {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: calc(var(--space-1h) * var(--density-gap));
+  gap: calc(var(--space-1h) * var(--chrome-gap));
 }
 
 .moves .move {
   gap: var(--space-h);
-  padding-top: calc(var(--space-1h) * var(--density-pad));
-  padding-bottom: calc(var(--space-1h) * var(--density-pad));
+  padding-top: calc(var(--space-1h) * var(--chrome-pad) * var(--tap-scale));
+  padding-bottom: calc(var(--space-1h) * var(--chrome-pad) * var(--tap-scale));
   /* M2.2: the touch floor, stated rather than arrived at. A button that the
-     content happens to make tall enough is a button one copy change shortens. */
-  min-height: 44px;
+     content happens to make tall enough is a button one copy change shortens.
+     Scaled by `--tap-scale` since the docked sheet patch. */
+  min-height: calc(44px * var(--tap-scale));
 }
 
 /*
@@ -2093,8 +2317,11 @@ body {
 .move {
   display: flex;
   flex-direction: column;
-  gap: calc(calc(var(--space-1) + var(--hairline)) * var(--density-pad));
-  padding: calc(var(--space-2h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad));
+  /* The touch floor on every move button and card. Stage 5.0/2: folded in
+     from the phone block, which applied at every frame width. */
+  min-height: 44px;
+  gap: calc(calc(var(--space-1) + var(--hairline)) * var(--chrome-pad));
+  padding: calc(var(--space-2h) * var(--chrome-pad) * var(--tap-scale)) calc(var(--space-3) * var(--chrome-pad) * var(--tap-scale));
   text-align: left;
   background: var(--bg-raised);
   border: var(--hairline) solid var(--border-strong);
@@ -2111,52 +2338,6 @@ body {
   opacity: 0.42;
   cursor: not-allowed;
 }
-
-/*
- * The type watermark. **Chip-audit patch, item 3.**
- *
- * A silhouette of the move's type, in the type's own colour, in the corner
- * beside the move name.
- *
- * **Scoped to `.moves`, the battle grid, and nothing wider.** `.move--card` is
- * the same component on the reward, replacement, party and summary screens, and
- * those cards carry the 4.7.2 expander in this corner — so they neither get a
- * watermark nor a containing block they have no use for. `scene.renderMove` is
- * the only builder that emits one; this rule only has to agree with it.
- *
- * **No `overflow: hidden`.** An earlier placement bled the glyph off the right
- * edge and needed the crop; this one sits fully inside the padding box, so the
- * clip would only ever be a trap for something later.
- *
- * **The ceiling is the brief's: 50% opacity, never more.** The token ships at
- * well under it, because at 0.5 against `--bg-raised` the glyph competes with
- * the move name for the same eye. It is a token so a playtest can move it
- * without touching this rule, and `test/type-icons.test.ts` asserts the ceiling
- * rather than trusting this sentence.
- */
-
-
-/*
- * In the four-column bar the button is 85px wide and the glyph would sit on top
- * of the fields the layout exists to make comparable. It keeps its place and
- * loses its size: the colour is still there at a glance, which is the half of
- * the signal that survives at that width.
- */
-/*
- * In the four-column bar the button is 85px wide and there is no corner to
- * yield: two clamped lines of name already use the full width. So the mark
- * stops being a glyph in a corner and becomes a wash behind the whole button —
- * bigger, fainter, centred, and with the name's padding given back.
- *
- * What survives at that size is the colour, which is the half of the signal the
- * brief actually asked for ("show types in certain colors"). The silhouette is
- * the bonus that the 2x2 has room for.
- */
-
-
-
-/* Reduced motion is not the axis here, but reduced *transparency* is: a reader
-   who has asked for more contrast should not have a tinted shape behind text. */
 
 .move__name { font-weight: 600; }
 
@@ -2200,6 +2381,28 @@ body {
   grid-row: 2;
 }
 
+/*
+ * **A first-exposure label wraps the row instead of pushing power out of the
+ * card. The opening playtest QA, QA-005.**
+ *
+ * R7's label sits inside the type and category chips on exposures 1 and 3, and
+ * the two `max-content` columns above grow to hold it. On a card the width of
+ * a starter column that left the power column 0px wide, and the number drew
+ * past the card's edge and over the next one. Only while a label is on the
+ * row, the row flows and wraps: the chips keep their slots, the number drops
+ * beneath them rather than off the card, and a row that fits reads exactly
+ * as the grid does. The steady state, which section 4 budgets, is untouched.
+ */
+.move__meta:has(.exposure-label) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.move__meta:has(.exposure-label) > .move__effect {
+  flex-basis: 100%;
+}
+
 .move__category,
 .move__power {
   color: var(--text-dim);
@@ -2227,7 +2430,7 @@ body {
  * Pocket only, because D16 ruled M2.1's zero binds the Pocket face alone and
  * the other two keep the face they had.
  */
-:root[data-density="pocket"] .move__power {
+.move__power {
   color: var(--text);
   font-family: var(--font-numeral);
   font-size: var(--fs-lg);
@@ -2253,6 +2456,16 @@ body {
 }
 
 .glyph > svg { display: block; width: 100%; height: 100%; }
+
+/* A glyph with class C art (5.0/5, D61): the 8px drawing as a mask over
+   `currentColor`, so the mark keeps the colour every glyph takes from its
+   slot. Drawn at 16 or 24, whole multiples of 8, never smoothed. */
+.glyph--art {
+  background-color: currentColor;
+  -webkit-mask: var(--glyph-art) center / 100% 100% no-repeat;
+  mask: var(--glyph-art) center / 100% 100% no-repeat;
+  image-rendering: pixelated;
+}
 
 /*
  * The exposure label. **Milestone M6.1, R7.** The word beside a glyph on its
@@ -2701,18 +2914,60 @@ body {
   100% { opacity: 0; transform: translateX(var(--mark-travel)) scaleX(0.6); }
 }
 
+/* ---------- the panel's own beats: a trait fired ----------
+   Stage 4.11 Tier 4, section 6 steps 3 and 7, D48.
+
+   **One keyframe for every ability, never weighted, never coloured.** The
+   name pulses in its own slot when the engine says it fired — Intimidate
+   and Drizzle identically — and the slot delay is the beat's, so a fire
+   rides the lunge or hit it accompanies and the turn gains no time. A berry
+   pops in the item slot's ghost, which holds the sprite the redraw took, and
+   ends at nothing: the slot is empty now and the pop says why. */
+.panel__traits[data-fired] .badge--ability {
+  animation: trait-fired var(--motion-beat) ease-out both;
+}
+.panel__traits[data-fired-slot="2"] .badge--ability { animation-delay: calc(var(--motion-beat) * 2); }
+@keyframes trait-fired {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.panel__item-ghost { display: none; }
+.panel__item-ghost[data-fired] {
+  display: inline-flex;
+  align-items: center;
+  margin-top: var(--space-1h);
+  animation: item-fired var(--motion-beat) ease-out both;
+}
+.panel__item-ghost[data-fired-slot="2"] { animation-delay: calc(var(--motion-beat) * 2); }
+@keyframes item-fired {
+  0% { transform: scale(1); opacity: 1; }
+  45% { transform: scale(1.35); opacity: 1; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
 /* ---------- screens ---------- */
 
 /*
  * One screen visible at a time. All four stay mounted, so the battle log's
  * scroll position and the HP bar's transition survive a switch.
  */
-.screens { display: contents; }
+.screens {
+  /* The frame's one scroller. Stage 5.0/1: `display: contents` until the
+     frame took the page's height. */
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: calc(var(--space-3) * var(--chrome-gap)) var(--space-4) calc(var(--space-6) * var(--chrome-gap));
+}
 
 .screen {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-3) * var(--density-gap));
+  gap: calc(var(--space-3) * var(--chrome-gap));
 }
 
 .screen[hidden] { display: none; }
@@ -2775,20 +3030,40 @@ body {
 
 /* ---------- starter select ---------- */
 
+/*
+ * **Compact cards, a detail panel, and a step darker. Bible Rev 19, D78 to
+ * D80.** Every card wears the heavy rule the sidebar and the battle wear, on
+ * the toned panel fill rather than the cream, and the sprite stands on a crop
+ * of a battle backdrop.
+ *
+ * **Stage 5.1, bible Rev 21, D89 and D90.** The panel opens over the selected
+ * card's move column rather than below the cards, and the card is tightened
+ * (one line per move, a shorter scene, a narrower left column) so three cards,
+ * the heading, the blurb and the Choose control fit a 390-wide phone with
+ * Safari's toolbars up. Nothing left the card to get there.
+ */
+.screen--starter .screen__title { margin-bottom: var(--space-1); }
+.screen--starter .screen__blurb { margin: 0 0 var(--space-1h); font-size: var(--fs-sm); line-height: 1.35; }
+
 .starters {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: calc(var(--space-3) * var(--density-gap));
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1h);
 }
 
 .starter {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--space-2) * var(--density-pad));
-  padding: calc(var(--space-3h) * var(--density-pad));
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.25fr);
+  grid-template-areas:
+    "head side"
+    "scene side";
+  grid-template-rows: auto 1fr;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-1h);
   text-align: left;
-  background: var(--bg-raised);
-  border: var(--hairline) solid var(--border-strong);
+  background: var(--panel-fill);
+  border: var(--rule-heavy) solid var(--border-heavy);
   border-radius: var(--radius-card);
   color: var(--text);
   font: inherit;
@@ -2796,58 +3071,165 @@ body {
   transition: border-color 120ms ease, transform 120ms ease;
 }
 
-.starter:hover { border-color: var(--emphasis); transform: translateY(-1px); }
+.starter:hover { transform: translateY(-1px); }
 .starter:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
 
-.starter__header { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
-.starter__name { font-weight: 600; font-size: var(--fs-xl); }
-.starter__level { color: var(--text-faint); font-family: var(--font-body); font-size: var(--fs-md); }
-/* Holds the ability chip and the HP figure since the chip-audit patch, so it is
-   a row rather than a line of text. */
-.starter__meta {
+/* The selected state, and only after a tap: D69's rule, the reward card's
+   recipe. Nothing sets `aria-pressed="true"` before the player's own tap. */
+.starter[aria-pressed="true"] {
+  border-color: var(--selected);
+  box-shadow: 0 0 0 var(--rule-heavy) var(--selected);
+}
+
+.starter__header {
+  grid-area: head;
   display: flex;
-  /*
-   * **Wraps.** It did not, and `test/visual-phone-seed-bar.test.ts` caught the
-   * consequence: an ability chip is uppercase with letter-spacing, so
-   * `ELECTRIC SURGE` beside the HP figure took the starter screen to 401px in a
-   * 390px viewport. A non-wrapping flex row cannot shrink below its content and
-   * nothing above it clips, so the overflow reached the document.
-   *
-   * That assertion covers the starter screen. Nine screens have no equivalent,
-   * which is the item filed in `docs/README.md` section 5.
-   */
+  align-items: baseline;
+  gap: var(--space-h) var(--space-1h);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.starter__name { font-weight: 700; font-size: var(--fs-lg); min-width: 0; overflow-wrap: anywhere; }
+.starter__level { color: var(--text-dim); font-family: var(--font-numeral); font-size: var(--fs-sm); }
+.starter__header .panel__types { flex-basis: 100%; }
+
+/* The scene: a battle backdrop, scaled to cover the cell and held at its lower
+   middle where the ground is, under the figure. Its own element so the figure
+   keeps the card's first slot. */
+.starter__scene {
+  grid-area: scene;
+  display: block;
+  min-height: 64px;
+  border: var(--hairline) solid var(--border-heavy);
+  border-radius: var(--radius-chip);
+  background:
+    var(--backdrop-image, none) center 70% / cover no-repeat,
+    var(--bg-sunken);
+  image-rendering: pixelated;
+}
+
+/* The figure stands on the scene: the same grid cell, above it, at the foot. */
+.starter > .figure {
+  --figure-size: 56px;
+  grid-area: scene;
+  position: relative;
+  top: auto;
+  right: auto;
+  z-index: 1;
+  justify-self: center;
+  align-self: end;
+  margin-bottom: var(--space-h);
+}
+
+.starter__side,
+.starter-detail {
+  grid-area: side;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-1);
+  background: var(--panel-raised);
+  border: var(--hairline) solid var(--border-heavy);
+  border-radius: var(--radius-chip);
+}
+
+/* The panel over the moves (D89): the same cell, on top. The moves keep
+   their box under it, so opening the panel never moves the card's edges. */
+.starter-detail { z-index: 2; gap: var(--space-1); padding: var(--space-h) var(--space-1); }
+.starter-detail[hidden] { display: none; }
+.starter[data-view="detail"] .starter__side { visibility: hidden; }
+
+.starter__meta {
+  /* Wraps: an uppercase ability chip runs long, and a non-wrapping row took
+     this screen past 390px once (`test/visual-phone-seed-bar.test.ts`). */
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1);
-  color: var(--text-dim);
-  font-family: var(--font-body);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
 }
+/* A long ability (Embody Aspect (Hearthflame)) on one line where it can be:
+   the tracking goes, the name stays whole. */
+.starter__meta .badge--ability { letter-spacing: 0; padding-inline: var(--space-1); }
 
-/* Two across in Pocket, since M6.0 (D40) and D45: four cards in one column
-   made each starter about 490px, two across makes it about 305. The screen
-   scrolls either way, by D45's ruling, and this is the layout that puts the
-   whole first starter and half the second in the first screenful. */
-:root[data-density="pocket"] .starter__moves {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-2);
-}
-
-/* The max HP as the HP row's glyph and a number, since M6.0 (D40). */
-.starter__hp { display: inline-flex; align-items: center; gap: var(--space-h); color: var(--text); }
-
-/* Move cards since M6.0 (D40): the list is a container, and the card owns
-   its own face. */
+/* Move chips since D78, one line each since 5.1: the name, and the chip's own
+   meta at the line's end, so the four powers sit in one column. A long name
+   ellipsises rather than wrapping; the chip's press carries it whole. */
 .starter__moves {
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-1) + var(--hairline));
+  gap: 0;
+  margin: 0;
+  padding: var(--space-h) 0 0;
   border-top: var(--hairline) solid var(--border);
-  padding-top: var(--space-2);
 }
+.starter__moves .move--chip {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  min-height: 0;
+  padding: var(--hairline) 0;
+  background: none;
+  border: 0;
+}
+.starter__moves .move--chip .move__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+}
+.starter__moves .move--chip > :not(.move__name) { flex: none; }
+
+/* The stat block in the panel: two columns of three, HP, Atk and Def down the
+   first and SpA, SpD and Spe down the second, each a row of glyph, bar and
+   number, so the six bars read against their bands down a column (D88). */
+.starter-detail .stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(3, auto);
+  grid-auto-flow: column;
+  gap: 0 var(--space-1h);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.starter-detail .stat {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-h);
+  background: none;
+}
+.starter-detail .stat__label { flex: none; line-height: 1; }
+.starter-detail .stat__bar { order: 1; flex: 1 1 auto; margin: 0; height: 6px; }
+.starter-detail .stat .stat__value { order: 2; flex: none; min-width: 2ch; text-align: right; font-size: var(--fs-sm); }
+
+.starter-detail__row {
+  display: grid;
+  grid-template-columns: 10ch minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-1);
+  padding-top: var(--space-h);
+  border-top: var(--hairline) solid var(--border);
+}
+/* The label wraps to two short lines in its column, so the chips get the
+   rest of the width and a row is one chip line high for most starters. */
+.starter-detail__label { font-size: var(--fs-xs); font-weight: 700; line-height: 1.15; color: var(--text-dim); letter-spacing: 0; }
+.starter-detail__types { display: flex; flex-wrap: wrap; gap: var(--hairline); }
+.starter-detail__types .type { padding: 0 var(--space-h); }
+
+.starter-select__choose {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-1h);
+  padding: var(--space-2);
+  font-size: var(--fs-lg);
+}
+.starter-select__choose[hidden] { display: none; }
 
 
 /* ---------- bands and berries ---------- */
@@ -2977,15 +3359,15 @@ body {
 .locales {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: calc(var(--space-3) * var(--density-gap));
+  gap: calc(var(--space-3) * var(--chrome-gap));
   width: 100%;
 }
 
 .locale {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-2h) * var(--density-pad));
-  padding: calc(var(--space-4) * var(--density-pad)) calc(var(--space-3h) * var(--density-pad));
+  gap: calc(var(--space-2h) * var(--chrome-pad));
+  padding: calc(var(--space-4) * var(--chrome-pad)) calc(var(--space-3h) * var(--chrome-pad));
   text-align: left;
   background: var(--bg-raised);
   border: var(--hairline) solid var(--border-strong);
@@ -3004,7 +3386,7 @@ body {
 .locale__blurb { color: var(--text-dim); font-size: var(--fs-md); }
 
 /* 44px of touch target on a phone, like every other primary control. */
-@media (max-width: 760px) {
+@container frame (max-width: 760px) {
   .locale { min-height: 88px; }
 }
 
@@ -3021,7 +3403,7 @@ body {
 }
 
 .rail { grid-area: rail; }
-.map__heading { grid-area: heading; display: flex; flex-direction: column; gap: calc(var(--space-h) * var(--density-gap)); }
+.map__heading { grid-area: heading; display: flex; flex-direction: row; gap: calc(var(--space-h) * var(--chrome-gap)) var(--space-2); }
 
 /* The region this segment is being walked through, as one line above the
    chain. One line rather than a badge per node: the locale is a property of the
@@ -3031,7 +3413,7 @@ body {
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-1h);
-  margin-top: calc(var(--space-1) * var(--density-gap));
+  margin-top: calc(var(--space-1) * var(--chrome-gap));
 }
 
 .map__region-name { font-weight: 600; font-size: var(--fs-base); }
@@ -3039,7 +3421,7 @@ body {
 .party { grid-area: party; }
 .threats--map { grid-area: threats; }
 
-@media (max-width: 760px) {
+@container frame (max-width: 760px) {
   .screen--map {
     grid-template-columns: minmax(0, 1fr);
     /*
@@ -3059,13 +3441,16 @@ body {
    progression and a wrapped progression stops reading as one. */
 .rail {
   margin: 0;
-  padding: 0 0 calc(var(--space-1) * var(--density-gap));
+  padding: 0 0 calc(var(--space-1) * var(--chrome-gap));
   list-style: none;
   display: flex;
-  gap: calc(var(--space-1h) * var(--density-gap));
+  gap: calc(var(--space-1h) * var(--chrome-gap));
   overflow-x: auto;
-  scrollbar-width: thin;
+  /* Scrolls, with no scrollbar drawn (the author's *"the map buttons look
+     awful"*, 2026-10-01): the cut-off gym at the edge says there is more. */
+  scrollbar-width: none;
 }
+.rail::-webkit-scrollbar { display: none; }
 
 .rail__gym {
   /* Two rows per gym — number and leader above, type below — rather than one
@@ -3078,7 +3463,7 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1) calc(var(--space-1) + var(--hairline));
-  padding: calc(var(--space-1h) * var(--density-pad)) calc(var(--space-2) * var(--density-pad));
+  padding: calc(var(--space-1h) * var(--chrome-pad)) calc(var(--space-2) * var(--chrome-pad));
   border: var(--hairline) solid var(--border);
   border-radius: var(--radius-card);
   background: var(--bg-sunken);
@@ -3114,7 +3499,7 @@ body {
 /* Below this the leaders' names and types stop fitting side by side, so the
    rail becomes a scrolling strip of numbers and types — still a progression,
    just a narrower one. */
-@media (max-width: 700px) {
+@container frame (max-width: 700px) {
   .rail__gym { flex: 0 0 auto; }
 }
 
@@ -3153,7 +3538,7 @@ body {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-1h) * var(--density-gap));
+  gap: calc(var(--space-1h) * var(--chrome-gap));
 }
 
 .step {
@@ -3202,14 +3587,14 @@ body {
   flex: 1;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-  gap: calc(var(--space-1h) * var(--density-gap));
+  gap: calc(var(--space-1h) * var(--chrome-gap));
 }
 
 .node {
   display: flex;
   flex-direction: column;
   gap: var(--space-h);
-  padding: calc(var(--space-2) * var(--density-pad)) calc(calc(var(--space-2h) + var(--hairline)) * var(--density-pad));
+  padding: calc(var(--space-2) * var(--chrome-pad)) calc(calc(var(--space-2h) + var(--hairline)) * var(--chrome-pad));
   text-align: left;
   background: var(--bg-raised);
   border: var(--hairline) solid var(--border);
@@ -3224,6 +3609,32 @@ body {
    job, and the elite edge was a verdict. */
 
 .node__label { font-weight: 600; font-size: var(--fs-base); }
+
+/*
+ * The kind is a mark. **Patch 4.10.1, D46.** The label line carries the node
+ * glyph at 24 and, on a gym, the leader's name; the tier pips have a row of
+ * their own beneath it, where the prompt asked for them. The mark inherits
+ * the label's colour and nothing else: no hue per kind, for the reason the V0
+ * note above gives.
+ */
+.node__label { display: inline-flex; align-items: center; gap: var(--space-1h); }
+.node__kind { display: inline-flex; align-items: center; line-height: 0; }
+.node__tier { display: flex; align-items: center; }
+
+/* The same mark at 16 on the battle header, beside the leader's name. */
+.battle__header .screen__title { display: inline-flex; align-items: center; gap: var(--space-1); }
+
+/* The field, after the AI tier on the detail line. **Stage 4.11 Tier 2, D47.**
+
+   Empty when nothing is set, and an empty inline-flex takes no room, so the
+   line is byte-for-byte the D46 line until weather arrives. Weather then
+   terrain, one gap apart. A suppressed weather is drawn in the stage's own dim
+   ink rather than faded by opacity: the fact is still on the board and the
+   mark still has to clear the contrast floor. */
+.battle__field { display: inline-flex; align-items: center; gap: var(--space-1); vertical-align: middle; }
+.battle__field:not(:empty) { margin-left: var(--space-1h); }
+.battle__field-mark { display: inline-flex; align-items: center; line-height: 0; }
+.battle__field-mark[data-suppressed='true'] { color: var(--text-dim); }
 
 .node__detail {
   color: var(--text-faint);
@@ -3251,7 +3662,7 @@ body {
 .party {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-3) * var(--density-gap));
+  gap: calc(var(--space-3) * var(--chrome-gap));
 }
 
 /*
@@ -3269,12 +3680,12 @@ body {
  */
 .party__members {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
-  gap: calc(var(--space-2) * var(--density-gap));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1);
 }
 
 .party__member {
-  padding: calc(var(--space-3) * var(--density-pad)) calc(var(--space-3h) * var(--density-pad));
+  padding: calc(var(--space-3) * var(--chrome-pad)) calc(var(--space-3h) * var(--chrome-pad));
   background: var(--bg-raised);
   border: var(--hairline) solid var(--border);
   border-left: var(--space-1) solid var(--border-strong);
@@ -3282,13 +3693,13 @@ body {
 }
 
 .party__moves {
-  margin: calc(var(--space-2) * var(--density-pad)) 0 0;
-  padding: calc(var(--space-2) * var(--density-pad)) 0 0;
+  margin: calc(var(--space-2) * var(--chrome-pad)) 0 0;
+  padding: calc(var(--space-2) * var(--chrome-pad)) 0 0;
   list-style: none;
   border-top: var(--hairline) solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-1) * var(--density-pad));
+  gap: calc(var(--space-1) * var(--chrome-pad));
 }
 
 .party__move {
@@ -3305,7 +3716,7 @@ body {
 .bench {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: calc(var(--space-2) * var(--density-gap));
+  gap: calc(var(--space-2) * var(--chrome-gap));
 }
 
 .bench__heading {
@@ -3323,9 +3734,9 @@ body {
 
 .bench__member {
   display: flex;
-  flex-direction: column;
-  gap: calc(var(--space-1) * var(--density-pad));
-  padding: calc(var(--space-2) * var(--density-pad)) calc(var(--space-2h) * var(--density-pad));
+  flex-direction: row;
+  gap: calc(var(--space-1) * var(--chrome-pad)) var(--space-2);
+  padding: calc(var(--space-2) * var(--chrome-pad)) calc(var(--space-2h) * var(--chrome-pad));
   text-align: left;
   background: var(--bg-raised);
   border: var(--hairline) solid var(--border);
@@ -3363,7 +3774,7 @@ body {
 .party__member--lead { border-left-color: var(--emphasis); }
 .party__member--fainted { opacity: 0.55; }
 
-.party__actions { display: flex; gap: var(--space-2); margin-top: calc(var(--space-2h) * var(--density-gap)); }
+.party__actions { display: flex; gap: var(--space-2); margin-top: calc(var(--space-2h) * var(--chrome-gap)); }
 
 
 .badge--muted { opacity: 0.6; }
@@ -3393,16 +3804,16 @@ body {
 .screen__title[data-outcome='loss'] { color: var(--hp-low); }
 
 .result__heading {
-  margin: calc(var(--space-4h) * var(--density-gap)) 0 calc(var(--space-2) * var(--density-gap));
+  margin: calc(var(--space-4h) * var(--chrome-gap)) 0 calc(var(--space-2) * var(--chrome-gap));
   font-size: var(--fs-md);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-dim);
 }
 
-.result__party { display: grid; gap: calc(var(--space-2) * var(--density-gap)); }
+.result__party { display: grid; gap: calc(var(--space-2) * var(--chrome-gap)); }
 
-.result__actions { display: flex; gap: var(--space-2); margin-top: calc(var(--space-4h) * var(--density-gap)); }
+.result__actions { display: flex; gap: var(--space-2); margin-top: calc(var(--space-4h) * var(--chrome-gap)); }
 
 /* 44px of touch target: this is the button a phone player presses after every
    fight, and it is the only way off the screen when no cards are offered. */
@@ -3419,14 +3830,14 @@ body {
 }
 
 .acquire__heading {
-  margin: calc(var(--space-4h) * var(--density-gap)) 0 0;
+  margin: calc(var(--space-4h) * var(--chrome-gap)) 0 0;
   font-size: var(--fs-md);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-dim);
 }
 
-.acquire__actions { display: flex; gap: var(--space-2); margin-top: calc(var(--space-4h) * var(--density-gap)); }
+.acquire__actions { display: flex; gap: var(--space-2); margin-top: var(--space-1); }
 .acquire__actions .button { min-height: 44px; }
 
 /*
@@ -3436,12 +3847,12 @@ body {
  * above it, what the fight left you is beside it.
  */
 .result__capture {
-  margin-top: calc(var(--space-4h) * var(--density-gap));
-  padding-top: calc(var(--space-2) * var(--density-gap));
+  margin-top: calc(var(--space-4h) * var(--chrome-gap));
+  padding-top: calc(var(--space-2) * var(--chrome-gap));
   border-top: var(--hairline) solid var(--border);
 }
 
-.acquire__blurb { color: var(--text-dim); font-size: var(--fs-base); margin: calc(var(--space-1) * var(--density-gap)) 0 calc(var(--space-3) * var(--density-gap)); }
+.acquire__blurb { color: var(--text-dim); font-size: var(--fs-base); margin: calc(var(--space-1) * var(--chrome-gap)) 0 calc(var(--space-3) * var(--chrome-gap)); }
 
 /* The coverage line: a readout, never a verdict — so no colour that says which
    direction is better, and no arrow. Same treatment as the species card's. */
@@ -3469,7 +3880,7 @@ body {
 }
 
 .acquire__coverage {
-  margin: var(--space-2h) 0 0;
+  margin: var(--space-1) 0 0;
   font-family: var(--font-body);
   font-size: var(--fs-sm);
   color: var(--text-dim);
@@ -3524,7 +3935,7 @@ body {
      reads as part of the same list of answers rather than as chrome under it.
      What it does not take is their `border-left` accent: that marks a Pokemon,
      and there is no Pokemon here. */
-  padding: calc(var(--space-3) * var(--density-pad)) calc(var(--space-3h) * var(--density-pad));
+  padding: calc(var(--space-3) * var(--chrome-pad)) calc(var(--space-3h) * var(--chrome-pad));
   text-align: left;
   background: var(--bg-raised);
   border: var(--hairline) solid var(--border);
@@ -3544,7 +3955,7 @@ body {
 /* The offered move, as a card above the members it could go to (4.8.0.2).
    Outside the member buttons on purpose: its Explain control must not sit
    inside anything that submits. */
-.target__move { margin: 0 0 calc(var(--space-3) * var(--density-gap)); }
+.target__move { margin: 0 0 calc(var(--space-3) * var(--chrome-gap)); }
 .target__move:empty { display: none; }
 
 /* ---------- move replacement ---------- */
@@ -3556,7 +3967,7 @@ body {
 .screen--replace > * { width: min(760px, 100%); }
 
 .replace__heading {
-  margin: calc(var(--space-4h) * var(--density-gap)) 0 0;
+  margin: calc(var(--space-4h) * var(--chrome-gap)) 0 0;
   font-size: var(--fs-md);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -3583,8 +3994,8 @@ body {
 .replace__moves {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: calc(var(--space-1) * var(--density-gap));
-  margin-top: calc(var(--space-2) * var(--density-gap));
+  gap: calc(var(--space-1) * var(--chrome-gap));
+  margin-top: calc(var(--space-2) * var(--chrome-gap));
 }
 
 /*
@@ -3648,9 +4059,25 @@ body {
   align-items: center;
   gap: var(--space-1) var(--space-2);
   padding-right: calc(var(--figure-size) + var(--space-2));
-  margin-top: calc(var(--space-4h) * var(--density-gap));
+  margin-top: calc(var(--space-4h) * var(--chrome-gap));
   font-size: var(--fs-base);
 }
+
+/* Full cream for the row's neutral chips — the ability and the archetype —
+   and this is a **legibility floor fix, not a weight change**, the same one
+   `.flags .chip` carries and for the same reason.
+
+   The owner row is the second place a chip sits on the locale-tinted stage
+   rather than on a panel. The dim recipe measured 3.75:1 for `Justified` on
+   the marsh green — under `displayTuning.minChipContrastRatio` — and the
+   pairing had never been sampled: the seed the contrast sweep walks reaches a
+   green-tinted locale's replacement screen since the wild-strength patch moved
+   the road, and did not before. `test/visual-chips.test.ts` is where it
+   surfaced, 2026-09-25.
+
+   Only the neutral chips. The type chips beside them carry their own colour
+   and lifting `--chip` on the whole row would repaint a type as cream. */
+.replace__owner .chip--neutral { --chip: var(--cream); }
 
 /* Minimum 44px of touch target, because this screen is a phone screen: four
    cards, one irreversible tap, and no undo behind it. */
@@ -3660,7 +4087,7 @@ body {
 
 /* ---------- battle screen ---------- */
 
-.battle__header { display: flex; flex-direction: column; gap: calc(var(--space-h) * var(--density-gap)); }
+.battle__header { display: flex; flex-direction: column; gap: calc(var(--space-h) * var(--chrome-gap)); }
 
 /* ---------- summary ---------- */
 
@@ -3668,7 +4095,7 @@ body {
 
 .summary {
   width: min(680px, 100%);
-  padding: calc(var(--space-6) * var(--density-pad));
+  padding: calc(var(--space-6) * var(--chrome-pad));
   background: var(--bg-raised);
   border: var(--hairline) solid var(--border-strong);
   border-radius: var(--radius-card);
@@ -3679,7 +4106,7 @@ body {
 .screen--summary[data-outcome="victory"] .summary__title { color: var(--win); }
 .screen--summary[data-outcome="defeat"] .summary__title { color: var(--loss); }
 
-.summary__detail { margin: 0 0 calc(var(--space-1) * var(--density-gap)); color: var(--text-dim); font-size: var(--fs-base); }
+.summary__detail { margin: 0 0 calc(var(--space-1) * var(--chrome-gap)); color: var(--text-dim); font-size: var(--fs-base); }
 
 /* The seed is the one thing that makes a run shareable, so it gets a row of
    its own and a copy button rather than a line of small grey text. */
@@ -3688,8 +4115,8 @@ body {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  margin: calc(var(--space-3) * var(--density-gap)) 0;
-  padding: calc(var(--space-2) * var(--density-pad)) calc(var(--space-3) * var(--density-pad));
+  margin: calc(var(--space-3) * var(--chrome-gap)) 0;
+  padding: calc(var(--space-2) * var(--chrome-pad)) calc(var(--space-3) * var(--chrome-pad));
   border: var(--hairline) solid var(--border-strong);
   border-radius: var(--radius-card);
   background: var(--bg-sunken);
@@ -3710,7 +4137,9 @@ body {
   word-break: break-all;
 }
 
-.button--small { padding: var(--space-1) var(--space-2h); font-size: var(--fs-sm); }
+/* A hairline less padding each way than before Stage 5.0/1, for the heavier
+   border `.button` took, so the outer size holds. */
+.button--small { padding: calc(var(--space-1) * var(--tap-scale) - var(--hairline)) calc(var(--space-2h) * var(--tap-scale) - var(--hairline)); font-size: var(--fs-sm); }
 
 .summary__progress {
   display: flex;
@@ -3718,7 +4147,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: calc(var(--space-1) + var(--hairline));
-  margin-bottom: calc(var(--space-2h) * var(--density-gap));
+  margin-bottom: calc(var(--space-2h) * var(--chrome-gap));
 }
 
 .summary__count {
@@ -3744,7 +4173,7 @@ body {
 .summary__badge--missed { color: var(--text-faint); opacity: 0.6; }
 
 .summary__cause {
-  margin: 0 0 calc(var(--space-4) * var(--density-gap));
+  margin: 0 0 calc(var(--space-4) * var(--chrome-gap));
   padding: var(--space-2) var(--space-3);
   border-left: var(--space-1) solid var(--loss);
   border-radius: 0 var(--radius-card) var(--radius-card) 0;
@@ -3758,7 +4187,7 @@ body {
 .summary__cause[hidden] { display: none; }
 
 .summary__section {
-  margin: calc(var(--space-4h) * var(--density-gap)) 0 calc(var(--space-2) * var(--density-gap));
+  margin: calc(var(--space-4h) * var(--chrome-gap)) 0 calc(var(--space-2) * var(--chrome-gap));
   font-size: var(--fs-sm);
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -3818,7 +4247,7 @@ body {
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: var(--space-2);
   align-items: baseline;
-  padding: calc(var(--space-1) * var(--density-pad)) 0;
+  padding: calc(var(--space-1) * var(--chrome-pad)) 0;
   font-size: var(--fs-sm);
   border-bottom: var(--hairline) solid var(--border-faint, var(--border));
 }
@@ -3858,7 +4287,7 @@ body {
 .summary__grave[hidden] { display: none; }
 
 .summary__grave-row {
-  padding: calc(var(--space-1h) * var(--density-pad)) 0;
+  padding: calc(var(--space-1h) * var(--chrome-pad)) 0;
   font-size: var(--fs-sm);
   color: var(--text-dim);
   border-bottom: var(--hairline) solid var(--border-faint, var(--border));
@@ -3869,15 +4298,15 @@ body {
 .summary__team {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: calc(var(--space-2h) * var(--density-gap));
+  gap: calc(var(--space-2h) * var(--chrome-gap));
   text-align: left;
 }
 
 .summary__member {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-2) * var(--density-pad));
-  padding: calc(var(--space-3) * var(--density-pad));
+  gap: calc(var(--space-2) * var(--chrome-pad));
+  padding: calc(var(--space-3) * var(--chrome-pad));
   background: var(--bg-sunken);
   border: var(--hairline) solid var(--border);
   border-radius: var(--radius-card);
@@ -3890,7 +4319,7 @@ body {
   text-align: left;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-1) * var(--density-gap));
+  gap: calc(var(--space-1) * var(--chrome-gap));
   /* A full run is now around forty nodes, so this scrolls by design. Capped
      rather than uncapped so the actions and the final team stay reachable
      without paging past the whole run first. */
@@ -3903,7 +4332,7 @@ body {
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   gap: var(--space-2h);
   align-items: baseline;
-  padding: calc(calc(var(--space-1) + var(--hairline)) * var(--density-pad)) calc(var(--space-2) * var(--density-pad));
+  padding: calc(calc(var(--space-1) + var(--hairline)) * var(--chrome-pad)) calc(var(--space-2) * var(--chrome-pad));
   border-radius: var(--radius-card);
   background: var(--bg-sunken);
   font-size: var(--fs-md);
@@ -3932,7 +4361,7 @@ body {
 .summary__node-outcome[data-won="true"] { color: var(--win); }
 .summary__node-outcome[data-won="false"] { color: var(--loss); }
 
-.summary__actions { display: flex; gap: calc(var(--space-2) * var(--density-gap)); justify-content: center; flex-wrap: wrap; }
+.summary__actions { display: flex; gap: calc(var(--space-2) * var(--chrome-gap)); justify-content: center; flex-wrap: wrap; }
 .summary__nodes { margin-bottom: 0; }
 
 /* ---------- the band ---------- */
@@ -3968,9 +4397,11 @@ body {
   width: 100%;
   padding: var(--space-5) var(--space-4);
   text-align: center;
-  background: color-mix(in srgb, var(--locale-deep) 88%, transparent);
-  border-top: var(--hairline) solid color-mix(in srgb, var(--locale-glow) 55%, transparent);
-  border-bottom: var(--hairline) solid color-mix(in srgb, var(--locale-glow) 55%, transparent);
+  /* A window, Stage 5.0/1: the band sat in the locale's dark tint over a
+     dark frame, and on the light frame that is dark text on dark. */
+  background: var(--bg-raised);
+  border-top: var(--rule-heavy) solid var(--border-heavy);
+  border-bottom: var(--rule-heavy) solid var(--border-heavy);
 }
 
 .confirm-band__title { margin: 0 0 var(--space-1h); font-size: var(--fs-3xl); }
@@ -4047,7 +4478,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
  * and they only apply once a run is under way: during setup the seed box *is*
  * the screen, and hiding it would leave a phone player with nothing to press.
  */
-@media (max-width: 760px) {
+@container frame (max-width: 760px) {
   /* The title shrinks and the stage blurb goes. It is a description of the
      build for someone reading over your shoulder, not something a player in a
      fight needs on screen. */
@@ -4081,17 +4512,15 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
      metrics a floating panel wears now live in one place, beside the rest of
      what makes it float. */
 
-  /* 44px minimum, and the grid stays 2x2 rather than collapsing to one column:
-     four buttons in a column is a scroll, and a scroll is what this pass is
-     removing. */
-  .move { min-height: 44px; }
-  .moves { gap: calc(var(--space-1h) * var(--density-gap)); }
+  /* The move grid's 44px floor and its gap lived here, and applied on every
+     frame: the frame is never wider than 480px, so this block is always in
+     force. Stage 5.0/2 folded both into the base rules (`.move`, `.moves`)
+     and deleted them here, the battle's share of the dead wide layout. */
 
   /* The map's decision point is what the player came to the screen for, so the
      current step's cards keep their full size while the rest of the chain
      tightens around them. */
-  .step--done .node,
-  .step--upcoming .node { padding: calc(var(--space-1h) * var(--density-pad)) calc(var(--space-2) * var(--density-pad)); }
+  .step--done .node { padding: calc(var(--space-1h) * var(--chrome-pad)) calc(var(--space-2) * var(--chrome-pad)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4195,6 +4624,14 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   .stage__actor[data-abnormal="field"] .stage__mark,
   .stage__actor[data-abnormal-slot="2"] .stage__mark { animation: none; }
 
+  /* The panel's own beats. **Stage 4.11 Tier 4.** The name stays, unmoved;
+     the berry's ghost is not shown at all, since a sprite that neither pops
+     nor leaves is a stale item on the panel. */
+  .panel__traits[data-fired] .badge--ability,
+  .panel__traits[data-fired-slot="2"] .badge--ability { animation: none; }
+  .panel__item-ghost[data-fired],
+  .panel__item-ghost[data-fired-slot="2"] { display: none; }
+
   /*
    * The priority chevron's flash. **M4.2.**
    *
@@ -4256,7 +4693,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: calc(var(--space-2h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad));
+  padding: calc(var(--space-2h) * var(--chrome-pad)) calc(var(--space-3) * var(--chrome-pad));
   background: var(--bg-sunken);
   border: var(--hairline) solid var(--border);
   border-left: var(--space-1) solid var(--border-strong);
@@ -4273,18 +4710,35 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 
 /* ---------- reward screen ---------- */
 
+/*
+ * **Three across where they fit, stacked where they do not. Stage 5.0/3,
+ * D67.** A mark-faced card (a sprite, a relic, a coin, a restore) is small
+ * enough for three in a 390px frame. A move card is not: M2.3 measured it at
+ * 262px tall at full width, and a third of the frame would crush it. So an
+ * offer carrying any move card stacks *every* card, rather than letting one
+ * card span the row the others share, which would be a size difference
+ * between siblings, and sibling cards in an offer are identical (Stage V0).
+ */
 .rewards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: calc(var(--space-3) * var(--density-gap));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: calc(var(--space-3) * var(--chrome-gap));
+}
+
+.rewards:has(.move--card) { grid-template-columns: minmax(0, 1fr); }
+
+.rewards .reward:not(:has(.move--card)) {
+  align-items: center;
+  justify-content: center;
+  min-height: 96px;
 }
 
 .reward {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: calc(var(--space-1h) * var(--density-pad));
-  padding: calc(var(--space-3h) * var(--density-pad));
+  gap: calc(var(--space-1h) * var(--chrome-pad));
+  padding: calc(var(--space-3h) * var(--chrome-pad));
   text-align: left;
   background: var(--bg-raised);
   border: var(--hairline) solid var(--border-strong);
@@ -4340,8 +4794,8 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .shop__shelf .reward {
   flex-direction: row;
   align-items: center;
-  gap: calc(var(--space-2) * var(--density-pad));
-  padding: calc(var(--space-2) * var(--density-pad));
+  gap: calc(var(--space-2) * var(--chrome-pad));
+  padding: calc(var(--space-2) * var(--chrome-pad));
   width: 100%;
 }
 
@@ -4355,38 +4809,43 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .reward:hover { border-color: var(--emphasis); transform: translateY(-1px); }
 .reward:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
 
+/*
+ * **The selected state, and only after a tap. Stage 5.0/3, D69.** The plan's
+ * selection cursor is the `--selected` token as a heavy border. Nothing sets
+ * `aria-pressed="true"` before the player's own tap, so no card wears this at
+ * rest (C1).
+ */
+.reward[aria-pressed="true"] {
+  border-color: var(--selected);
+  box-shadow: inset 0 0 0 var(--rule-heavy) var(--selected);
+}
+
+/* A coin amount: the currency glyph beside a bare number (D54, D66). */
+.coin-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-h);
+  font-family: var(--font-numeral);
+  color: var(--text);
+}
+
+.reward__amount { font-size: var(--fs-2xl); font-weight: 600; }
+.reward--heal .hp { width: 100%; }
+
+/* The claim band's copy of the card, and the shop's basket in the buy band. */
+.confirm-band__content .reward { margin: 0 auto; cursor: default; max-width: 100%; }
+.confirm-band__content .reward:not(:has(.move--card)) { align-items: center; min-width: 120px; }
+.shop__basket { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: center; }
+
 /* Stage V0: sibling cards in an offer are identical. The kind is printed on
    the card; it is not a colour on its edge. */
 
-.reward__kind {
-  font-family: var(--font-body);
-  font-size: var(--fs-xs);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-}
-
-.reward__name { font-weight: 600; font-size: var(--fs-xl); }
-.reward__detail { color: var(--text-dim); font-size: var(--fs-md); line-height: 1.45; }
-
-.reward__note {
-  margin-top: auto;
-  padding-top: var(--space-1);
-  color: var(--text-faint);
-  font-family: var(--font-body);
-  font-size: var(--fs-sm);
-  line-height: 1.4;
-}
-
-/* A card that is weak *for this run* says so. A near-dud that announces itself
-   is a legibly low reward; one that hides is a lottery. */
-.reward__note--warn { color: var(--text-dim); }
 
 /* ---------- shop ---------- */
 
 .shop__wallet {
   display: flex;
-  gap: calc(var(--space-3) * var(--density-gap));
+  gap: calc(var(--space-3) * var(--chrome-gap));
   flex-wrap: wrap;
 }
 
@@ -4395,7 +4854,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   flex-direction: column;
   gap: var(--space-h);
   min-width: 90px;
-  padding: calc(var(--space-2h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad));
+  padding: calc(var(--space-2h) * var(--chrome-pad)) calc(var(--space-3) * var(--chrome-pad));
   background: var(--bg-sunken);
   border: var(--hairline) solid var(--border);
   border-radius: var(--radius-card);
@@ -4415,7 +4874,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .shop__shelf {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-2) * var(--density-gap));
+  gap: calc(var(--space-2) * var(--chrome-gap));
   list-style: none;
   margin: 0;
   padding: 0;
@@ -4430,7 +4889,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   flex-direction: column;
   align-items: stretch;
   gap: var(--space-2);
-  padding: calc(var(--space-2h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad));
+  padding: calc(var(--space-2h) * var(--chrome-pad)) calc(var(--space-3) * var(--chrome-pad));
   background: var(--bg-raised);
   border: var(--hairline) solid var(--border);
   border-left: var(--space-1) solid var(--border-strong);
@@ -4457,7 +4916,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
    live — and `test/density.test.ts` greps for exactly that mistake. The name,
    the category and the price are on the row in every mode; what Pocket loses
    is the detail, which is what Pocket loses everywhere. */
-:root[data-density="pocket"] .shop__item > .move--card { display: none; }
+.shop__item > .move--card { display: none; }
 
 .shop__item-kind {
   font-family: var(--font-body);
@@ -4516,14 +4975,14 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .event__choices {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: calc(var(--space-3) * var(--density-gap));
+  gap: calc(var(--space-3) * var(--chrome-gap));
 }
 
 .event__choice {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-1h) * var(--density-pad));
-  padding: calc(var(--space-3h) * var(--density-pad));
+  gap: calc(var(--space-1h) * var(--chrome-pad));
+  padding: calc(var(--space-3h) * var(--chrome-pad));
   text-align: left;
   background: var(--bg-raised);
   border: var(--hairline) solid var(--border-strong);
@@ -4580,7 +5039,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
  * information is not lost — it is on the event screen itself, where the
  * decision is actually made, at every density.
  */
-:root[data-density="pocket"] .node__gate .badge--rarity { display: none; }
+.node__gate .badge--rarity { display: none; }
 
 .event__result {
   display: flex;
@@ -4588,7 +5047,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   justify-content: space-between;
   gap: var(--space-3);
   flex-wrap: wrap;
-  padding: calc(var(--space-3h) * var(--density-pad));
+  padding: calc(var(--space-3h) * var(--chrome-pad));
   background: var(--bg-sunken);
   border: var(--hairline) solid var(--border-strong);
   border-radius: var(--radius-card);
@@ -4602,7 +5061,15 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 /* ---------- tooltips and the type wheel ---------- */
 
 /*
- * One panel, positioned in script.
+ * One panel, docked. **The docked sheet patch, 2026-09-25.**
+ *
+ * Until this patch the panel was positioned in script beside its trigger,
+ * which on a phone put a content-sized box under the thumb that was holding
+ * it. Now it has one spot, the top of the viewport, under the safe area,
+ * centred and as wide as the screen allows: the edge a thumb is least often
+ * on, and the same place every time so the eye learns where to look. It
+ * scrolls inside itself past a fixed height rather than growing over the
+ * board.
  *
  * Fixed rather than absolute so it escapes the screen's overflow contexts —
  * the battle log scrolls, and a tooltip opened from a badge beside it must not
@@ -4612,8 +5079,14 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .tip {
   position: fixed;
   z-index: 40;
-  max-width: min(420px, calc(100vw - 16px));
-  padding: var(--space-2h) var(--space-3);
+  top: calc(var(--space-2) + env(safe-area-inset-top, var(--space-0)));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(480px, calc(100vw - 16px));
+  max-height: min(48vh, 440px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-2h) var(--space-6) var(--space-2h) var(--space-3);
   background: var(--bg-raised);
   border: var(--hairline) solid var(--border-strong);
   border-radius: var(--radius-card);
@@ -4621,6 +5094,70 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   font-size: var(--fs-md);
   line-height: 1.5;
 }
+
+/* `hidden` is a UA style and `position: fixed` with a transform does not beat
+   it on its own, but a later rule with `display` would: stated so it cannot be. */
+.tip[hidden] { display: none; }
+
+/*
+ * A hover sheet takes no pointer. The docked sheet patch, second push.
+ *
+ * Docked at the top, a sheet the cursor opened in passing now sits over the
+ * header's controls, and a hover sheet is one the cursor cannot reach anyway:
+ * `mouseout` closes it the moment the cursor leaves the trigger. So it is
+ * read where the cursor is and blocks nothing under it. The first CI run
+ * found the tutorial replay button behind a hovered stat panel's sheet. A
+ * held or keyboard-opened sheet keeps its pointer: it scrolls, and it has the
+ * close control.
+ */
+/* Both forms, because `.shell > *:not(.screens)` below sets `pointer-events:
+   auto` on every direct child of the shell at the same specificity and comes
+   later in the file; the second selector outranks it where the layer is
+   mounted, and the first covers any other host. */
+.tip[data-transient='true'],
+.shell > .tip[data-transient='true'] { pointer-events: none; }
+
+/* The sheet's own close control, top right, a glyph and no word. The scrim
+   and Escape close it too; this is for the reader whose thumb is already on
+   the sheet. */
+.tip__close {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font: inherit;
+  font-size: var(--fs-lg);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tip__close::before { content: '\00d7'; }
+
+.tip__close:hover,
+.tip__close:focus-visible { color: var(--text); }
+
+/*
+ * The scrim under a held or keyboard-opened sheet. Transparent on purpose:
+ * the board stays readable behind the explanation, and what the scrim is for
+ * is the *tap*, not the look. It sits over everything the shell draws, so the
+ * tap that closes the sheet lands here and nowhere else — on the battle
+ * screen "elsewhere" is a move button, and a dismissal that was also a
+ * submission is the thing R5 forbids.
+ */
+.tip-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  background: transparent;
+  cursor: default;
+}
+
+.tip-scrim[hidden] { display: none; }
 
 .tip__title {
   margin: 0 0 var(--space-1h);
@@ -4709,6 +5246,87 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 }
 
 .tip__rows--stats .tip__row-value { font-family: var(--font-numeral); }
+
+/*
+ * Nothing in the game is a text field. **The docked sheet patch, 2026-09-25.**
+ *
+ * iOS reads a long press on selectable text as "select this word": it
+ * highlights the word, raises the copy callout, and cancels the pointer — and
+ * the cancel closed the inspect sheet the press had just opened. The author's
+ * report put this first. The whole UI declines selection, buttons and move
+ * cards included, and the two places a player types or copies from are the
+ * exceptions: the inputs, and the log sheet's body, which is kept for bug
+ * reports.
+ *
+ * `-webkit-touch-callout` is the callout itself, separately from selection,
+ * and is inherited; `user-select: none` on an ancestor resolves every
+ * descendant's `auto` to none.
+ */
+html,
+body,
+body *,
+body *::before,
+body *::after {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/*
+ * On every element, not only on `body`. **Message 4 of the same patch,
+ * 2026-09-26.** With the rule on `body` alone, iOS Safari still selected the
+ * ability chip under a long press, bounded to the chip, with the built
+ * stylesheet carrying the rule. Whatever iOS does with the inherited value,
+ * a value set on the element itself is not inherited, so this states it on
+ * everything and lets the two exceptions below win by order. The layer adds
+ * a `selectstart` guard behind it (`ui/tooltips.ts`).
+ */
+
+input,
+textarea,
+.log-sheet__body,
+.log-sheet__body * {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* No double-tap zoom on a control, which also shortens the tap on a phone. */
+button,
+[role='button'],
+[data-tip] { touch-action: manipulation; }
+
+/*
+ * Every clickable surface is a tenth larger than it draws. The same patch.
+ *
+ * The visible growth is `--tap-scale` on the button families below. This is
+ * the invisible half: a pseudo-element bleeding five percent past each edge,
+ * so a press that lands just off a control still lands on it. `:where()`
+ * keeps the specificity at zero, so a control with its own `position` (the
+ * fixed stamps) keeps it.
+ *
+ * **Capped at 12px a side.** An absolutely positioned box extends the
+ * scrollable overflow of the page, and five percent of a full-width button
+ * at 390 wide is 18px, past the shell's 16px side gutter: the first CI run
+ * measured the page at 391 and 392 wide on three phone tests. `max()` with
+ * two negatives keeps the smaller bleed, and 12px never reaches the edge.
+ */
+:where(button, [role='button']) {
+  position: relative;
+  /* A stacking context of its own, so the slop below can sit *behind* the
+     control's content with `z-index: -1` and still be inside the control.
+     Without this the bleed painted over the button's children, and a press on
+     a chip inside a move card or a panel reached the card instead of the
+     chip: the ability and type triggers were unreachable. Found in playtest,
+     the same day. */
+  isolation: isolate;
+}
+
+:where(button, [role='button'])::after {
+  content: '';
+  position: absolute;
+  inset: max(-5%, calc(-1 * var(--space-3)));
+  z-index: -1;
+}
 
 /* Anything that opens a tooltip should look like it does. */
 [data-tip] { cursor: help; }
@@ -4837,13 +5455,13 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .node__gate--known .node__gate-band { color: var(--text); }
 
 .relics {
-  margin-top: calc(var(--space-5) * var(--density-gap));
-  padding-top: calc(var(--space-4) * var(--density-gap));
+  margin-top: calc(var(--space-3) * var(--chrome-gap));
+  padding-top: calc(var(--space-2) * var(--chrome-gap));
   border-top: var(--hairline) solid var(--border);
 }
 
 .relics__title {
-  margin: 0 0 var(--space-2h);
+  margin: 0;
   font-size: var(--fs-xl);
 }
 
@@ -4854,8 +5472,8 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 }
 
 .relics__list {
-  display: grid;
-  gap: calc(var(--space-2h) * var(--density-gap));
+  display: flex;
+  gap: var(--space-1);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -4867,10 +5485,10 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
  * no cursor change.
  */
 .relics__item {
-  display: grid;
+  display: inline-flex;
   grid-template-columns: 1fr auto;
-  gap: var(--space-1) var(--space-2);
-  padding: calc(var(--space-2h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad));
+  gap: var(--space-1);
+  padding: var(--space-h) var(--space-1h);
   border: var(--hairline) solid var(--border);
   border-radius: var(--radius-card);
   background: var(--bg-raised);
@@ -4922,7 +5540,6 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .wheel__heading,
 .seedbar__label,
 .bench__heading,
-.reward__kind,
 .shop__item-kind,
 .shop__coin-label,
 .summary__seed-label,
@@ -5001,40 +5618,12 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .screens { isolation: isolate; }
 
 /*
- * **The screens' own boxes take no taps; what is drawn in them does.**
- * Patch 4.8.0.3, carried item B, option (a). The other half of the rule at
- * `.stamp`, and it has to be here rather than there because `pointer-events`
- * is inherited: turning it off on a container turns it off on everything
- * inside, so the things that should still take a tap are named back in.
- *
- * `.screens` and `.screen` are pure layout — a router slot and a flex column.
- * Neither has behaviour of its own, and neither should intercept a tap aimed
- * at the corner stamp behind it. A screen's *children* are the cards, panels
- * and buttons the player is actually pointing at, and they take taps normally,
- * inheriting down to every control inside them.
- *
- * **Everything else the shell holds is real, and is named back on as a
- * class of thing rather than one by one.** The first cut listed the header,
- * the seed bar, the drawer and its trigger; it missed the coach-mark layer,
- * which `app.ts` also appends to the shell, and the tutorial went transparent
- * — clicks fell through the coach onto the starter card behind it. An
- * enumerated list of siblings is a list that goes stale the next time
- * something is mounted on the shell, so the rule is the negation instead:
- * every child of the shell takes taps except the router's slot.
- *
- * `.stamps` is `display: contents` and generates no box, but it is still a
- * child for inheritance, so the stamps inside it come back on with it.
- *
- * What this buys is that the priority is now structural. Content over chrome
- * where they overlap, chrome everywhere else, whatever the layout does next.
+ * **The screens' own boxes took no taps from patch 4.8.0.3 to Stage 5.0/1**,
+ * so a tap could reach the corner stamps fixed behind them. The stamps are a
+ * strip at the foot of the frame now and overlap nothing, and `.screens` is
+ * the frame's scroller, which has to take a swipe on the space between two
+ * cards. So the boxes take taps again.
  */
-.shell,
-.screens,
-.screen { pointer-events: none; }
-
-.shell > *:not(.screens),
-.screen > * { pointer-events: auto; }
-
 /* And the seed stamp is still the one stamp that answers a tap at all. The
    three others were decoration before this rule and stay decoration. */
 .stamp:not(.stamp--seed) { pointer-events: none; }
@@ -5044,18 +5633,38 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
  * same width on every card. The card's own `.locale--<id>` class carries the
  * three tokens, so the strip previews the region without the page changing.
  */
-.locale__swatch {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  height: var(--space-1h);
-  width: 100%;
-  border-radius: var(--radius-chip);
+/* The crop of the region's map backdrop, where the swatch stood. Stage
+   5.0/4, D72. The map graph's own two layers, the drawing over the flat tint,
+   cut to a strip from the drawing's lower middle, where the paths start. */
+/* **The crop is the card's whole face since Bible Rev 20, D86**: the peek
+   into the map, under the name and the chips, which each sit on a plate. */
+.locale {
+  position: relative;
+  isolation: isolate;
   overflow: hidden;
+  min-height: 132px;
+  justify-content: flex-end;
+  align-items: flex-start;
 }
-
-.locale__swatch-deep { background: var(--locale-deep); }
-.locale__swatch-mid { background: var(--locale-mid); }
-.locale__swatch-glow { background: var(--locale-glow); }
+.locale__name,
+.locale__types {
+  position: relative;
+  padding: var(--space-h) var(--space-2);
+  border-radius: var(--radius-chip);
+  background: color-mix(in srgb, var(--bg-raised) 78%, transparent);
+  box-shadow: 0 var(--space-h) var(--space-2) color-mix(in srgb, var(--border-heavy) 25%, transparent);
+}
+.locale__types { padding: var(--space-1); }
+.locale__crop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: block;
+  background:
+    var(--backdrop-image, none) center 80% / calc(var(--backdrop-w, 0) * var(--art-px)) calc(var(--backdrop-h, 0) * var(--art-px)) no-repeat,
+    color-mix(in srgb, var(--locale-glow) 38%, var(--bg-raised));
+  image-rendering: pixelated;
+}
 
 /* ==========================================================================
    Stage V2 — numbered slots
@@ -5070,8 +5679,8 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
-  gap: calc(var(--space-1h) * var(--density-gap));
-  margin: 0 0 calc(var(--space-3) * var(--density-gap));
+  gap: calc(var(--space-1h) * var(--chrome-gap));
+  margin: 0 0 calc(var(--space-3) * var(--chrome-gap));
   padding: 0;
   list-style: none;
 }
@@ -5084,7 +5693,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   justify-content: center;
   gap: var(--space-h);
   min-height: 56px;
-  padding: calc(var(--space-3) * var(--density-pad)) calc(var(--space-1) * var(--density-pad)) calc(var(--space-1) * var(--density-pad));
+  padding: calc(var(--space-3) * var(--chrome-pad)) calc(var(--space-1) * var(--chrome-pad)) calc(var(--space-1) * var(--chrome-pad));
   background: var(--bg-sunken);
   border: var(--hairline) solid var(--border-strong);
   border-radius: var(--radius-card);
@@ -5148,7 +5757,17 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
  * No pointer events, except the seed, which is the one stamp that does
  * something when tapped.
  */
-.stamps { display: contents; }
+.stamps {
+  /* A status strip at the foot of the frame. Stage 5.0/1: fixed to the
+     viewport's corners until the frame had corners of its own. */
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-h) var(--space-3) calc(var(--space-h) + env(safe-area-inset-bottom, var(--space-0)));
+  border-top: var(--hairline) solid var(--border);
+}
 
 /*
  * **The stamp sits behind the screens and the screens let taps through.**
@@ -5171,8 +5790,9 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
  * the stamp rather than swallowing it.
  */
 .stamp {
-  position: fixed;
-  z-index: -1;
+  /* Relative, not static: every button's hit slop is an `::after` placed
+     against its nearest positioned box, and a static stamp's was the frame. */
+  position: relative;
   margin: 0;
   padding: 0;
   border: 0;
@@ -5189,10 +5809,6 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 
 .stamp[hidden] { display: none; }
 
-.stamp--tl { top: calc(var(--space-1h) + env(safe-area-inset-top, var(--space-0))); left: calc(var(--space-1h) + env(safe-area-inset-left, var(--space-0))); }
-.stamp--tr { top: calc(var(--space-1h) + env(safe-area-inset-top, var(--space-0))); right: calc(var(--space-1h) + env(safe-area-inset-right, var(--space-0))); }
-.stamp--bl { bottom: calc(var(--space-1h) + env(safe-area-inset-bottom, var(--space-0))); left: calc(var(--space-1h) + env(safe-area-inset-left, var(--space-0))); }
-.stamp--br { bottom: calc(var(--space-1h) + env(safe-area-inset-bottom, var(--space-0))); right: calc(var(--space-1h) + env(safe-area-inset-right, var(--space-0))); }
 
 /* The seed: copy on tap, and it says so for a moment. */
 .stamp--seed {
@@ -5234,6 +5850,19 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 }
 
 .world[hidden] { display: none; }
+
+/* The opening painting (Bible Rev 20, D87): the page behind the frame before
+   the first region, the whole painting scaled to cover the viewport, its far
+   horizon kept in view. Nothing at all once a locale's layers are up. */
+.world__opening {
+  position: absolute;
+  inset: 0;
+  display: none;
+  background: var(--backdrop-image, none) center 22% / cover no-repeat;
+  image-rendering: pixelated;
+}
+.world[data-opening="true"] > .world__opening { display: block; }
+.world[data-opening="true"] > .world__scrim { display: none; }
 
 .world__layer {
   position: absolute;
@@ -5478,9 +6107,141 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   to { transform: scale(1.6); opacity: 0; }
 }
 
+/* ---------- the field: weather over the art, terrain in the ground ----------
+   Stage 4.11 Tier 3, D47. Keyed on `<html data-weather>` and `<html
+   data-terrain>`, written by `ui/theme/field.ts` from the battle screen's
+   own update and cleared with the locale.
+
+   The wash is the element: a tint of the locale's glow toward the weather's
+   token, at `--weather-wash`. The texture is its `::before`: a repeating
+   gradient twice the viewport tall, translated by one keyframe per kind and
+   never anything but `transform` and `opacity`, so it runs on the compositor
+   and costs the page no layout. The scrim above it keeps the text column's
+   measured protection whatever the sky does.
+
+   Colour is secondary to the glyph (section 2): every kind is also a shape —
+   diagonal streaks, a breathing wash, drifting grain, falling motes, level
+   streaks — so a player who cannot tell the tints apart still has the sky.
+
+   Nothing renders when nothing is set (R4). The element is there, empty and
+   transparent, and the locale's own sky shows through it. */
+.world__weather {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.world__weather::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -100%;
+  height: 200%;
+  opacity: var(--weather-texture);
+  will-change: transform;
+}
+
+:root[data-weather] .world__weather { opacity: 1; }
+
+/* rain — a cool wash and diagonal streaks falling fast. */
+:root[data-weather='rain'] .world__weather {
+  background: color-mix(in srgb, var(--weather-rain) calc(var(--weather-wash) * 100%), transparent);
+}
+:root[data-weather='rain'] .world__weather::before {
+  background-image: repeating-linear-gradient(112deg, transparent 0 16px, var(--weather-rain) 16px 17px);
+  animation: weather-rain var(--weather-period-rain) linear infinite;
+}
+@keyframes weather-rain {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-6%, 50%, 0); }
+}
+
+/* sun — a warm wash that breathes, and no texture: harsh sunlight is light. */
+:root[data-weather='sun'] .world__weather {
+  background: color-mix(in srgb, var(--weather-sun) calc(var(--weather-wash) * 100%), transparent);
+  animation: weather-sun var(--weather-period-sun) ease-in-out infinite;
+}
+@keyframes weather-sun {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+
+/* sand — a tan wash and grain drifting sideways. */
+:root[data-weather='sand'] .world__weather {
+  background: color-mix(in srgb, var(--weather-sand) calc(var(--weather-wash) * 100%), transparent);
+}
+:root[data-weather='sand'] .world__weather::before {
+  background-image:
+    radial-gradient(circle, var(--weather-sand) 1px, transparent 1.5px),
+    radial-gradient(circle, var(--weather-sand) 1px, transparent 1.5px);
+  background-size: 23px 19px, 37px 29px;
+  background-position: 0 0, 11px 7px;
+  animation: weather-sand var(--weather-period-sand) linear infinite;
+}
+@keyframes weather-sand {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-37px, 4%, 0); }
+}
+
+/* snow — a pale wash and sparse motes falling slowly, the firefly's trick. */
+:root[data-weather='snow'] .world__weather {
+  background: color-mix(in srgb, var(--weather-snow) calc(var(--weather-wash) * 60%), transparent);
+}
+:root[data-weather='snow'] .world__weather::before {
+  background-image:
+    radial-gradient(circle, var(--weather-snow) 1.5px, transparent 2.5px),
+    radial-gradient(circle, var(--weather-snow) 1px, transparent 2px);
+  background-size: 41px 53px, 67px 71px;
+  background-position: 0 0, 23px 31px;
+  animation: weather-snow var(--weather-period-snow) linear infinite;
+}
+@keyframes weather-snow {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(3%, 50%, 0); }
+}
+
+/* wind — a grey wash and level streaks crossing fast. Strong winds. */
+:root[data-weather='wind'] .world__weather {
+  background: color-mix(in srgb, var(--weather-wind) calc(var(--weather-wash) * 70%), transparent);
+}
+:root[data-weather='wind'] .world__weather::before {
+  left: -100%;
+  right: auto;
+  width: 300%;
+  top: 0;
+  height: 100%;
+  background-image: repeating-linear-gradient(176deg, transparent 0 29px, var(--weather-wind) 29px 30px, transparent 30px 61px);
+  animation: weather-wind var(--weather-period-wind) linear infinite;
+}
+@keyframes weather-wind {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(33%, 0, 0); }
+}
+
+/* A weather an ability is holding off: half the wash, and the texture still.
+   The fact stays on the board; nothing is happening under it. */
+:root[data-weather-suppressed='true'] .world__weather { opacity: 0.5; }
+:root[data-weather-suppressed='true'] .world__weather::before { animation: none; }
+
+/* terrain — the ground changes colour and the sky does not. The near layer's
+   fill takes a third of the terrain's token; no motion, ever. */
+:root[data-terrain='electric'] .world__layer--near { --layer-fill: color-mix(in srgb, var(--terrain-electric) 32%, var(--locale-deep)); }
+:root[data-terrain='grassy'] .world__layer--near { --layer-fill: color-mix(in srgb, var(--terrain-grassy) 32%, var(--locale-deep)); }
+:root[data-terrain='misty'] .world__layer--near { --layer-fill: color-mix(in srgb, var(--terrain-misty) 32%, var(--locale-deep)); }
+:root[data-terrain='psychic'] .world__layer--near { --layer-fill: color-mix(in srgb, var(--terrain-psychic) 32%, var(--locale-deep)); }
+
 @media (prefers-reduced-motion: reduce) {
   .world__drift { display: none; }
   .world__layer { transform: none !important; }
+  /* The wash stays: the fact survives, the motion does not. Each selector
+     named as the rule that starts it, for `test/reduced-motion-specificity`. */
+  :root[data-weather='rain'] .world__weather::before { animation: none; }
+  :root[data-weather='sun'] .world__weather { animation: none; }
+  :root[data-weather='sand'] .world__weather::before { animation: none; }
+  :root[data-weather='snow'] .world__weather::before { animation: none; }
+  :root[data-weather='wind'] .world__weather::before { animation: none; }
 }
 
 /* ==========================================================================
@@ -5496,15 +6257,17 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   width: 100%;
   padding: var(--space-3) var(--space-4);
   text-align: center;
-  background: color-mix(in srgb, var(--locale-deep) 88%, transparent);
-  border-top: var(--hairline) solid color-mix(in srgb, var(--locale-glow) 55%, transparent);
-  border-bottom: var(--hairline) solid color-mix(in srgb, var(--locale-glow) 55%, transparent);
+  /* A window, Stage 5.0/1: the band sat in the locale's dark tint over a
+     dark frame, and on the light frame that is dark text on dark. */
+  background: var(--bg-raised);
+  border-top: var(--rule-heavy) solid var(--border-heavy);
+  border-bottom: var(--rule-heavy) solid var(--border-heavy);
 }
 
 /* The summary card loses its box: it is the page now, not a card on it. */
 .summary {
   width: min(680px, 100%);
-  padding: calc(var(--space-4) * var(--density-pad)) 0 calc(var(--space-6) * var(--density-pad));
+  padding: calc(var(--space-4) * var(--chrome-pad)) 0 calc(var(--space-6) * var(--chrome-pad));
   background: transparent;
   border: 0;
 }
@@ -5524,7 +6287,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 
 /* Gyms cleared: a large number over eight. */
 .summary__gyms {
-  margin: calc(var(--space-2) * var(--density-gap)) 0 0;
+  margin: calc(var(--space-2) * var(--chrome-gap)) 0 0;
   font-family: var(--font-display);
   line-height: 1;
 }
@@ -5532,7 +6295,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .summary__gyms-count { font-size: var(--fs-gyms); }
 .summary__gyms-of { font-size: var(--fs-2xl); color: var(--text-dim); letter-spacing: var(--tracking-label); }
 
-.summary__detail { margin: calc(var(--space-2) * var(--density-gap)) 0 calc(var(--space-3) * var(--density-gap)); }
+.summary__detail { margin: calc(var(--space-2) * var(--chrome-gap)) 0 calc(var(--space-3) * var(--chrome-gap)); }
 
 /*
  * The route: eight bands across, one per segment, each in its locale's
@@ -5544,7 +6307,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: var(--space-h);
-  margin: calc(var(--space-3) * var(--density-gap)) 0;
+  margin: calc(var(--space-3) * var(--chrome-gap)) 0;
   padding: 0;
   list-style: none;
 }
@@ -5557,7 +6320,8 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   gap: var(--space-1);
   min-height: 40px;
   padding: var(--space-1h) var(--space-h);
-  background: linear-gradient(to bottom, var(--locale-mid), var(--locale-deep));
+  /* Flat since Stage 5.0/1: no gradients inside the frame. */
+  background: var(--locale-mid);
   border-top: var(--space-h) solid var(--locale-glow);
   border-radius: var(--radius-chip);
 }
@@ -5589,7 +6353,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .tiers {
   display: grid;
   gap: var(--space-1);
-  margin: calc(var(--space-3) * var(--density-gap)) 0;
+  margin: calc(var(--space-3) * var(--chrome-gap)) 0;
   padding: 0;
   list-style: none;
   text-align: left;
@@ -5600,7 +6364,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   grid-template-columns: 16px 44px minmax(0, 1fr);
   gap: var(--space-2h);
   align-items: center;
-  padding: calc(var(--space-1h) * var(--density-pad)) calc(var(--space-2) * var(--density-pad));
+  padding: calc(var(--space-1h) * var(--chrome-pad)) calc(var(--space-2) * var(--chrome-pad));
   border-radius: var(--radius-card);
   color: var(--text-dim);
   font-size: var(--fs-base);
@@ -5619,7 +6383,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .tiers__copy { line-height: 1.4; }
 
 .summary__cause {
-  margin: calc(var(--space-3) * var(--density-gap)) 0;
+  margin: calc(var(--space-3) * var(--chrome-gap)) 0;
   color: var(--text);
   font-size: var(--fs-base);
   border-left: 0;
@@ -5628,8 +6392,8 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 
 /* The final party: numbered cards with a sprite, in the slot's grammar. */
 .summary__member {
-  padding: calc(var(--space-3) * var(--density-pad));
-  gap: calc(var(--space-2) * var(--density-pad));
+  padding: calc(var(--space-3) * var(--chrome-pad));
+  gap: calc(var(--space-2) * var(--chrome-pad));
 }
 
 .summary__member-header { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
@@ -5746,9 +6510,6 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
    on a card that carries a figure: the map's HUD cards wear `.party__member`
    too and carry none, and a gutter there re-wrapped their heads and moved
    the pinned map height by 26px. `measure.mjs --compare` caught it. */
-:root:not([data-density="pocket"]) .party__member:has(> .figure) > .panel__header,
-:root:not([data-density="pocket"]) .starter:has(> .figure) > .starter__header,
-:root:not([data-density="pocket"]) .event__gate:has(> .figure-row) { padding-right: calc(var(--figure-size) + var(--space-2)); }
 
 /*
  * **The bench row reserves no gutter, and it is the one host that does not.**
@@ -5793,8 +6554,8 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 
 /* Pocket: smaller bodies and a smaller hop, and on the two-up cards a figure
    that fits inside the header line so it never reaches the bar. */
-:root[data-density="pocket"] { --figure-size: 32px; --idle-rise: 1px; }
-:root[data-density="pocket"] .party__member > .figure { --figure-size: 24px; top: var(--space-1); right: var(--space-1); }
+:root { --figure-size: 32px; --idle-rise: 1px; }
+.party__member > .figure { --figure-size: 24px; top: var(--space-1); right: var(--space-1); }
 /* And on the party and pre-gym screens the header line keeps clear of it:
    there a twelve-letter species reached the corner and the figure sat on its
    last letters. The gutter is the figure's width and the header wraps its
@@ -5802,10 +6563,10 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
    Not on the capture block's comparison list: the same gutter put one more
    wrapped row on one of its cards and the result screen at 872 against 844,
    and there the slot number ahead of the name keeps the corner clear. */
-:root[data-density="pocket"] .party--manage .party__member:has(> .figure) > .panel__header,
-:root[data-density="pocket"] .pre-gym__party .party__member:has(> .figure) > .panel__header { padding-right: calc(var(--figure-size) + var(--space-1)); }
-:root[data-density="pocket"] .figure-row > .figure,
-:root[data-density="pocket"] .bench__member > .figure { --figure-size: 24px; }
+.party--manage .party__member:has(> .figure) > .panel__header,
+.pre-gym__party .party__member:has(> .figure) > .panel__header { padding-right: calc(var(--figure-size) + var(--space-1)); }
+.figure-row > .figure,
+.bench__member > .figure { --figure-size: 24px; }
 
 /* Reduced motion: the figure holds its first frame, which is where it rests.
    Here and not in the battle block above, because a media query adds no
@@ -5818,7 +6579,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 }
 
 /* The coverage wheel: eighteen spokes, the reached ones filled. A reading. */
-.coverage__box { display: flex; align-items: center; gap: calc(var(--space-3) * var(--density-gap)); flex-wrap: wrap; text-align: left; }
+.coverage__box { display: flex; align-items: center; gap: calc(var(--space-3) * var(--chrome-gap)); flex-wrap: wrap; text-align: left; }
 .coverage__wheel { flex: none; }
 .coverage__spoke { stroke: var(--border-strong); stroke-width: 1; }
 .coverage__spoke--covered { stroke: var(--text-dim); stroke-width: 2; }
@@ -5912,13 +6673,13 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-2h) * var(--density-gap));
+  gap: calc(var(--space-2h) * var(--chrome-gap));
   background: var(--bg);
   /* All four sides now, where the sheet had one border and two corners. */
   border: var(--hairline) solid var(--border);
   border-radius: var(--radius-card);
   box-shadow: var(--overlay-shadow);
-  padding: calc(var(--space-3h) * var(--density-pad)) calc(var(--space-3) * var(--density-pad)) calc(var(--space-4) * var(--density-pad));
+  padding: calc(var(--space-3h) * var(--chrome-pad)) calc(var(--space-3) * var(--chrome-pad)) calc(var(--space-4) * var(--chrome-pad));
 }
 
 .overlay__header {
@@ -5941,7 +6702,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .overlay__body {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-2h) * var(--density-gap));
+  gap: calc(var(--space-2h) * var(--chrome-gap));
 }
 
 /* ---------- the intro ----------
@@ -5967,7 +6728,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 
 /* Full width on a phone, where it is the only control on the panel and a
    narrow button in a wide sheet is a target the thumb has to aim at. */
-@media (max-width: 480px) {
+@container frame (max-width: 480px) {
   .intro__actions { justify-content: stretch; }
   .intro__dismiss { flex: 1; }
 }
@@ -6014,7 +6775,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .shell__drawer-bar {
   display: flex;
   justify-content: flex-end;
-  padding: 0 var(--space-3) calc(var(--space-1h) * var(--density-gap));
+  padding: 0;
 }
 
 /* `hidden` is a UA style and the `display: flex` above beats it: the same
@@ -6051,11 +6812,15 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .drawer__note { margin: 0; color: var(--text-faint); font-size: var(--fs-sm); }
 .drawer__section { margin: var(--space-1h) 0 0; font-size: var(--fs-md); color: var(--text-dim); }
 
+/* Two-up since Bible Rev 20 (D83), as the party screen draws them: the six
+   numbers are on every card's head, and six single-column heads ran the
+   sheet past the window. An opened card takes both columns. */
 .drawer__members {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--space-2h) * var(--density-gap));
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1);
 }
+.drawer__members > .party__member[data-expanded="true"] { grid-column: 1 / -1; }
 
 .drawer__relic-list {
   display: flex;
@@ -6070,8 +6835,8 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .party__contribution {
   display: flex;
   flex-wrap: wrap;
-  gap: calc(var(--space-2h) * var(--density-pad));
-  padding-top: calc(var(--space-1h) * var(--density-pad));
+  gap: calc(var(--space-2h) * var(--chrome-pad));
+  padding-top: calc(var(--space-1h) * var(--chrome-pad));
   border-top: var(--hairline) solid var(--border);
   font-family: var(--font-body);
   font-size: var(--fs-sm);
@@ -6279,25 +7044,25 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 
 /* The pre-gym screen. */
 .pre-gym__header {
-  display: flex;
+  display: inline-flex;
   align-items: baseline;
   flex-wrap: wrap;
   gap: var(--space-2);
 }
 
 .pre-gym__counter { font-family: var(--font-body); font-size: var(--fs-md); color: var(--text-faint); }
-.pre-gym__prompt { margin: calc(var(--space-3) * var(--density-gap)) 0 calc(var(--space-1h) * var(--density-gap)); font-size: var(--fs-lg); }
+.pre-gym__prompt { margin: 0; font-size: var(--fs-lg); }
 
 .pre-gym__party {
-  display: flex;
+  display: grid;
   flex-direction: column;
-  gap: calc(var(--space-2h) * var(--density-gap));
+  gap: var(--space-1);
 }
 
 .pre-gym__slot {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-1h) * var(--density-gap));
+  gap: calc(var(--space-1h) * var(--chrome-gap));
 }
 
 /*
@@ -6310,7 +7075,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-  margin-top: calc(var(--space-3) * var(--density-gap));
+  margin-top: calc(var(--space-3) * var(--chrome-gap));
 }
 
 /* Locale select's new context: the gym rail and the party strip. */
@@ -6319,7 +7084,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-2);
-  padding: calc(var(--space-2) * var(--density-pad)) calc(var(--space-2h) * var(--density-pad));
+  padding: calc(var(--space-2) * var(--chrome-pad)) calc(var(--space-2h) * var(--chrome-pad));
   border: var(--hairline) solid var(--border);
   border-radius: var(--radius-card);
   background: var(--bg-sunken);
@@ -6331,7 +7096,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .locale__party {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space-1) * var(--density-gap));
+  gap: calc(var(--space-1) * var(--chrome-gap));
 }
 
 /* A row per member, not a grid: three rows read top to bottom in the same order
@@ -6347,7 +7112,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 .locale__party-member--fainted { opacity: 0.55; }
 .locale__party-name { font-weight: 600; }
 
-@media (max-width: 420px) {
+@container frame (max-width: 420px) {
   /*
    * **The `.drawer__sheet { max-height: 90vh }` that lived here is gone.**
    *
@@ -6376,16 +7141,706 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
    question about the same gym, separated by a rule. The record row is two
    sprites and a line; the option cards are the target cards' shape. */
 .result__evolution {
-  margin-top: calc(var(--space-4h) * var(--density-gap));
-  padding-top: calc(var(--space-2) * var(--density-gap));
+  margin-top: calc(var(--space-4h) * var(--chrome-gap));
+  padding-top: calc(var(--space-2) * var(--chrome-gap));
   border-top: var(--hairline) solid var(--border);
 }
 .result__evolution[hidden] { display: none; }
-.evolve__records { list-style: none; margin: 0; padding: 0; display: grid; gap: calc(var(--space-2) * var(--density-gap)); }
+.evolve__records { list-style: none; margin: 0; padding: 0; display: grid; gap: calc(var(--space-2) * var(--chrome-gap)); }
 .evolve__record { display: flex; align-items: center; gap: var(--space-2); }
 .evolve__record .sprite { width: 48px; height: 48px; }
 .evolve__line { font-size: var(--fs-base); }
-.evolve__blurb { color: var(--text-dim); font-size: var(--fs-base); margin: calc(var(--space-2) * var(--density-gap)) 0; }
-.evolve__options { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: calc(var(--space-2) * var(--density-gap)); }
+.evolve__blurb { color: var(--text-dim); font-size: var(--fs-base); margin: calc(var(--space-2) * var(--chrome-gap)) 0; }
+.evolve__options { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: calc(var(--space-2) * var(--chrome-gap)); }
 .evolve__option { display: grid; justify-items: start; gap: var(--space-1); }
 .evolve__option .sprite { width: 64px; height: 64px; }
+
+/* ---------- the 5.0 shell: nav, tab screens, layout, sidebar ----------
+   Stage 5.0/1. The frame itself is `.shell`, above. */
+
+/* The header and the seed bar take the gutter the shell used to give them. */
+.shell > .header { padding: var(--space-1) var(--space-4) 0; }
+.shell > .seedbar { margin: var(--space-1) var(--space-4) 0; }
+
+.nav {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  flex: none;
+  min-height: var(--nav-h);
+  background: var(--nav-fill);
+  border-bottom: var(--rule-heavy) solid var(--border-heavy);
+}
+
+.nav__tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-h);
+  min-height: var(--nav-h);
+  padding: var(--space-h) var(--space-1);
+  border: 0;
+  border-right: var(--hairline) solid var(--nav-rule);
+  background: transparent;
+  color: var(--nav-ink);
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-label);
+  cursor: pointer;
+}
+.nav__tab:last-child { border-right: 0; }
+.nav__tab[aria-current='page'] { background: var(--frame-fill); color: var(--text); }
+.nav__tab:disabled { color: var(--nav-disabled); cursor: default; }
+.nav__tab:focus-visible { outline: var(--space-h) solid var(--selected); outline-offset: calc(-1 * var(--space-h)); }
+.nav__word { white-space: nowrap; }
+
+/* A class C asset, or its placeholder: a lettered chip at the art's native
+   size in art pixels. `ui/assets/manifest.ts`. */
+.asset {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: calc(var(--asset-w) * var(--art-px));
+  height: calc(var(--asset-h) * var(--art-px));
+  line-height: 1;
+}
+.asset--placeholder {
+  border: var(--hairline) solid currentColor;
+  border-radius: var(--radius-chip);
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+/* A drawing: its own colours on the background, or ink through a mask in
+   `currentColor` (5.0/5), at whole multiples of the art pixel. */
+.asset--art { image-rendering: pixelated; }
+.asset--colour { background: var(--asset-image) center / 100% 100% no-repeat; }
+.asset--mask {
+  background-color: currentColor;
+  -webkit-mask: var(--asset-image) center / 100% 100% no-repeat;
+  mask: var(--asset-image) center / 100% 100% no-repeat;
+}
+.sidebar__wordmark .asset--placeholder { display: none; }
+/* With the drawing in (5.0/5), the word is the drawing's name for a screen
+   reader and is not painted a second time beside it. */
+.sidebar__wordmark .asset--art + .sidebar__wordmark-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * **A tab screen fills the frame under the nav.** The party drawer, the map
+ * overlay, Run Info and Settings are overlays underneath (`ui/overlay.ts`:
+ * the close control, Escape, focus return) and screens to look at: no scrim,
+ * no floating sheet, the frame's full width. The decision underneath never
+ * unmounts, which is the guard (bible section 5, Shell nav).
+ */
+.overlay.overlay--screen[hidden] { display: none; }
+.overlay.overlay--screen {
+  position: absolute;
+  inset: var(--nav-h) 0 0 0;
+  z-index: 30;
+  padding: 0;
+  display: block;
+}
+.overlay--screen > .overlay__scrim { display: none; }
+.overlay--screen > .overlay__sheet {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--frame-fill);
+  padding: calc(var(--space-3) * var(--chrome-pad)) var(--space-4) calc(var(--space-6) * var(--chrome-pad));
+}
+.overlay--screen .overlay__header { background: var(--frame-fill); }
+
+/* The frame and the sidebar. One column on a phone; side by side from 1024. */
+.layout { position: relative; z-index: 1; }
+.sidebar { display: none; }
+
+@media (min-width: 1024px) {
+  .layout {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    gap: var(--space-3);
+    height: 100dvh;
+    padding: var(--space-3);
+  }
+  .layout > .shell {
+    width: var(--frame-w);
+    height: 100%;
+    margin: 0;
+    border: var(--rule-heavy) solid var(--border-heavy);
+    border-radius: var(--radius-card);
+  }
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    width: var(--sidebar-w);
+    min-height: 0;
+  }
+}
+
+.sidebar__panel {
+  padding: var(--space-2h) var(--space-3);
+  background: var(--frame-fill);
+  border: var(--rule-heavy) solid var(--border-heavy);
+  border-radius: var(--radius-card);
+}
+.sidebar__wordmark { display: flex; align-items: center; gap: var(--space-2); }
+.sidebar__wordmark-text { font-family: var(--font-display); font-size: var(--fs-4xl); font-weight: 700; letter-spacing: var(--tracking-title); }
+.sidebar__title { margin: 0 0 var(--space-1h); font-size: var(--fs-md); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--text-dim); }
+.sidebar__line { margin: 0 0 var(--space-1h); font-size: var(--fs-md); }
+.sidebar__pips { display: flex; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
+.sidebar__pip { width: var(--pip-size); height: var(--pip-size); border: var(--rule-heavy) solid var(--border-heavy); border-radius: 50%; }
+.sidebar__pip[data-phase='done'] { background: var(--border-heavy); }
+.sidebar__pip[data-phase='current'] { background: var(--selected); }
+.sidebar__progress { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+
+/* The decision feed, on the Run Info screen and in the sidebar. */
+.feed { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-h); font-size: var(--fs-md); }
+.feed__segment { margin-top: var(--space-1h); font-size: var(--fs-xs); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--text-dim); }
+.feed__segment:first-child { margin-top: 0; }
+.feed__entry { padding-left: var(--space-2); border-left: var(--rule-heavy) solid var(--border); }
+.feed__entry[data-kind='battle'] { color: var(--text-dim); }
+.feed__empty { color: var(--text-dim); }
+
+.run-info__facts { display: grid; grid-template-columns: auto 1fr; gap: var(--space-h) var(--space-2); margin: 0; font-size: var(--fs-md); }
+.run-info__term { color: var(--text-dim); }
+.run-info__value { margin: 0; overflow-wrap: anywhere; }
+
+.drawer__tms { margin: var(--space-1) 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-1); font-size: var(--fs-sm); }
+.drawer__tm { padding: var(--space-h) var(--space-1h); border: var(--hairline) solid var(--border); border-radius: var(--radius-chip); }
+/* The read-only bag's list (Bible Rev 20, R13, D81): sprite, name and effect
+   line per item, at rest, under the hotbar. */
+.drawer__items { margin: var(--space-1) 0 0; padding: 0; list-style: none; display: grid; gap: var(--space-1); }
+.drawer__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-card);
+  background: var(--bg-sunken);
+}
+.drawer__item-icon { grid-row: span 2; line-height: 0; }
+.drawer__item-name { font-weight: 700; font-size: var(--fs-md); }
+.drawer__item-effect { font-size: var(--fs-sm); color: var(--text-dim); }
+
+.settings-sheet__replay { align-self: flex-start; }
+
+/* ---------- 5.0/2: the battle screen ----------
+   Stage 2 of the visual redesign (`docs/spec/gymrun-stage5.0-visual-redesign.md`),
+   under the rulings on D56 to D60 (`docs/spec/gymrun-stage5.0-rulings-d56-d60.md`).
+   A restyle of components the canon already owns: the header row, the Pokemon
+   panel as the HP box, the move card as the move button, the bench behind a
+   Switch button. Nothing here adds a fact, and nothing here takes one away
+   (C2): every rule is position, border, spacing or size.
+
+   Scoped to `.screen--battle` so it wins over the V5 rules above by
+   specificity rather than by source order alone, and so the move card on the
+   reward, replacement and party screens (the other call site) is untouched. */
+
+/* The header: one row, a window's title bar above the stage (D58). The node
+   glyph and the leader's name, then the opponent, the AI tier and the field
+   glyph, in section 5's order. */
+.screen--battle .battle__header {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-h) var(--space-2);
+  padding: var(--space-1h) var(--space-2h);
+  background: var(--bg-raised);
+  border: var(--rule-heavy) solid var(--border-heavy);
+  border-radius: var(--radius-card);
+}
+.screen--battle .battle__header .screen__title { font-size: var(--fs-lg); line-height: 1.2; }
+.screen--battle .battle__header .screen__blurb { color: var(--text); }
+/* The turn header sits at the row's far end, a fixed slot that replaces its
+   own text each turn and so never moves anything else on the row. */
+.screen--battle .battle__turn { margin-left: auto; color: var(--text-dim); font-family: var(--font-numeral); white-space: nowrap; }
+.screen--battle .battle__turn:empty { display: none; }
+
+/* The HP box (D56): the Pokemon panel in the plan's window, every fact kept.
+   Name, gender and level on the top line with the roster count opposite it on
+   the opponent's box; the bar in a heavy frame; the status chip and the HP
+   number on one line, the number at the right edge where the reference puts
+   it; then the chip row: types, ability, item, volatiles, stat stages. */
+.screen--battle .stage .panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'header roster'
+    'hp hp'
+    'meta meta'
+    'chips chips'
+    'stats stats';
+  align-items: center;
+  gap: var(--space-h) var(--space-2);
+  padding: var(--space-1h) var(--space-2);
+}
+.screen--battle .stage .panel__header { grid-area: header; gap: 0 var(--space-1h); min-width: 0; }
+.screen--battle .stage .panel__roster { grid-area: roster; margin: 0; }
+.screen--battle .stage .panel > .hp {
+  grid-area: hp;
+  height: 6px;
+  border: var(--rule-heavy) solid var(--border-heavy);
+  border-radius: var(--radius-chip);
+}
+.screen--battle .stage .panel__meta {
+  grid-area: meta;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  margin: 0;
+  min-height: 0;
+}
+.screen--battle .stage .panel__hp-text { color: var(--text); font-weight: 600; }
+.screen--battle .stage .panel__chips { grid-area: chips; }
+/* The player's six numbers (Bible Rev 20, D83), one compact row under the
+   chips; the foe's panel keeps its press and draws no row. */
+.screen--battle .stage .panel__stats { grid-area: stats; min-width: 0; }
+.screen--battle .stage .panel__stats[hidden] { display: none; }
+.screen--battle .stage .panel__stats .stats { margin: 0; padding: 0; border: 0; gap: var(--space-h); }
+.screen--battle .stage .panel__stats .stat { padding: 0; }
+.screen--battle .stage .panel__stats .stat .stat__value { font-size: var(--fs-sm); }
+
+/* The move button (D57): the full move card, in a window. The name on the
+   top line, whole: it wraps rather than truncating, because a cut name is a
+   fact half removed. Then the identity line (type, category, base power) with
+   the PP at its right edge, then the fact strip (band, accuracy, the forecast,
+   the facts), so the card is three rows where it was four. The forecast edge keeps its colour and gains the
+   heavy border's width. */
+.screen--battle .moves .move {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'name name'
+    'meta pp'
+    'facts facts';
+  align-content: start;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-1h) var(--space-2);
+  border-width: var(--rule-heavy);
+  border-color: var(--border-heavy);
+}
+.screen--battle .moves .move__name { grid-area: name; min-width: 0; }
+.screen--battle .moves .move__pp { grid-area: pp; justify-self: end; }
+.screen--battle .moves .move__meta { grid-area: meta; }
+.screen--battle .moves .move__facts { grid-area: facts; }
+.screen--battle .moves .move[data-effect] { border-left-width: calc(var(--rule-heavy) * 2); }
+.screen--battle .moves .move[data-effect='super'] { border-left-color: var(--stage-up); }
+.screen--battle .moves .move[data-effect='resisted'],
+.screen--battle .moves .move[data-effect='none'] { border-left-color: var(--stage-down); }
+
+/*
+ * **Lit and greyed. The effectiveness emphasis patch, bible D91.**
+ *
+ * `data-has-super` is on the bar only while a usable move is super effective
+ * (`markSuper` in ui/scene.ts). That move is lit: a tint of the forecast's
+ * green and a heavier edge. Every other damaging move goes grey, neutral
+ * included, and stays a live control, so the grey is a filter and not the
+ * disabled state's opacity: a greyed move still presses and still holds for
+ * inspect. A status move carries no `data-damaging` and is never greyed.
+ * Without the flag none of this applies and the bar reads as it did before
+ * D91, so neutral is never marked on its own (R4). Here rather than beside
+ * the base edge rule, because the battle screen's heavy edge above is what
+ * it has to outrank.
+ */
+.screen--battle .moves[data-has-super] .move[data-effect='super'] {
+  border-left-width: calc(var(--rule-heavy) * 4);
+  background: color-mix(in srgb, var(--stage-up) 18%, var(--bg-raised));
+}
+.screen--battle .moves[data-has-super] .move[data-damaging]:not([data-effect='super']):not(:disabled) {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+/*
+ * **The bench's forecast. Bible D92.** Each benched member's damaging moves
+ * against the Pokemon on the field: the type chip, the multiplier when it is
+ * not neutral, the same edge family, and the same lit and greyed rule, per
+ * member. A line of its own under the row's head, with the figure's gutter
+ * kept clear at the right.
+ */
+.bench__moves {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding-right: calc(var(--space-8) + var(--space-2));
+}
+.bench__move {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-h);
+  padding-left: var(--space-h);
+  border-left: 3px solid transparent;
+  border-radius: var(--radius-card);
+}
+.bench__move[data-effect='super'] { border-left-color: var(--stage-up); }
+.bench__move[data-effect='resisted'],
+.bench__move[data-effect='none'] { border-left-color: var(--stage-down); }
+.bench__moves[data-has-super] .bench__move[data-effect='super'] {
+  border-left-width: 5px;
+  background: color-mix(in srgb, var(--stage-up) 18%, transparent);
+}
+.bench__moves[data-has-super] .bench__move:not([data-effect='super']) {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+/* The secondary row, and the bench behind it (D59). The pane is one attribute
+   on the scene: the moves at rest, the bench when Switch is pressed or the
+   fight is waiting on a forced switch. The hidden pane takes no room. */
+.scene__actions { display: flex; }
+.scene__actions[hidden] { display: none; }
+.scene__switch { flex: 1 1 auto; min-height: calc(44px * var(--tap-scale)); }
+.scene__switch[data-forced='true'] { color: var(--emphasis); }
+.scene[data-pane='moves'] > .bench { display: none; }
+.scene[data-pane='bench'] > .moves { display: none; }
+
+/* ---------- 5.0/4: the map ----------
+   Stage 4 of the visual redesign (`docs/spec/gymrun-stage5.0-visual-redesign.md`),
+   under the rulings on D61, D63, D64, D72 and D75
+   (`docs/spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md`) and bible Rev 17.
+
+   The segment as a graph on the locale's map backdrop: one grid row per step,
+   bottom up, nodes placed by option index (`ui/map-layout.ts`), edges in an
+   SVG under them. The step being chosen from carries the whole node card;
+   every other row carries the mark, the tier pips and the capability glyph,
+   and the mark alone where the row is too short (the pitch floor, below).
+
+   Scoped to `.map-graph` so the old chain rules above (card per node, a column
+   per step) stop at its edge rather than being deleted from under the other
+   screens that still read `.node__gate`. */
+
+/* The screen fills the frame, and the graph takes what the chrome leaves.
+   No party since 5.0/4 (`docs/spec/gymrun-stage5.0-rulings-map-without-team.md`):
+   the rail, the heading with the wallet beside it, then the graph. */
+.screen--map {
+  min-height: 100%;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "rail" "heading" "chain";
+  grid-template-rows: auto auto minmax(0, 1fr);
+  row-gap: var(--space-2);
+}
+@container frame (max-width: 760px) {
+  .screen--map { grid-template-areas: "rail" "heading" "chain"; }
+}
+.screen--map .map__heading { row-gap: 0; align-items: center; }
+.screen--map .map__region { margin: 0; }
+/* The title and the wallet share the first line; every other line of the
+   heading takes a line of its own beneath them. */
+.screen--map .map__heading > :not(.screen__title):not(.map__wallet) { order: 2; flex-basis: 100%; }
+
+/* The wallet: the currency mark and the run's coins, at the right end of the
+   heading's first line, as a figure. */
+.map__wallet {
+  order: 1;
+  margin-left: auto;
+  padding: var(--space-h) var(--space-1h);
+  background: var(--bg-raised);
+  border: var(--rule-heavy) solid var(--border-heavy);
+  border-radius: var(--radius-chip);
+  font-family: var(--font-numeral);
+  font-size: var(--fs-base);
+  font-weight: 700;
+}
+
+
+.map-graph {
+  grid-area: chain;
+  align-self: stretch;
+  position: relative;
+  display: block;
+  /* Its floor is the sum of its rows' floors, stated rather than measured:
+     a grid of weighted rows sized to its content grows every row to the
+     largest floor-to-weight ratio, which is space the chrome above needed.
+     `--map-steps` is the number of step rows that are not the one being
+     chosen from, set by `run-map.ts`. */
+  min-height: calc(
+    var(--map-steps, 4) * var(--map-row-step-min) + var(--map-row-current-min) + var(--map-row-gym-min)
+      + var(--map-row-entrance-min) + 2 * var(--space-1) + 2 * var(--rule-heavy)
+  );
+  isolation: isolate;
+  /* A size container, so the drawing below can ask how tall the graph is. */
+  container: map-graph / size;
+  border: var(--rule-heavy) solid var(--border-heavy);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  /* Under everything, always, the placeholder's flat locale tint, so a
+     missing file shows the placeholder at the graph's own size. */
+  background: color-mix(in srgb, var(--locale-glow) 38%, var(--bg-raised));
+}
+/* The scene backdrop (D60): the locale's map drawing when the manifest has
+   one, at whole art pixels, on a layer of its own so it can read the graph's
+   height. Anchored to the foot, then lowered by however much shorter the
+   graph is than the drawing, up to `--map-art-lift`: each painting stands its
+   entrance building just above its foot (`docs/spec/gymrun-stage5.0-map-backdrops.md`),
+   and on a phone, which shows the drawing's lower three quarters, the
+   building would otherwise sit under the first steps rather than at the
+   entrance. A frame as tall as the drawing lowers it not at all. */
+.map-graph::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  --map-art-h: calc(var(--backdrop-h, 0) * var(--art-px));
+  background: var(--backdrop-image, none) no-repeat;
+  background-size: calc(var(--backdrop-w, 0) * var(--art-px)) var(--map-art-h);
+  background-position: center calc(100% + min(var(--map-art-lift), max(0px, var(--map-art-h) - 100cqh)));
+  image-rendering: pixelated;
+}
+
+/* The rows. Tracks are set inline per row from four tokens: the step being
+   chosen from gets a floor the whole card fits in, the gym room for its
+   leader's name, every other step a floor its mark fits in. Past the floors
+   the space is shared out by weight. */
+.map-graph {
+  --map-art-lift: calc(var(--space-12) + var(--space-8) + var(--space-2));
+  --map-row-step-min: 30px;
+  --map-row-current-min: 96px;
+  --map-row-gym-min: 62px;
+  --map-row-entrance-min: 16px;
+}
+.map-graph__rows {
+  --map-row-step: minmax(var(--map-row-step-min), 1fr);
+  --map-row-current: minmax(var(--map-row-current-min), 1.8fr);
+  --map-row-gym: minmax(var(--map-row-gym-min), 1.2fr);
+  /* A full step's weight when there is room, so the first step, a decision
+     at the foot of the frame, ends above the thumb line (740 at 390x844) with
+     room to spare; its floor is small, so the worst case pays nothing. */
+  --map-row-entrance: minmax(var(--map-row-entrance-min), 1fr);
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  margin: 0;
+  padding: var(--space-1) 0;
+  gap: 0;
+  list-style: none;
+}
+
+/* A row is its own size container, so the pitch floor is decided per row by
+   the row's own height, with no script and no table of row counts. */
+.map-graph .step {
+  position: relative;
+  display: block;
+  min-height: 0;
+  container: map-row / size;
+}
+.map-graph .step__nodes {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.map-graph .step__marker {
+  position: absolute;
+  left: var(--space-1);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  font-size: var(--fs-xs);
+  border-color: var(--border-heavy);
+}
+.map-graph .step:not(.step--current) .step__marker { background: color-mix(in srgb, var(--bg-raised) 82%, transparent); color: var(--text); border-color: transparent; }
+
+/* A node: a disc with the kind's mark in it, the facts beneath. */
+.map-graph .node {
+  position: absolute;
+  left: var(--x, 50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-h);
+  /* Its own width, not the room left between its left edge and the frame's:
+     an absolute box shrink-wraps to that, which squeezed a right-hand node's
+     detail to half its width. */
+  width: max-content;
+  min-width: 52px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  color: var(--text);
+  text-align: center;
+  opacity: 1;
+}
+/* The mark is a token, not a button (Bible Rev 20, D85): the heavy black
+   ring is gone, and the disc is a soft round token on the painting with a
+   shadow under it. The kind chip inside keeps the one neutral chip style
+   (`visual-v2`: every neutral chip shares one colour, fill and outline). A
+   later row draws the token a size down. */
+.map-graph .node__mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--bg-raised) 90%, transparent);
+  border: 0;
+  box-shadow:
+    0 var(--space-h) 0 color-mix(in srgb, var(--token-shadow) 45%, transparent),
+    0 0 var(--space-2) color-mix(in srgb, var(--token-shadow) 30%, transparent);
+  transition: box-shadow 120ms ease;
+}
+.map-graph .node--upcoming .node__mark { width: 30px; height: 30px; }
+.map-graph .node__label { gap: 0; }
+.map-graph .node__kind { display: grid; place-items: center; width: 84%; height: 84%; padding: 0; border-radius: 50%; }
+.map-graph .node--gym .node__mark,
+.map-graph .node--gym .node__kind { border-radius: var(--radius-card); }
+.map-graph .node--gym .node__mark { width: 40px; height: 40px; }
+
+.map-graph .node__facts {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--hairline) var(--space-1);
+  background: var(--bg-raised);
+  border: var(--hairline) solid var(--border-heavy);
+  border-radius: var(--radius-chip);
+  line-height: 0;
+}
+.map-graph .node__gate {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: var(--space-h);
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.map-graph .node__name,
+.map-graph .node__detail {
+  padding: 0 var(--space-1);
+  background: var(--bg-raised);
+  border: var(--hairline) solid var(--border-heavy);
+  border-radius: var(--radius-chip);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+}
+.map-graph .node__name { font-weight: 700; white-space: nowrap; }
+/* The detail line, on the step being chosen from only. A size smaller than
+   the name so a shop's shelf fits three lines in a third of the frame. */
+.map-graph .node__detail { max-width: 108px; font-size: var(--fs-xs); line-height: 1.25; }
+/* The coin amount (5.0/3's `coinAmount`), on the detail line's baseline. */
+.map-graph .coin-amount { vertical-align: middle; }
+
+/* The step being chosen from: the only buttons on the map, a size up, in a
+   ring of the selection colour with a soft glow round it. */
+.map-graph .node--current { cursor: pointer; }
+/* 40px, the disc's old size, so the decision row's measured edges are where
+   `heights.json` recorded them. */
+.map-graph .node--current .node__mark {
+  width: 40px;
+  height: 40px;
+  background: color-mix(in srgb, var(--highlight) 28%, var(--bg-raised));
+  box-shadow:
+    0 0 0 var(--rule-heavy) var(--selected),
+    0 0 var(--space-3) var(--space-h) color-mix(in srgb, var(--selected) 55%, transparent),
+    0 var(--space-1) 0 color-mix(in srgb, var(--token-shadow) 45%, transparent);
+}
+.map-graph .node--current:hover { transform: translate(-50%, calc(-50% - 1px)); }
+.map-graph .node--current:hover .node__mark {
+  box-shadow:
+    0 0 0 var(--rule-heavy) var(--emphasis),
+    0 0 var(--space-3) var(--space-1) color-mix(in srgb, var(--emphasis) 55%, transparent);
+}
+.map-graph .node--current:focus-visible { outline: none; }
+.map-graph .node--current:focus-visible .node__mark { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
+
+/* Walked steps, dimmed by fill rather than by opacity, so the path beneath
+   stays beneath and the marks still clear the contrast floor. The node taken
+   is solid; the ones passed over are dashed. */
+.map-graph .node--done .node__mark {
+  width: 30px;
+  height: 30px;
+  background: color-mix(in srgb, var(--bg-raised) 55%, var(--locale-glow));
+  color: var(--text-dim);
+}
+.map-graph .node--passed .node__mark { outline: var(--hairline) dashed var(--border-heavy); box-shadow: none; }
+.map-graph .node--passed .node__facts { opacity: 0.7; }
+
+/* The pitch floor (D63). A row shorter than a mark and its facts keeps the
+   mark alone; the facts are on the mark's press, with the rest of the card. */
+@container map-row (max-height: 58px) {
+  .map-graph .node--compact .node__facts { display: none; }
+}
+/* And a row shorter than the disc draws a smaller disc round the same mark
+   at the same 24: the mark never shrinks, only the ring around it. */
+@container map-row (max-height: 42px) {
+  .map-graph .node--compact .node__mark { width: 28px; height: 28px; }
+  .map-graph .step__marker { width: 16px; height: 16px; }
+}
+
+/* The edges: travelled solid, the next choices dashed, later steps none. */
+.map-graph__edges {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+.map-graph__edge {
+  stroke: var(--border-heavy);
+  stroke-width: 4;
+  stroke-linecap: round;
+  fill: none;
+}
+.map-graph__edge--next { stroke-dasharray: 2 9; }
+
+/* The entrance, and the trainer standing beside the node last walked to. */
+.map-graph__entrance {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28px;
+  height: 12px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--border-heavy) 45%, transparent);
+  transform: translate(-50%, -50%);
+}
+.map-graph__player {
+  position: absolute;
+  z-index: 2;
+  left: calc(var(--x, 50%) + var(--space-8) + var(--space-1));
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  transform: translate(-50%, -60%);
+  pointer-events: none;
+}
+.map-graph__player .sprite--trainer {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  object-position: 50% 12%;
+  image-rendering: pixelated;
+}
+/* A trainer sprite that did not load keeps its box as a placeholder. */
+.map-graph__player .sprite--trainer[data-missing] { visibility: hidden; }
+.map-graph__player:has(.sprite--trainer[data-missing]) {
+  border-radius: 50%;
+  background: var(--selected);
+  border: var(--rule-heavy) solid var(--border-heavy);
+  width: 20px;
+  height: 28px;
+}
+

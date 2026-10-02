@@ -46,7 +46,7 @@ editing.
 | [`keyed-streams.md`](keyed-streams.md) | What the 4.6a stream refactor actually shipped, and the four requirements of its design that were not built | Working on RNG, seeds or replay |
 | [`engine-notes.md`](engine-notes.md) | `@pkmn/sim` findings: browser viability, the Gen 3 lock, bundle and trim analysis | Touching the sim adapter or the bundle |
 | [`copy.md`](copy.md) | **Generated.** Every player-facing string in the game, by surface, with the file a rewrite edits and a blank column to write the replacement in | Rewording anything a player reads. Rebuild it with `npm run copy-audit`; never edit it |
-| [`design/design-bible.md`](design/design-bible.md) | **Permanent.** How every attribute is presented: the twelve rules, the nine glyph families, the encoding table, the surface text budgets, the component canon, the battle turn grammar. Outranks any prompt on presentation | Before changing anything a player looks at |
+| [`design/design-bible.md`](design/design-bible.md) | **Permanent.** How every attribute is presented: the thirteen rules, the thirteen glyph families, the encoding table, the surface text budgets, the component canon, the battle turn grammar. Outranks any prompt on presentation | Before changing anything a player looks at |
 | [`design/playtest-log.md`](design/playtest-log.md) | The observations that are allowed to amend the bible. One row per observation, dated, with a tester count | Proposing an amendment, or checking whether one is earned |
 | [`spec/`](spec/) | The prompts and design documents themselves, verbatim | Its README says which are live |
 
@@ -66,7 +66,23 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: the 4.10 presentation milestones, Tier 6 in review ([#68](https://github.com/y-wang217/Pocket-Randomizer/pull/68)); Tier 7 next.** List
+**In flight: Stage 5.0, the visual redesign ([`spec/gymrun-stage5.0-visual-redesign.md`](spec/gymrun-stage5.0-visual-redesign.md)). 5.0/0, the spike and audit, is done on `claude/hopeful-shannon-kch3gw` and stopped for review.** The report is [`visual/reports/5.0-stage0-spike.md`](visual/reports/5.0-stage0-spike.md). It filed D50 to D76 in the discrepancy register. The author ruled D50 and D52 to D55 the same day ([`spec/gymrun-stage5.0-rulings-d50-d55.md`](spec/gymrun-stage5.0-rulings-d50-d55.md)); the bible is at **Rev 15** (one face and no density setting, tabs open screens, a mid-run Run Info screen, a `currency` family, and Run Progress as a decision feed replayed from the run log), recorded in [`generation.md` §87](generation.md). **5.0/1 is built and stopped for review**: one face with the density setting deleted, the shell nav with its read-only guard, the decision feed, Run Info and Settings screens, the desktop sidebar, the light palette and the asset manifest. Report [`visual/reports/5.0-stage1.md`](visual/reports/5.0-stage1.md), record [`generation.md` §87](generation.md). **D56 to D60 were ruled the same day** ([`spec/gymrun-stage5.0-rulings-d56-d60.md`](spec/gymrun-stage5.0-rulings-d56-d60.md)): the HP box is the panel restyled with every fact, the move button is the full move card, the header stays above the stage, D26's log handle stands with no Info button, and the World stays behind the frame while the painted backdrops live inside it. Bible **Rev 16**, [`generation.md` §88](generation.md). The author confirmed D60's reading and ruled D62 option 1 everywhere ([`spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md`](spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md)). **5.0/2, the battle screen, is built on `claude/wizardly-wright-cum8e0` and stopped for review**: the stage on its scene backdrop with platforms, the HP boxes and move buttons restyled with every fact kept, the header row with section 6's turn header built for the first time, the strip under the stage, and the bench behind a Switch button. The nine battle backdrops came forward from 5.0/5 into this stage at the author's request, converted from paintings at 224x136, with notes for the asset pipeline in the report. Report [`visual/reports/5.0-stage2.md`](visual/reports/5.0-stage2.md), record [`generation.md` §88](generation.md). WebKit and a real iPhone are the reviewer's. 5.0/0 and 5.0/1 merged as #77, 5.0/2 as #78. **5.0/3, the reward, result and shop cards, is built on `claude/stage-5.0-3-cards` and stopped for review**, after the author took every recommendation on D65 to D71 ([`spec/gymrun-stage5.0-rulings-d65-d71.md`](spec/gymrun-stage5.0-rulings-d65-d71.md), bible **Rev 17**): a card's face is its mark with the name and effect on the long press, a tap selects and the confirm band claims, the relic card carries its capability glyph, and the currency family is drawn. Report [`visual/reports/5.0-stage3.md`](visual/reports/5.0-stage3.md), record [`generation.md` §89](generation.md). No version axis moved; `contentHash` holds at `715122`. 5.0/4 (map) waits on D61, D63, D64, D72 and D75.
+
+**Stage 5.1: band bars, the starter detail over the moves, a starter screen without a scroll, built on `claude/level-15-stat-bars-layout-s8s0ma`.** The author's message of 2026-10-01, named 5.1 by the author ([`spec/gymrun-stage5.1-band-bars-and-starter-fit.md`](spec/gymrun-stage5.1-band-bars-and-starter-fit.md)): the stat bar returns beside the number on every stat block, measured against the band of values that stat takes at the Pokemon's level across the species pool (`statBandAt`); the starter detail panel opens over the selected card's moves, the card's own tap flipping back; the starter screen fits 390x700 without a scroll. The message's IV and nature marks were not built: GYMRUN has neither, and the author, asked, said to ignore them. Presentation only, no version axis moves. Bible Rev 21, D88 to D90; [`generation.md` §96](generation.md).
+
+**Patch: stats at rest, the map's later rows, the locale card as a peek, built on `claude/sleepy-dijkstra-tp2176`.** The author's feedback of 2026-10-01 against production R22 ([`spec/gymrun-patch-r22-stats-at-rest-and-map.md`](spec/gymrun-patch-r22-stats-at-rest-and-map.md)): a new rule, **R13, vital information** (the six stats, and a carried item's name and effect line, are at rest everywhere and never budgeted); the stat bars retired for numbers; the stats out of the party card's fold and on the player's battle panel; the capture swap's stat change in green and red; the bag listed at rest; later map rows down to the kind glyph on a restyled token; the locale card as a full-bleed crop of its map. The author's painting fills the page behind the frame before the first region. Bible Rev 20, D81 to D87; [`generation.md` §94 and §95](generation.md).
+
+**Patch: the starter select redesign, built on `claude/magical-shannon-64iefo`.** The author's mockup and playtest note of 2026-10-01 ([`spec/gymrun-patch-starter-select-redesign.md`](spec/gymrun-patch-starter-select-redesign.md)): compact starter cards a step darker, a tap-to-select detail panel with the stat numbers at rest and a move-type matchup, and a Choose control; no reroll. Bible Rev 19, D78 to D80; [`generation.md` §92](generation.md).
+
+**5.0/4, the map, is built on `claude/loving-darwin-lpx2r4`, PR [#80](https://github.com/y-wang217/Pocket-Randomizer/pull/80), merged up to `main` after 5.0/3 (#79).** The author took every recommendation on D61, D63, D64, D72 and D75 ([`spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md`](spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md)) and, mid-stage, took the team off the map ([`spec/gymrun-stage5.0-rulings-map-without-team.md`](spec/gymrun-stage5.0-rulings-map-without-team.md)). Bible **Rev 18** (5.0/3 took Rev 17). The segment is a graph on the locale's map backdrop (all eight painted by the author and delivered with the stage), bottom up: the step being chosen from carries the whole node card, every other row the mark, tier pips and capability, with the rest on the mark's long press; nodes placed by option index; the trainer on the node last walked to; the payout, the shelf's price and the wallet on 5.0/3's currency mark. The worst case fits 390x844, 1366x768 and 375x667 with no scroll. The census filed **D77** (the map node card's shop and untiered words, 7 against 1, predating the stage); the author ruled it option 1 and it is built: the hint is inspect only and the shelf is a count and a coin amount, so the card reads 1 on its budget of 1. No version axis moved. Report [`visual/reports/5.0-stage4.md`](visual/reports/5.0-stage4.md), record [`generation.md` §90](generation.md).
+
+**5.0/5, the art pass, is built on `claude/eloquent-heisenberg-383rnt` and stopped for review.** The author asked for the decisions first and for the art already delivered to be acknowledged: all seventeen backdrops were the author's, in 5.0/2 and 5.0/4. The author then took every recommendation ([`spec/gymrun-stage5.0-rulings-stage5.md`](spec/gymrun-stage5.0-rulings-stage5.md)). The session drew the other thirty-one class C slots on their native grids (`scripts/visual/icons.py`): node, capability and currency marks at 8px, drawn by `glyphNode` as `currentColor` masks (D61); nav icons; the wordmark; ten relics. No placeholder remains. M1.1's separation was re-run on the drawings and every family clears its floor. The gym backdrop's Poke Balls are painted out by a converter step. The HP boxes are measured against nine backdrops under ten field states (lowest 3.51 against 3:1). First load grows 3,845 bytes gzipped. On most map backdrops the outer slots land off the painted ground, and narrowing the grid would overlap the current step's cards; the author ruled that a known difference ([`spec/gymrun-stage5.0-rulings-slot-grids.md`](spec/gymrun-stage5.0-rulings-slot-grids.md)), so `BACKDROP_GRIDS` stays empty. No version axis moved and the stage changes nothing in the bible. Report [`visual/reports/5.0-stage5.md`](visual/reports/5.0-stage5.md), record [`generation.md` §93](generation.md).
+
+**In flight: the 4.10 presentation milestones, Tier 6 merged as [#68](https://github.com/y-wang217/Pocket-Randomizer/pull/68); patch 4.10.1 built on `claude/map-icons-conversion-plan-tvab5v`; Tier 7 next.**
+Patch 4.10.1 makes the map's node kinds marks — a head, a bush, a tent, a
+badge, a bag, a question mark — as an eleventh glyph family, ruled under D46
+as D37's option 2 and a reversal of D28, bible Rev 13;
+[`generation.md` §80](generation.md). List
 [`spec/gymrun-presentation-milestones.md`](spec/gymrun-presentation-milestones.md),
 working checklist [`design/milestones.md`](design/milestones.md), handoffs
 [`handoff/4.10-tiers-0-1.md`](handoff/4.10-tiers-0-1.md),
@@ -99,6 +115,22 @@ all of them hash strings, and the re-minted simulator fixture changing 2.
 `RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and `AI_VERSION` all hold. Changes under
 `core/`: M4.1 deleting two flag kinds the bible's R9 forbids, and M5.6's split
 taking display strings off `EventInstance` so the copy file stays excludable.
+
+**Built, on `claude/dazzling-archimedes-wc1frw`: Stage 4.11, weather, terrain
+and trigger visuals**, six tiers in one session. The prompt and its plan are in
+[`spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md`](spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md),
+the handoff in [`handoff/4.11-prep.md`](handoff/4.11-prep.md), the record in
+[`generation.md` §82](generation.md). The finding that shaped it: the logic is
+the sim's and always was, the tree read weather as an event and never as a
+state, and every weather in the game is set by an ability on switch-in, the
+one batch the battle screen never animated. The board's weather and terrain
+are now a fact on `BattleFacts`, a twelfth glyph family on the battle header,
+a factor folded into the move button's forecast (D49, ruled against the plan's
+recommendation), and a wash and a tint on the world behind the stage; an
+ability firing pulses its name and a berry pops its sprite; the opening batch
+is shown when it did something. D47 to D49 ruled, bible **Rev 14**. **No
+version axis moved**; `contentHash` holds at `715122`. The chip legibility
+sweep cannot run on the session box on any commit and is read off CI.
 
 **Tier 5 filed six rows before it opened and closed all six**, plus D14 from
 Tier 0 and D35 from Tier 4, and filed **D38** and **D39** on the way. The bible
@@ -1249,6 +1281,19 @@ One line each. The analysis lives where the pointer goes, not here.
    rewritten on the bible's arrival.** Each closes in its own prompt, committed
    to `spec/` first like any other.
 
+0. **The AI does not know about the weather it now shows the player.**
+   `core/battle/ai.ts` calls `@smogon/calc` with no `Field`, so its damage
+   estimates ignore rain, sun and terrain while the button's forecast folds
+   them in since Stage 4.11 (D49). A balance lever, not a presentation one:
+   it goes through `balance.md`'s queue with a benchmark row, not through a
+   patch to the UI. Named by the 4.11 plan's section 8.
+
+0. **`CLAUDE.md` restates C1 with one exception and the bible has two.**
+   D49 (2026-09-25) extended C1's exception to the field multiplier on the
+   move button. `CLAUDE.md` is the invariants register and is the lead
+   designer's to bring in line; until then it disagrees with the bible on the
+   exception's count. Recorded in `bible-discrepancies.md` under D49.
+
 0. **The baseline may be making itself worse with every move it takes.**
    `greedyMoveToReplace` (`scripts/sim.ts`) and `defaultMoveReplacement`
    (`core/run.ts`) both displace the weakest damaging move **whether or not the
@@ -1485,7 +1530,7 @@ One line each. The analysis lives where the pointer goes, not here.
    exemptions" — and the shop came out at 864. So Pocket hides the shelf's move
    cards, in CSS rather than by a branch in the screen, because a screen that
    reasoned about density in JS would not re-render when the mode is switched
-   live and `test/density.test.ts` greps for that mistake. The name, the
+   live and `test/one-face.test.ts` (was density.test.ts) greps for that mistake. The name, the
    category and the price are on the row in every mode.
 
    If a later pass wants the card back in Pocket, the lever is a disclosure
@@ -1496,7 +1541,7 @@ One line each. The analysis lives where the pointer goes, not here.
    guarded Detailed heights unchanged to the pixel. On merge the register
    row flips to `built`. What it leaves: the member card's HP line is on
    the bar's tap in Pocket (a rule the prompt did not write; `generation.md`
-   12m item 4), and `data/densityTuning.ts` sits outside `contentHash` by
+   12m item 4), and data/densityTuning.ts (deleted at 5.0/1) sits outside `contentHash` by
    a reasoned exclusion rather than inside `tuning.ts` (item 1).
    [`visual/reports/patch-density-modes.md`](visual/reports/patch-density-modes.md).
 

@@ -4,10 +4,10 @@
  * The six numbers on a member card are the member's own. **Patch 4.7.2.**
  *
  * The browser half of this promise is `test/visual-stat-bars.test.ts`, which
- * asks whether a bar is *painted* and at the right share — the question jsdom
- * cannot answer and the one the 4.7.2 bug turned on. This is the other half,
- * and it is the cheap exact one: whether the numbers on the card are the
- * numbers the adapter computed for that Pokemon, row by row, in order.
+ * asked whether a bar was *painted* until the bars were retired (Bible Rev
+ * 20, D82) and asks it of the number now. This is the cheap exact half: whether
+ * the numbers on the card are the numbers the adapter computed for that
+ * Pokemon, row by row, in order.
  *
  * Kept apart deliberately. A single browser test asserting both would compare
  * on-screen text against on-screen text and never touch `describeSpecCard`, so
@@ -18,15 +18,15 @@ import { join } from 'node:path';
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { describeSpecCard } from '../src/core/battle/driver';
+import { describeSpecCard, statBandAt } from '../src/core/battle/driver';
 import { createRun, chooseStarter, type RunState } from '../src/core/run';
 import { createParty } from '../src/core/party';
 import type { PokemonState } from '../src/core/types';
 import { STAT_ORDER, statInfo } from '../src/data/statInfo';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 import { memberCardContents } from '../src/ui/member-card';
-import { statBlock } from '../src/ui/stat-block';
-import { resetSettings, setDensity } from '../src/ui/settings';
+import { bandFraction, statBlock } from '../src/ui/stat-block';
+import { resetSettings } from '../src/ui/settings';
 
 function started(): RunState {
   return chooseStarter(createRun('PARTY-STATS', DEFAULT_TUNING), 0);
@@ -41,13 +41,12 @@ function distinctMember(): PokemonState {
   return member;
 }
 
-function rowsOf(member: PokemonState): { label: string; value: string; declared: string }[] {
+function rowsOf(member: PokemonState): { label: string; value: string }[] {
   const card = memberCardContents(member, { holding: null, tuning: DEFAULT_TUNING });
   return [...card.querySelectorAll('.stats--grid .stat')].map((row) => ({
     // The long form; the short form is beside it for Simple. Density patch.
     label: row.querySelector('.stat__label-long')?.textContent ?? '',
     value: row.querySelector('.stat__value')?.textContent ?? '',
-    declared: (row.querySelector('.stat__bar-fill') as HTMLElement | null)?.style.width ?? '',
   }));
 }
 
@@ -87,16 +86,30 @@ describe('the six stat rows on a member card', () => {
     expect(new Set(STAT_ORDER.map((stat) => expected[stat])).size).toBeGreaterThan(3);
   });
 
-  it('asks for a bar width proportional to each value, capped at the ceiling', () => {
+  /**
+   * **The numbers at rest, with the band bar beside them. Bible Rev 20, R13,
+   * D83; Rev 21, D88.** The block is on the card's head, not in the fold the
+   * moves sit behind, and every number has a bar measured against the band
+   * of values that stat takes at the member's level: never in place of the
+   * number.
+   */
+  it('puts the six numbers on the head, outside the fold, each with its band bar', () => {
     const member = distinctMember();
-    const spec = describeSpecCard(member.spec);
-    const values: Record<string, number> = { ...spec.baseStatsAtLevel, hp: member.maxHp };
-    const CEILING = 200;
-
-    const rows = rowsOf(member);
-    for (const [index, stat] of STAT_ORDER.entries()) {
-      const share = Math.min(100, ((values[stat] ?? 0) / CEILING) * 100);
-      expect(rows[index]?.declared, `${stat} bar`).toBe(`${share}%`);
+    const card = memberCardContents(member, { holding: null, tuning: DEFAULT_TUNING });
+    const block = card.querySelector('.stats');
+    expect(block?.parentElement).toBe(card);
+    expect(block?.closest('.collapse__body')).toBeNull();
+    const rows = [...card.querySelectorAll<HTMLElement>('.stats .stat')];
+    expect(rows).toHaveLength(6);
+    const band = statBandAt(member.spec.level);
+    for (const row of rows) {
+      expect(row.querySelector('.stat__value')?.textContent).not.toBe('');
+      const fill = row.querySelector<HTMLElement>('.stat__bar .stat__bar-fill');
+      expect(fill, `${row.dataset['row']} has a bar`).not.toBeNull();
+      const value = Number(row.querySelector('.stat__value')?.textContent);
+      const range = band[row.dataset['row'] as keyof typeof band];
+      expect(Number(row.dataset['fraction'])).toBeCloseTo(bandFraction(value, range), 3);
+      expect(row.querySelector<HTMLElement>('.stat__label')?.dataset['band']).toBe(`${range.min}-${range.max}`);
     }
   });
 
@@ -125,21 +138,6 @@ describe('the six stat rows on a member card', () => {
     expect(rowsOf(member as PokemonState)).toHaveLength(6);
   });
 
-  /*
-   * Density is asserted here only as far as the component settles it: the
-   * bar's width is computed in every mode, because the component writes it
-   * before deciding what to show. Which is *visible* is the stylesheet's, and
-   * `test/visual-density.test.ts` owns it in a browser.
-   */
-  it('computes the bar width in both modes, since the mode decides display and not data', () => {
-    const member = distinctMember();
-    setDensity('detailed');
-    const detailed = rowsOf(member).map((row) => row.declared);
-    setDensity('simple');
-    const simple = rowsOf(member).map((row) => row.declared);
-    expect(detailed).toEqual(simple);
-    expect(detailed.every((declared) => declared.endsWith('%'))).toBe(true);
-  });
 });
 
 /**
@@ -172,9 +170,9 @@ describe('the one stat block', () => {
     const statline = sources.filter(([, text]) => text.includes('statline'));
     expect(statline.map(([name]) => name), 'the pick-screen copy is gone').toEqual(['stat-block.ts']);
 
-    // And exactly one file builds the block's rows. A second `stat__bar-fill`
-    // in the tree is a second component by another name.
-    const builders = sources.filter(([, text]) => text.includes("'stat__bar-fill'"));
+    // And exactly one file builds the block's rows. A second `stat__value`
+    // builder in the tree is a second component by another name.
+    const builders = sources.filter(([, text]) => text.includes("'stat__value'"));
     expect(builders.map(([name]) => name)).toEqual(['stat-block.ts']);
   });
 
@@ -189,7 +187,6 @@ describe('the one stat block', () => {
             stat.getAttribute('data-row'),
             stat.querySelector('.glyph')?.getAttribute('data-glyph'),
             stat.querySelector('.stat__value')?.textContent,
-            (stat.querySelector('.stat__bar-fill') as HTMLElement).style.width,
           ].join('|'),
       );
     // Only the modifier differs. The layout is a stylesheet decision; what a
@@ -228,10 +225,35 @@ describe('the one stat block', () => {
       expect(new Set(rows.map((row) => row.querySelector('.stat__value')?.className))).toEqual(
         new Set(['stat__value']),
       );
-      expect(new Set(rows.map((row) => (row.querySelector('.stat__bar-fill') as HTMLElement).className))).toEqual(
-        new Set(['stat__bar-fill']),
-      );
     }
+  });
+
+  /**
+   * **The swap's stat change, and the one input that is not the six numbers.
+   * Bible Rev 20, D84.** `against` is the incoming Pokemon's six, never a
+   * move or a decision. Each row is marked by the sign of its own difference
+   * and nothing else: every rise green, every fall red, a zero unmarked, all
+   * six, still in `STAT_ORDER`. No row is singled out among the rises.
+   */
+  it('marks every row by the sign of its own change, and only on a swap', () => {
+    const member = { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 };
+    const incoming = { hp: 120, atk: 90, def: 100, spa: 180, spd: 101, spe: 40 };
+    const block = statBlock(member, { against: incoming });
+    const rows = [...block.querySelectorAll('.stat')];
+    expect(rows.map((row) => row.getAttribute('data-row'))).toEqual([...STAT_ORDER]);
+    expect(rows.map((row) => row.getAttribute('data-change'))).toEqual(['up', 'down', null, 'up', 'up', 'down']);
+    expect(rows.map((row) => row.querySelector('.stat__delta')?.textContent ?? '')).toEqual([
+      '+20',
+      '\u221210',
+      '',
+      '+80',
+      '+1',
+      '\u221260',
+    ]);
+    // The numbers stay the member's own; the change is beside them.
+    expect(rows.map((row) => row.querySelector('.stat__value')?.textContent)).toEqual(['100', '100', '100', '100', '100', '100']);
+    // Without a swap there is no change to draw.
+    expect(statBlock(member).querySelectorAll('.stat__delta, [data-change]')).toHaveLength(0);
   });
 
   it('carries the mark, and the words behind it for the two modes that keep them', () => {

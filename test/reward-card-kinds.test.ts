@@ -90,14 +90,16 @@ describe('the reward card', () => {
     expect(item.querySelector('.reward__detail'), 'the item card kept an effect line at rest').toBeNull();
     expect(item.querySelector('.reward__kind'), 'the item card kept a kind label').toBeNull();
 
-    // Relic: the name, because no relic sprite exists in the tree, and the
-    // press that opens the capability and what it pays. A name is a proper
-    // noun, so the card still reads zero words. Recorded in generation.md §66.
+    // Relic: the manifest's icon and the capability glyph it satisfies, the
+    // map node's own mark (Stage 5.0/3, D65 and D66, bible Rev 17). The name
+    // was the face while no relic art existed (D36, generation.md §66); it is
+    // on the press now with the capability and what the relic pays.
     const relic = renderRewardCard(ONE_OF_EACH.relic, state, () => undefined);
-    const relicName = relic.querySelector<HTMLElement>('.reward__name');
-    expect(relicName?.textContent, 'the relic card renders a blank name').toBe(RELICS[0]!.name);
-    expect(relicName?.dataset['tip'], 'the relic name opens no inspect panel').toBe(`relic:${RELICS[0]!.id}`);
-    expect(relic.querySelector('.reward__detail'), 'the relic card kept a sentence at rest').toBeNull();
+    const icon = relic.querySelector<HTMLElement>('.reward__relic');
+    expect(icon?.querySelector('[data-asset]')?.getAttribute('data-asset'), 'the relic card draws no icon').toBe(`relic:${RELICS[0]!.id}`);
+    expect(icon?.dataset['tip'], 'the relic icon opens no inspect panel').toBe(`relic:${RELICS[0]!.id}`);
+    expect(relic.querySelector(`[data-tip="capability:${RELICS[0]!.grants}"]`), 'the relic card draws no capability glyph').not.toBeNull();
+    expect(relic.textContent, 'the relic card kept its name at rest').not.toContain(RELICS[0]!.name);
 
     // The three move kinds mount the move card and nothing else. Section 4:
     // "Move card (reward, TM shelf, recipient, replacement, confirm) | 0".
@@ -128,22 +130,25 @@ describe('the reward card', () => {
    * for `item`, whose blurb is the item table's to supply. What matters here is
    * that nothing renders a card with *neither* a name nor a body.
    */
-  it('leaves the two unbudgeted kinds alone', () => {
+  /*
+   * **Coins and restore are a mark and a bare number. Stage 5.0/3, D66.**
+   *
+   * Until Rev 17 they kept a kind label, a name and a line, because section 4
+   * had no row for either (M5.1, generation.md §66). Rev 17 gives each a row
+   * at 0: `+N` beside the currency glyph, `+N%` beside a bar. The words are
+   * on the press, which is what this asserts is still reachable.
+   */
+  it('draws coins and restore as a mark beside a bare number', () => {
     const state = createRun('REWARD-CARD-BODY');
-    /*
-     * Currency and heal keep their kind label, name and detail line, and that
-     * is scope rather than an oversight: M5.1 names item, berry, relic and
-     * move cards, and **section 4 has no budget row for a coins card or a
-     * restore card at all** — the same gap D28 found on the battle header and
-     * D32 on the locale screen. Asserted so the omission is deliberate and
-     * visible rather than inferred from silence, and recorded as an input to
-     * M7.2.
-     */
-    for (const kind of ['currency', 'heal'] as const) {
-      const card = renderRewardCard(ONE_OF_EACH[kind], state, () => undefined);
-      expect(card.querySelector('.reward__kind')?.textContent, `${kind} has no kind label`).not.toBe('');
-      expect(card.querySelector('.reward__name')?.textContent, `${kind} renders a blank name`).not.toBe('');
-    }
+    const coins = renderRewardCard(ONE_OF_EACH.currency, state, () => undefined);
+    expect(coins.textContent).toBe('+159');
+    expect(coins.querySelector('[data-glyph="currency-coin"]'), 'the coins card draws no currency glyph').not.toBeNull();
+    expect(coins.dataset['tip']).toBe('coins:159');
+
+    const restore = renderRewardCard(ONE_OF_EACH.heal, state, () => undefined);
+    expect(restore.textContent).toBe('+100%');
+    expect(restore.querySelector('.hp'), 'the restore card draws no bar').not.toBeNull();
+    expect(restore.dataset['tip']).toBe('restore:100');
   });
 
   /*
@@ -164,9 +169,10 @@ describe('the reward card', () => {
     const state = createRun('REWARD-CARD-RELIC');
     const relic = RELICS[0]!;
     const card = renderRewardCard(ONE_OF_EACH.relic, state, () => undefined);
-    const name = card.querySelector<HTMLElement>('.reward__name');
-    expect(name?.textContent).toBe(relic.name);
-    expect(name?.dataset['tip']).toBe(`relic:${relic.id}`);
+    // The icon carries the press since Stage 5.0/3 (D66); it was the name.
+    const icon = card.querySelector<HTMLElement>('.reward__relic');
+    expect(icon?.dataset['tip']).toBe(`relic:${relic.id}`);
+    expect(icon?.getAttribute('aria-label')).toBe(relic.name);
     expect(relicCopy(relic.id), 'the relic has no description to open').not.toBe('');
   });
 

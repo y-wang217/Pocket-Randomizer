@@ -151,7 +151,7 @@ describe('the intro panel', () => {
   it('is still due for a player who had already skipped the tutorial', () => {
     globalThis.localStorage.setItem(
       'gymrun.settings',
-      JSON.stringify({ density: 'detailed', tutorial: { skipped: true, seen: ['starter', 'map'] } }),
+      JSON.stringify({ tutorial: { skipped: true, seen: ['starter', 'map'] } }),
     );
     initSettings();
     expect(introDue()).toBe(true);

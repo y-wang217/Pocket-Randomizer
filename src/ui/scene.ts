@@ -20,7 +20,7 @@
  */
 import { EFFECTIVENESS_LABELS } from '../core/battle/effectiveness';
 import type { FlaggedTurn } from '../core/battle/flags';
-import type { AbnormalityMark } from './abnormality';
+import type { AbnormalityMark, TraitFire } from './abnormality';
 import { hpStateBare } from '../core/hpCopy';
 import { BOOSTABLE_STATS, STAT_LABELS } from '../core/battle/stats';
 import {
@@ -42,7 +42,7 @@ import {
  * `docs/generation.md` section 55 records it for whoever next has reason to
  * edit that file.
  */
-import type { ActiveUiView, BattleUiView, MoveUiView } from '../core/battle/view';
+import type { ActiveUiView, BattleUiView, BenchMoveUiView, MoveUiView, SwitchUiView } from '../core/battle/view';
 import type { LocaleId } from '../data/locales';
 import { createBar, type Bar } from './bar';
 import { outroHoldMs } from './theme/motion';
@@ -62,6 +62,8 @@ import { spriteFigure, spriteImg, spriteUrl } from './sprites';
 import { itemIcon, pokeballSprite } from './slots';
 import { SCENES } from './theme/scenes';
 import { glyphNode } from './theme/glyph';
+import { applyBackdrop } from './assets/manifest';
+import { statBlock } from './stat-block';
 import type { MoveTag } from '../data/moveTags';
 import { MOVE_FACT_COLUMN, MOVE_FACT_COLUMNS, MOVE_FACT_INFO, MOVE_FACT_OWN_SLOT, moveFactAriaLabel, type StripFactId } from '../data/moveFactInfo';
 import type { MoveFact } from '../core/moveFacts';
@@ -136,6 +138,15 @@ interface SidePanel {
   name: HTMLElement;
   level: HTMLElement;
   /**
+   * The six stats, at rest, on the player's side only. **Bible Rev 20, D83.**
+   *
+   * The stats are vital (R13), and the author asked for them *"ideally in the
+   * battle screen too"*. Empty and hidden on the foe's panel, whose numbers
+   * stay on its long press (D18): the stage has room for one stat row over
+   * the bodies, and the one asked for is the player's own.
+   */
+  stats: HTMLElement;
+  /**
    * How much of this side is still standing, on the foe panel only.
    *
    * The player's own remaining team is already on screen, named and with its
@@ -177,6 +188,15 @@ interface SidePanel {
    */
   item: HTMLElement;
   /**
+   * The last held sprite, kept for one beat after a berry fired. **Stage 4.11
+   * Tier 4, section 6 step 7.** The slot redraws empty the moment the engine
+   * says the berry is gone, which is right for the fact and leaves nothing to
+   * pop. So the sprite is cloned here before the redraw, popped by the
+   * stylesheet and emptied at the next update: the sprite ghost's own rule,
+   * that an element on the stage holds nothing that is not happening.
+   */
+  itemGhost: HTMLElement;
+  /**
    * The stat stages, as V2 chips. **V5.3.**
    *
    * Replaces the six-row block, which cost 89.75px a panel and printed a
@@ -210,6 +230,15 @@ export type OutroKind = 'recall' | 'caught' | 'defeat';
 export interface Scene {
   root: HTMLElement;
   /**
+   * The stage band, exposed for two things the screen owns and the scene does
+   * not. **Stage 5.0/2.** The screen hangs the flag strip directly under it,
+   * where the outcome sits against the two Pokemon it happened to (D58), and
+   * points its scene backdrop at the fight's locale or gym (D60). Neither is a
+   * fact the scene can know: the strip is the screen's one reading of the
+   * protocol, and the locale is the run's.
+   */
+  stage: HTMLElement;
+  /**
    * Redraw from a view. `onChoose` fires with the choice the player made.
    *
    * A `Choice`, not a move slot. Stage 4 is where the two kinds of answer stop
@@ -239,6 +268,8 @@ export interface Scene {
      * is still one source of truth about a turn and now three consumers of it.
      */
     marks?: readonly AbnormalityMark[],
+    /** The panels whose trait fired this turn, from `ui/abnormality.ts`. **Stage 4.11 Tier 4.** */
+    fired?: readonly TraitFire[],
   ): void;
   /**
    * Play the end of the fight, and park until it has been seen.
@@ -311,12 +342,58 @@ export function createScene(): Scene {
   const me = createSidePanel('me');
   const foeActor = createActor('foe', 'p2');
   const meActor = createActor('me', 'p1');
-  stage.append(foeActor.root, meActor.root, foe.root, me.root);
+  /*
+   * The platforms. **Stage 5.0/2.** One CSS ellipse under each sprite, the
+   * plan's class B: no file, no art. Siblings of the actors rather than their
+   * children, because every beat moves the actor and the ground a Pokemon
+   * stands on does not lunge with it. Decorative, so hidden from a reader.
+   */
+  const platforms = (['foe', 'me'] as const).map((kind) => {
+    const platform = el('span', `stage__platform stage__platform--${kind}`);
+    platform.setAttribute('aria-hidden', 'true');
+    return platform;
+  });
+  stage.append(...platforms, foeActor.root, meActor.root, foe.root, me.root);
 
   const moves = el('div', 'moves');
   const bench = el('div', 'bench');
+  /*
+   * **The secondary row: Switch, alone. Stage 5.0/2, D59.**
+   *
+   * The bench was at rest under the grid; it is one tap away now, behind
+   * this button, which ruling 2 of the plan allows and D59 ruled: the row
+   * carries Switch and nothing else, and the log keeps D26's handle on the
+   * strip. The button's label is what the bench's heading said (a switch, a
+   * blocked one, or a forced one), so the words on the screen are the same
+   * words and the heading is gone rather than printed twice.
+   *
+   * The pane is presentation and nothing more: it never submits, never
+   * advances, never draws. A forced switch opens it by itself, because the
+   * moves are not the question then; any choice closes it, because the next
+   * decision starts on the moves.
+   */
+  const actions = el('div', 'scene__actions');
+  const switchButton = document.createElement('button');
+  switchButton.type = 'button';
+  switchButton.className = 'button scene__switch';
+  switchButton.hidden = true;
+  switchButton.setAttribute('aria-pressed', 'false');
+  actions.append(switchButton);
+  actions.hidden = true;
 
-  root.append(stage, moves, bench);
+  root.append(stage, moves, bench, actions);
+
+  let benchOpen = false;
+  const showPane = (): void => {
+    const open = benchOpen && bench.childElementCount > 0;
+    root.dataset['pane'] = open ? 'bench' : 'moves';
+    switchButton.setAttribute('aria-pressed', String(open));
+  };
+  showPane();
+  switchButton.addEventListener('click', () => {
+    benchOpen = !benchOpen;
+    showPane();
+  });
 
   /*
    * Any transition must be skippable by tapping. Nothing here blocks input in
@@ -392,6 +469,7 @@ export function createScene(): Scene {
 
   return {
     root,
+    stage,
     outro(kind) {
       // A second outro on one screen is not a thing that happens, but if it
       // did, the first must not be left parked forever.
@@ -439,8 +517,38 @@ export function createScene(): Scene {
     reset() {
       moves.replaceChildren();
       clearBench(bench);
+      benchOpen = false;
+      switchButton.hidden = true;
+      actions.hidden = true;
+      showPane();
     },
-    update(view, onChoose, turns, marks) {
+    update(view, onChoose, turns, marks, fired = []) {
+      /*
+       * The panels' own beats, before the redraw takes the evidence away.
+       * **Stage 4.11 Tier 4, D48.** Cleared on both panels first, because the
+       * attribute is the whole of the state; the reflow is the beats' own
+       * trick, so two fires in a row each get their pulse. A berry's sprite
+       * is cloned into the ghost now, while the slot still holds it.
+       */
+      for (const panel of [me, foe]) {
+        delete panel.traits.dataset['fired'];
+        delete panel.traits.dataset['firedSlot'];
+        delete panel.itemGhost.dataset['fired'];
+        delete panel.itemGhost.dataset['firedSlot'];
+        panel.itemGhost.replaceChildren();
+      }
+      void me.root.offsetWidth;
+      for (const fire of fired) {
+        const panel = fire.side === 'p1' ? me : foe;
+        if (fire.what === 'ability') {
+          panel.traits.dataset['fired'] = 'true';
+          panel.traits.dataset['firedSlot'] = String(fire.slot);
+        } else if (panel.item.firstElementChild && !panel.item.hidden) {
+          panel.itemGhost.replaceChildren(panel.item.firstElementChild.cloneNode(true));
+          panel.itemGhost.dataset['fired'] = 'true';
+          panel.itemGhost.dataset['firedSlot'] = String(fire.slot);
+        }
+      }
       updateActor(foeActor, view.opponent);
       updateActor(meActor, view.player);
       // Whether each bar drew a chunk. The hit beat reads this and nothing
@@ -466,8 +574,20 @@ export function createScene(): Scene {
       // The opposing side's count, on the opposing panel and nowhere else.
       renderRoster(foe.roster, view.opponentLeft);
       root.dataset['faster'] = view.fasterSide;
-      renderMoves(moves, view, onChoose);
-      renderBench(bench, view, onChoose);
+      // Any choice closes the bench: the next decision opens on the moves.
+      const choose = (choice: Choice): void => {
+        benchOpen = false;
+        showPane();
+        onChoose(choice);
+      };
+      renderMoves(moves, view, choose);
+      renderBench(bench, view, choose);
+      if (view.forceSwitch) benchOpen = true;
+      switchButton.hidden = bench.childElementCount === 0;
+      actions.hidden = switchButton.hidden;
+      switchButton.textContent = benchLabel(view);
+      switchButton.dataset['forced'] = view.forceSwitch ? 'true' : 'false';
+      showPane();
       /*
        * The chevron, on the panel a bracket put first. **M4.2, section 6 step
        * 2, discrepancy D6.**
@@ -770,13 +890,15 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
    * pushing the row along.
    */
   const item = el('span', 'panel__item');
+  const itemGhost = el('span', 'panel__item-ghost');
+  itemGhost.setAttribute('aria-hidden', 'true');
   /*
    * Reading order: what it is, what it is built for, what it is carrying, what
    * is happening to it, and what the board has done to it. Fixed properties
    * first and the turn's own facts last, so a row that grows during a fight
    * grows at the end rather than pushing the identity along.
    */
-  chips.append(types, traits, item, volatiles, stages);
+  chips.append(types, traits, item, itemGhost, volatiles, stages);
 
   /*
    * The panel is an inspect trigger. **M3.1, discrepancy D18, ruled 2026-09-21.**
@@ -803,8 +925,11 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   root.tabIndex = 0;
   root.setAttribute('role', 'button');
 
-  root.append(roster, header, hp.root, meta, chips);
-  return { root, name, level, roster, priority, types, hp, hpText, status, volatiles, traits, item, stages };
+  const stats = el('div', 'panel__stats');
+  stats.hidden = kind === 'foe';
+
+  root.append(roster, header, hp.root, meta, chips, stats);
+  return { root, name, level, stats, roster, priority, types, hp, hpText, status, volatiles, traits, item, itemGhost, stages };
 }
 
 /**
@@ -973,7 +1098,30 @@ function updateSidePanel(
     `${isFoe ? 'Opposing ' : ''}${active.species}, ${levelAria(active.level, active.gender)}`,
   );
   panel.root.dataset['tip'] = `stats:${active.species}`;
-  panel.root.dataset['detail'] = statDetail(active);
+  panel.root.dataset['level'] = String(active.level);
+  const detail = statDetail(active);
+  /*
+   * The player's six numbers at rest (D83), redrawn only when the body or its
+   * numbers change: a level-up mid-run and a switch are the two that do.
+   */
+  /*
+   * **And when a stage changes. Bible Rev 23, D98.** The player's stages are
+   * drawn in their own cells, so the block redraws on a stage as it does on a
+   * switch; the key is the six base numbers plus the five stages.
+   */
+  const staged = BOOSTABLE_STATS.map((stat) => `${stat}:${active.stats[stat].stage}:${active.stats[stat].effective}`).join(',');
+  if (!isFoe && panel.stats.dataset['key'] !== `${detail}|${staged}`) {
+    const values: Record<string, number> = { hp: active.hp.max };
+    const stages: Record<string, { stage: number; effective: number; multiplier: string }> = {};
+    for (const stat of BOOSTABLE_STATS) {
+      values[stat] = active.stats[stat].base;
+      const { stage, effective } = active.stats[stat];
+      if (stage !== 0) stages[stat] = { stage, effective, multiplier: formatStageMultiplier(stage) };
+    }
+    panel.stats.replaceChildren(statBlock(values, { layout: 'row', level: active.level, stages }));
+    panel.stats.dataset['key'] = `${detail}|${staged}`;
+  }
+  panel.root.dataset['detail'] = detail;
 
   panel.types.replaceChildren(...active.types.map((type) => panelTypeChip(type)));
 
@@ -1061,7 +1209,13 @@ function updateSidePanel(
    * archetype label rather than as numbers. That is the plan's budget, and the
    * V5 report records it as the one thing this stage takes away.
    */
-  const stages = BOOSTABLE_STATS.filter((stat) => active.stats[stat].stage !== 0).map((stat) =>
+  /*
+   * **The foe's five only, since bible Rev 23 (D98).** The player's five are
+   * drawn in their own stat cells, and a chip here as well would be one stage
+   * in two channels on one surface (R3). The foe has no block on its panel
+   * (D83), so its stages stay here.
+   */
+  const stages = (isFoe ? BOOSTABLE_STATS : []).filter((stat) => active.stats[stat].stage !== 0).map((stat) =>
     stageChip(active.stats[stat].stage, STAT_LABELS[stat]),
   );
 
@@ -1097,7 +1251,7 @@ function updateSidePanel(
    * rides on `data-detail` rather than being looked up, for the same reason a
    * threat count does: it is a fact about *this* render, not a table entry.
    */
-  if (stages.length > 0) stages.unshift(stageMarker(stages.length, active));
+  if (stages.length > 0) stages.unshift(stageMarker(stages.length, active, isFoe));
 
   /*
    * The speed marker survives the block that used to carry it.
@@ -1172,9 +1326,11 @@ function statDetail(active: ActiveUiView): string {
  * folded; "boosted" or "weakened" would be a reading of whether the fold is
  * good news, which is the editorial rule's exact prohibition.
  */
-function stageMarker(count: number, active: ActiveUiView): HTMLElement {
+function stageMarker(count: number, active: ActiveUiView, withStats: boolean): HTMLElement {
+  // The five stats ride the marker on the foe's side only (D98).
+  const five = withStats ? BOOSTABLE_STATS : [];
   const rows: string[] = [];
-  for (const stat of BOOSTABLE_STATS) {
+  for (const stat of five) {
     const stage = active.stats[stat].stage;
     if (stage !== 0) rows.push(`${STAT_LABELS[stat]}\t${formatStageMultiplier(stage)}\t${formatStage(stage)}`);
   }
@@ -1206,7 +1362,7 @@ function stageMarker(count: number, active: ActiveUiView): HTMLElement {
    * marks gets the number instead of them.
    */
   const marker = neutralChip('', 'stages', { tip: 'stages:active' });
-  for (const stat of BOOSTABLE_STATS) {
+  for (const stat of five) {
     if (active.stats[stat].stage === 0) continue;
     const mark = glyphNode(`stat-${stat}`, { label: STAT_LABELS[stat] });
     if (mark) marker.append(mark);
@@ -1616,6 +1772,26 @@ function renderMoves(
   container.replaceChildren(
     ...view.moves.map((move) => renderMove(move, view.awaitingChoice, cause, onChoose)),
   );
+  markSuper(container, view.moves);
+}
+
+/**
+ * Light the super effective move and grey the damaging moves beside it.
+ * **The effectiveness emphasis patch, bible D91.**
+ *
+ * The flag goes on the container and the stylesheet does the rest, off the
+ * `data-effect` and `data-damaging` each move already carries. It is set only
+ * while a usable move is super effective: with none, nothing is greyed and
+ * the bar reads as it did before D91, so a neutral move is never marked on
+ * its own (R4). A move with no PP left is not counted, because lighting a
+ * move the player cannot press would grey the ones they can.
+ */
+function markSuper(
+  container: HTMLElement,
+  moves: readonly { band: string | null; usable?: boolean }[],
+): void {
+  if (moves.some((move) => move.band === 'super' && move.usable !== false)) container.dataset['hasSuper'] = 'true';
+  else delete container.dataset['hasSuper'];
 }
 
 /**
@@ -1668,18 +1844,21 @@ function renderBench(
     return;
   }
 
-  const heading = el('div', 'bench__heading');
-  heading.textContent = view.forceSwitch
-    ? 'Choose who comes in'
-    : view.trapped
-      ? 'Switch — blocked this turn'
-      : 'Switch';
-  container.replaceChildren(heading, ...bench.map((member) => renderBenchMember(member, view, onChoose)));
+  container.replaceChildren(...bench.map((member) => renderBenchMember(member, view, onChoose)));
   container.dataset['forced'] = view.forceSwitch ? 'true' : 'false';
 }
 
+/**
+ * What the Switch button says. **Stage 5.0/2.** The bench's heading until
+ * D59 moved the bench behind the button, and the same three answers: a switch,
+ * one this turn will not allow, or the one the fight is waiting on.
+ */
+function benchLabel(view: BattleUiView): string {
+  return view.forceSwitch ? 'Choose who comes in' : view.trapped ? 'Switch — blocked this turn' : 'Switch';
+}
+
 function renderBenchMember(
-  member: SwitchView,
+  member: SwitchUiView,
   view: BattleUiView,
   onChoose: (choice: Choice) => void,
 ): HTMLElement {
@@ -1736,10 +1915,47 @@ function renderBenchMember(
   // The body, at the row's right, phased by slot. Idle-sprites patch. Built
   // from the view's species, as every other fact on this row is.
   button.append(spriteFigure(member.species, { phase: member.slot }), name, level, types, bar.root, meta);
+  const forecast = benchForecast(member.forecast);
+  if (forecast) button.append(forecast);
   button.addEventListener('click', () => onChoose(switchChoice(member.slot)));
   return button;
 }
 
+/**
+ * A benched member's damaging moves, forecast against the Pokemon on the
+ * field. **The effectiveness emphasis patch, bible D92.**
+ *
+ * The move button's vocabulary at a row's size: the move's type chip, the
+ * multiplier beside it when it is not neutral, the edge in the forecast's
+ * family, lit and greyed by the same rule as the bar (D91), per member. A
+ * status move has no forecast and is left out: the row says what each move
+ * would do to what is standing there, and a status move's answer is not a
+ * multiplier.
+ *
+ * **Inert, for the reason the type chips above are.** The whole row is the
+ * switch, and a tipped chip inside it is a dead patch of that control. The
+ * names and the full interaction are on the party screen's move cards.
+ *
+ * No row is lit as a whole and the rows keep party order: the forecast is per
+ * move, never a verdict on the member (R10, and section 9's D92 bet).
+ */
+function benchForecast(forecast: readonly BenchMoveUiView[]): HTMLElement | null {
+  const damaging = forecast.filter((move) => move.band !== null);
+  if (damaging.length === 0) return null;
+  const row = el('span', 'bench__moves');
+  for (const move of damaging) {
+    const cell = el('span', 'bench__move');
+    cell.dataset['damaging'] = 'true';
+    if (move.band && move.band !== 'neutral') cell.dataset['effect'] = move.band;
+    cell.setAttribute('aria-label', `${move.name}: ${EFFECTIVENESS_LABELS[move.band ?? 'neutral']}`);
+    cell.append(typeChip(move.type));
+    const label = move.band === 'neutral' ? null : effectivenessFraction(move.effectiveness);
+    if (label && move.band) cell.append(effectChip(label, move.band));
+    row.append(cell);
+  }
+  markSuper(row, damaging);
+  return row;
+}
 
 function renderMove(
   move: MoveUiView,
@@ -1855,6 +2071,20 @@ function renderMove(
         'aria-label',
         `${move.name}: ${EFFECTIVENESS_LABELS[move.band]} — from ${cause.name}`,
       );
+    } else if (move.fieldCause) {
+      /*
+       * The same rule for the field. **Stage 4.11 Tier 2b, D49.**
+       *
+       * A 3 on a Water move against a Rock type is the chart's 2 under rain,
+       * and the number alone does not say so. So the badge points at the
+       * weather or terrain that moved it: tap it and the field panel answers
+       * in the engine's own terms. An ability keeps precedence above, since a
+       * 0x has more to explain than a 1.5.
+       */
+      badge.dataset['field'] = 'true';
+      badge.dataset['tip'] = `field:${move.fieldCause}`;
+      badge.tabIndex = 0;
+      badge.setAttribute('role', 'button');
     }
     effectBadge = badge;
   }
@@ -1884,6 +2114,9 @@ function renderMove(
    * that does is read because the others do not.
    */
   if (move.band && move.band !== 'neutral') button.dataset['effect'] = move.band;
+  // A damaging move is one the bar can grey (D91). A status move has no type
+  // effectiveness, so it is never greyed: that would claim a fact it lacks.
+  if (move.band !== null) button.dataset['damaging'] = 'true';
 
   // Both halves: this is the one surface that knows the remaining count, and
   // section 3 dims the max rather than dropping it.
@@ -2197,8 +2430,12 @@ export const CATEGORY_LABELS: Record<MoveUiView['category'], string> = {
  */
 export function effectivenessFraction(multiplier: number | null): string | null {
   if (multiplier === null || multiplier === 1) return null;
-  const VULGAR: Record<string, string> = { '0.25': '¼', '0.5': '½' };
-  return VULGAR[String(multiplier)] ?? String(multiplier);
+  // ¾ joined the two chart fractions with D49: a resisted hit under a 1.5
+  // weather lands there. Anything else prints as a number to two places, so a
+  // terrain's 1.3 on a 2 reads 2.6 and not a float's tail.
+  const VULGAR: Record<string, string> = { '0.25': '¼', '0.5': '½', '0.75': '¾' };
+  const rounded = Number(multiplier.toFixed(2));
+  return VULGAR[String(rounded)] ?? String(rounded);
 }
 
 /**
@@ -2706,6 +2943,12 @@ export interface WorldScene {
   setLocale(locale: LocaleId | null): void;
   /** The locale the art currently shows, or null. */
   current(): LocaleId | null;
+  /**
+   * Whether the opening painting shows while no locale does. **Bible Rev 20,
+   * D87.** The app turns it on for the two screens before the first region,
+   * the starter and the region picker, whose page was otherwise flat.
+   */
+  setOpening(on: boolean): void;
   destroy(): void;
 }
 
@@ -2718,13 +2961,37 @@ function prefersReducedMotion(): boolean {
 export function createWorldScene(follow: HTMLElement | null = document.documentElement): WorldScene {
   const root = el('div', 'world');
   root.setAttribute('aria-hidden', 'true');
-  // Empty until a region arrives.
+  // Empty until a region arrives, or the opening painting is asked for.
   root.hidden = true;
+  /*
+   * **The opening painting. Bible Rev 20, D87.** The author's painting of the
+   * clearing the run sets out from, with the whole world beyond it, filling
+   * the page behind the frame before any region's layers do. One element
+   * under the layers, through the manifest like every backdrop; a locale's
+   * layers replace it rather than drawing over it.
+   */
+  const opening = el('div', 'world__opening');
+  applyBackdrop(opening, 'opening-backdrop');
+  let openingOn = false;
   const far = el('div', 'world__layer world__layer--far');
   const mid = el('div', 'world__layer world__layer--mid');
   const near = el('div', 'world__layer world__layer--near');
+  /*
+   * The weather, over the art and under the scrim. **Stage 4.11 Tier 3.**
+   * One element, empty: the stylesheet paints it from `<html data-weather>`,
+   * a wash on the element and a moving texture on its `::before`. Under the
+   * scrim so the text column keeps the protection V3.5 measured for it,
+   * whatever the sky is doing. The terrain has no element: it tints the near
+   * layer's fill, because the ground changing colour is what a terrain is.
+   */
+  const weather = el('div', 'world__weather');
   const scrim = el('div', 'world__scrim');
-  root.append(far, mid, near, scrim);
+  root.append(opening, far, mid, near, weather, scrim);
+  const show = (): void => {
+    root.hidden = !locale && !openingOn;
+    if (!locale && openingOn) root.dataset['opening'] = 'true';
+    else delete root.dataset['opening'];
+  };
 
   let locale: LocaleId | null = null;
   let reduced = prefersReducedMotion();
@@ -2734,14 +3001,26 @@ export function createWorldScene(follow: HTMLElement | null = document.documentE
    * scroll event, on the compositor (`translate3d`), never a layout. Under
    * reduced motion the listener does nothing and the layers stay put.
    */
+  /*
+   * **The frame's scroll, since Stage 5.0/1.** The page itself no longer
+   * scrolls: the frame holds a viewport's height and its screens scroll
+   * inside `.screens`. An element's scroll event does not bubble, so a
+   * second listener captures on the document; the first, on the window, is
+   * the page's own scroll. Both read the larger of the two positions.
+   */
+  const scrolled = (): number => {
+    const frame = globalThis.document?.querySelector?.('.screens');
+    return Math.max(globalThis.scrollY || 0, frame instanceof HTMLElement ? frame.scrollTop : 0);
+  };
   const onScroll = (): void => {
     if (reduced || !locale) return;
-    const y = globalThis.scrollY || 0;
+    const y = scrolled();
     far.style.transform = `translate3d(0, ${-y * PARALLAX.far}px, 0)`;
     mid.style.transform = `translate3d(0, ${-y * PARALLAX.mid}px, 0)`;
     near.style.transform = `translate3d(0, ${-y * PARALLAX.near}px, 0)`;
   };
   globalThis.addEventListener('scroll', onScroll, { passive: true });
+  globalThis.document?.addEventListener('scroll', onScroll, { passive: true, capture: true });
 
   const readAttribute = (): LocaleId | null => (follow?.getAttribute('data-locale') as LocaleId | null) || null;
   const observer =
@@ -2758,7 +3037,7 @@ export function createWorldScene(follow: HTMLElement | null = document.documentE
       locale = next;
       reduced = prefersReducedMotion();
       root.dataset['locale'] = next ?? '';
-      root.hidden = !next;
+      show();
       if (!next) {
         far.replaceChildren();
         mid.replaceChildren();
@@ -2788,9 +3067,14 @@ export function createWorldScene(follow: HTMLElement | null = document.documentE
       near.style.transform = '';
       onScroll();
     },
+    setOpening(on) {
+      openingOn = on;
+      show();
+    },
     destroy() {
       observer?.disconnect();
       globalThis.removeEventListener('scroll', onScroll);
+      globalThis.document?.removeEventListener('scroll', onScroll, { capture: true });
       root.remove();
     },
   };

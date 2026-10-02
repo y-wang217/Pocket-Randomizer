@@ -1,77 +1,22 @@
 /**
- * Cross-run settings. Currently one: how much space and prose a fact costs.
+ * Cross-run settings: the battle speed, the tutorial flags, the intro and the
+ * exposure counter. Presentation only. Nothing here reaches `core/`, and
+ * `test/one-face.test.ts` holds that.
  *
- * ## The density setting, and the rule it lives under
+ * ## The density setting is gone (Stage 5.0/1, 2026-09-30)
  *
- * **It is presentation only. One value, read by components, and it never reaches
- * `core/`.** That is not a style preference, it is the property the whole
- * feature depends on: a run must play the same way whichever mode it is in, or
- * a shared seed stops being a shared run and the balance report stops
- * describing the game people play.
- *
- * The constraint is enforced two ways. Structurally, this file lives in `ui/`
- * and `core/` may not import from `ui/` — the dependency runs one way and
- * always has. And explicitly, `test/density.test.ts` walks every file under
- * `src/core/` and fails if any of them mentions this module or its accessors. A
- * comment saying "do not read this from core" is a comment; the test is the
- * rule.
- *
- * ## The three modes
- *
- * **Density modes patch, replacing 4.7.2's two-valued verbosity flag.** The
- * old axis — "Simple hides raw stat numbers in favour of relative bars" — had
- * nowhere to bite on the ten screens that carry no stat numbers. The new axis
- * is how much space and prose a fact costs, which every screen has:
- *
- *   - **Detailed.** Every fact on screen, zero taps, full labels and
- *     descriptions.
- *   - **Simple.** Every fact on screen, zero taps, reduced prose and chrome.
- *     Labels abbreviate, descriptions shorten, padding tightens.
- *   - **Pocket.** Zero scroll on a 390x844 phone. Secondary facts may cost one
- *     tap; primary facts stay on screen.
- *
- * No mode removes a fact. What each mode does, per screen family, is the
- * stylesheet's business (`styles.css`, "the density modes") and the shared
- * primitives' in the component layer; this file only holds the value.
- *
- * ## Pocket is the first-launch default (milestone M6.3, 2026-09-23)
- *
- * Detailed was the default from the density patch to M6.3, on the argument
- * that a new player does not know the help exists, so the mode that hides it
- * is the mode they never leave. The design bible's R6 answers that argument
- * rather than overruling it: nothing is hidden in Pocket any more. Every fact
- * is on the compact face or one press away through the one inspect layer
- * (R5), the coach marks run on that face (M6.2), and the exposure labels (R7)
- * are what teach the glyphs. R6 makes Pocket the default; Simple and Detailed
- * stay for one validation cycle and M6.4 decides their retirement.
- *
- * **An existing store keeps what it was showing.** A store carrying a density,
- * or a 4.7.2 `verbosity`, keeps it. So does a store that carries neither but
- * exists at all: it was written before either field and has been shown
- * Detailed all along. Only a store with nothing in it, a first launch, reads
- * the new default. See `loadSettings`.
- *
- * ## Migration from `verbosity`
- *
- * The 4.7.2 store held `verbosity: 'simple' | 'detailed'`. A stored `simple`
- * lands on `simple`, a stored `detailed` on `detailed`, and a stored `density`
- * wins over a stored `verbosity` when both are present. The old field is read
- * on the way in and never written again: one name, one read path.
+ * It held one of Detailed, Simple and Pocket from the density modes patch to
+ * 5.0/1. The design bible's R6 retired Simple and Detailed on the author's
+ * ruling (D50): there is one face, the Pocket face, and no setting that
+ * changes it. The field is not read on the way in and never written again, so
+ * a store that still carries `density` or the 4.7.2 `verbosity` simply keeps
+ * them as unread keys until the next save drops them. See `docs/generation.md`
+ * §87 and the plan, `docs/spec/gymrun-stage5.0-visual-redesign.md`.
  */
 
 import { TUTORIAL_SCREENS, type TutorialScreen } from '../data/tutorial';
 import { GLYPH_FAMILIES, isGlyphFamily, type GlyphFamily } from '../data/glyphFamilies';
 import { INTRO_VERSION } from '../data/intro';
-
-export type Density = 'detailed' | 'simple' | 'pocket';
-
-/**
- * Every mode, in the order the picker lists them. Most words to fewest, which
- * is a description of the modes and not a ranking of them. Detailed led the
- * list when it was the default; the order is kept so a player's muscle memory
- * of the picker survives M6.3.
- */
-export const DENSITIES: readonly Density[] = ['detailed', 'simple', 'pocket'];
 
 /**
  * How the four move buttons are arranged. **The four-column patch.**
@@ -151,12 +96,6 @@ export const BATTLE_SPEED_SCALE: Readonly<Record<BattleSpeed, number>> = {
 const KEY = 'gymrun.settings';
 
 /**
- * The mode every store written before M6.3 was shown when it named none.
- * **M6.3.** Read only for a store that exists and carries no density.
- */
-const LEGACY_DENSITY: Density = 'detailed';
-
-/**
  * The tutorial's persisted flags. Overnight Branch 3.
  *
  * In this store rather than its own because the trigger is "first launch",
@@ -208,7 +147,6 @@ export interface ExposureFlags {
 }
 
 export interface Settings {
-  density: Density;
   battleSpeed: BattleSpeed;
   tutorial: TutorialFlags;
   intro: IntroFlags;
@@ -231,17 +169,11 @@ export interface Settings {
  * is reachable from every screen of a run.
  */
 export const DEFAULT_SETTINGS: Settings = {
-  density: 'pocket',
   battleSpeed: 'even',
   tutorial: { skipped: false, seen: [] },
   intro: { seenVersion: 0 },
   exposure: { counts: {} },
 };
-
-function isDensity(value: unknown): value is Density {
-  return (DENSITIES as readonly unknown[]).includes(value);
-}
-
 
 function isBattleSpeed(value: unknown): value is BattleSpeed {
   return (BATTLE_SPEEDS as readonly unknown[]).includes(value);
@@ -260,12 +192,7 @@ export function loadSettings(): Settings {
     const raw = globalThis.localStorage.getItem(KEY);
     if (!raw) return { ...DEFAULT_SETTINGS };
     const parsed: unknown = JSON.parse(raw);
-    /*
-     * A store that exists but names no mode was written before the density
-     * patch and has been shown Detailed, the default then. M6.3 moved the
-     * default for new installs only, so it keeps Detailed.
-     */
-    return { ...DEFAULT_SETTINGS, density: LEGACY_DENSITY, ...readSettings(parsed) };
+    return { ...DEFAULT_SETTINGS, ...readSettings(parsed) };
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
@@ -288,37 +215,15 @@ export function saveSettings(settings: Settings): void {
 export function readSettings(value: unknown): Partial<Settings> {
   if (typeof value !== 'object' || value === null) return {};
   const candidate = value as {
-    density?: unknown;
     battleSpeed?: unknown;
-    verbosity?: unknown;
     tutorial?: unknown;
     intro?: unknown;
     exposure?: unknown;
   };
   const read: Partial<Settings> = {};
-  if (isDensity(candidate.density)) read.density = candidate.density;
-  // The 4.7.2 field. Both of its values are members of the new union with the
-  // same meaning, so the migration is the identity on them; anything else the
-  // old field could hold falls through to the default.
-  else if (candidate.verbosity === 'simple' || candidate.verbosity === 'detailed') read.density = candidate.verbosity;
-
   /*
-   * The move bar layout. **Read after the density chain, not inside it**, and
-   * the first draft of this put it between the two branches — which quietly
-   * severed the `else` and let a stored `verbosity` overwrite a stored
-   * `density`. `test/density.test.ts` caught it on the one case written for
-   * exactly that: "lets a stored density win over a stored verbosity".
-   *
-   * No migration of its own: the field is new, so a store written before it
-   * falls through to the default, which is the layout that store was already
-   * being shown.
-   */
-  /*
-   * The speed, read like the move bar and outside the density chain for the
-   * same reason: a branch placed inside that `else` severs it, which is the
-   * defect `test/density.test.ts` already has a case for. No migration — the
-   * field is new, so a store written before it falls through to `even`, which
-   * is the speed that store was already being shown.
+   * The speed. No migration: a store written before the field falls through to
+   * `even`, which is the speed that store was already being shown.
    */
   if (isBattleSpeed(candidate.battleSpeed)) read.battleSpeed = candidate.battleSpeed;
   const tutorial = candidate.tutorial as { skipped?: unknown; seen?: unknown } | undefined;
@@ -387,17 +292,6 @@ const listeners = new Set<(settings: Settings) => void>();
 export function initSettings(): Settings {
   current = loadSettings();
   return current;
-}
-
-export function getDensity(): Density {
-  return current.density;
-}
-
-export function setDensity(density: Density): void {
-  if (current.density === density) return;
-  current = { ...current, density };
-  saveSettings(current);
-  for (const listener of listeners) listener(current);
 }
 
 export function getBattleSpeed(): BattleSpeed {

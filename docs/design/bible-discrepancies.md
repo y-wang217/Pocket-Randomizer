@@ -54,13 +54,45 @@ which blocks everything.
 | D36 | M5.1 | Section 3 puts the effect line on inspect; section 4 and M5.1 put it on the card | **2026-09-22**, option 1, built |
 | D37 | M5.2 | M5.2 needs two glyphs: section 2 carries neither, and section 3 already promised one of them | **2026-09-22**, option 1, built |
 | D38 | M5.4's second clause | The capture card cannot mount the party row and stay above the fold | **open** |
-| D39 | M5.6 (filed), then M6.1 or M7.2 | `Costs` is a field label at rest, and no family encodes a price | **open** |
+| D39 | M5.6 (filed), then M6.1 or M7.2 | `Costs` is a field label at rest, and no family encodes a price | **2026-09-30**, closed by D54: option 3 taken, the `currency` family |
 | D40 | M6.1's done-when | The classroom does not carry the families section 7 says it does: starter select draws its own move rows | **2026-09-23**, option 3: new item M6.0 |
 | D41 | M6.1 | Three of ten families never pass through the glyph, and the canon says the glyph renders the label | **2026-09-23**, option 1 plus option 3's test, built |
 | D42 | M6.1 | R2 and R3 outrank R7, and both forbid what R7 requires | **2026-09-23**, option 1 |
 | D43 | M6.1, M6.2 | What an exposure is while two modes paint words, and the guard puts the classroom in one of them | **2026-09-23**, option 1: order M6.0, M6.2, M6.3, M6.1 |
 | D44 | M6.1's census, then M7.2 | The census has no exposure state, so M6.1 raises every surface's count on a fresh store | **2026-09-23**, option 1, built |
 | D45 | M6.0 | Four move cards per starter cannot fit the Pocket no-scroll gate in any layout measured | **2026-09-23**, option 1: the starter screen scrolls, moves two across |
+| D46 | Patch 4.10.1, then M7.1's face | The map node kind is a word by D37 and D28, section 5 says it is a glyph, and 4.10.1 asks for the glyph: D37's option 2, a reversal of D28 | **2026-09-25**, option 1, the four defaults taken, built |
+| D47 | Stage 4.11 Tiers 1 to 3 | Weather and terrain are a board state with no encoding row, no glyph family and no step in the turn grammar; the stage needs a twelfth family, `field`, nine marks after the Tier 0 census | **2026-09-25**, option 1, the plan's defaults taken with the census's ninth mark; **built** (Tiers 1 to 3) |
+| D48 | Stage 4.11 Tier 4 | A pulse on the ability name when it fires is feedback by section 6's own pattern, and C1's *no conditional emphasis* should say so | **2026-09-25**, option 1; **built** (Tier 4) |
+| D49 | Stage 4.11 (declines a scope) | A *boosted under this weather* marker on the move button is a forecast C1's exception does not cover; recommended declined | **2026-09-25**, **option 2, against the recommendation**: C1's exception extended; **built** (Tier 2b) |
+| D50 | 5.0/1 | Ruling 2 retires Simple and Detailed before the validation cycle R6 and M6.4 wait for | **2026-09-30**, the cycle ruled done by the author: R6 amended, one face, the setting deleted in 5.0/1 |
+| D51 | 5.0/1, 5.0/2 | The plan deletes density in Stage 2 by its ruling and in Stage 1 everywhere else | **open** |
+| D52 | 5.0/1 to 5.0/4 | "Inspect on tap" against R5's long press, and a tap on a reward card that must also select | **2026-09-30**, option 1: inspect stays the long press |
+| D53 | 5.0/1 | The nav tabs open routes where §12's standing rule built overlays; Team and Bag are one screen; no mid-run Run Info exists | **2026-09-30**, tabs open screens, read-only while a decision is pending; a mid-run Run Info screen is built |
+| D54 | 5.0/1, 5.0/3, 5.0/4 | The shell's nav words, nav icons and currency icon have no budget row and no family | **2026-09-30**, option 1: a Shell nav row at 5 and a thirteenth family, `currency`; closes D39 |
+| D55 | 5.0/1, 5.0/3 | The desktop sidebar: Recent Events is a log at rest, Run Progress has no phone route, the team is a new call site | **2026-09-30**, Run Progress is the decision feed, replayed from the run log; R11 carve-out |
+| D56 | 5.0/2 | Stage 2's HP box drops facts the Pokemon panel carries, the foe's HP number among them | **2026-09-30**, option 1: the panel restyled, every fact kept |
+| D57 | 5.0/2 | Stage 2's move button list omits the name, base power, accuracy, priority and the fact strip | **2026-09-30**, option 1: the full move card, restyled |
+| D58 | 5.0/2 | The battle header, the turn header and the flags have no place in Stage 2's layout | **2026-09-30**, option 1: the header row above the stage |
+| D59 | 5.0/2 | The log behind "Info" reverses D26, and "Info" is a word and possibly a help button | **2026-09-30**, option 1: D26 stands, no Info button |
+| D60 | 5.0/2, 5.0/4, 5.0/5 | Painted backdrops replace the World component, and the plan does not say where the weather goes | **2026-09-30**, neither option: the World stays behind the frame, the backdrop is the scene inside it, the wash on the battle backdrop |
+| D61 | 5.0/1's manifest, 5.0/4, 5.0/5 | Class C node and capability art redraws two section 2 families outside the glyph renderer | **2026-09-30**, option 1: art through `glyphNode` at 8px native; trainer sprites for the player marker only |
+| D62 | 5.0/1 to 5.0/4 | Class B marks drawn in CSS must stay section 2's shapes and pass through the glyph renderer | **2026-09-30**, option 1 everywhere: a type is the icon chip, never a word badge |
+| D63 | 5.0/4 | The node on the graph drops the payout, the AI tier and the reward-tier pips | **2026-09-30**, neither option: the step being chosen from carries the whole card, other rows the mark, tier and capability; the rest on long press |
+| D64 | 5.0/4 | "Held or not-held" collapses the capability's three bands to two | **2026-09-30**, option 1: the chevron keeps three states |
+| D65 | 5.0/3 | Capability glyphs on relic cards put at rest what section 3 puts on inspect | **open** |
+| D66 | 5.0/3 | Stage 3's card face carries the name and an effect line, which section 3 and D36 put on inspect | **open** |
+| D67 | 5.0/3 | Stage 3's card gives a move kind "band pips" where section 5 gives it the move card | **open** |
+| D68 | 5.0/3 | A "reward screen" beside the result screen, against CLAUDE.md's single completion path | **open** |
+| D69 | 5.0/3 | The selection cursor and confirm-to-claim: a resting cursor is emphasis, and a claim confirm is a confirm band the canon does not list | **open** |
+| D70 | 5.0/3 | The capture card in the one card component, and "the coverage line" | **open** |
+| D71 | 5.0/3, 5.0/5 | TM discs coloured by type draw the type twice on a TM card | **open** |
+| D72 | 5.0/4 | The locale card's gym identity repeats one segment fact on every card | **2026-09-30**, option 1: the gym in the rail once; a backdrop crop replaces the swatch |
+| D73 | 5.0/1's tests | Test 2's fit gate has no exemption, and D45 gave starter select one | **2026-09-30**, option 1: the existing gate, D45 exemption inherited |
+| D74 | every 5.0 stage | The plan carries no census gate, and the standing gate names three density modes | **2026-09-30**, option 1: census per stage |
+| D75 | 5.0/4 | Node positions from a hash of the node id, against "all randomness comes from core/rng.ts" | **2026-09-30**, option 1: a slot by option index, no hash |
+| D76 | 5.0/0, 5.0/1 | 5.0 lands on top of an open Tier 7: which face M7.1 tests, and which items it redoes | **2026-09-30**, option 1: 5.0 before M7.1 |
+| D77 | 5.0/4's census, then 5.0/3 or M7.2 | The map node card's current step prints an untiered node's hint and a shop's shelf in words: 7 against a budget of 1 | **2026-09-30**, option 1: the hint to inspect, the shelf a count and a coin amount |
 
 ## Rulings, 2026-09-19
 
@@ -3184,3 +3216,1384 @@ decision surface keeps the hard gate. What this does not decide is D38: the
 capture card is a surface where the player compares against the party already
 on screen, and the same ruling is not assumed to carry.
 
+
+
+---
+
+## D46. The map node kind is a word by two rulings, a glyph by section 5, and patch 4.10.1 asks for the glyph
+
+**Ruled 2026-09-25, option 1, the plan's four defaults taken; built in patch 4.10.1. Filed 2026-09-25, before any code, from
+[`../spec/gymrun-patch-4.10.1-map-node-icons.md`](../spec/gymrun-patch-4.10.1-map-node-icons.md).**
+
+The patch prompt: *"convert map to icons. Trainer is a head symbol. Wild is a
+bush symbol. Shop and event we steal. The tier levels can remain as labels
+beneath."* With a drawing: round nodes, each carrying one mark, no words.
+
+### What the bible says, in three places that do not agree
+
+| Where | Says | Since |
+|---|---|---|
+| Section 5, component canon, *Map node card* | *"Node-type glyph, tier pips, reward-tier pips, capability glyph with band chevron"* | D29, 2026-09-22 |
+| Section 4, *Map node card* row and its note | Budget **3**: *"Node kind, the payout's unit, AI tier."* The note: *"there is no such glyph: section 2's families are attributes of a Pokemon or a move, and a node kind is neither"*, and the kind *"stays a word on both"* surfaces to match D28 | D37, 2026-09-22 |
+| Section 5, *Battle screen header* | *"Node kind, opponent, AI tier"*, budgeted at 4 in section 4 | D28, 2026-09-21 |
+
+Section 5 promises a node-type glyph. Section 4, one day later, says there is
+none and cannot be. Both carry a 2026-09-22 date. Nothing caught it because
+D37 was ruled option 1 and the build made section 4 true, and section 5's
+line was never corrected to match the ruling.
+
+### D37 already described this request
+
+D37's option 2, verbatim: *"Tenth and eleventh: `capability` and `node kind`.
+M5.2 as written, zero words on the card, and D28 is reopened, because the
+battle header's first budgeted word becomes a glyph too. Consistent with R1,
+and it spends the 'nine families is the right size' hypothesis that section 9
+is still betting on."* And its closing line: *"Option 2 is the one to take if
+the node kind's word on the battle header is judged the real defect, but that
+is a reversal of D28, not an extension of it, and it should be ruled as one."*
+
+So this row is D37 reopened on its own terms. It asks for one thing D37
+declined, and it is filed as a reversal of D28 because D37 said it must be.
+
+### What R1 forces if the glyph is granted
+
+R1: *"every attribute has one fixed slot on every surface where it appears."*
+The kind appears on the map node card, in the drawer (same component), and on
+the battle header. A glyph on the card and a word on the header is the shape
+D37 refused, so granting the glyph grants it on the header too. Section 4's
+battle header row goes 4 to 3 and section 5's header row is rewritten. This
+is the whole of the D28 reversal: D28's budget stands, one word lighter.
+
+### Options
+
+1. **Eleventh family `node`, on both surfaces.** Section 2 gains the row and
+   reads eleven. Section 3 gains *Node kind (map node, battle header) | Kind
+   glyph | None | The kind's hint*. Section 4: map node card 3 to **2**, battle
+   header 4 to **3**. Section 5: the header row names the glyph. Section 9's
+   hypothesis row reads eleven, and M7.1 tests it. The six marks are the
+   plan's section 2.4; the tier pips move beneath the mark, which is a slot
+   change inside one component and not a surface change.
+2. **Eleventh family on the map only, D28 untouched.** The cheapest build and
+   the one R1 forbids by name. Listed so that the refusal is on the record.
+3. **Correct section 5 to say *word*, decline the patch.** Restores the
+   bible's agreement with itself at zero cost and leaves the map as it is.
+   The prompt is then wrong until amended, by section 10.4.
+
+**Recommendation: 1.** It is what the lead designer has asked for, it is the
+option D37 wrote down as the way to ask for it, and the only rule it touches
+is R1, which it satisfies rather than bends. The price is the section 9
+hypothesis, and M7.1 is scheduled to collect it.
+
+### Four things the ruling should say, because the plan defaults them
+
+1. The rest node's mark (default: a tent). The prompt names four kinds and the
+   example draws no rest.
+2. The gym's mark (default: a badge; the example draws a skull). Either passes
+   C1.
+3. The glyph size on the card (default: 24, where `ui/theme/glyph.ts` says a
+   card face is 16). Section 5 should carry the size for this component.
+4. Whether the untiered node's short hint stays on the detail line (default:
+   yes; it stands in for a tier fact, not for the kind).
+
+---
+
+## D46, closed with the build
+
+**2026-09-25, option 1 as recommended. Patch 4.10.1.** The lead designer's
+ruling was one word, *go ahead*, on the plan as filed, so the four defaults
+stand: the rest node wears a tent, the gym a badge beside the leader's name,
+the mark is 24 on the card and 16 on the header, and the untiered node keeps
+its short hint on the detail line. The bible went to Rev 13. R7's exposure
+labels give the six words back on the first and third map, which is the one
+place the prompt's *labels beneath* and R2's *labels go* both hold. Record in
+[`../generation.md` §80](../generation.md).
+
+---
+
+## D47. Weather and terrain are a board state the bible does not encode
+
+**Filed 2026-09-25, before any code, from
+[`../spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md`](../spec/gymrun-stage4.11-weather-terrain-and-trigger-visuals.md).
+Blocks Stage 4.11 Tiers 1 to 3.**
+
+The stage prompt: *"weather that changes the background. have a css show
+weather and terrain effects."*
+
+### What the bible says
+
+| Where | Says | Gap |
+|---|---|---|
+| Section 2 | Eleven glyph families. *"Adding a twelfth is an amendment."* | Weather and terrain are in no family |
+| Section 3, encoding table | One row per attribute at rest | No row for weather or terrain. `Volatile condition` and `Status` are the nearest, and both are facts about one Pokemon; the field is a fact about neither |
+| Section 4 | Battle screen header budgeted at 3 | Holds: a glyph is not a word |
+| Section 5, component canon | Pokemon panel, flag strip, battle screen header | No component owns the world behind the stage, though `createWorldScene` has drawn it since V3 |
+| Section 6, turn grammar | Seven steps | No step for a field effect beginning or an ability firing, though `mark-sweep` and `mark-pulse` have shipped since Branch 3B |
+| D23 | A weather change is a second-channel *event* | Correct and unchanged. The event has a channel; the *state* has none |
+
+### Why it is a state and not only an event
+
+`flagWords.ts` draws the line for status: the panel's `BRN` is present tense,
+the strip's *Burned* is past tense, *"one table cannot hold both"*. The tree
+has the past tense of weather (the `field` flag, start only) and no present
+tense. A sandstorm chips both bodies every turn for five turns and the only
+place that fact lives is the log sheet, behind a pull, in prose R11 keeps off
+the screen. The census put the field class on 23.2% of battles.
+
+### Options
+
+1. **A twelfth family, `field`, plus a section 3 row, a section 5 row and two
+   section 6 steps.** Eight marks (rain, sun, sand, snow, four terrains), at
+   16 in a fixed slot on the battle header, with the world behind the stage
+   carrying the same state as a wash and a tint. Glyph primary, colour
+   secondary, as section 2's type row already rules. R7 labels the family.
+   Inspect opens the effect line. **Recommended.**
+2. **The wash alone, no glyph.** Fails the bible's own colour-secondary rule
+   and leaves a colour-blind or reduced-motion player without the fact.
+3. **The glyph in the Status family**, the way D19 put volatiles there. Wrong
+   by D19's own argument: a volatile *"is a thing happening to this Pokemon
+   right now"*, and the field is happening to neither.
+
+### Four things the ruling should say, because the plan defaults them
+
+- The glyph's slot: the header, after the AI tier (plan's open question 1).
+- Turns remaining: not shown anywhere (open question 2). Once drawn it is a
+  decision-relevant fact C2 never lets us remove.
+- Suppressed weather (Cloud Nine, Air Lock): glyph dimmed, wash at half
+  (open question 3).
+- The three primal weathers and Strong winds reuse the base mark and differ
+  on inspect (open question 5). **Corrected by the Tier 0 census, 2026-09-25**
+  ([`../reports/stage-4.11-field-census.md`](../reports/stage-4.11-field-census.md)):
+  the primals are 5.0% of battles against 5.2% for all standard weather, and
+  Desolate Land is the single most common weather in the game. Extreme sun and
+  Heavy rain still share the sun and rain marks and differ on inspect; **Delta
+  Stream's Strong winds has no base and is a ninth mark.**
+
+---
+
+## D48. The ability-fired pulse against C1's "no conditional emphasis"
+
+**Filed 2026-09-25, before any code, from the same prompt. Blocks Stage 4.11
+Tier 4.**
+
+The prompt: *"highlight when a move or ability is triggered."*
+
+C1 forbids *"conditional emphasis"*. A pulse on the panel's ability name the
+beat an `-ability` line lands is conditional on exactly one thing, the
+protocol saying it fired, which is the same footing as section 6 step 4 (*the
+status chip appears on the panel the moment it is inflicted*) and step 5 (*berry
+fires: sprite pops*). The `trait` mark already does this on the actor and its
+stylesheet comment carries the rule that keeps it an attribute: no colour, no
+weight, one keyframe for every ability.
+
+The gap is that section 6 does not say it, and a reader of C1 alone could read
+a pulse as emphasis. The plan asks section 6 to gain the step and to state the
+bound.
+
+### Options
+
+1. **Section 6 gains a step: *an ability fires: the ability name pulses on its
+   panel, one keyframe for every ability, never weighted*.** Intimidate and
+   Drizzle are drawn identically. **Recommended.**
+2. **No pulse; the `trait` mark on the actor is enough.** Then the ability
+   name is the one panel attribute whose change is never marked where it sits,
+   and the prompt's request goes unbuilt.
+
+Two facts the ruling should know: the opening batch animates nothing today, so
+every lead ability is currently invisible outside the log, and the reader
+drops the `[from] ability:` tag on weather lines, so Drizzle never produces an
+`ability` flag at all. Both are defects the plan fixes at Tier 4 whichever way
+this is ruled.
+
+---
+
+## D49. A "boosted under this weather" marker on the move button
+
+**Filed 2026-09-25, before any code, from the same prompt. Declines a scope
+rather than blocking one.**
+
+The prompt's *"highlight when a move ... is triggered"* has a forecast reading:
+mark Surf as boosted while it rains, Solar Beam as one-turn under sun. That is
+a marker on the move button about the present board. C1's one exception is
+*"live type effectiveness against the Pokemon currently on the field"*, and
+it is worded as narrowly as it is on purpose: a weather multiplier is a fact
+about the board, but a marker saying *this move is better now* is a verdict
+about the move.
+
+### Options
+
+1. **Declined.** The field glyph and the wash say it is raining; the move
+   card's inspect (R5) already says what the move does; the player does the
+   multiplication, which is the game. **Recommended.**
+2. **Extend C1's exception to weather and terrain multipliers on the button,
+   the same edge-colour family as effectiveness.** A larger amendment than it
+   looks: it is the first marker that changes with something other than the
+   opponent's body, and the first time the forecast helper would read the
+   field.
+
+Whichever way it is ruled, the post-resolution side (`-activate` on a move) is
+measured first at Tier 0 and built only if the census earns it.
+
+---
+
+## D47, D48 and D49, ruled
+
+**2026-09-25, after the Tier 0 census
+([`../reports/stage-4.11-field-census.md`](../reports/stage-4.11-field-census.md)).
+The bible went to Rev 14.**
+
+**D47, option 1 as recommended.** A twelfth family, `field`, with the census's
+correction taken: nine marks, Delta Stream's Strong winds its own. The four
+defaults stand: the glyph on the header after the AI tier, turns remaining
+never shown, suppressed weather dimmed with the wash at half, Heavy rain and
+Extreme sun on the rain and sun marks. Section 6 gains step 4.
+
+**D48, option 1 as recommended.** Section 6 gains step 3, with the bound in the
+rule's own words: one keyframe for every ability, never weighted, never
+coloured. The census's 7.2% of abilities that fire through `-activate` are the
+same event and join the `ability` flag.
+
+**D49, option 2, against the recommendation.** The lead designer extended C1's
+exception: the move button's forecast multiplier folds in the field's factor
+for the move, on the reading that a weather multiplier is a fact about the
+present board exactly as a type multiplier is. **This adds scope the plan's
+section 8 declined**, and per the deviation rule the plan is not edited: the
+scope is recorded here and in the register. What it builds: the core
+effectiveness helper that feeds `typeMultiplier` on the button gains the
+field's factor for the move (rain and sun on Water and Fire, Grassy Terrain
+on Grass, and the rest the sim already applies), read off the same
+`BattleFacts.field` Tier 1 adds, so the number the button shows is the number
+the hit will use. It lands as **Tier 2b**, after the readout and before the
+wash, because a button showing 1.5 under rain with no glyph saying it is
+raining would be a number with no cause on screen. Section 9 carries the
+bet: if a tester reads the button as telling them what to pick, the factor
+comes back out and the field's part moves to inspect.
+
+**One consequence outside this file.** `CLAUDE.md` restates C1 as an
+invariant, including its *one exception* in the old wording. That file is the
+invariants register and is edited by the lead designer, not by a stage; it
+now disagrees with the bible on the exception's count until it is brought in
+line.
+
+---
+
+## D47, D48 and D49, closed with the build
+
+**2026-09-25, Stage 4.11 Tiers 1 to 4.** D47 as ruled: `FieldFacts` off the
+sim, nine marks in the `field` family, the glyph on the header after the AI
+tier, inspect through `fieldCopy`, the wash and the tint on the world with
+the glyph primary and the colour secondary; turns remaining never shown,
+suppressed weather dimmed and halved, Heavy rain and Extreme sun on the rain
+and sun marks. D48 as ruled: the ability name pulses in its slot on one
+keyframe for every ability, the activation-line abilities included, and the
+opening batch shows it. D49 as ruled: the button's multiplier folds in the
+field's factor and points its tip at the field when no ability explains it.
+Record in [`../generation.md` §82](../generation.md). One item is open
+outside this file: `CLAUDE.md`'s restatement of C1.
+
+
+---
+
+## Rows filed 2026-09-30, opening Stage 5.0
+
+Twenty-seven rows filed against
+[`../spec/gymrun-stage5.0-visual-redesign.md`](../spec/gymrun-stage5.0-visual-redesign.md)
+in 5.0/0, before any change to `src/`, as the plan's own Stage 0 asks:
+*"Conflicts between this plan and the design bible or milestones, added to the
+discrepancy register."* Line numbers are the spec file's. The plan's
+sub-stages are written 5.0/0 to 5.0/5, per its filing note.
+
+**D50, D52 and D66 are the ones to read first.** Each asks a rule to move (R6,
+R5, R2), and section 10.1 moves a rule only on an observed disconfirmer. The
+one precedent for a directive instead is R5's docked-sheet amendment of
+2026-09-25, which carried a playtest-log row saying no disconfirmer had fired.
+Most of the rest are the plan under-describing a component the canon already
+owns, and close on a one-line ruling that the component is mounted unchanged.
+
+| Row | Blocks | Costs |
+|---|---|---|
+| D50 | 5.0/1 | An R6 amendment, M6.4 superseded, section 9's R6 row and note retired |
+| D51 | 5.0/1, 5.0/2 | One word of the plan read one way, recorded in `generation.md` |
+| D52 | 5.0/1 to 5.0/4 | None if "tap" means the long press; an R5 amendment if not |
+| D53 | 5.0/1 | A ruling that tabs open overlays; a Run Info surface or none |
+| D54 | 5.0/1, 5.0/3, 5.0/4 | A section 4 Shell row; a thirteenth family, `currency`, closing D39 |
+| D55 | 5.0/1, 5.0/3 | Recent Events not built, or a row and an R11 carve-out |
+| D56 | 5.0/2 | None if the HP box is the Pokemon panel restyled |
+| D57 | 5.0/2 | None if the list is illustrative |
+| D58 | 5.0/2 | None if the header row survives above the stage |
+| D59 | 5.0/2 | None if D26's handle stays; a D26 reversal if not |
+| D60 | 5.0/2, 5.0/4, 5.0/5 | A section 5 World row amendment; a wider contrast check |
+| D61 | 5.0/1, 5.0/4, 5.0/5 | Art through `glyphNode` at native 8px; M1.1's check re-run |
+| D62 | 5.0/1 to 5.0/4 | None if "drawn in CSS" means restyled |
+| D63 | 5.0/4 | A fit measurement in 5.0/0, or three table amendments |
+| D64 | 5.0/4 | None if the chevron stays |
+| D65 | 5.0/3 | Two table rows, sections 3 and 5 |
+| D66 | 5.0/3 | None if section 3 stands; an R2 amendment if not |
+| D67 | 5.0/3 | None if move kinds mount the move card; a third call site if not |
+| D68 | 5.0/3 | None if "reward screen" means the result screen's card section |
+| D69 | 5.0/3 | A section 5 Confirm band row gains two screens |
+| D70 | 5.0/3 | One sentence |
+| D71 | 5.0/3, 5.0/5 | One asset decision |
+| D72 | 5.0/4 | A section 5 Locale card row |
+| D73 | 5.0/1 | One test inherits one exemption |
+| D74 | every stage | The census leg per stage |
+| D75 | 5.0/4 | None under option 1; a CLAUDE.md note under option 2 |
+| D76 | 5.0/0, 5.0/1 | An order for M7.1 against 5.0 |
+| D77 | 5.0/4's census | Section 5's detail line, or two section 4 words |
+
+---
+
+## D50. Ruling 2 retires Simple and Detailed before the validation cycle R6 waits for
+
+**Filed 2026-09-30, in 5.0/0, before any code, from
+[`../spec/gymrun-stage5.0-visual-redesign.md`](../spec/gymrun-stage5.0-visual-redesign.md).
+Blocks 5.0/1 until the bible is amended.**
+
+The plan, ruling 2 (line 57): *"Density modes are retired. One presentation.
+... Delete the setting and its branches ..., do not leave it behind a flag."*
+Restated at line 132, in test 6 (line 186) and in the defaults (line 197).
+
+| Where | Says |
+|---|---|
+| R6 (bible line 211) | *"Simple and Detailed stay for one validation cycle and are retired if the disconfirmer in section 9 does not fire."* |
+| Section 9, R6 row (line 528) | Disconfirmed if *"A tester asks for all numbers always visible"*; then *"A single "numbers on stats" setting returns, not a global mode"* |
+| Section 9, closing note (line 538) | *"Retiring Simple and Detailed is open ... The R6 row above decides retirement after the validation cycle M7.1 runs, and M6.4 carries out whichever way it falls."* |
+| Section 10.1 (line 546) | A rule changes only when its disconfirmer has been observed in a playtest and recorded in `playtest-log.md` |
+| M6.4 (record line 157; `milestones.md` line 462, `open`) | *"Gated on M7.1. Delete the two modes ... only if the R6 disconfirmer did not fire across two playtest rounds. If it fired, ship the single "numbers on stats" setting instead"* |
+
+No validation cycle has run. The playtest log holds three rows, none against
+R6. The plan takes M6.4's delete branch before M7.1 has decided between the
+two branches, and it rules out the other one.
+
+The deletion reaches two things beyond the setting:
+
+- **Folds are a density decision today.** R6 lets a mode decide *"whether a
+  secondary fact sits behind a tap"*, and the party card folds to 92.9px in
+  Pocket and opens to 514.0px (M3.3). With one presentation, which surfaces
+  fold becomes a per-surface rule. D38's option 1 already called that
+  *"either a new kind of rule or an R6 amendment"*.
+- **D16's bounded exception ends.** D16 let Detailed and Simple keep their
+  labelled face *"until M6.4 rules on them with M7.1's evidence"*. D38, open,
+  is caused by Detailed's 655px capture card, and goes with it.
+
+What does not move: `src/data/densityTuning.ts` is on `EXCLUDED`
+(`build-config/content-hash.ts:164`), so deleting it leaves `contentHash`
+where it is.
+
+**Options.**
+
+1. **Amend R6 by the author's directive, as R5 was on 2026-09-25.** A
+   playtest-log row records that the retirement was directed with no
+   disconfirmer observed. R6's density ruling is rewritten to one face, with
+   folds ruled per surface. Section 9's R6 row and closing note are retired,
+   or the row becomes the *"numbers on stats"* bet against the single face.
+   M6.4 is closed as superseded with a dated note in `generation.md`. D38 is
+   closed or re-filed against the single face.
+2. **Run M7.1's two rounds first**, then M6.4 as written, and start 5.0/1
+   after. Costs the playtest's lead time.
+3. **Hide rather than delete** until M7.1. Refused by the plan (line 197) and
+   by CLAUDE.md: *"It is never left behind a flag."*
+
+**Recommendation: 1**, as its own bible PR before 5.0/1's first commit. It is
+the author's call and there is a precedent for making it by directive. What
+section 10 forbids is the stage doing it quietly.
+
+---
+
+## D51. The plan deletes density in Stage 2 by its ruling and in Stage 1 everywhere else
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Needs a ruling before
+5.0/1. Cosmetic.**
+
+Ruling 2 (line 57): *"Delete the setting and its branches in Stage 2."*
+Against it:
+
+- Stage 1 (line 132): *"Delete the density setting and every branch on it."*
+- Stage 1's outcome (line 135): *"The density toggle is gone."*
+- Test 6 (line 186): *"No symbol reads a density setting after Stage 1."*
+- Stage 0's density inventory (line 121) exists to feed the deletion.
+
+Four places say 5.0/1 and one says 5.0/2.
+
+**Options.**
+
+1. **5.0/1.** Four places against one, and Stage 1 is where the shell is
+   built and the coach marks are re-anchored against one layout. Ruling 2's
+   "Stage 2" is recorded as a slip in `generation.md`, and the prompt is not
+   edited.
+2. **5.0/2.** Then test 6 and Stage 1's outcome fail as written.
+
+**Recommendation: 1.**
+
+---
+
+## D52. "Inspect on tap" against R5's long press, and a tap that must also select
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Needs a ruling before
+5.0/1; blocks 5.0/1 until R5 is amended if "tap" is meant literally.**
+
+The plan:
+
+- line 57: *"reachable in one tap through the existing inspect layer"*
+- line 58: *"Icons explain themselves, with inspect on tap."*
+- line 150: *"Tap to inspect for the rest."*
+- line 151: *"selection cursor on the picked card"*
+
+R5 (line 204): *"Long press on any card, chip, glyph, badge or pip opens its
+full explanation, in one docked sheet ... Tap still selects. There is exactly
+one mechanism."* The glossary (line 556) calls inspect *"the single
+long-press layer"*. Section 9's R5 row (line 526) names the only sanctioned
+change of gesture: *"Inspect moves to two-finger tap."*
+
+**"The existing inspect layer" does not open on a tap.** `ui/tooltips.ts:14`
+says *"M1.2 replaced the opening half of that: a long press opens"*. Opening on
+a tap is what the layer did before M1.2. The playtest log's 2026-09-22 row is
+a tap on a move card that both chose the move and opened a panel nothing could
+close. On the Stage 3 card, one tap cannot both inspect and move the cursor.
+
+Ruling 3's *"No Legend"* agrees with R5's forbid (*"a legend screen"*) and
+with section 7's rejected legend button. Nothing needs ruling there.
+
+**Options.**
+
+1. **Read "tap" as the existing gesture.** Every "one tap" in the plan means
+   one long press. No bible change; a note in `generation.md`.
+2. **Amend R5 to tap-to-inspect on elements that do not submit**, with
+   selection moved to a separate control. This needs a directive under D50's
+   precedent. A battle move button submits on tap, so it keeps the long
+   press, which gives one layer two gestures. R5's *"One inspect gesture"*
+   forbids that.
+
+**Recommendation: 1.**
+
+---
+
+## D53. The nav tabs open routes where the standing rule built overlays
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Blocks 5.0/1 until
+ruled.**
+
+Line 130: *"compact top nav with Map, Team, Bag, Run Info, Settings. The tabs
+open the existing party, backpack, summary and settings surfaces."* Line 200:
+*"The top nav tabs replace the single shell-level drawer button on all
+viewports."* Ruling 4 (line 59): *"no Bag, no Run"* in battle.
+
+What the tree has:
+
+- **The standing rule is built as overlays.** `generation.md` §12: *"Any
+  screen that asks the player for a decision must expose current party state
+  without leaving the decision."* `ui/drawer.ts` builds it as *"An overlay,
+  not a route"*: opening it never advances run state, never submits and
+  consumes no RNG. `test/party-drawer.test.ts` asserts all three per surface.
+- **The map drawer cannot pick.** It calls `renderChain` with no `onChoose`
+  (`ui/map-drawer.ts:33-41`), because CLAUDE.md says *"There is never a
+  second path by which a node completes"*.
+- **The party screen is a route and a write path.** Reorder and release are
+  logged decisions since `RUN_LOG_VERSION` -21 (`generation.md` §85).
+  `router.ts`: *"Reorder and release, between nodes."*
+- **Team and Bag name one surface.** `screens/party.ts:7`: *"The backpack and
+  the party are one screen, not two"*.
+- **No mid-run Run Info surface exists.** The summary is the end-of-run
+  archive, with Rematch, copy seed and the tier table (`screens/summary.ts:1-9`;
+  section 4: *"Archive surfaces"*).
+- **Settings live in the party drawer.** `ui/drawer.ts` imports
+  `DENSITY_COPY` and `BATTLE_SPEED_COPY`.
+- **There are two shell triggers, not one.** `app.ts:247-259` puts
+  `mapTrigger` and `drawerTrigger` in `shell__drawer-bar`.
+- **Section 5 names both drawers as call sites**: *"Drawer"* (line 422) and
+  *"the map drawer"* (line 429).
+
+If the tabs are routes, Team mid-battle is a logged party edit inside a fight.
+Map from the shop is a second path to a node, and it unmounts the basket. Bag
+in battle is the Bag action ruling 4 says does not exist.
+
+**Options.**
+
+1. **Tabs are triggers for the existing overlays.** Map opens the map drawer.
+   Team and Bag open the party drawer, read-only, with the backpack as its
+   section. Settings opens the drawer's settings. Run Info needs a read-only
+   overlay that does not exist: build it with its own section 4 row, or drop
+   it on phone (see D55). The party route stays where it is today. The coach
+   marks on the drawer trigger (`app.ts:330`) re-anchor under test 8.
+2. **Tabs route, disabled on every decision surface.** Then the nav is dead
+   on the screens where §12 says it must work.
+3. **Tabs route everywhere.** Reverses §12 and reopens the second path.
+   Refused by CLAUDE.md.
+
+**Recommendation: 1.**
+
+---
+
+## D54. The shell's nav, nav icons and currency icon have no budget row and no family
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Blocks 5.0/1 (the nav)
+and 5.0/3 to 5.0/4 (the currency icon) until amended.**
+
+The plan's class C list has *"Nav icons | 5"* (line 97) and *"Currency icon |
+1"* (line 98). The tab words are at line 130.
+
+- **No section 4 row covers the shell.** Five tab words at rest on every
+  screen is the pattern the bible stated once at Rev 10 (lines 74-78): *"a
+  budget table written per component leaves every screen's own chrome
+  unbudgeted, and nothing measures what nothing budgets."*
+- **R3, or a family question.** An icon beside its word is R3's *"glyph plus
+  name"* if the icon is an attribute mark. An icon standing alone is a mark
+  with no family, and section 2 (line 241) says *"Adding a thirteenth is an
+  amendment."*
+- **The currency icon has no family.** Beside a payout it replaces the word
+  the map node card's budget keeps (*"The payout's unit"*, line 321), and it
+  sits beside the shop's *"bare price number"*. D39's option 3 already named a
+  price glyph as a new family.
+- **The count is stale in two places.** Section 10.3 (line 548) and CLAUDE.md
+  both still say *"a tenth glyph family"*, where section 2 says thirteenth.
+  Both should be corrected with whatever this row rules.
+
+**Options.**
+
+1. **Nav:** a section 4 *Shell* row at 5, for the five tab words. The icons
+   are `aria-hidden`, and one sentence in section 2 rules a control's icon
+   outside the roster, because a control is not an attribute. **Currency:** a
+   thirteenth family, `currency`, with one mark, an R7 label and a section 3
+   row. It replaces `coins` on the node card (budget 2 to 1) and joins the
+   shop price. This takes D39's option 3 and closes D39.
+2. **Icon-only nav.** Five marks with no family: a fourteenth.
+3. **Decorative currency icon, word kept.** R3.
+
+**Recommendation: 1.**
+
+---
+
+## D55. The desktop sidebar: Recent Events is a log at rest, Run Progress has no phone route, the team is a new call site
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Blocks 5.0/1 until
+ruled.**
+
+Ruling 3 (line 58): *"Recent Events and Run Progress exist only in the desktop
+sidebar."* The sidebar is specified at line 131, and again beside the cards at
+line 153.
+
+- **R11** (line 230): *"The log is never rendered at rest ... Forbids: a
+  scrolling log on the battle screen."* A recent-events list beside the
+  battle at 1024px and wider is a log at rest on the battle screen, whatever
+  it lists.
+- **C2** (line 174), and CLAUDE.md's *"No density mode removes a fact"*:
+  *"only in the desktop sidebar"* means a phone never reaches them. Either
+  they carry no decision-relevant fact, in which case they are words at rest
+  with no row, or the phone loses a fact. Ruling 3 also contradicts line 130,
+  whose Run Info tab is on every viewport.
+- **The team.** Section 5's closing line: *"A component that exists twice ...
+  is the defect."* The party row's call sites already include the *"map
+  rail"* (line 422). Stage 1's *"mini slot"* primitive (line 129) has to be
+  `ui/slots.ts`'s `renderSlots`, not a new team component.
+- **No section 4 row** covers a sidebar.
+
+**Options.**
+
+1. **The sidebar is Run Progress and the team**, both mounts of existing
+   components (the map drawer's heading and rail, `renderSlots`), each also
+   reachable on phone through the nav. Recent Events is not built.
+2. **Recent Events at node granularity**: one line per completed node, no
+   battle turns, hidden on the battle screen, with a section 4 row and a
+   phone route.
+3. **The log sheet docked on desktop.** An R11 amendment.
+
+**Recommendation: 1.**
+
+---
+
+## D56. Stage 2's HP box drops facts the Pokemon panel carries, the foe's HP number among them
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Blocks 5.0/2 until
+ruled.**
+
+Line 141: *"HP boxes show name, gender, level, HP bar, HP number for the player
+side, status, and non-zero stat stages."*
+
+Section 5, Pokemon panel (line 421): *"Name, level, gender, HP bar and number,
+status chips, volatile chips, ability name, stat stage ladder, item sprite,
+priority chevron."*
+
+What the plan's list leaves out:
+
+- **The volatile chips.**
+- **The ability name.** Section 4 budgets it by name (line 308) because it
+  decides *"which move is worth using this turn"* (lines 329-336).
+- **The item sprite.**
+- **The priority chevron.** Section 6 step 2 flashes it.
+- **The foe's HP number.** This was a ruling, at `ui/scene.ts:1049-1058`:
+  *"Both sides now show exact HP ... hiding the HP would have been the one coy
+  number on a panel that answers everything else."*
+- **The foe's roster marks** (`scene.ts:139`, *"How much of this side is still
+  standing"*) and **the type chips.** The tree draws both; the canon row lists
+  neither.
+- **The panel's long press to the six base stats** (D18, `scene.ts:1014`).
+  That trigger is how the archetype chip was re-encoded; without it, D18's
+  removal becomes a C2 breach.
+
+**Options.**
+
+1. **The HP box is the Pokemon panel restyled.** R1, and the plan's own line
+   129 (*"restyled, not duplicated"*). Every fact stays, the foe's HP number
+   included.
+2. **Ability, volatiles and item move behind the panel's long press.** A
+   section 3 amendment, since the ability is *"Name, in a fixed slot"* at rest.
+   The chevron cannot move: it is a transient beat, not an inspect fact.
+3. **Foe HP as a bar only**, genre style. Reverses the `scene.ts` ruling. C2.
+
+**Recommendation: 1.**
+
+---
+
+## D57. Stage 2's move button list omits the name, base power, accuracy, priority and the fact strip
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Needs a ruling before
+5.0/2; probably an omission.**
+
+Line 142: *"each button keeping type, category, PP, band pips, and the
+effectiveness marker."*
+
+- Section 5, Move card (line 418): *"Name, type chip, category glyph, BP, PP,
+  band pips, accuracy, priority, describeMove icon strip."*
+- Section 4, battle move button (line 302): the one surviving word is
+  *"Name"*.
+- Section 3: base power is the *"largest text on the card, fixed slot"*.
+- Since D49 the effectiveness marker folds in the field's factor (line 275).
+
+**Options.**
+
+1. **The list is illustrative.** The button mounts `renderMove` unchanged,
+   with the face M2.1 and M2.2 built.
+2. **The list is exhaustive.** It drops five facts, which is C2, and the
+   button would differ from the card, which is R1.
+
+**Recommendation: 1.**
+
+---
+
+## D58. The battle header, the turn header and the flags have no place in Stage 2's layout
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Needs a ruling before
+5.0/2.**
+
+Lines 139-143 place the stage, the HP boxes, the grid and a secondary row, and
+never say where the header goes. Line 143: *"The existing flag strip and beat
+animations keep working in their new positions."*
+
+What the bible places:
+
+- **Section 5, header** (line 426): *"Node glyph at 16, opponent, AI tier,
+  field glyph at 16 in a fixed slot after the tier."* Section 4 (line 310)
+  budgets it at 3.
+- **Section 6 step 1** (line 469): *"Turn header replaces itself in place.
+  "Turn 4". No scroll."*
+- **Section 6 step 4** (line 472): the field glyph appears on the header.
+- **R11** (line 231): the battle screen shows *"the turn header, the panels,
+  the flags"*.
+- **R8** (line 218): *"Post-resolution outcomes appear on the Pokemon that was
+  hit."*
+- **D28:** *"The tier is not droppable."*
+
+**Options.**
+
+1. **The header row stays above the stage**, the same component, with the
+   turn header in it. The flag strip's new position keeps each flag
+   attributed to its target's side (R8).
+2. **Fold the header into the opponent's HP box.** Moves the slots of three
+   attributes and amends section 5's row, and the field glyph is not about the
+   opponent.
+
+**Recommendation: 1.**
+
+---
+
+## D59. The log behind "Info" reverses D26, and "Info" is a word and possibly a help button
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Needs a ruling before
+5.0/2.**
+
+Line 142: *"A secondary row with Switch and Info."* Line 143: *"The full log
+moves behind Info."*
+
+- **D26, ruled 2026-09-21, option 1:** *"Build the pull, keep a glyph handle
+  as the visible affordance"*. It was ruled against a labelled button
+  (`History`) because the label was a word at rest. It is built at
+  `ui/screens/battle.ts:133-143`: a click on `flags.history` plus
+  `onPullUp`.
+- **R11:** the log sheet is *"reachable by a pull"*.
+- **R5 forbids *"a help button ... as a way to see an explanation"*.** "Info"
+  names an explanation. If it opens anything but the log sheet, such as the
+  opponent or the moves, it is a second mechanism under section 10.3.
+- **Switch.** The bench is at rest under the grid today (`scene.ts:1711`).
+  Behind a button it is one tap away, which ruling 2 allows, but a forced
+  switch (`view.forceSwitch`) has to open itself.
+
+**Options.**
+
+1. **Keep D26's handle and pull.** The secondary row carries Switch alone.
+2. **Info opens the log sheet only, labelled.** Reverses D26, and the battle
+   screen needs a word it has no row for.
+3. **Info opens other content.** Refused by R5.
+
+**Recommendation: 1.**
+
+---
+
+## D60. Painted backdrops replace the World component, and the plan does not say where the weather goes
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Blocks 5.0/2 until
+section 5's World row is amended.**
+
+The plan's backdrops are at lines 92-93 (8 map, 9 battle), line 139 and line
+159. Its Stage 5 contrast check is at line 172.
+
+- **Section 5, World** (line 427): *"The locale's three layers and drift, and
+  during a battle the field state as a weather wash and a terrain tint ... |
+  Every screen, mounted once by `app.ts`."*
+- **Section 2, Field** (line 256): *"The world behind the stage carries the
+  same state as a wash and a terrain tint, colour secondary to the glyph."*
+- **Section 6 step 4** (line 472): *"the world takes the weather's wash or the
+  terrain's tint"*.
+
+The plan names neither the wash nor the World. It adds backdrops for two
+screens and says nothing about the other nine. Two world systems side by side
+is section 5's *"exists twice"*. The plan's *"no gradients"* (line 128) is a
+panel token rule and does not decide the wash.
+
+**Options.**
+
+1. **The backdrops become the World's layers.** The map backdrop on the map,
+   the battle backdrop in battle, and the locale's existing layers (or its map
+   backdrop) elsewhere. The wash and the tint composite over them. Section 5's
+   row names the backdrops. Stage 5's contrast check covers every battle
+   backdrop under every field state: 9 backdrops by 10 states (none plus nine
+   marks).
+2. **Backdrops beside the World.** Two systems.
+
+**Recommendation: 1.**
+
+---
+
+## D61. Class C node and capability art redraws two section 2 families outside the glyph renderer
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Needs a ruling before
+5.0/1's manifest; bites 5.0/4 and 5.0/5.**
+
+Lines 94-95 list node icons and capability glyphs as original art. Line 103
+maps them through a manifest. Line 101 says *"true pixel art at a fixed native
+resolution, scaled by whole multiples"*. Line 82 uses trainer sprites for
+*"gym leaders, player marker"*.
+
+- **Both families already exist.** `ui/theme/glyphs.ts` carries six `node`
+  glyphs and ten `capability` glyphs. Section 2 (line 255) names the node
+  marks: *"a head (trainer), a bush (wild), a tent (rest), a badge (gym), a bag
+  (shop), a question mark (event). On the map node card at 24, on the battle
+  screen header at 16."*
+- **A manifest image never reports itself.** Section 5, Exposure label (line
+  433, D41): *"Every family's marks pass through the glyph renderer ... so a
+  family cannot be drawn without reporting itself."* A manifest `<img>`
+  outside `glyphNode` never fires R7's label, and R7 forbids *"shipping a
+  glyph family that never gets a label."*
+- **One mark at two sizes.** R1 and D46: the header wears the mark the card
+  wore, at 16 against 24. Pixel art on the map with the SVG on the header is
+  the split D46 refused. Scaling by whole multiples to both 16 and 24 means a
+  native size of 8, or 4.
+- **A redraw needs M1.1's check again.** M1.1's kills-it (record line 41):
+  *"two glyphs in the same family are indistinguishable at 16px under any
+  simulation. Redraw before mounting."*
+- **A leader sprite changes the mark.** Using the gym leader's trainer sprite
+  as the gym node replaces D46's badge with an identity. Section 3 (line 289)
+  keeps the leader's name as the identity, beside the mark.
+
+**Options.**
+
+1. **The art enters the sheet as glyph entries drawn by `glyphNode`.** The
+   manifest maps glyph ids to files, the native size is 8px, and the six
+   named marks are kept. M1.1's colour-blind sheet is re-run on the new art
+   before 5.0/5 mounts it. Trainer sprites are used for the player marker only.
+2. **Manifest images outside the renderer.** Refused by D41 and R7.
+3. **The leader's sprite as the gym mark.** A D46 re-ruling.
+
+**Recommendation: 1.**
+
+---
+
+## D62. Class B marks drawn in CSS must stay section 2's shapes and pass through the glyph renderer
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Needs a ruling before
+5.0/1; cosmetic under option 1.**
+
+Line 86: *"band pips, tier pips, the selection cursor, type badges"* are
+*"Drawn in CSS"*. Line 164: *"four type badges"*.
+
+- **Band pips go through `glyphNode`** since D41. Section 2 (line 247): *"No
+  glow, no colour shift by band."* M1.1 redrew them filled-against-outlined
+  because fill tone alone scored 0.063 against a floor of 0.12
+  (`milestones.md` lines 104-111).
+- **Type** (line 245): *"18 glyphs inside a coloured chip ... glyph is
+  primary, colour secondary."* R2 (line 190) forbids *"type names ... at
+  rest"*. A genre type badge is a word in a coloured box, which is the
+  reference image's form and exactly what R2 forbids.
+- **Locale card** (line 315): *"four type chips"*.
+
+**Options.**
+
+1. **"Drawn in CSS" means restyled by tokens.** Pips and chips stay mounted
+   through the existing components, filled-against-outlined is kept, and a
+   "type badge" is read as the type chip, with no name.
+2. **Genre word badges.** An R2 amendment, with no disconfirmer behind it.
+
+**Recommendation: 1.**
+
+---
+
+## D63. The node on the graph drops the payout, the AI tier and the reward-tier pips
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Blocks 5.0/4 until
+ruled.**
+
+Line 161: *"Each node shows its type icon, tier as pips, and for events the
+capability glyph..."* Line 166: *"A player can read tier and capability off
+the node before committing."* Line 163 and test 7 (line 187): *"Only next-step
+nodes accept a tap."*
+
+- **Section 5, Map node card** (line 429): *"Node glyph at 24 with the
+  leader's name on a gym, then beneath it the tier pips, reward-tier pips,
+  capability glyph with band chevron."*
+- **Section 4** (line 321): a budget of 2 for *"The payout's unit, AI
+  tier"*. `run-map.ts:505-510` prints `N coins`, *"exact rather than a range,
+  because it is exact"*.
+- **Section 3, Tier** (line 287): *"Tier pips, reward-tier pips."*
+- **C2, and R1**, which forbids *"a 'compact variant' that reorders slots"*.
+
+A future-step node that *"accepts no tap"* still has to accept R5's long
+press, or its facts cannot be reached.
+
+**Options.**
+
+1. **Each graph node mounts the map node card at rest**, with every fact.
+   5.0/0's fit measurement decides whether a segment fits at 390x844 with
+   them.
+2. **A compact graph node**, with the payout, AI tier and reward-tier pips
+   behind its long press. Amends sections 3, 4 and 5, and is the compact
+   variant R1 forbids.
+3. **The first tap opens the node's full card and a second commits.**
+   Changes the commit behaviour that line 163 keeps.
+
+Under any option, test 7 reads *"only next-step nodes commit; every node
+inspects."*
+
+**Recommendation: 1.**
+
+---
+
+## D64. "Held or not-held" collapses the capability's three bands to two
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Blocks 5.0/4 until
+ruled.**
+
+Ruling 5 (line 60): *"for events the required capability and whether the
+party holds the relic."* Line 161: *"the capability glyph with a held or
+not-held state."*
+
+- **Section 2, Capability** (line 254): *"One glyph per capability, plus a
+  band chevron filled to the run's reach — none, latent, known."* Section 3
+  (line 286) says the same.
+- **The core has three states.** `core/capabilities.ts:50` declares
+  `CapabilityBand = 'known' | 'latent' | 'none'`. At lines 79-81, `known`
+  means a relic grants it and `latent` means a party member's type could
+  improvise it.
+- **The difference is paid out.** `core/events.ts:371-372` draws a separate
+  tier per band, so latent against none changes what an event pays.
+
+**Options.**
+
+1. **Keep the chevron.** "Held" is `known`, and latent and none stay distinct.
+2. **Two states.** A C2 breach. Refused.
+
+**Recommendation: 1.**
+
+---
+
+## D65. Capability glyphs on relic cards put at rest what section 3 puts on inspect
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Needs a table amendment
+before 5.0/3 builds it.**
+
+Line 95: capability glyphs are *"Shown on event nodes and relic cards."*
+
+- **Section 3, Relic** (line 284): *"Relic sprite in the relic row | None |
+  Name, capability it satisfies"*. The capability is in the inspect column.
+- **Section 5, Reward card** (line 428) does not list it.
+- **Why it left the card.** `ui/screens/reward.ts:226`: *"The capability chip
+  that used to sit on this card is gone with the rest: it cost a word at rest
+  for a fact a press already gives."* A glyph costs no word, so that reason
+  does not reach a glyph.
+
+**Options.**
+
+1. **Amend section 3's Relic row and section 5's Reward card row.** The
+   capability glyph sits at rest on the relic card, the same glyph as the
+   node's (R1). A table change; no rule moves.
+2. **Keep section 3.** Capability glyphs appear on event nodes only.
+
+**Recommendation: 1.**
+
+---
+
+## D66. Stage 3's card face carries the name and an effect line, which section 3 and D36 put on inspect
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Blocks 5.0/3 until
+amended.**
+
+Line 150: *"One card component: icon, name, quantity if any, band pips for
+moves, one short effect line."*
+
+- **R2** (line 190) forbids *"any sentence on a card at rest"*.
+- **R12** (line 235): *"A proposed sentence at rest is an amendment, not a
+  patch."*
+- **Section 3**, Held item, Berry and Relic (lines 282-284), puts the name and
+  the effect line in the inspect column.
+- **Section 4** (line 305): *"None — the face is the sprite; name and effect
+  line are inspect facts (D36)."*
+- **Section 10.3 and CLAUDE.md:** a sentence at rest *"stops and files an
+  amendment before building."*
+
+The plan's relic icons (line 96) make section 3's *"Relic sprite"* literal and
+retire D36's recorded deviation, in which the name is the encoding. With a
+sprite, the relic's name goes to inspect too.
+
+Coins and restore cards have no section 4 row (lines 402-406) and keep their
+words today (`reward.ts:298`). The plan's *"quantity if any"* is theirs.
+
+**Options.**
+
+1. **Section 3 stands.** The face is the icon, plus the boosted type chip,
+   plus the price on the shop. The name and the effect line are on inspect.
+   Coins and restore get the section 4 row M7.2 was going to find: `+N` and
+   the icon.
+2. **Amend R2 to permit one effect line on a reward card.** A rule change
+   under section 10.1 with no disconfirmer; the only precedent is a directive.
+
+**Recommendation: 1.**
+
+---
+
+## D67. Stage 3's card gives a move kind "band pips" where section 5 gives it the move card
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Blocks 5.0/3 until
+ruled.**
+
+Line 150: *"band pips for moves"*. Line 151: *"three cards in a row"*.
+
+- **Section 5, Reward card** (line 428): *"the move card on a move kind"*.
+- **Section 5, Move card** (line 418): *"Two call sites is the accepted
+  shape; a third is an amendment."*
+- **M5.1** (record): *"TM cards mount the move card."* Today `reward.ts:251`
+  to `:291` appends `moveCard(moveCardData(...))`.
+- **A card with band pips alone** either drops type, category, BP, PP,
+  accuracy and priority, which is C2, or draws a third move face, which is
+  section 10.3.
+- **Fit.** M2.3 measured the pinned move card at 262px tall at full width.
+  Three across at 390px is under 130px each. 5.0/0 should measure it.
+
+**Options.**
+
+1. **Move kinds mount the move card inside the one card.** "Three in a row"
+   holds where it fits and stacks where it does not.
+2. **A condensed move face.** A third call site, and an amendment.
+
+**Recommendation: 1.**
+
+---
+
+## D68. A "reward screen" beside the result screen
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Needs a ruling before
+5.0/3. CLAUDE.md invariant.**
+
+Line 151: *"Reward screen: three cards in a row..."* Line 152: *"Result screen
+and shop reuse the same card."* Line 155: *"the reward screen matches the
+right panel."*
+
+- **CLAUDE.md, Rewards:** *"Every node completion routes through the single
+  result screen. There is never a second path by which a node completes."*
+- **There is no reward screen any more.** `router.ts:23-30`: the `reward`
+  screen was renamed `result` in Stage 4.5.2, and the cards are a section
+  inside it (`result.ts:1-45`, and 4.6a's *"do not add a second path by which
+  a node completes"*).
+- **Section 5's Reward card call sites** (line 428) are `screens/result.ts`
+  and `screens/shop.ts`.
+
+**Options.**
+
+1. **"Reward screen" means the result screen's card section.** No new route.
+2. **A separate route.** Refused by CLAUDE.md.
+
+**Recommendation: 1.**
+
+---
+
+## D69. The selection cursor and confirm-to-claim
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Needs a ruling before
+5.0/3.**
+
+Line 86 lists *"the selection cursor"* and buttons in *"four states (rest,
+pressed, selected, disabled)"*. Line 151: *"selection cursor on the picked
+card, confirm to claim."* Today one tap claims (`reward.ts:324`).
+
+- **A resting cursor is emphasis.** C1 (line 172) forbids *"conditional
+  emphasis"*; CLAUDE.md forbids *"highlighting that distinguishes a superior
+  option"*. A genre cursor rests on an item before any input, and resting on
+  one of three cards emphasises it. The cursor is a verdict only if it is
+  there before the player put it there.
+- **The confirm has no call site.** Section 5, Confirm band (line 431):
+  *"`ui/band.ts`, mounted by the four screens that confirm. No screen builds
+  its own."* A claim confirm is either a fifth screen or a screen building
+  its own.
+- **The way out cannot be a skip.** CLAUDE.md: *"No skip at the card."* The
+  band's cancel must return to the three cards, not leave the offer (section
+  5's cancel and decline, lines 454-461).
+
+**Options.**
+
+1. **No resting cursor.** The selected state appears only after the player's
+   tap. The claim goes through `ui/band.ts`, section 5's row gains the result
+   screen and the shop, and the band's cancel returns to the three cards.
+2. **Keep one-tap claim.** The cursor is the pressed state only, with no
+   confirm.
+
+**Recommendation: 1.**
+
+---
+
+## D70. The capture card in the one card component, and "the coverage line"
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Cosmetic; needs one line
+before 5.0/3.**
+
+Line 152: *"Result screen and shop reuse the same card. Capture cards keep the
+coverage line."*
+
+- **Section 3, coverage** (line 285): *"Two rows of type chips, plus row and
+  minus row, signs only."* Line 292: *"Disappears from every default view:
+  ... the coverage sentence."* D5 ruled the signs permanent.
+- **The capture card is not a reward card.** Section 5 lists it among the
+  Party row's call sites (line 422), and D38, open, says it cannot mount that
+  row and stay above the fold.
+
+**Options.**
+
+1. **"Coverage line" means D5's two sign rows.** The capture card stays
+   outside the one card component, and D38 goes as D50 rules.
+
+**Recommendation: 1.**
+
+---
+
+## D71. TM discs coloured by type draw the type twice on a TM card
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Cosmetic.**
+
+Line 81: *"Item icons, including TM discs by type | Reward cards, shop, bag."*
+
+R3 (line 193): *"Never render the same attribute twice on one surface at
+rest."* A TM card mounts the move card, which carries the type chip, and
+Showdown's TM sprites are coloured by type.
+
+**Options.**
+
+1. **No disc on a TM card.** The move card is the face; the disc is drawn
+   only where no move card is (the bag).
+2. **A neutral disc as a kind mark.** It then encodes the reward kind, which
+   has no family (see D54).
+
+**Recommendation: 1.**
+
+---
+
+## D72. The locale card's gym identity repeats one segment fact on every card
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Needs a ruling before
+5.0/4.**
+
+Line 164: *"cards show a crop of that locale's map backdrop, the name, four
+type badges, and the gym identity."*
+
+- **The gym belongs to the segment, not the locale.** `locale-select.ts:73`:
+  *"The gym guarding this segment."* It is shown once, in the rail (from
+  line 103). The same gym on three cards is R3 (line 193) three times over,
+  and it suggests the locale decides the gym, which it does not.
+- **Section 5, Locale card** (line 430): *"Locale name, four type chips, the
+  palette swatch."* The crop replaces the swatch, which is a canon row change.
+  Section 4 (line 315) budgets the card at 0.
+
+**Options.**
+
+1. **The gym stays in the rail, once.** The crop replaces the swatch, with
+   section 5's row amended. The "type badges" are type chips (D62).
+2. **The gym on every card, rail removed.** R3.
+
+**Recommendation: 1.**
+
+---
+
+## D73. Test 2's fit gate has no exemption, and D45 gave starter select one
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Needs a ruling before
+5.0/1's tests.**
+
+Line 182: *"Fit gate: every decision surface fits 390x844 with no scroll."*
+
+- **D45, ruled 2026-09-23:** starter select scrolls, and its gate is *"the
+  first starter card ends at or above 844"* (`test/visual-pocket.test.ts:12-15`).
+- **The drawer and the archive surfaces** have gate forms of their own.
+- **The nav costs height.** Stage 1's top nav takes vertical space on every
+  surface, so the heights and `decisionTop` baselines are re-recorded under
+  lines 52 and 189.
+
+**Options.**
+
+1. **Test 2 inherits the existing gate**, with D45's exemption and the
+   drawer and archive forms.
+2. **Re-open D45.** Starter select would have to fit, and D45 measured that no
+   layout that keeps the facts can.
+
+**Recommendation: 1.**
+
+---
+
+## D74. The plan carries no census gate, and the standing gate names three density modes
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Needs a ruling before
+5.0/1.**
+
+The plan's tests (lines 179-189) name no text census and no budget.
+
+- **Section 4** (line 298): *"A surface over budget is not done."*
+- **The record's standing rules:** *"Commit the census delta with the PR"*
+  (record line 178), and *"all three density modes exercised by the visual
+  bot"* (record line 7). D50 makes the second impossible.
+- **CLAUDE.md:** a stage's *"report says which of the bible's rules it
+  touched."*
+
+The plan replaces words with marks (line 57), so most surfaces should fall.
+The nav (D54), the sidebar (D55), "Info" (D59) and the effect lines (D66) push
+the other way.
+
+**Options.**
+
+1. **Each 5.0 stage runs `npm run census`**, commits the delta, holds every
+   surface at or under its row, and names the bible rules it touched in its
+   report. The three-mode gate becomes one mode once D50 is ruled.
+
+**Recommendation: 1.**
+
+---
+
+## D75. Node positions from a hash of the node id, against "all randomness comes from core/rng.ts"
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Needs a ruling before
+5.0/4; CLAUDE.md is the lead designer's file.**
+
+Line 160: *"Node positions are presentational, derived in `ui/` from a hash of
+the node id plus a per-backdrop slot grid. No RNG stream, no core change."*
+
+CLAUDE.md, Randomness: *"`Math.random` is banned everywhere. All randomness
+comes from `core/rng.ts`."* A hash used to scatter positions is
+pseudo-randomness outside `rng.ts`, and CLAUDE.md does not say whether
+presentational scatter counts.
+
+**It cannot change a seed.** The ids are structural: `NodeSpec.id` is
+*"Stable within a run"* (`core/encounters.ts:121`, built at `:467`), and
+nothing in `core/` reads a position. A keyed stream instead would add a draw
+and move `RANDOMIZER_VERSION`, which line 47 forbids.
+
+**Options.**
+
+1. **A deterministic layout with no hash**: each node takes a slot by its
+   option index within the step, against the backdrop's slot grid. Needs no
+   ruling on CLAUDE.md.
+2. **The hash**, with a one-line CLAUDE.md note that a pure function of a
+   structural id, used only for layout, is not randomness.
+
+**Recommendation: 1.**
+
+---
+
+## D76. 5.0 lands on top of an open Tier 7: which face M7.1 tests, and which items it redoes
+
+**Filed 2026-09-30, in 5.0/0, from the same prompt. Needs a ruling before
+5.0/1.**
+
+`milestones.md` (lines 462 and 487-492): M6.4, M7.1 and M7.2 are open. Patch
+4.10.1 and Stage 4.11 landed before M7.1 *"on purpose, so the playtest sees
+the face that section 9's family-size hypothesis now describes"* (lines
+464-471 and 473-485).
+
+5.0 rebuilds every surface, which leaves M7.1 in a bind either way:
+
+- **Before 5.0**, M7.1 collects evidence on a face 5.0 replaces.
+- **After 5.0**, the R6 row can no longer be observed (D50), and M7.1's
+  done-when, *"every register row has an observed or not-observed entry"*
+  (record line 166), cannot be met as written.
+
+**Items 5.0 redoes or makes obsolete:**
+
+- M6.4 (D50).
+- M6.2's coach-mark anchoring (line 132, test 8).
+- M1.1's colour-blind check, for any redrawn glyph (D61).
+- M7.2's post-census baseline (D74).
+- M5.4's open clause and D38 (D50, D70).
+- D39, if the currency family is ruled (D54).
+
+**Options.**
+
+1. **5.0 before M7.1.** M7.1's protocol is written against the 5.0 face, with
+   the R6 row replaced as D50 rules. M6.4 closes as superseded, and M7.2 runs
+   after 5.0/5.
+2. **M7.1 first, on the current face, then 5.0.** R6 is decided properly, on
+   evidence from a face that is about to change.
+
+**Recommendation: 1.**
+
+---
+
+## D77. The map node card prints an untiered node's hint and a shop's shelf in words
+
+**Filed 2026-09-30, in 5.0/4, by its census. Ruled the same day, option 1**
+([`../spec/gymrun-stage5.0-rulings-d77.md`](../spec/gymrun-stage5.0-rulings-d77.md)),
+and built in 5.0/4.
+
+The census's worst instance for the map node card is **7** against section 4's
+budget of **1** (*"AI tier. The payout's unit is the currency glyph"*): a shop
+on the step being chosen from reads `Items, healing, moves. · 7 on the shelf,
+from 72`. A rest reads `Full restore.` (2) and an event `Something happens.`
+(2). A fight reads 1, the AI tier, since 5.0/4 drew the currency mark.
+
+- **It predates 5.0/4.** The same words were on the current-step card since
+  M5.2 kept the kind hint on untiered nodes (*"it has no pips to read the fact
+  off, and M5.2 does not name it"*) and since the shelf line was written. The
+  census never saw them because the map fixture was a segment-one map with no
+  shop, rest or event on its current step. 5.0/4 moved the fixture to the
+  map's worst case (`deepMapState`) and the words were there.
+- **Section 3 already puts the hint on inspect.** Its *Node kind* row: at
+  rest, the kind glyph; on inspect, *"the kind's hint, from `KIND_HINTS`"*. The
+  `node:` tip on the mark carries it today.
+- **The shelf line is two facts**: how many items and the cheapest price. The
+  price is decision-relevant (can the run afford anything?), and a bare
+  currency amount on a shop would read as a payout.
+
+**Options.**
+
+1. **The hint leaves the face; the shelf becomes a count and a price with the
+   currency mark** (`7 · from ¢72` reduced to marks: a bag count and the
+   currency amount), the words on the mark's press. Section 4 holds at 1; the
+   shelf's re-encoding needs one line in section 3.
+2. **Section 4 names the shelf as surviving words**, and the hint leaves the
+   face. The row goes 1 to 5.
+3. **Leave both**, and the row's figure moves to 7.
+
+**Recommendation: 1.**
+
+---
+
+## Rulings, 2026-09-30, opening 5.0/1
+
+The author answered the 5.0/0 report on the five rows it named as blocking
+5.0/1, filed verbatim as
+[`../spec/gymrun-stage5.0-rulings-d50-d55.md`](../spec/gymrun-stage5.0-rulings-d50-d55.md).
+The bible goes to Rev 15.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D50 | **The validation cycle is ruled done.** The author's full playthrough and the outside tester's two QA passes, with R6's disconfirmer not observed. Fewer testers than D11's definition; the playtest log says so. Option 1 in effect: R6 amended, one face, the setting deleted outright in 5.0/1. M6.4 closes as superseded. | Bible R6, sections 9 and 11. `playtest-log.md`. `../generation.md` §87 |
+| D52 | **Option 1.** *"yes, long press to inspect."* Every "tap to inspect" in the plan means the long press; tap selects. | No bible change. `../generation.md` §87 |
+| D53 | **Tabs open screens**, and a **mid-run Run Info screen** is built. The bible says so in section 5. To keep CLAUDE.md's single path and §12's three properties, a screen opened while a decision is pending elsewhere is a readout (no advance, no submit, no RNG) and closing it returns to the decision; Map from anywhere but the map has no picker. **The guard was this register's reading and the author confirmed it the same day** ([`../spec/gymrun-stage5.0-rulings-guard-and-stage1.md`](../spec/gymrun-stage5.0-rulings-guard-and-stage1.md)). | Bible sections 4 and 5. `../generation.md` §12 and §87 |
+| D54 | **Option 1.** *"no problem. big visual update is what makes changes like this."* A Shell nav row at 5; tab icons are controls, not glyphs; a thirteenth family, `currency`; the map node card goes 2 to 1. D39's option 3 is taken and D39 closes with it. Section 10.3's stale "tenth" corrected. | Bible sections 2, 3, 4, 9, 10 |
+| D55 | **Run Progress is the decision feed**: every decision the run log records, replayed in play order and continuing as the run goes. A new feature built on the existing replay; it replaces the plan's separate Recent Events. R11 gains the carve-out: the feed is inputs, not outcomes, and may sit at rest in the Run Info screen and the desktop sidebar, never inside the game frame. The phone reaches it through the Run Info tab. | Bible R11, sections 4, 5 and 11. `../generation.md` §87 |
+
+**Still open after these five:** D51 and D56 to D76. D51 closes with 5.0/1
+itself (density goes in 5.0/1, as every line but ruling 2 says). The rest
+block the stage they name.
+
+D73, D74 and D76 were ruled as recommended the same day, in the same file. D51 closes with 5.0/1.
+
+---
+
+## Rulings, 2026-09-30, opening 5.0/2
+
+The author answered the 5.0/1 report on the five rows it named as blocking
+5.0/2, filed verbatim as
+[`../spec/gymrun-stage5.0-rulings-d56-d60.md`](../spec/gymrun-stage5.0-rulings-d56-d60.md).
+The bible goes to Rev 16.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D56 | **Option 1.** *"ability is v important. we keep it all like today."* The HP box is the Pokemon panel restyled. Every fact stays: both HP numbers, status and volatile chips, the ability name, the item sprite, the priority chevron, type chips, the foe's roster marks, and the long press to the six base stats. | No bible change. `../generation.md` §88 |
+| D57 | **Option 1.** *"keep the full move card, restyled."* The button mounts `renderMove` with every fact on it. | No bible change. `../generation.md` §88 |
+| D58 | **Option 1.** The header row, turn header included, stays above the stage; flags keep to their target's side. | No bible change. `../generation.md` §88 |
+| D59 | **Option 1.** D26 stands: the glyph handle and the pull. The secondary row is Switch alone; a forced switch opens itself. | No bible change. `../generation.md` §88 |
+| D60 | **Neither option as written.** *"the backdrop should stay as is, the battle and the map are in the 'game screen' which sits in a container, and the original backdrop stays as is."* The World stays the locale's layers behind the frame. The painted backdrops are the game screen's own, inside the frame. Two layers with two jobs, which answers the *"exists twice"* concern option 2 raised. The wash and tint sit on the battle backdrop, as 5.0/1 built them. Stage 5's contrast check covers every battle backdrop under every field state, as option 1 said. | Bible section 5 (*World* narrowed, *Scene backdrop* added), and sections 2, 3, 4 and 6's field lines. `../generation.md` §88 |
+
+**Still open after these five:** D61 to D72 and D75. Two touch 5.0/2:
+
+- **D62** (type badges as glyph chips or genre words). D56 and D57 keep the
+  panel and the move card as they are today, restyled, which carries option 1
+  on the battle screen. **Ruled the same day, option 1 everywhere**
+  ([`../spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md`](../spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md)):
+  *"use an icon/chip"*. The reward cards and the locale card mount the type
+  chip too.
+- **D61** (class C node art through the glyph renderer). The header's node
+  glyph stays the existing SVG mark until 5.0/5 brings art; 5.0/2 draws no
+  class C mark but the backdrop.
+
+The rest block 5.0/3 to 5.0/5.
+
+---
+
+## Rulings, 2026-09-30, opening 5.0/3
+
+The author took every recommendation on the seven rows blocking 5.0/3, filed
+verbatim as
+[`../spec/gymrun-stage5.0-rulings-d65-d71.md`](../spec/gymrun-stage5.0-rulings-d65-d71.md).
+The bible goes to Rev 17.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D65 | **Option 1.** The capability glyph sits at rest on a relic card, the map node's glyph without its chevron. | Bible sections 3 and 5. `../generation.md` §89 |
+| D66 | **Option 1.** R2 stands. The face is the mark; the name and the effect line are on the long press, the relic's name included now that the manifest carries a relic icon (D36's deviation retired). Coins and restore cards get section 4 rows at 0: `+N` beside the currency glyph, `+N%` beside a bar. | Bible sections 2, 3, 4 and 5. `../generation.md` §89 |
+| D67 | **Option 1.** A move kind mounts the move card. Three across where they fit, stacked where they do not. | Bible section 5's Reward card row says so. `../generation.md` §89 |
+| D68 | **Option 1.** The reward screen is the result screen's card section. No new route. | No bible change |
+| D69 | **Option 1.** No resting cursor; tap selects and opens the band, the band's commit claims, its cancel returns to the cards. Section 5's Confirm band row gains the result screen and the shop; section 4 gains a claim and buy row at 6. The selection is UI state and never reaches the log. | Bible sections 4 and 5. `../generation.md` §89 |
+| D70 | **Option 1.** The coverage line is D5's two sign rows; the capture card stays outside the reward card. D38 stays open. | No bible change |
+| D71 | **Option 1.** No disc on a TM card. | Bible section 5's Reward card row. `../generation.md` §89 |
+
+**Still open after these seven:** D61, D63, D64, D72 and D75, all 5.0/4's or
+5.0/5's, and D38.
+
+---
+
+## Rulings, 2026-09-30, opening 5.0/4
+
+The session listed what had to be decided before 5.0/4, with a recommendation
+for each, and the author answered *"go with your recommendations for all
+items"*, filed verbatim as
+[`../spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md`](../spec/gymrun-stage5.0-rulings-d61-d75-and-stage4.md).
+The bible goes to Rev 18.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D61 | **Option 1.** Class C node and capability art enters the sheet as glyph entries drawn by `glyphNode`, native 8px, the six named marks kept, M1.1's colour-blind check re-run before 5.0/5 mounts it. Trainer sprites are the player marker only. 5.0/4 draws today's SVG marks. | No bible change. `../generation.md` §90 |
+| D63 | **Neither option as written.** 5.0/0 measured that option 1 does not fit: one spare line under a node at 390x844, none at the desktop's pitch. The step being chosen from carries the whole card, detail line included; every other row carries the mark, the tier pips and the capability glyph with its chevron, and the rest is on the mark's long press. Below the pitch those need, the other rows keep the mark alone. Every node inspects; only the step being chosen from commits. | Bible section 5, *Map node card*; section 9 gains the bet. `../generation.md` §90 |
+| D64 | **Option 1.** The chevron keeps none, latent and known. "Held" is `known`. | No bible change |
+| D72 | **Option 1.** The gym stays in the rail, once. The crop replaces the swatch; the type badges are type chips (D62). | Bible section 5, *Locale card*. `../generation.md` §90 |
+| D75 | **Option 1.** A node's place is its option index within the step against the backdrop's slot grid. No hash, no CLAUDE.md note. | No bible change. `../generation.md` §90 |
+
+Three more items were ruled in the same answer and have no row: the map
+backdrops ship as placeholders; the pitch floor above; the commit stays one tap
+with no confirm. 5.0/4 runs before 5.0/3.
+
+**Still open after these five:** D51, which closes with 5.0/1's merge, and D38.
+D65 to D71 were ruled for 5.0/3, which merged first (the section above). D77,
+filed by this stage's census, was ruled option 1 the same day and built in
+5.0/4.

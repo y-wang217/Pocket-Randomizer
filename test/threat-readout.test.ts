@@ -28,7 +28,7 @@ import type { PokemonState } from '../src/core/types';
 import { abilityEffects } from '../src/data/abilityEffects';
 import { OPPONENT_TEAM, PLAYER_TEAM } from '../src/data/mons';
 import { createScene, moveFacts } from '../src/ui/scene';
-import { resetSettings, setDensity } from '../src/ui/settings';
+import { resetSettings } from '../src/ui/settings';
 import { createThreatReadout } from '../src/ui/screens/threats';
 import { typeChip } from '../src/ui/chip';
 
@@ -167,9 +167,14 @@ describe('nothing on screen implies a ranking or a severity', () => {
  * `test/visual-density.test.ts`, which asserts it in a browser, per surface,
  * both ways.
  */
-describe('density is presentation only', () => {
-  it('builds the same list in Simple as in Detailed, down to the counts', () => {
-    setDensity('simple');
+/*
+ * Stage 5.0/1 (`docs/spec/gymrun-stage5.0-visual-redesign.md`) retired the
+ * density modes, so the three cases that compared Simple with Detailed are
+ * one: the count is in the DOM, spoken, and hidden at rest by the stylesheet
+ * with the chip's `threat:` tip carrying it.
+ */
+describe('the count', () => {
+  it('carries the members-hit figure per type', () => {
     const readout = createThreatReadout();
     readout.render(WATER);
 
@@ -178,30 +183,7 @@ describe('density is presentation only', () => {
     expect(counts).toEqual(['hits 1 of 1, unanswered', 'hits 1 of 1, unanswered']);
   });
 
-  it('carries the members-hit figure per type, for the stylesheet to show or hide', () => {
-    setDensity('detailed');
-    const readout = createThreatReadout();
-    readout.render(WATER);
-
-    const counts = [...readout.root.querySelectorAll('.threats__count')].map((c) => c.textContent);
-    expect(counts).toEqual(['hits 1 of 1, unanswered', 'hits 1 of 1, unanswered']);
-  });
-
-  it('lists the same types in both modes, because the flag changes no fact', () => {
-    const readout = createThreatReadout();
-
-    setDensity('simple');
-    readout.render(WATER);
-    const simple = chipsOf(readout.root);
-
-    setDensity('detailed');
-    readout.render(WATER);
-
-    expect(chipsOf(readout.root)).toEqual(simple);
-  });
-
-  it('speaks the count in both modes, because a screen reader has no density problem', () => {
-    setDensity('simple');
+  it('speaks the count, because a screen reader reads what the stylesheet hides', () => {
     const readout = createThreatReadout();
     readout.render(WATER);
 
@@ -214,6 +196,7 @@ describe('density is presentation only', () => {
     ]);
   });
 });
+
 
 describe('the map gets a disclosure and the party screen does not', () => {
   it('renders collapsed as a closed details element', () => {

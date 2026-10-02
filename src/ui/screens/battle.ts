@@ -21,12 +21,20 @@ import type { NodeSpec } from '../../core/encounters';
 import type { Choice } from '../../core/types';
 import { abilityEffects } from '../../data/abilityEffects';
 import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
+import { GLYPH_LABELS } from '../../data/glyphLabels';
+import { gymForSegment } from '../../data/gyms';
+import { nodeKindGlyph } from '../chip';
 import { createBattleLog, type BattleLogView } from '../battle-log';
 import { createSpeciesIndex } from '../species-index';
 import { createFlagStrip, type FlagStrip } from '../flag-strip';
 import { createLogSheet, onPullUp, type LogSheet } from '../log-sheet';
-import { abnormalityMarks } from '../abnormality';
+import { abnormalityMarks, firedTraits } from '../abnormality';
 import { createScene, el, type OutroKind, type Scene } from '../scene';
+import { fieldGlyph } from '../chip';
+import { applyField } from '../theme/field';
+import { currentLocale } from '../theme/locale';
+import { applyBackdrop } from '../assets/manifest';
+import { LOCALE_IDS, type LocaleId } from '../../data/locales';
 
 /**
  * The one lookup the flag reader cannot have, supplied by the adapter.
@@ -84,14 +92,36 @@ export function createBattleScreen(): BattleScreen {
   const header = el('div', 'battle__header');
   const title = el('h2', 'screen__title');
   const detail = el('p', 'screen__blurb');
-  header.append(title, detail);
+  /*
+   * The detail line is two things: the words (who is in the fight, how it
+   * plays) and, after them, the field. **Stage 4.11 Tier 2, D47.** The field
+   * has a slot of its own so that a turn can redraw it without touching the
+   * words, and so the words are set once at attach and never rebuilt.
+   */
+  const detailText = el('span', 'battle__detail-text');
+  const field = el('span', 'battle__field');
+  detail.append(detailText, field);
+  /*
+   * The turn header. **Stage 5.0/2, D58; section 6 step 1.** *"Turn 4"*,
+   * replacing itself in place, at the end of the header row. The grammar has
+   * asked for it since the bible's first revision and no build drew it; D58
+   * kept the header's place and ruled it in. One word under section 4's
+   * header budget of 3, which excludes the opponent's name and the number.
+   * Empty before the first turn, when nothing has been chosen yet.
+   */
+  const turnHeader = el('span', 'battle__turn');
+  header.append(title, detail, turnHeader);
 
   const board = el('div', 'board');
   const scene: Scene = createScene();
   /*
-   * The strip sits under the scene, where Release C put it and where V5's
-   * one-line event strip goes. V5 re-homed a container rather than restyling
-   * chips, exactly as that placement predicted.
+   * The strip sits directly under the stage. **Stage 5.0/2, D58.** Release C
+   * put it under the scene and V5 made it the one-line event strip; with the
+   * move grid and the Switch row now below it, "under the scene" would have
+   * put the outcome of a turn beneath the buttons for the next one. Under the
+   * stage it is against the two Pokemon it happened to, and each flag still
+   * names its target (`data-side`, and the chip's label), which is R8's
+   * attribution. The chips are Release C's, byte for byte.
    */
   const flags: FlagStrip = createFlagStrip();
   /*
@@ -105,7 +135,8 @@ export function createBattleScreen(): BattleScreen {
    */
   const sheet: LogSheet = createLogSheet();
   const log: BattleLogView = createBattleLog(sheet.panel);
-  board.append(scene.root, flags.root);
+  scene.stage.after(flags.root);
+  board.append(scene.root);
 
   /*
    * The one place a tap becomes an open, and the reason the strip exposes its
@@ -137,7 +168,22 @@ export function createBattleScreen(): BattleScreen {
     outro: (kind) => scene.outro(kind),
     cancel: () => scene.cancel(),
     attach(session, node, reveal, onChoose, segment) {
-      title.textContent = node.label;
+      /*
+       * **The kind is the node's mark, at 16. Patch 4.10.1, D46.**
+       *
+       * D28 budgeted this header at 4 with the kind as a word, on the reasoning
+       * that no family could carry a node kind. D46 gave it one, and R1 then
+       * puts the same mark here that the card wore before the click: the head
+       * the player chose is the head the fight is under. A gym keeps its
+       * leader's name beside the badge; the other kinds carry the mark alone,
+       * because the detail line below already names who is in the fight.
+       */
+      title.replaceChildren(nodeKindGlyph(node.kind, GLYPH_LABELS[`node-${node.kind}`] ?? node.kind, 16));
+      // The leader's name from the gym table, not the node's `"<Leader>'s Gym"`
+      // label, which `core/` keeps for the log and which would double the mark.
+      if (node.kind === 'gym') {
+        title.append(document.createTextNode(segment === undefined ? node.label : gymForSegment(segment).leader));
+      }
       /*
        * **The team size came off this header**, and it had to.
        *
@@ -158,17 +204,27 @@ export function createBattleScreen(): BattleScreen {
        * it does not rate the fight.
        */
       const tier = segment === undefined || !node.encounter ? null : aiTierFor(node.kind, node.tier, segment);
-      detail.textContent = [
+      detailText.textContent = [
         node.encounter?.opponent ?? '',
         ...(tier ? [AI_TIER_LABEL[tier]] : []),
       ]
         .filter((part) => part.length > 0)
         .join(' · ');
+      field.replaceChildren();
+      /*
+       * The scene backdrop. **Stage 5.0/2, D60.** The gym's at a gym, the
+       * locale's everywhere else, read off the same `data-locale` the run
+       * writes on every state (`theme/locale.ts`). No locale (the gallery, a
+       * fixed-board test) means no key, and the stage keeps its placeholder.
+       */
+      const locale = currentLocale();
+      const known = LOCALE_IDS.find((id) => id === locale) as LocaleId | undefined;
+      applyBackdrop(scene.stage, node.kind === 'gym' ? 'battle-backdrop:gym' : known ? `battle-backdrop:${known}` : null);
 
       // Derived on every update, never stored. `BattleUiView` is a pure
       // function of the facts, so rebuilding it is cheaper than keeping one
       // alive and wondering which turn it describes.
-      const draw = (turns?: readonly FlaggedTurn[]): void => {
+      const draw = (turns: readonly FlaggedTurn[] | undefined, batch: readonly FlaggedTurn[]): void => {
         /*
          * The third consumer of the one reading. **Branch 3B.**
          *
@@ -180,11 +236,26 @@ export function createBattleScreen(): BattleScreen {
          * and the strip already get, so the rule at the top of this file still
          * holds: one reading of the protocol, now three consumers.
          */
-        scene.update(
-          buildBattleUiView(session.factsFor('p1'), reveal, abilityEffects),
-          onChoose,
-          turns,
-          abnormalityMarks(turns),
+        const view = buildBattleUiView(session.factsFor('p1'), reveal, abilityEffects);
+        scene.update(view, onChoose, turns, abnormalityMarks(batch), firedTraits(batch));
+        // The world behind the stage wears the same state. **Tier 3.**
+        applyField(view.field);
+        /*
+         * The state of the board, on the header. **Stage 4.11 Tier 2, D47.**
+         *
+         * Redrawn from the view on every update, the same way the panels are,
+         * because weather begins and ends on the engine's schedule and not on
+         * the player's. Nothing renders when nothing is set (R4): the locale's
+         * own sky is the default, and an empty slot is how the header says so.
+         * Weather before terrain, always — one fixed order is R1's slot rule
+         * for a family with two members on one surface.
+         */
+        field.replaceChildren(
+          ...[view.field.weather, view.field.terrain].flatMap((effect, index) => {
+            if (!effect?.kind) return [];
+            const suppressed = index === 0 && view.field.suppressed;
+            return [fieldGlyph(effect.kind, effect.id, GLYPH_LABELS[`field-${effect.kind}`] ?? effect.kind, suppressed)];
+          }),
         );
       };
 
@@ -223,17 +294,32 @@ export function createBattleScreen(): BattleScreen {
         });
         const turns = readFlags(protocol, FLAGS);
         log.append(protocol, turns);
-        // The strip reports the turn that just resolved, so it is silent on
-        // the opening replay for the same reason the jiggle is: nothing has
-        // resolved yet.
-        if (animate) flags.show(turns);
-        // The opening replay is a catch-up, not a turn that just happened.
-        // Animating it would nudge both panels at the start of every battle.
-        draw(animate ? turns : undefined);
+        // The turn about to be played: the last `|turn|` the batch opened,
+        // off the same reading the log and the strip take.
+        const turn = turns.reduce<number | null>((latest, group) => group.turn ?? latest, null);
+        if (turn !== null) turnHeader.textContent = `Turn ${turn}`;
+        /*
+         * **The opening batch is shown when it did something.** Stage 4.11
+         * Tier 4, from the Tier 0 census: 58% of field starts and 47% of
+         * ability announcements land before `|turn|1`, in this batch, which
+         * the screen used to show with nothing animated and nothing on the
+         * strip. A lead Sand Stream was invisible outside the log.
+         *
+         * What stays off the opening batch is the *turn*: no lunge, no order,
+         * no chunk, because nothing was chosen and a nudge at the start of
+         * every battle was the reason this was silent. The marks, the panel
+         * pulses and the strip run when the batch carries a flag, and stay
+         * silent on a plain start, so a battle that opens with nothing to say
+         * still says nothing.
+         */
+        const eventful = turns.some((turn) => turn.actions.some((each) => each.flags.length > 0) || turn.residual.length > 0);
+        if (animate || eventful) flags.show(turns);
+        draw(animate ? turns : undefined, turns);
       };
 
       log.clear();
       flags.clear();
+      turnHeader.textContent = '';
       /*
        * And the board's own two panels. **The bench-carryover patch.**
        *
@@ -251,9 +337,14 @@ export function createBattleScreen(): BattleScreen {
       sheet.close();
       show(session.protocolFor('p1'), false);
 
-      return session.subscribe((update) => {
+      const unsubscribe = session.subscribe((update) => {
         show(update.protocol, true);
       });
+      return () => {
+        unsubscribe();
+        // The fight is over or abandoned: the world goes back to the locale's own sky.
+        applyField(null);
+      };
     },
   };
 }

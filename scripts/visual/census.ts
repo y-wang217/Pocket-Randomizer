@@ -94,9 +94,6 @@ import { SPECIES_POOL } from '../../src/data/speciesPools';
 
 export const CENSUS_PATH = join(process.cwd(), 'docs/design/text-census.md');
 
-/** The three modes, as the settings store spells them. */
-export const DENSITIES = ['detailed', 'simple', 'pocket'] as const;
-export type Density = (typeof DENSITIES)[number];
 
 /** The seed every fixture is rendered from, so two runs of this agree. */
 export const CENSUS_SEED = 'SMOKE24';
@@ -244,7 +241,7 @@ export const COMPONENTS: readonly { id: string; selector: string; why: string; b
   {
     id: 'map node card',
     selector: '.node',
-    why: 'Section 4 budgets it at 0. Two call sites, the map screen and the map drawer, which is what makes it a component by section 5\'s own test.',
+    why: 'Section 4 budgets it at 2 since D46 (3 under D37, 0 before). Two call sites, the map screen and the map drawer, which is what makes it a component by section 5\'s own test.',
   },
   {
     id: 'locale card',
@@ -263,12 +260,23 @@ export const COMPONENTS: readonly { id: string; selector: string; why: string; b
     /*
      * **Section 4's starter card row, added with D40's ruling (M6.0).** `.starter`
      * is the card's root `<button>`; the screen root is `screen--starter`, so the
-     * two do not collide. The move cards and the stat block inside it are listed
-     * above and are the nearer ancestors, so this row counts only what the card
-     * draws itself: the species, the level, the ability and the HP figure.
+     * two do not collide. Since bible Rev 19 (D78) the card carries move chips,
+     * listed above as the nearer ancestor, so this row counts only what the card
+     * draws itself: the species, the level and the ability.
      */
     selector: '.starter',
-    why: 'Section 4 budgets the starter card at 0 plus the ability name (D40).',
+    why: 'Section 4 budgets the starter card at 0 plus the ability name (D78; D40 before it).',
+  },
+  {
+    id: 'starter detail panel',
+    /*
+     * **Section 4's starter detail panel row, bible Rev 19 (D79, D80).** Empty
+     * and hidden until a tap selects a card, so the gallery's at-rest face
+     * reads nothing here; the two coverage labels are what it carries once
+     * filled. The Choose control sits outside it and is the screen's.
+     */
+    selector: '.starter-detail',
+    why: 'Section 4 budgets the starter detail panel at 5: the two coverage labels and the Choose control (D80).',
   },
   {
     id: 'event choice',
@@ -288,7 +296,7 @@ export const COMPONENTS: readonly { id: string; selector: string; why: string; b
   },
   {
     id: 'app shell',
-    selector: '.header, .shell__drawer-bar, .seedbar, .stamps',
+    selector: '.nav, .header, .seedbar, .stamps',
     why: 'The header, drawer bar, seed bar and stamps are mounted once and render on every surface. Section 4 budgets surfaces, not the chrome around them, so this is broken out to be subtracted rather than silently charged to all sixteen.',
   },
 ];
@@ -312,6 +320,18 @@ export const GLYPH_SLOTS: readonly { selector: string; why: string }[] = [
     selector: '.move__fact-icon',
     why: "D17B: the fact strip's icons are drawings that happen to be characters. The chip around each one carries the decodable label.",
   },
+];
+
+/**
+ * R13's vital facts, which section 4 does not count (Bible Rev 20, D81). The
+ * stats are numbers and glyphs and need no entry; a carried item's effect line
+ * is words, so the bag's two effect lines are named here and nothing else is.
+ * Adding a selector to this list is adding a fact to R13's vital list, which
+ * is an amendment.
+ */
+export const VITAL_SLOTS: readonly { selector: string; why: string }[] = [
+  { selector: '.backpack__effect', why: "R13: a carried item's effect line, on the party screen's bag." },
+  { selector: '.drawer__item-effect', why: "R13: a carried item's effect line, on the read-only bag." },
 ];
 
 /** Every capitalised name this repo knows, lowercased. */
@@ -368,11 +388,10 @@ export function isBareNumber(token: string): boolean {
 
 export interface Record_ {
   surface: GallerySurface;
-  density: Density;
   component: string | null;
   /**
    * Which *instance* of that component the words belong to, on this surface
-   * in this density. `null` for chrome that belongs to no component.
+   * `null` for chrome that belongs to no component.
    *
    * **D30, filed 2026-09-22.** D2 ruled the census counts "per component
    * instance" and this script summed instances instead, which is the same
@@ -460,22 +479,20 @@ async function censusAll(url: string, browser: Browser): Promise<{ records: Reco
   const firstRun: Record_[] = [];
 
   /*
-   * Three passes at the steady state, one per density, and a fourth in Pocket
-   * at a fresh store. **D44.** Section 4 budgets the face a player reads once
-   * R7's labels are spent, which is the gallery's default; the first-run pass
-   * is the face a new player reads, recorded beside it and gating nothing.
+   * One pass at the steady state and one at a fresh store. **D44.** Section 4
+   * budgets the face a player reads once R7's labels are spent, which is the
+   * gallery's default; the first-run pass is the face a new player reads,
+   * recorded beside it and gating nothing. There were three steady-state
+   * passes, one per density mode, until Stage 5.0/1 retired the modes.
    */
-  const passes: readonly { density: Density; exposure: 'exhausted' | 'fresh' }[] = [
-    ...DENSITIES.map((density) => ({ density, exposure: 'exhausted' as const })),
-    { density: 'pocket', exposure: 'fresh' },
-  ];
-  for (const { density, exposure } of passes) {
+  const passes: readonly { exposure: 'exhausted' | 'fresh' }[] = [{ exposure: 'exhausted' }, { exposure: 'fresh' }];
+  for (const { exposure } of passes) {
     const into = exposure === 'fresh' ? firstRun : records;
     for (const surface of GALLERY_SURFACES) {
       // A hash-only change does not reload, and the gallery reads its state
       // once at startup: without the reload every surface returns the first
       // one measured. Found the direct way.
-      await page.goto(`${url}/gallery.html#seed=${CENSUS_SEED}&screen=${surface}&density=${density}&fixture=loaded&exposure=${exposure}`, { waitUntil: 'load' });
+      await page.goto(`${url}/gallery.html#seed=${CENSUS_SEED}&screen=${surface}&fixture=loaded&exposure=${exposure}`, { waitUntil: 'load' });
       await page.reload({ waitUntil: 'load' });
       await page.waitForSelector('html[data-gallery-ready="true"]', { timeout: 60_000 });
       await page.evaluate(() => document.fonts.ready);
@@ -486,14 +503,14 @@ async function censusAll(url: string, browser: Browser): Promise<{ records: Reco
 
       if (exposure === 'exhausted') for (const id of await presentOn(page, COMPONENTS)) present.add(id);
 
-      const nodes = await readSurface(page, COMPONENTS, GLYPH_SLOTS.map(({ selector }) => selector));
+      const nodes = await readSurface(page, COMPONENTS, [...GLYPH_SLOTS, ...VITAL_SLOTS].map(({ selector }) => selector));
       for (const { component, instance, text } of nodes) {
         const words = tokenise(text).filter((token) => {
           if (isBareNumber(token)) return false;
           const isCapitalised = /^\p{Lu}/u.test(token);
           return !(isCapitalised && lexicon.has(token.toLowerCase()));
         });
-        if (words.length) into.push({ surface, density, component, instance, words });
+        if (words.length) into.push({ surface, component, instance, words });
       }
     }
   }
@@ -508,17 +525,17 @@ function total(records: readonly Record_[]): number {
 
 /**
  * The heaviest single instance of one component, across every surface it
- * renders on, in one density. **D30.**
+ * renders on. **D30.**
  *
  * An instance is scoped to its surface as well as its ordinal, because the
  * same ordinal on two surfaces is two different cards — the map screen's
  * third node and the map drawer's third node are not the same element, and
  * summing them would invent a card heavier than any that exists.
  */
-function worstInstance(records: readonly Record_[], component: string, density: Density): number {
+function worstInstance(records: readonly Record_[], component: string): number {
   const perInstance = new Map<string, number>();
   for (const record of records) {
-    if (record.component !== component || record.density !== density || !record.instance) continue;
+    if (record.component !== component || !record.instance) continue;
     const key = `${record.surface}/${record.instance}`;
     perInstance.set(key, (perInstance.get(key) ?? 0) + record.words.length);
   }
@@ -558,22 +575,23 @@ export function renderTable(records: readonly Record_[], present: ReadonlySet<st
 
   lines.push('## Per surface');
   lines.push('');
-  lines.push('`pocket, less shell` is the column section 4 budgets: the app shell renders on every');
+  lines.push('`less shell` is the column section 4 budgets: the app shell renders on every');
   lines.push('surface and is not the surface, so its words are shown separately below and');
   lines.push('subtracted here.');
   lines.push('');
   lines.push('Every column but the last is the steady state: every glyph family past R7\'s');
   lines.push('third exposure, which is the face section 4 budgets (D44). **The last column');
-  lines.push('is a first launch**, Pocket less shell at a fresh store, with every exposure');
-  lines.push('label that is due. It is recorded and never gated.');
+  lines.push('is a first launch**, less shell at a fresh store, with every exposure label');
+  lines.push('that is due. It is recorded and never gated. One face since Stage 5.0/1, so');
+  lines.push('the three density columns this table carried are one.');
   lines.push('');
-  lines.push('| Surface | detailed | simple | pocket | pocket, less shell | first run |');
-  lines.push('|---|---:|---:|---:|---:|---:|');
+  lines.push('| Surface | words | less shell | first run |');
+  lines.push('|---|---:|---:|---:|');
   for (const surface of GALLERY_SURFACES) {
-    const cells = DENSITIES.map((density) => total(records.filter((r) => r.surface === surface && r.density === density)));
-    const bare = total(records.filter((r) => r.surface === surface && r.density === 'pocket' && r.component !== 'app shell'));
+    const all = total(records.filter((r) => r.surface === surface));
+    const bare = total(records.filter((r) => r.surface === surface && r.component !== 'app shell'));
     const fresh = total(firstRun.filter((r) => r.surface === surface && r.component !== 'app shell'));
-    lines.push(`| ${surface} | ${cells.join(' | ')} | ${bare} | ${fresh} |`);
+    lines.push(`| ${surface} | ${all} | ${bare} | ${fresh} |`);
   }
   lines.push('');
 
@@ -588,8 +606,8 @@ export function renderTable(records: readonly Record_[], present: ReadonlySet<st
   lines.push('of 8, or 14 + 4 + 4, which does not. The two columns are equal only where the');
   lines.push('budget is 0 or the component renders once.');
   lines.push('');
-  lines.push('| Component | detailed | simple | pocket | worst instance, pocket |');
-  lines.push('|---|---:|---:|---:|---:|');
+  lines.push('| Component | words | worst instance |');
+  lines.push('|---|---:|---:|');
   for (const { id } of COMPONENTS) {
     const seen = records.some((r) => r.component === id);
     // `absent` is "not built"; `unrendered` is "built, and no fixture shows
@@ -599,20 +617,20 @@ export function renderTable(records: readonly Record_[], present: ReadonlySet<st
     const inTree = COMPONENTS.find((entry) => entry.id === id)?.built !== false;
     const missing = inTree ? 'unrendered' : 'absent';
     const rendered = seen || present.has(id);
-    const cells = DENSITIES.map((density) => total(records.filter((r) => r.component === id && r.density === density)));
-    lines.push(`| ${id} | ${rendered ? `${cells.join(' | ')} | ${worstInstance(records, id, 'pocket')}` : `${missing} | ${missing} | ${missing} | ${missing}`} |`);
+    const words = total(records.filter((r) => r.component === id));
+    lines.push(`| ${id} | ${rendered ? `${words} | ${worstInstance(records, id)}` : `${missing} | ${missing}`} |`);
   }
-  const chrome = DENSITIES.map((density) => total(records.filter((r) => r.component === null && r.density === density)));
-  lines.push(`| screen chrome (no component) | ${chrome.join(' | ')} | — |`);
+  const chrome = total(records.filter((r) => r.component === null));
+  lines.push(`| screen chrome (no component) | ${chrome} | — |`);
   lines.push('');
 
-  lines.push('## Every word counted, in Pocket');
+  lines.push('## Every word counted');
   lines.push('');
-  lines.push('The mode the bible specifies as the face. One row per surface, so a number');
+  lines.push('The one face. One row per surface, so a number');
   lines.push('above can be argued with rather than taken on faith.');
   lines.push('');
   for (const surface of GALLERY_SURFACES) {
-    const words = records.filter((r) => r.surface === surface && r.density === 'pocket').flatMap((r) => r.words);
+    const words = records.filter((r) => r.surface === surface).flatMap((r) => r.words);
     lines.push(`- **${surface}** (${words.length}): ${words.length ? words.map((w) => `\`${w}\``).join(' ') : '_nothing_'}`);
   }
   lines.push('');
@@ -647,16 +665,18 @@ async function main(): Promise<void> {
       return;
     }
     // Non-blocking by M0.1's own "kills it": measurement cannot fail the bible.
-    console.log('census: CHANGED. Per-surface deltas, Pocket less shell:');
+    console.log('census: CHANGED. Per-surface deltas, less shell:');
     const before = new Map<string, number>();
     for (const line of committed.split('\n')) {
-      // The first-run column is optional so a table written before D44 still
-      // reads back.
-      const match = /^\| ([a-z-]+) \| \d+ \| \d+ \| \d+ \| (\d+) \|(?: \d+ \|)?$/.exec(line);
+      // The one-face table (5.0/1), or the density table before it, whose
+      // `pocket, less shell` column is the same measurement.
+      const match =
+        /^\| ([a-z-]+) \| \d+ \| (\d+) \| \d+ \|$/.exec(line) ??
+        /^\| ([a-z-]+) \| \d+ \| \d+ \| \d+ \| (\d+) \|(?: \d+ \|)?$/.exec(line);
       if (match) before.set(match[1] as string, Number(match[2]));
     }
     for (const surface of GALLERY_SURFACES) {
-      const now = total(records.filter((r) => r.surface === surface && r.density === 'pocket' && r.component !== 'app shell'));
+      const now = total(records.filter((r) => r.surface === surface && r.component !== 'app shell'));
       const was = before.get(surface);
       if (was === undefined || was === now) continue;
       console.log(`  ${surface}: ${was} -> ${now} (${now > was ? '+' : ''}${now - was})`);

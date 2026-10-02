@@ -168,8 +168,8 @@ const starterCount = await page.locator('.starter').count();
 console.log(`  ${starterCount === 3 ? 'ok  ' : 'FAIL'} three starters offered (x${starterCount})`);
 if (starterCount !== 3) problems.push(`expected 3 starters, saw ${starterCount}`);
 await check('starter types', '.starter .type');
-// A move card per move since M6.0 (D40); the screen drew its own rows before.
-await check('starter movesets', '.starter__moves .move--card');
+// A move chip per move since bible Rev 19 (D78); move cards under D40.
+await check('starter movesets', '.starter__moves .move--chip');
 await check('starter move power', '.starter .move__power');
 
 const seed = await page.inputValue('.seedbar__input');
@@ -199,7 +199,7 @@ else if (versioned[1] !== SEED) problems.push(`seed from the URL was not used (s
  */
 async function playRun(label) {
   await page.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
-  await (await bulkiestStarter()).click();
+  await pickBulkiestStarter();
 
   let battles = 0;
   let nodes = 0;
@@ -358,6 +358,8 @@ async function playRun(label) {
       if (await card.count()) {
         if (rewards === 0) await page.screenshot({ path: `stats/${label}-reward.png`, fullPage: true });
         await card.click();
+        // A tap selects; the claim band's commit takes it (Stage 5.0/3, D69).
+        await page.locator('.confirm-band .primary-action').click();
         rewards++;
         await page.waitForTimeout(25);
         continue;
@@ -540,7 +542,7 @@ async function playRun(label) {
        * rendering it. Done once so the second run makes the same clicks.
        */
       if (nodes === 2 && partyVisits === 0) {
-        const manage = page.locator(`${visible('map')} .party__header .button`);
+        const manage = page.locator('[data-nav="team"]');
         if (await manage.count()) {
           await manage.click();
           await page.waitForTimeout(25);
@@ -637,27 +639,31 @@ async function playRun(label) {
 }
 
 /**
- * The starter with the most HP, ties to the leftmost card.
+ * Pick the starter with the most HP, ties to the leftmost card.
  *
  * At PARTY_SIZE 1 this one click is the largest decision in the run — it is the
  * only Pokemon the player will ever have — so a bot that takes whichever card is
  * first is not playing the game, it is sampling it.
+ *
+ * The max HP is the detail panel's since bible Rev 19 (D78, D79): a tap
+ * selects a card and fills the panel, and the Choose control commits.
  */
-async function bulkiestStarter() {
+async function pickBulkiestStarter() {
   const cards = page.locator('.starter');
   const count = await cards.count();
   let best = 0;
   let bestHp = -1;
   for (let i = 0; i < count; i++) {
-    // The card prints the HP glyph and <N> since M6.0; N is the number the choice turns on.
-    const meta = (await cards.nth(i).locator('.starter__hp-value').textContent()) ?? '';
+    await cards.nth(i).click();
+    const meta = (await page.locator('.starter-detail .stat[data-row="hp"] .stat__value').textContent()) ?? '';
     const hp = Number(/(\d+)/.exec(meta)?.[1] ?? 0);
     if (hp > bestHp) {
       bestHp = hp;
       best = i;
     }
   }
-  return cards.nth(best);
+  await cards.nth(best).click();
+  await page.locator('.starter-select__choose').click();
 }
 
 /**
@@ -697,15 +703,27 @@ async function chooseNode() {
   const options = page.locator(`${visible('map')} .node--current`);
   if ((await options.count()) === 0) return null;
 
-  const hpText = (await page.locator(`${visible('map')} .panel__hp-text`).first().textContent()) ?? '';
-  const [, current, max] = /(\d+)\s*\/\s*(\d+)/.exec(hpText) ?? [];
-  const fraction = current && max ? Number(current) / Number(max) : 1;
-
-  if (fraction < 0.95) {
-    const rest = page.locator(`${visible('map')} .node--current.node--rest`).first();
-    if (await rest.count()) return rest;
-  }
+  // The lead's HP from the party screen, through the Team tab: the map
+  // carries no team since 5.0/4 (`leadHpFraction` below).
+  const rest = page.locator(`${visible('map')} .node--current.node--rest`).first();
+  if ((await rest.count()) && (await leadHpFraction()) < 0.95) return rest;
   return options.first();
+}
+
+/**
+ * The lead's HP as a fraction, read off the party screen through the Team
+ * tab. **Stage 5.0/4**: the map carried the party until then. A readout: it
+ * submits nothing and draws nothing, so both runs stay the same walk. The
+ * same helper as `scripts/visual/browser.mjs`'s, on this file's own page.
+ */
+async function leadHpFraction() {
+  await page.locator('[data-nav="team"]').click();
+  await page.waitForSelector(visible('party'));
+  const hpText = (await page.locator(`${visible('party')} .party__member .panel__hp-text`).first().textContent()) ?? '';
+  await page.locator(`${visible('party')} .primary-action`).first().click();
+  await page.waitForSelector(visible('map'));
+  const [, current, max] = /(\d+)\s*\/\s*(\d+)/.exec(hpText) ?? [];
+  return current && max ? Number(current) / Number(max) : 1;
 }
 
 /** What the chain looked like partway through: done behind, current, upcoming ahead. */
@@ -937,10 +955,13 @@ const phoneCheck = (label, ok, detail) => {
  * 5 of the design bible closes with. One component draws them all now, so this
  * counts the rows it draws.
  */
-const starterStats = await phone.locator('.starter .stats .stat').count();
-phoneCheck('starter cards show base stats', starterStats >= 18, `${starterStats} cells across 3 cards`);
-
 await phone.locator('.starter').first().click();
+// The selected starter's stats, numbers at rest, in the detail panel since
+// bible Rev 19 (D79); on each card under D40. Every call site since Rev 20 (D82).
+const starterStats = await phone.locator('.starter-detail .stats .stat__value:visible').count();
+phoneCheck('the selected starter shows its six stats as numbers', starterStats === 6, `${starterStats} numbers`);
+
+await phone.locator('.starter-select__choose').click();
 
 /*
  * The locale pick, which from Stage 4.6a sits between the starter and the map.
@@ -1046,7 +1067,7 @@ phoneCheck(
  * And the same readout on the party screen, where it is open by default and is
  * the first thing under the heading.
  */
-await phone.locator(`${visible('map')} .party__header .button`).first().click().catch(() => undefined);
+await phone.locator('[data-nav="team"]').first().click().catch(() => undefined);
 await phone.waitForTimeout(50);
 if (await phone.locator(visible('party')).count()) {
   const partyMetrics = await phone.evaluate(() => {
@@ -1171,8 +1192,9 @@ if (await phone.locator(visible('battle')).count()) {
       statPanels: [...globalThis.document.querySelectorAll('.panel[data-tip^="stats:"]')].filter(
         (panel) => (panel.dataset.detail ?? '').split('\n').filter(Boolean).length === 6,
       ).length,
-      // Part 1: the drawer trigger, in the same place on every surface.
-      drawerTrigger: globalThis.document.querySelectorAll('[data-drawer-trigger]').length,
+      // Part 1: the party is reachable from a battle. The Team tab since Stage
+      // 5.0/1, where the drawer trigger was.
+      drawerTrigger: [...globalThis.document.querySelectorAll('[data-nav="team"]')].filter((tab) => !tab.disabled).length,
       scrollWidth: globalThis.document.documentElement.scrollWidth,
       innerWidth: globalThis.window.innerWidth,
     };
@@ -1216,7 +1238,7 @@ if (await phone.locator(visible('battle')).count()) {
     `${battle.statPanels} stat panels, ${battle.archetypes} labels`,
   );
   phoneCheck('the party drawer is reachable in a battle', battle.drawerTrigger === 1,
-    `${battle.drawerTrigger} triggers`);
+    `${battle.drawerTrigger} enabled Team tabs`);
 
   await phone.screenshot({ path: 'stats/phone-battle.png' });
 } else {

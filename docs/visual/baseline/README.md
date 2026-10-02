@@ -18,6 +18,48 @@ and fails on any byte that differs. Heights are compared by
 
 ## Corrections
 
+- **2026-09-25, the docked inspect sheet patch** (`docs/generation.md` §81).
+  `heights.json` alone; runs, the battle protocol and the digest are untouched
+  because nothing under `core/` changed and no version axis moved.
+
+  **Every guarded screen grew by one to four pixels, in every mode**, and the
+  reason is the author's own ask in that patch: every clickable surface a
+  tenth larger. `--tap-scale: 1.1` multiplies the padding of `.button`,
+  `.button--small` and `.move` and the move bar's 44px floor, so the header's
+  two small buttons push each screen down and the move bar is taller. In
+  Detailed: map `screenHeight` 743.97 → 744.75 and `decisionTop` 558 →
+  560.34; battle `screenHeight` 585.5 → 587.88, `decisionTop` 462.5 → 464.06,
+  `decisionBottom` 698.5 → 702.44. Pocket battle `scrollHeight` holds at 844,
+  so the no-scroll gate on the phone still passes with the larger buttons,
+  and `npm run smoke` measured the move grid ending at 704 of 844. Re-recorded
+  with `node scripts/visual/measure.mjs --out` after `npm run build`, on the
+  same box as the previous recording (the map's Detailed fields matched
+  4.10.1's recording to the pixel before this patch's stylesheet was applied).
+
+- **2026-09-25, patch 4.10.1, map node icons** (D46). `heights.json` alone;
+  runs, the battle protocol and the digest are untouched because nothing under
+  `core/` changed and no version axis moved.
+
+  **The map grew one row: 705.72 to 743.97 in Detailed, 475.19 to 513.44 in
+  Pocket, 38.25px in each.** That is the tier pips moving from the kind's label
+  line to a row of their own beneath the mark, which is the prompt's one
+  instruction about the tier, plus a 24px mark where a line of text stood.
+  `decisionTop` is unmoved in Detailed (558) and Pocket (286.97);
+  `decisionBottom` follows the row down (612.34 to 624.72, 333.31 to 345.69),
+  and the Pocket no-scroll gate and the 740 line both still pass. **The battle
+  screen fell 9.5px** in Detailed (595 to 585.5): the header's title is the
+  same mark at 16 beside a name on a gym and alone otherwise, which is shorter
+  than the two-word title it replaces.
+
+  **The `modes` and `layouts` blocks had been stale since before this patch.**
+  Measured on the unchanged tree first, the Detailed and Simple map rows under
+  `layouts.columns` read 944.5 and 866.75 against a measured 705.72 and 657.66,
+  and every Pocket row was off by more than a hundred pixels. The guard reads
+  the top-level `map` and `battle` only, so nothing had failed. They are
+  re-recorded here with the rest of the file rather than left, and the one
+  test that would have caught it is open item for the next patch that touches
+  the guard.
+
 - **2026-09-18, the wild-encounter swap fix** (`ai-7-tiers-reach-the-app`).
   Re-recorded on the runs and the battle protocol, and the diff is **twelve
   lines, every one of them a version stamp**: `versions.ai` in six run files and

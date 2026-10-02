@@ -178,9 +178,11 @@ describe('the drawer itself', () => {
      * itself is the inspect trigger now, which is not a `<button>` and so does
      * not appear here.
      */
-    expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual([
-      '+', 'Close', 'Detailed', 'Even', 'Patient', 'Pocket', 'Simple', 'Swift',
-    ]);
+    // Detailed, Pocket and Simple left with the density picker at Stage 5.0/1,
+    // and the three speeds moved to the Settings screen the same stage.
+    // The fold's control is a disclosure chevron on a readout, not `+`, which
+    // read as an edit (bible Rev 23, D94).
+    expect(labels.sort(), 'an unexpected control appeared on the read-only drawer').toEqual(['Close', '\u25BE']);
 
     /*
      * **The card is not a `<button>`, so the sweep above cannot see it, and

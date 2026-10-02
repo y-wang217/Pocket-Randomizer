@@ -373,7 +373,7 @@ describe('one tooltip layer, and Pocket keeps every fact within one tap', () => 
    * specifies. So this asserts the three parts of that row — a glyph, a bar
    * and a number, for all six, in order — rather than that a panel opened.
    */
-  it('opens all six stats from the panel on a long press, as glyph, bar and number', async () => {
+  it('opens all six stats from the panel on a long press, as glyph and number', async () => {
     const host = document.createElement('div');
     document.body.append(host);
     const layer = createTooltips(host, { ...DEFAULT_DISPLAY_TUNING, inspectHoldMs: 0 });
@@ -419,13 +419,8 @@ describe('one tooltip layer, and Pocket keeps every fact within one tap', () => 
       '85',
       '65',
     ]);
-    // The bar is measured against the one ceiling in `data/statInfo.ts`, so a
-    // Speed bar here and a Speed bar in the drawer are the same length.
-    const def = rows[2]?.querySelector('.stat__bar-fill') as HTMLElement;
-    expect(def.style.width).toBe(`${(190 / 200) * 100}%`);
-    // Every bar the same fill. A hue per stat would be the screen ranking them.
-    const fills = rows.map((row) => (row.querySelector('.stat__bar-fill') as HTMLElement).className);
-    expect(new Set(fills).size).toBe(1);
+    // No bar since Bible Rev 20 (D82): the number is the readout.
+    expect(layer.root.querySelectorAll('.stat__bar, .stat__bar-fill')).toHaveLength(0);
     // The species names whose numbers these are, so two panels never blur.
     expect(layer.root.textContent).toContain('Golem');
 
@@ -433,10 +428,11 @@ describe('one tooltip layer, and Pocket keeps every fact within one tap', () => 
     host.remove();
   });
 
-  it('swaps the chips for the marker in Pocket rather than hiding both', () => {
+  // Pocket's two rules, unconditional since Stage 5.0/1 retired the modes.
+  it('swaps the chips for the marker rather than hiding both', () => {
     const css = readFileSync(join(process.cwd(), 'src/ui/styles.css'), 'utf8');
-    expect(css).toContain(':root[data-density="pocket"] .panel__stages .badge--stage { display: none; }');
-    expect(css).toContain(':root[data-density="pocket"] .panel__stages .badge--stages { display: inline-flex; }');
+    expect(css).toContain('.panel__stages .badge--stage { display: none; }');
+    expect(css).toContain('.panel__stages .badge--stages { display: inline-flex; }');
   });
 });
 

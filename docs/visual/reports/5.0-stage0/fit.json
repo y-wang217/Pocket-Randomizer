@@ -1,0 +1,165 @@
+[
+ {
+  "file": "battle-phone-390x844.png",
+  "pageScroll": false,
+  "innerScrollers": 1,
+  "targets": 11,
+  "under44": 0,
+  "overflowBottom": 0,
+  "extra": null
+ },
+ {
+  "file": "battle-desktop-1366x768.png",
+  "pageScroll": false,
+  "innerScrollers": 1,
+  "targets": 11,
+  "under44": 0,
+  "overflowBottom": -3,
+  "extra": null
+ },
+ {
+  "file": "battle-missing-phone-390x844.png",
+  "pageScroll": false,
+  "innerScrollers": 1,
+  "targets": 11,
+  "under44": 0,
+  "overflowBottom": 0,
+  "extra": null
+ },
+ {
+  "file": "map-0-phone-390x844.png",
+  "pageScroll": false,
+  "innerScrollers": 0,
+  "targets": 7,
+  "under44": 0,
+  "overflowBottom": 0,
+  "extra": {
+   "rows": 7,
+   "pitch": 112,
+   "nodes": 13,
+   "tappable": 2,
+   "minTap": 52,
+   "overlaps": 0,
+   "topNodeTop": 16
+  }
+ },
+ {
+  "file": "map-1-phone-390x844.png",
+  "pageScroll": false,
+  "innerScrollers": 0,
+  "targets": 7,
+  "under44": 0,
+  "overflowBottom": 0,
+  "extra": {
+   "rows": 8,
+   "pitch": 96,
+   "nodes": 15,
+   "tappable": 2,
+   "minTap": 52,
+   "overlaps": 0,
+   "topNodeTop": 16
+  }
+ },
+ {
+  "file": "map-2-phone-390x844.png",
+  "pageScroll": false,
+  "innerScrollers": 0,
+  "targets": 7,
+  "under44": 0,
+  "overflowBottom": 0,
+  "extra": {
+   "rows": 8,
+   "pitch": 96,
+   "nodes": 16,
+   "tappable": 2,
+   "minTap": 52,
+   "overlaps": 0,
+   "topNodeTop": 16
+  }
+ },
+ {
+  "file": "map-3-phone-390x844.png",
+  "pageScroll": false,
+  "innerScrollers": 0,
+  "targets": 7,
+  "under44": 0,
+  "overflowBottom": 0,
+  "extra": {
+   "rows": 9,
+   "pitch": 84,
+   "nodes": 18,
+   "tappable": 2,
+   "minTap": 52,
+   "overlaps": 0,
+   "topNodeTop": 16
+  }
+ },
+ {
+  "file": "map-4-phone-390x844.png",
+  "pageScroll": false,
+  "innerScrollers": 0,
+  "targets": 8,
+  "under44": 0,
+  "overflowBottom": 0,
+  "extra": {
+   "rows": 9,
+   "pitch": 84,
+   "nodes": 19,
+   "tappable": 3,
+   "minTap": 52,
+   "overlaps": 0,
+   "topNodeTop": 16
+  }
+ },
+ {
+  "file": "map-worst-phone-390x844.png",
+  "pageScroll": false,
+  "innerScrollers": 0,
+  "targets": 8,
+  "under44": 0,
+  "overflowBottom": 0,
+  "extra": {
+   "rows": 9,
+   "pitch": 84,
+   "nodes": 22,
+   "tappable": 3,
+   "minTap": 52,
+   "overlaps": 0,
+   "topNodeTop": 16
+  }
+ },
+ {
+  "file": "map-3-desktop-1366x768.png",
+  "pageScroll": false,
+  "innerScrollers": 0,
+  "targets": 7,
+  "under44": 0,
+  "overflowBottom": -3,
+  "extra": {
+   "rows": 9,
+   "pitch": 71,
+   "nodes": 18,
+   "tappable": 2,
+   "minTap": 52,
+   "overlaps": 0,
+   "topNodeTop": 16
+  }
+ },
+ {
+  "file": "map-worst-desktop-1366x768.png",
+  "pageScroll": false,
+  "innerScrollers": 0,
+  "targets": 8,
+  "under44": 0,
+  "overflowBottom": -3,
+  "extra": {
+   "rows": 9,
+   "pitch": 71,
+   "nodes": 22,
+   "tappable": 3,
+   "minTap": 52,
+   "overlaps": 0,
+   "topNodeTop": 16
+  }
+ }
+]

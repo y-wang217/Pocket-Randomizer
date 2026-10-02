@@ -1,33 +1,24 @@
 /**
- * The six stat bars, measured where they are painted. **Patch 4.7.2.**
+ * The six stat numbers, measured where they are painted. **Patch 4.7.2; the
+ * bars retired at Bible Rev 20, D82, and back against the band at Rev 21,
+ * D88.**
  *
- * The bug this replaces was invisible to every check the tree had: the values
- * were passed, the arithmetic was right, and `style.width` read back exactly
- * what the component wrote. `.stat__bar-fill` was an inline box, so the width
- * never became a pixel — the six rows rendered as flat dark tracks. A DOM
- * assertion would have passed on the broken build, which is why this one is in
- * a browser and asks for a **painted** width.
+ * This file measured the six stat *bars*: the 4.7.2 bug was a fill whose
+ * declared width never became a pixel, invisible to every DOM check. The bars
+ * are gone and the number is the readout (R13), so the promise is the same
+ * one asked of the number: on the party screen's first member card, unopened,
+ * each of the six rows paints a non-empty number box, and the number painted
+ * is the value the label carries for the long press.
  *
- * The class of bug is guarded separately and more generally by
- * `test/visual-inline-box.test.ts`. This file is the specific promise: on the
- * surfaces that draw a member card, every stat row shows a bar whose painted
- * width is proportional to the number beside it.
+ * Since D88 each number has a bar beside it again, measured against the band
+ * that stat takes at the member's level, and the 4.7.2 promise comes back
+ * with it: a fill whose declared width never becomes a pixel is the bug this
+ * file was written for, so each fill's painted width is measured against the
+ * fraction the row declares.
  *
- * ## Proportional to the number *beside it*, not to a stat read from core/
- *
- * The obvious version compares against `describeSpecCard`, and that comparison
- * belongs in `test/party-stats.test.ts` where it is cheap and exact. Here the
- * number is on screen already, so the stronger question a browser can ask is
- * whether the *bar* and the *number* agree — which is what a reader actually
- * checks, and what a bar drawn from the wrong field would fail.
- *
- * ## Why this measures Simple mode
- *
- * **The two modes are mutually exclusive**: Detailed shows the number with the
- * bar hidden, and Simple the reverse. So the only mode in which there is a bar
- * to measure is Simple, and the test toggles into it. (4.7.2's step 4 briefly
- * had Detailed show both; patch 4.8.0.2 restored the Stage 4.5.1 definition,
- * so the toggle here stays. `test/visual-density.test.ts` asserts the modes.)
+ * The name is kept because the documents that record the 4.7.2 bug cite it,
+ * and the bug's class is still guarded generally by
+ * `test/visual-inline-box.test.ts`.
  */
 import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -47,50 +38,49 @@ afterAll(async () => {
 
 interface Row {
   label: string;
+  fraction: number | null;
+  track: number;
+  fill: number;
   value: number | null;
-  trackWidth: number;
-  fillWidth: number;
-  fillHeight: number;
-  declared: string;
+  labelled: number | null;
+  width: number;
+  height: number;
 }
 
 /** The stat rows of the first member card on the open screen. */
 async function statRows(page: Page, screen: string): Promise<Row[]> {
   return page.evaluate((sel) => {
-    const block = globalThis.document.querySelector(`${sel} .stats--grid`);
+    const block = globalThis.document.querySelector(`${sel} .party__member .stats`);
     if (!block) return [];
     return [...block.querySelectorAll('.stat')].map((row) => {
       const value = row.querySelector('.stat__value');
-      const track = row.querySelector('.stat__bar');
-      const fill = row.querySelector('.stat__bar-fill');
-      const box = (node: Element | null) => (node ? node.getBoundingClientRect() : null);
+      const box = value ? value.getBoundingClientRect() : null;
       const text = (value?.textContent ?? '').trim();
+      const labelled = (row.querySelector('.stat__label') as HTMLElement | null)?.dataset['value'];
+      const fraction = (row as HTMLElement).dataset['fraction'];
       return {
-        // The long form; the short one is beside it for Simple. Density patch.
         label: (row.querySelector('.stat__label-long')?.textContent ?? '').trim(),
+        fraction: fraction === undefined ? null : Number(fraction),
+        track: row.querySelector('.stat__bar')?.getBoundingClientRect().width ?? 0,
+        fill: row.querySelector('.stat__bar-fill')?.getBoundingClientRect().width ?? 0,
         value: text === '' ? null : Number(text),
-        trackWidth: box(track)?.width ?? 0,
-        fillWidth: box(fill)?.width ?? 0,
-        fillHeight: box(fill)?.height ?? 0,
-        declared: (fill as HTMLElement | null)?.style.width ?? '',
+        labelled: labelled === undefined ? null : Number(labelled),
+        width: box?.width ?? 0,
+        height: box?.height ?? 0,
       };
     });
   }, visible(screen));
 }
 
-describe('the party screen stat bars', () => {
+describe('the party screen stat numbers', () => {
   let rows: Row[];
 
   beforeAll(async () => {
-    // In Pocket, where the bars are since the density modes patch (Detailed
-    // and Simple print the number). Stored, so the app starts in it.
-    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24', undefined, { density: 'pocket' });
-    // Straight to the party screen: it is the first surface a member card
-    // reaches and the one the bug was reported on.
+    const { page, context } = await openApp(harness.browser, harness.url, 'SMOKE24');
     for (let step = 0; step < 600; step++) {
       const screen = await openScreen(page);
       if (screen === 'map') {
-        await page.locator(`${visible('map')} .party__header .button`).click();
+        await page.locator('[data-nav="team"]').click();
         await page.waitForTimeout(200);
         break;
       }
@@ -101,10 +91,7 @@ describe('the party screen stat bars', () => {
       await stepOnce(page);
       await page.waitForTimeout(25);
     }
-    // The card's body folds in Pocket; open the first card to reach its bars.
-    await page.locator(`${visible('party')} .party__member-toggle`).first().click();
-    // The fill transitions its width over 120ms; measure after it lands.
-    await page.waitForTimeout(300);
+    // No tap: the numbers are on the card's head since D83.
     rows = await statRows(page, 'party');
     await context.close();
   }, 600_000);
@@ -121,50 +108,22 @@ describe('the party screen stat bars', () => {
     ]);
   });
 
-  /**
-   * The assertion the old build failed, in the terms it failed them in.
-   *
-   * `fillWidth` is a **painted** width off `getBoundingClientRect`, not the
-   * declared percentage. On the broken build the declared value was correct on
-   * all six rows and every painted box was 0x0.
-   */
-  it('paints a fill with non-zero width and height on every row with a non-zero stat', () => {
-    const flat = rows
-      .filter((row) => Number.parseFloat(row.declared) > 0)
-      .filter((row) => row.fillWidth <= 0 || row.fillHeight <= 0)
-      .map((row) => `${row.label}: declared "${row.declared}", painted ${row.fillWidth}x${row.fillHeight}`);
-    expect(flat, 'a declared width that paints nothing is the 4.7.2 bug').toEqual([]);
+  it('paints a number with a non-empty box on every row, without opening the card', () => {
+    const flat = rows.filter((row) => row.width <= 0 || row.height <= 0).map((row) => `${row.label}: ${row.width}x${row.height}`);
+    expect(flat, 'a number that paints nothing is the 4.7.2 bug in its new place').toEqual([]);
   });
 
-  it('gives every row a track to paint into', () => {
-    expect(rows.filter((row) => row.trackWidth <= 0).map((row) => row.label)).toEqual([]);
+  it('paints the value the label carries, on every row', () => {
+    expect(rows.every((row) => row.value !== null && row.value > 0)).toBe(true);
+    expect(rows.map((row) => row.value)).toEqual(rows.map((row) => row.labelled));
   });
 
-  /**
-   * The painted width is the share the component asked for.
-   *
-   * Against the *track*, which is what the percentage is a percentage of, with
-   * one pixel of tolerance for sub-pixel layout. This is the assertion that
-   * separates "the fill has a box" from "the fill has the right box" — a
-   * `display` fix that produced a full-width bar on every row would pass the
-   * test above and fail this one.
-   */
-  it('paints each bar at the share the component asked for', () => {
-    const wrong = rows
-      .filter((row) => row.trackWidth > 0 && row.declared.endsWith('%'))
-      .flatMap((row) => {
-        const share = Number.parseFloat(row.declared) / 100;
-        const expected = share * row.trackWidth;
-        return Math.abs(row.fillWidth - expected) > 1
-          ? [`${row.label}: declared ${row.declared} of ${row.trackWidth.toFixed(1)} → expected ${expected.toFixed(1)}px, painted ${row.fillWidth.toFixed(1)}`]
-          : [];
-      });
-    expect(wrong, 'a percentage that paints a different width is not a bar').toEqual([]);
-  });
-
-  it('gives every row a distinct share, so the six are comparable', () => {
-    const shares = rows.map((row) => row.declared).filter((declared) => declared.endsWith('%'));
-    expect(shares).toHaveLength(6);
-    expect(shares.every((declared) => Number.parseFloat(declared) > 0)).toBe(true);
+  it('paints each band bar to the fraction its row declares (D88)', () => {
+    for (const row of rows) {
+      expect(row.fraction, `${row.label} declares a fraction`).not.toBeNull();
+      expect(row.track, `${row.label} paints a track`).toBeGreaterThan(8);
+      // The fill keeps a 2px floor so an empty bar is still seen as a bar.
+      expect(row.fill, row.label).toBeCloseTo(Math.max(2, row.track * row.fraction!), 0);
+    }
   });
 });

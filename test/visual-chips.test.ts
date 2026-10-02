@@ -110,6 +110,11 @@ const VARIANTS = [
   'neutral',
 ] as const;
 
+/** On the list this sweep answers for, as opposed to something `ui/chip.ts` can build. */
+function listed(variant: string): boolean {
+  return (VARIANTS as readonly string[]).includes(variant);
+}
+
 interface ChipSample {
   variant: string;
   screen: string;
@@ -277,11 +282,20 @@ function keepFailureShots(under: string[]): string {
 /** Every rendered chip on the screen currently open, measured. */
 async function chipsOn(page: Page, scratch: Page, screen: string, label = screen): Promise<ChipSample[]> {
   await imagesSettled(page);
+  /*
+   * **One viewport at a time, since Stage 5.0/1.** The frame holds the
+   * viewport's height and the screens scroll inside `.screens`, so a
+   * full-page screenshot is one viewport and a chip below the fold is not in
+   * it. The sweep scrolls the frame a viewport at a time and samples the
+   * chips wholly inside the scroller's visible box at each stop.
+   */
   const measure = () => page.evaluate((sel) => {
     const root = globalThis.document.querySelector(sel);
     if (!root) return [];
+    const view = globalThis.document.querySelector('.screens')?.getBoundingClientRect() ?? { top: 0, bottom: globalThis.innerHeight };
     return [...root.querySelectorAll('.chip')].flatMap((node) => {
       const rect = node.getBoundingClientRect();
+      if (rect.top < view.top || rect.bottom > view.bottom) return [];
       const style = globalThis.getComputedStyle(node);
       // Present but not rendered — inside a closed overlay, or on a turn that
       // did not produce one. Skipping it is right; skipping it *silently* is
@@ -342,10 +356,10 @@ async function chipsOn(page: Page, scratch: Page, screen: string, label = screen
         text,
         fontSize: Number.parseFloat(style.fontSize),
         color: style.color,
-        // Page coordinates, to index into a full-page screenshot.
+        // Viewport coordinates, to index into this stop's screenshot.
         box: {
-          x: rect.left + globalThis.scrollX,
-          y: rect.top + globalThis.scrollY,
+          x: rect.left,
+          y: rect.top,
           width: rect.width,
           height: rect.height,
         },
@@ -371,20 +385,34 @@ async function chipsOn(page: Page, scratch: Page, screen: string, label = screen
    * glyph, so the fix is not a wait but an agreement: the instrument measures
    * the layout it photographed, or it measures again.
    */
-  let found = await measure();
-  if (found.length === 0) return [];
-  let png = await page.screenshot({ fullPage: true });
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const again = await measure();
-    if (JSON.stringify(again.map((chip) => chip.box)) === JSON.stringify(found.map((chip) => chip.box))) break;
-    found = again;
-    png = await page.screenshot({ fullPage: true });
-  }
-  shots.set(label, png);
   // Device pixels per CSS pixel, asked of the page rather than assumed. 1 on
   // the Chromium leg, 3 on the WebKit one's iPhone descriptor.
   const dpr = await page.evaluate(() => globalThis.devicePixelRatio);
-  const backgrounds = await sampleBoxes(scratch, png, found.map((chip) => chip.box), dpr);
+  const stops = await page.evaluate(() => {
+    const frame = globalThis.document.querySelector<HTMLElement>('.screens');
+    if (!frame) return [0];
+    const out: number[] = [];
+    for (let top = 0; top < frame.scrollHeight - frame.clientHeight + frame.clientHeight; top += frame.clientHeight) out.push(top);
+    return out.length ? out : [0];
+  });
+  const all: { found: Awaited<ReturnType<typeof measure>>; backgrounds: Awaited<ReturnType<typeof sampleBoxes>> }[] = [];
+  for (const [stop, top] of stops.entries()) {
+    await page.evaluate((y) => globalThis.document.querySelector('.screens')?.scrollTo(0, y), top);
+    let found = await measure();
+    if (found.length === 0) continue;
+    let png = await page.screenshot();
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const again = await measure();
+      if (JSON.stringify(again.map((chip) => chip.box)) === JSON.stringify(found.map((chip) => chip.box))) break;
+      found = again;
+      png = await page.screenshot();
+    }
+    if (stop === 0) shots.set(label, png);
+    all.push({ found, backgrounds: await sampleBoxes(scratch, png, found.map((chip) => chip.box), dpr) });
+  }
+  await page.evaluate(() => globalThis.document.querySelector('.screens')?.scrollTo(0, 0));
+  const found = all.flatMap((stop) => stop.found);
+  const backgrounds = all.flatMap((stop) => stop.backgrounds);
 
   const out: ChipSample[] = [];
   for (const [index, chip] of found.entries()) {
@@ -459,7 +487,7 @@ async function sweep(): Promise<ChipSample[]> {
     // archetype is" was true for four stages and is the kind of thing a reader
     // will otherwise re-derive from a stale memory.
     if (screen === 'map' && !openedParty) {
-      await page.locator(`${visible('map')} .party__header .button`).click();
+      await page.locator('[data-nav="team"]').click();
       await page.waitForTimeout(50);
       openedParty = true;
       continue;
@@ -468,7 +496,7 @@ async function sweep(): Promise<ChipSample[]> {
     const fresh = !seenScreens.has(screen);
     const novel =
       seenVariants.size < VARIANTS.length &&
-      (await variantsOn(screen)).some((variant) => !seenVariants.has(variant));
+      (await variantsOn(screen)).some((variant) => listed(variant) && !seenVariants.has(variant));
 
     if (fresh || novel) {
       seenScreens.add(screen);
@@ -477,7 +505,7 @@ async function sweep(): Promise<ChipSample[]> {
       await page.mouse.move(0, 0);
       await page.waitForTimeout(250);
       const found = await chipsOn(page, scratch, screen);
-      for (const sample of found) seenVariants.add(sample.variant);
+      for (const sample of found) if (listed(sample.variant)) seenVariants.add(sample.variant);
       samples.push(...found);
     }
 
@@ -507,7 +535,7 @@ async function sweep(): Promise<ChipSample[]> {
     await gallery.mouse.move(0, 0);
     await gallery.waitForTimeout(250);
     const galleryChips = await chipsOn(gallery, scratch, 'party', 'party (gallery, loaded)');
-    for (const sample of galleryChips) seenVariants.add(sample.variant);
+    for (const sample of galleryChips) if (listed(sample.variant)) seenVariants.add(sample.variant);
     samples.push(...galleryChips.map((sample) => ({ ...sample, screen: 'party (gallery, loaded)' })));
     await galleryContext.close();
   } finally {
@@ -527,7 +555,19 @@ describe('the chip legibility floor', () => {
 
   it('reaches every variant ui/chip.ts can build, so the sweep is not vacuous', () => {
     const seen = new Set(samples.map((sample) => sample.variant));
-    expect([...seen].sort()).toEqual([...VARIANTS].sort());
+    /*
+     * Every listed variant, and not *only* the listed ones. The sweep takes any
+     * chip with text, and a variant off the list can carry text on one surface
+     * while it draws marks on the rest: `capability` is the event screen's
+     * cost chip (`ui/screens/event.ts`, `capabilityChip(cost)`) beside the
+     * gate glyph everywhere else. The seed reached that screen for the first
+     * time on 2026-09-25, when the wild-strength patch moved the road, and an
+     * equality here read a photograph the instrument had never taken as a
+     * failure. What this asserts is that the list was covered; a sample from
+     * beyond it is kept, and asserted against nothing, which is what the note
+     * on `VARIANTS` already says of it.
+     */
+    expect([...VARIANTS].filter((variant) => !seen.has(variant))).toEqual([]);
   });
 
   /*

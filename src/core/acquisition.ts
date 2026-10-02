@@ -283,6 +283,21 @@ export function decisionRefusal(
  * and not the other. `applyAcquisition` is called from exactly two places in
  * `resolveNode` and both know their segment.
  */
+/**
+ * The Pokemon that actually joins: the one that was fought, at the segment's
+ * level. **The opening playtest QA, the recruitment observation.**
+ *
+ * One function because two readers need it and must not disagree:
+ * `applyAcquisition` builds the member from it, and the capture card draws it.
+ * The card used to draw `offer.spec` as fought, so a Lileep offered at Lv10
+ * with a Lv10 HP bar joined at Lv15 with a different one: a fact on the card
+ * that was not the fact of the decision. The held item is the caller's
+ * business, because the card shows it and the fold sends it to the bag.
+ */
+export function joiningSpec(spec: PokemonSpec, segment: number): PokemonSpec {
+  return { ...spec, level: joinLevelFor(segment) };
+}
+
 export function applyAcquisition(
   party: readonly PokemonState[],
   offer: AcquisitionOffer,
@@ -320,10 +335,7 @@ export function applyAcquisition(
    * `describeSpec`, so the level change is a real one rather than a label: a
    * mon that joins at 54 has the HP bar of a 54.
    */
-  const joined = createPartyMember(
-    { ...offer.spec, level: joinLevelFor(segment), item: undefined },
-    segment,
-  );
+  const joined = createPartyMember({ ...joiningSpec(offer.spec, segment), item: undefined }, segment);
   if (decision.kind === 'accept') return { party: [...party, joined], freed: carried };
 
   /*

@@ -73,6 +73,9 @@ import {
 } from '../data/archetypes';
 import { statusInfo, STATUS_PERSISTENCE_NOTE } from '../data/statusInfo';
 import { TIER_INFO } from '../data/tierInfo';
+import { GLYPH_LABELS } from '../data/glyphLabels';
+import { carryingLine, CURRENCY_COPY, KIND_HINTS, restoreTitle, REWARD_COPY, STAT_BAND_COPY } from './copy/screens';
+import { FIELD_SUPPRESSED, fieldEffect, fieldName } from '../data/fieldCopy';
 import { capabilityTypes, type Capability } from '../data/capabilities';
 import { OUTCOME_TIERS, type OutcomeTier } from '../data/eventPools';
 import type { CapabilityBand } from '../core/capabilities';
@@ -107,6 +110,18 @@ type TipKind =
    * this instance of it said.
    */
   | 'flag'
+  | 'node'
+  /** A coin amount on the map: a payout, a shelf's price, the wallet. Stage 5.0/4, D54. */
+  | 'currency'
+  /**
+   * A coins card and a restore card, whose words left the face for the long
+   * press. Stage 5.0/3, D66. `coins:<amount>` carries the balance on
+   * `data-detail`; `restore:<percent>` is the share restored.
+   */
+  | 'coins'
+  | 'restore'
+  /** The field glyph on the battle header: weather or terrain. Stage 4.11 Tier 2, D47. */
+  | 'field'
   /**
    * The six-label stat shorthand. Stage 4.7, Part 7.
    *
@@ -266,6 +281,11 @@ const KINDS = [
    * below makes the third a compile error.
    */
   'flag',
+  'node',
+  'currency',
+  'coins',
+  'restore',
+  'field',
   'archetype',
   'stats',
   'move',
@@ -312,6 +332,21 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
   root.setAttribute('role', 'dialog');
   root.setAttribute('aria-live', 'polite');
 
+  /*
+   * The scrim: a transparent sheet over the whole viewport, under the panel,
+   * shown only while a *held* or keyboard-opened panel is up. **The docked
+   * sheet patch, 2026-09-25.**
+   *
+   * The tap that closes the panel has to land somewhere, and on the battle
+   * screen "somewhere" is a move button. Without this the dismissal would
+   * also be a submission, which is the one thing R5 says inspect must never
+   * do. The scrim takes the tap, closes the panel, and stops it there. A
+   * hover panel never shows it: `mouseout` closes that one and a scrim under
+   * a cursor would eat the click the reader was about to make.
+   */
+  const scrim = el('div', 'tip-scrim');
+  scrim.hidden = true;
+
   let openFor: HTMLElement | null = null;
   /** True when the panel was opened by hover, so leaving should close it. */
   let transient = false;
@@ -323,9 +358,18 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
     transient = false;
     root.hidden = true;
     root.replaceChildren();
+    scrim.hidden = true;
   }
 
-  function open(trigger: HTMLElement, byHover: boolean): void {
+  /**
+   * Open the sheet for a trigger.
+   *
+   * The sheet is docked by CSS, never positioned from the trigger: one spot,
+   * the top of the viewport, whatever was pressed. The rationale is in the
+   * gesture section below. `armScrim` is false for the hold, which arms it on
+   * release instead — see `onPointerUp`.
+   */
+  function open(trigger: HTMLElement, byHover: boolean, armScrim = !byHover): void {
     const tip = trigger.dataset['tip'];
     if (!tip) return;
     const body = render(tip, trigger);
@@ -334,11 +378,20 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
     if (openFor && openFor !== trigger) openFor.removeAttribute('aria-expanded');
     openFor = trigger;
     transient = byHover;
+    // The stylesheet takes a hover sheet out of the pointer's way.
+    root.dataset['transient'] = byHover ? 'true' : 'false';
     trigger.setAttribute('aria-expanded', 'true');
 
-    root.replaceChildren(body);
+    // Answered by `onClick`, like every other control the layer owns.
+    const dismiss = el('button', 'tip__close');
+    dismiss.type = 'button';
+    // The glyph is the stylesheet's (`.tip__close::before`): a mark, not copy,
+    // and the copy audit should not list it as a string awaiting a table.
+    dismiss.setAttribute('aria-label', 'Close');
+
+    root.replaceChildren(dismiss, body);
     root.hidden = false;
-    position(root, trigger);
+    scrim.hidden = !armScrim;
   }
 
   function triggerFor(target: EventTarget | null): HTMLElement | null {
@@ -370,7 +423,14 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
    * still take hover and still vanish with it.
    */
   function dropStranded(): void {
-    if (openFor && !openFor.isConnected) close();
+    /*
+     * Hover panels only, since the docked sheet patch. A held panel now
+     * outlives its release, and the reader may still be reading it when a
+     * re-render takes its trigger away; the sheet is docked, so nothing it
+     * covers depends on where that trigger was, and the tap that closes it
+     * is the scrim's, not the trigger's.
+     */
+    if (openFor && transient && !openFor.isConnected) close();
   }
 
   /*
@@ -391,6 +451,22 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
    * Now the press opens and the tap selects, so the button is a button
    * everywhere on its face and the explanation is deliberate. The three
    * `suppress` flags below are what keep those two from ever firing together.
+   *
+   * **The docked sheet patch, 2026-09-25, amended R5's "Release closes".**
+   * The panel used to open beside the trigger and close on release, which on
+   * a phone meant a small box under the thumb that vanished when the thumb
+   * lifted. It now opens in one fixed spot — the top of the viewport, the
+   * edge a thumb is least often on — stays open on release, and closes on a
+   * tap anywhere outside it (the scrim), on its own close control, or on
+   * Escape. The hold is unchanged and so is what it eats: the click a hold
+   * leaves behind still never submits.
+   *
+   * The same patch made every trigger unselectable (`styles.css`,
+   * `[data-tip]`). iOS reads a long press on selectable text as "select this
+   * word", raises its copy callout, and cancels the pointer — and the cancel
+   * closed the panel. That was the report's first sentence, and no amount of
+   * work in this file could fix it: the platform gesture has to be declined
+   * at the element.
    * ---------------------------------------------------------------------
    */
 
@@ -463,7 +539,8 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
       holdTimer = null;
       openedByHold = true;
       suppressClick = true;
-      open(trigger, false);
+      // The scrim waits for the release; see `onPointerUp`.
+      open(trigger, false, false);
     }, tuning.inspectHoldMs);
   };
 
@@ -477,12 +554,20 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
     }
   };
 
-  /** R5's "release closes", and the only thing that ends a held panel. */
+  /**
+   * Release. Until the docked sheet patch this closed the panel; now it arms
+   * the scrim and leaves the panel up.
+   *
+   * The scrim is armed here rather than when the hold opens, because until
+   * the finger lifts the click that follows may still be the player's: the
+   * jank case in `onClick` lets a fast tap through, and a scrim already over
+   * the button would have taken that click away from it.
+   */
   const onPointerUp = (): void => {
     cancelHold();
     if (!openedByHold) return;
     openedByHold = false;
-    close();
+    if (openFor && !transient) scrim.hidden = false;
   };
 
   const onPointerCancel = (): void => {
@@ -503,7 +588,9 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
      * to prevent.
      */
     suppressClick = false;
-    close();
+    // Same as a release since the docked sheet patch: the panel stays, and
+    // the scrim is what closes it.
+    if (openFor && !transient) scrim.hidden = false;
   };
 
   /*
@@ -539,6 +626,18 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
       close();
       return;
     }
+    // The scrim takes the tap that closes a held or keyboard-opened panel,
+    // and the tap goes no further: a dismissal on the battle screen must not
+    // also be a move.
+    const dismissal =
+      event.target === scrim ||
+      (event.target instanceof Element && event.target.closest('.tip__close') !== null);
+    if (dismissal) {
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+      return;
+    }
     // A tap elsewhere dismisses a panel the keyboard opened. Clicks inside the
     // panel are exempt so a wheel can be read without closing under the finger.
     // A hover panel is exempt because `mouseout` closes it — see `dropStranded`
@@ -554,6 +653,36 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
    */
   const onContextMenu = (event: MouseEvent): void => {
     if (triggerFor(event.target)) event.preventDefault();
+  };
+
+  /** Where a player types or copies from: the two places selection is allowed. */
+  const SELECTABLE = 'input, textarea, .log-sheet__body';
+
+  function selectable(node: Node | null): boolean {
+    const element = node instanceof Element ? node : node?.parentElement ?? null;
+    return element?.closest(SELECTABLE) !== null;
+  }
+
+  /*
+   * **Message 4 of the docked sheet patch, 2026-09-26: the stylesheet was
+   * not enough.** With `user-select: none` on `body` and in the built CSS,
+   * iOS still selected the ability chip under a long press. So the layer
+   * refuses the selection itself, twice: `selectstart` is cancelled before
+   * a selection exists, and `selectionchange` clears one that got through
+   * anyway, since iOS shows its copy callout only while a selection stands.
+   * The inputs and the log sheet's body keep theirs.
+   */
+  const onSelectStart = (event: Event): void => {
+    if (event.target instanceof Node && selectable(event.target)) return;
+    event.preventDefault();
+  };
+
+  const onSelectionChange = (): void => {
+    const selection = host.ownerDocument.getSelection();
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
+    const anchor = selection.anchorNode;
+    if (!anchor || !host.contains(anchor) || selectable(anchor)) return;
+    selection.removeAllRanges();
   };
 
   const onKeyDown = (event: KeyboardEvent): void => {
@@ -622,11 +751,13 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
   host.addEventListener('pointerup', onPointerUp, true);
   host.addEventListener('pointercancel', onPointerCancel, true);
   host.addEventListener('contextmenu', onContextMenu, true);
+  host.addEventListener('selectstart', onSelectStart, true);
+  host.ownerDocument.addEventListener('selectionchange', onSelectionChange);
   host.addEventListener('click', onClick, true);
   host.addEventListener('keydown', onKeyDown, true);
   host.addEventListener('mouseover', onOver);
   host.addEventListener('mouseout', onOut);
-  host.append(root);
+  host.append(scrim, root);
 
   return {
     root,
@@ -637,10 +768,13 @@ export function createTooltips(host: HTMLElement, tuning: DisplayTuning = DEFAUL
       host.removeEventListener('pointerup', onPointerUp, true);
       host.removeEventListener('pointercancel', onPointerCancel, true);
       host.removeEventListener('contextmenu', onContextMenu, true);
+      host.removeEventListener('selectstart', onSelectStart, true);
+      host.ownerDocument.removeEventListener('selectionchange', onSelectionChange);
       host.removeEventListener('click', onClick, true);
       host.removeEventListener('keydown', onKeyDown, true);
       host.removeEventListener('mouseover', onOver);
       host.removeEventListener('mouseout', onOut);
+      scrim.remove();
       root.remove();
     },
   };
@@ -678,7 +812,7 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
     case 'category':
       return renderCategory(id);
     case 'stat':
-      return renderStat(id, trigger?.dataset['value']);
+      return renderStat(id, trigger?.dataset['value'], trigger?.dataset['band'], trigger?.dataset['level'], trigger?.dataset);
     case 'hp':
       return renderHp(trigger?.dataset['value']);
     case 'band':
@@ -690,7 +824,7 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
     case 'archetype':
       return renderArchetypes();
     case 'stats':
-      return renderMonStats(id, trigger?.dataset['detail']);
+      return renderMonStats(id, trigger?.dataset['detail'], trigger?.dataset['level']);
     case 'move':
       return renderMoveRows(id);
     case 'gym':
@@ -713,6 +847,16 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
       return renderCapability(id, trigger?.dataset['detail']);
     case 'tier':
       return renderTier(id);
+    case 'node':
+      return renderNodeKind(id, trigger?.dataset['detail']);
+    case 'currency':
+      return renderCurrency(id, trigger?.dataset['value']);
+    case 'coins':
+      return renderCoins(id, trigger?.dataset['detail']);
+    case 'restore':
+      return renderRestore(id);
+    case 'field':
+      return renderField(id, trigger?.dataset['suppressed'] === 'true');
     case 'capability-band':
       return renderCapabilityBand(id);
     case 'reward-tier':
@@ -835,6 +979,64 @@ function renderTier(id: string): HTMLElement | null {
 }
 
 /**
+ * What a node kind is, behind its mark. **Patch 4.10.1, D46.**
+ *
+ * Section 3's node kind row sends inspect to `KIND_HINTS`, which is the copy
+ * the map's detail line printed for an untiered node and the tutorial's
+ * *What an option is* paraphrased. The title is the glyph's own word, so the
+ * panel and the exposure label cannot disagree on what to call the mark.
+ */
+function renderNodeKind(id: string, detail?: string): HTMLElement | null {
+  const hint = KIND_HINTS[id as keyof typeof KIND_HINTS];
+  if (!hint) return null;
+  const body = panel(GLYPH_LABELS[`node-${id}`] ?? id);
+  body.append(line(hint.long, 'tip__text'));
+  /*
+   * **The rest of the node card, for a row that does not carry it. Stage
+   * 5.0/4, D63.** Only the step being chosen from shows the detail line at
+   * rest; every other node's mark carries the same line on `data-detail`,
+   * composed by the map from the functions that compose the face (the
+   * payout, the AI tier, a shop's shelf), so the press shows what the card
+   * would have and nothing the card would not.
+   */
+  if (detail) body.append(line(detail, 'tip__text'));
+  return body;
+}
+
+/**
+ * A coin amount, behind the currency mark. **Stage 5.0/4, D54.**
+ *
+ * Section 3's *Coin amount* row: the inspect column is *"the word coins, and
+ * what the amount buys or pays"*. The number is on the trigger, the line is
+ * `CURRENCY_COPY`'s.
+ */
+function renderCurrency(id: string, value?: string): HTMLElement | null {
+  const context = CURRENCY_COPY[id as keyof typeof CURRENCY_COPY];
+  if (!context || value === undefined) return null;
+  const body = panel(`${value} coins`);
+  body.append(line(context, 'tip__text'));
+  return body;
+}
+
+/**
+ * What the board is doing, behind the field glyph. **Stage 4.11 Tier 2, D47.**
+ *
+ * Section 3's field state row sends inspect to `fieldCopy`: the name in full,
+ * which is where Extreme sun and Harsh sunlight part ways under one mark, and
+ * one effect line restating what the engine does. A suppressed weather adds
+ * the line saying so, because the mark is dimmed and a dimmed mark is a
+ * question.
+ */
+function renderField(id: string, suppressed: boolean): HTMLElement | null {
+  const effect = fieldEffect(id);
+  if (!effect) return null;
+  const body = panel(fieldName(id));
+  body.append(line(effect, 'tip__text'));
+  if (suppressed) body.append(line(FIELD_SUPPRESSED, 'tip__text'));
+  return body;
+}
+
+/**
  * Where this run stands against the capability the chevron counts along.
  *
  * **Milestone M5.6, and the panel M5.2 owed.** Nothing written here: the title
@@ -927,7 +1129,7 @@ function renderStages(detail?: string): HTMLElement | null {
  * Nothing here is written copy: the marks are M1.1's sheet, the words are
  * `data/statInfo.ts`'s, and the numbers arrive on the trigger.
  */
-function renderMonStats(species: string, detail?: string): HTMLElement | null {
+function renderMonStats(species: string, detail?: string, level?: string): HTMLElement | null {
   const rows = (detail ?? '').split('\n').filter((row) => row.length > 0);
   if (rows.length === 0) return null;
   const values: Record<string, number> = {};
@@ -936,7 +1138,7 @@ function renderMonStats(species: string, detail?: string): HTMLElement | null {
     values[stat] = Number(value);
   }
   const body = panel(species, 'tip__body--rows');
-  body.append(statBlock(values));
+  body.append(statBlock(values, level ? { level: Number(level) } : {}));
   return body;
 }
 
@@ -1083,6 +1285,32 @@ function renderAbility(id: string): HTMLElement | null {
   return body;
 }
 
+/**
+ * A coins card, in words. **Stage 5.0/3, D66.** Section 3's coin row: *"the
+ * word coins, and what the amount buys or pays"*. The balance rides on
+ * `data-detail` because it is a fact about this render (QA-003: the result
+ * screen shows the balance before the node folds its payout in).
+ */
+function renderCoins(id: string, detail?: string): HTMLElement | null {
+  const amount = Number(id);
+  if (!Number.isFinite(amount)) return null;
+  const body = panel(`+${amount} ${GLYPH_LABELS['currency-coin'] ?? ''}`.trim());
+  body.append(line(REWARD_COPY.coins.long, 'tip__text'));
+  const carrying = Number(detail);
+  if (detail && Number.isFinite(carrying)) body.append(line(carryingLine(carrying).long, 'tip__note'));
+  return body;
+}
+
+/** A restore card, in words. **Stage 5.0/3, D66.** What the share is of. */
+function renderRestore(id: string): HTMLElement | null {
+  const percent = Number(id);
+  if (!Number.isFinite(percent) || percent <= 0) return null;
+  const fraction = percent / 100;
+  const body = panel(restoreTitle(fraction));
+  body.append(line((fraction >= 1 ? REWARD_COPY.heal : REWARD_COPY.healPartial).long, 'tip__text'));
+  return body;
+}
+
 function renderItem(id: string): HTMLElement | null {
   const item = itemById(id);
   if (!item) return null;
@@ -1121,7 +1349,7 @@ function renderCategory(id: string): HTMLElement | null {
  * also the closest this file comes to advice, and it stays on the safe side of
  * Part 4 by naming a term in the damage formula rather than a course of action.
  */
-function renderStat(id: string, value?: string): HTMLElement | null {
+function renderStat(id: string, value?: string, band?: string, level?: string, data?: DOMStringMap): HTMLElement | null {
   const info = statInfo(id);
   if (!info) return null;
   // The value, when the trigger carries one: in Pocket the row is a bar and
@@ -1131,6 +1359,13 @@ function renderStat(id: string, value?: string): HTMLElement | null {
   body.append(line(info.mechanics, 'tip__text'));
   if (info.pairsWith) {
     body.append(line(`Resolved against the defender's ${info.pairsWith}.`, 'tip__note'));
+  }
+  // The band the bar is drawn against (D88), when the cell drew one.
+  const [min, max] = (band ?? '').split('-');
+  if (min && max && level) body.append(line(STAT_BAND_COPY.line(level, min, max), 'tip__note'));
+  // A staged cell's base and stage (D98), which its face no longer prints.
+  if (data?.['base'] && data['stage'] && data['multiplier']) {
+    body.append(line(STAT_BAND_COPY.stage(data['base'], data['stage'], data['multiplier']), 'tip__note'));
   }
   return body;
 }
@@ -1251,32 +1486,3 @@ function row(label: string, types: readonly string[], band: string): HTMLElement
 // ---------------------------------------------------------------------------
 // Placement
 // ---------------------------------------------------------------------------
-
-/**
- * Put the panel near its trigger without letting it leave the viewport.
- *
- * Fixed positioning against the trigger's client rect, flipped above when there
- * is no room below and clamped horizontally. Deliberately arithmetic rather
- * than a popover library: this is the whole of the requirement, and Stage 5's
- * responsive pass will want to change the rule rather than configure someone
- * else's.
- */
-function position(panel: HTMLElement, trigger: HTMLElement): void {
-  const margin = 8;
-  const anchor = trigger.getBoundingClientRect();
-
-  // Measured after the content is in, so the flip decision uses the real size.
-  panel.style.left = '0px';
-  panel.style.top = '0px';
-  const box = panel.getBoundingClientRect();
-
-  const spaceBelow = window.innerHeight - anchor.bottom;
-  const above = spaceBelow < box.height + margin && anchor.top > box.height + margin;
-  const top = above ? anchor.top - box.height - margin : anchor.bottom + margin;
-
-  const maxLeft = window.innerWidth - box.width - margin;
-  const left = Math.max(margin, Math.min(anchor.left, maxLeft));
-
-  panel.style.left = `${left}px`;
-  panel.style.top = `${Math.max(margin, top)}px`;
-}

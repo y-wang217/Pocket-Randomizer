@@ -45,6 +45,12 @@ export interface MemberCardOptions {
    */
   index?: number;
   /**
+   * Drawn on a readout, with no write path (the drawer). The fold's control
+   * is then a disclosure chevron rather than `+`, which reads as an edit.
+   * Bible Rev 23, D94.
+   */
+  readout?: boolean;
+  /**
    * A running contribution readout, or nothing. **Stage 4.7, Part 5.**
    *
    * Off by default because most surfaces do not want it, and a *fact about
@@ -155,23 +161,31 @@ export function memberCardContents(
   // surface this card is drawn — the party screen, the drawer, the pre-gym
   // lead choice — because a card without one is the reduced variant the
   // header of this file forbids. Idle-sprites patch.
-  card.append(spriteFigure(spec.species, { phase: options.index ?? 0 }), header, track, meta, itemRow(options.holding));
+  /*
+   * **The stat block is on the head, at rest. Bible Rev 20, R13 and D83.**
+   * It sat in the fold below until the author found Litten's numbers on no
+   * page at all; the stats are vital information, and a vital fact is never
+   * behind a fold.
+   */
+  card.append(
+    spriteFigure(spec.species, { phase: options.index ?? 0 }),
+    header,
+    track,
+    meta,
+    itemRow(options.holding),
+    statBlock({ ...spec.baseStatsAtLevel, hp: member.maxHp }, { level: spec.level }),
+  );
 
   /*
-   * The body: the stat block, the four move cards and the contribution row.
-   * **Density modes patch, Part 4.** On screen in Detailed and Simple; in
-   * Pocket it is one tap behind the head of the card, all of it together —
-   * never the stats without the moves or three cards without the fourth. The
-   * head keeps every primary fact: who this is, what it is built for, its
-   * types, its HP, its status and what it holds. `ui/collapse.ts` says why
-   * this is an expander rather than a tooltip.
+   * The body: the four move cards and the contribution row. **Density modes
+   * patch, Part 4.** One tap behind the head of the card, all of it together,
+   * never three cards without the fourth. The head keeps every primary fact:
+   * who this is, its types, its HP, its status, what it holds and its six
+   * stats. `ui/collapse.ts` says why this is an expander rather than a tooltip.
    */
-  const body: HTMLElement[] = [
-    statBlock({ ...spec.baseStatsAtLevel, hp: member.maxHp }),
-    moveList(member, spec, options.tuning),
-  ];
+  const body: HTMLElement[] = [moveList(member, spec, options.tuning)];
   if (options.contribution) body.push(contributionRow(member));
-  const fold = collapsible(card, body, spec.species);
+  const fold = collapsible(card, body, spec.species, { readout: options.readout ?? false });
   fold.toggle.classList.add('party__member-toggle');
   meta.append(fold.toggle);
 

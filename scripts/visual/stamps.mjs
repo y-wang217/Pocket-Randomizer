@@ -12,7 +12,7 @@
  * corners are the two places a collision would be permanent. Prints one line
  * per screen and a verdict per stamp.
  */
-import { launch, openApp, openScreen, playUntil, serve, stepOnce, visible } from './browser.mjs';
+import { launch, openApp, openScreen, playUntil, serve, stepOnce } from './browser.mjs';
 
 export async function stampCollisions(page) {
   return page.evaluate(() => {
@@ -22,7 +22,7 @@ export async function stampCollisions(page) {
     // What is painted under a point, less the page's own scaffolding. A
     // clipped row of a scrolled list is not painted, so it does not count;
     // a card's edge is, so it does.
-    const scaffold = (node) => node === doc.documentElement || node === doc.body || node.id === 'app' || node.matches('.shell, .screens, .screen, .stamps, .stamp');
+    const scaffold = (node) => node === doc.documentElement || node === doc.body || node.id === 'app' || node.matches('.layout, .shell, .screens, .screen, .stamps, .stamp');
     const under = (x, y) => [...doc.elementsFromPoint(x, y)].filter((node) => !scaffold(node));
     const stamps = [...doc.querySelectorAll('.stamp')].filter((s) => !s.hidden);
     const results = [];
@@ -66,7 +66,7 @@ if (process.argv[1] && /stamps\.mjs$/.test(process.argv[1])) {
         continue;
       }
       if (screen === 'map' && !opened) {
-        await page.locator(`${visible('map')} .party__header .button`).click();
+        await page.locator('[data-nav="team"]').click();
         await page.waitForTimeout(50);
         opened = true;
         continue;

@@ -62,7 +62,7 @@ import { el } from '../scene';
 import { renderSlots } from '../slots';
 import { renderCaptureOffer } from './acquisition';
 import { renderEvolutionBlock, type EvolutionPrompt } from './evolution';
-import { offerBadge, renderRewardCard } from './reward';
+import { offerBadge, renderOfferCards } from './reward';
 
 /**
  * A Pokemon on the table, and the party it is being weighed against.
@@ -202,10 +202,14 @@ export function createResultScreen(): ResultScreen {
       cards.hidden = !offer;
       if (offer) {
         cardsHeading.replaceChildren(document.createTextNode(TAKE_ONE), offerBadge(offer.badge));
+        // A tap selects and opens the claim band; its commit is the pick
+        // (Stage 5.0/3, D69). `onDone` is reached once, on the commit.
         cards.replaceChildren(
-          ...offer.options.map((option, index) =>
-            renderRewardCard(option, state, () => onDone(index)),
-          ),
+          ...renderOfferCards(offer.options, state, (index) => onDone(index), {
+            // The balance the header prints: the payout is not folded into
+            // `state` until the node resolves. QA-003.
+            carrying: state.currency + (review?.currencyEarned ?? 0),
+          }),
         );
       } else {
         // Cleared, not just hidden. `hidden` is a UA style that any `display`
@@ -232,6 +236,7 @@ export function createResultScreen(): ResultScreen {
             // The slots the run has now, not a constant: a capture resolving in
             // the same segment a gym unlocked a slot must see the new one.
             partyCapacity(state),
+            state.currentSegment,
           ),
         );
       } else {

@@ -714,6 +714,21 @@ export interface TmTeach {
  * deterministic policy, so recording the opponent's choices would be recording
  * the engine's output rather than the player's input.
  */
+/**
+ * One edit a player makes on the party screen between questions.
+ *
+ * **`items` is the layout the player left the party screen with, applied the
+ * moment the next question is answered. Bible Rev 23, D94.** A layout composed
+ * between nodes used to be held until the boundary *after* the next node, so
+ * an item moved on the map was not held in the fight it was moved for. It is
+ * one entry per committed layout, never one per tap, which is the rule
+ * `ItemPlan` itself states: the log records the decision, not the fidgeting.
+ */
+export type PartyEdit =
+  | { kind: 'reorder'; from: number; to: number }
+  | { kind: 'release'; slot: number }
+  | { kind: 'items'; plan: ItemPlan };
+
 export type RunDecision =
   /*
    * **`target` and `replace` were here and are gone.** They were the recipient
@@ -843,6 +858,18 @@ export type RunDecision =
    * gym 3 is still leading at the first node of segment 4.
    */
   | { kind: 'lead'; index: number }
+  /**
+   * A reorder or a release made on the party screen. **The opening playtest
+   * QA, QA-001, and the author's ruling to log it.**
+   *
+   * Both used to change run state directly and reach no log, so a resumed run
+   * rebuilt the order the other decisions produced and handed back a released
+   * member. Worse than the lost order, a fight fought after either replayed
+   * against a different party with the same logged move indexes. Recorded at
+   * the moment it is made, which is while some other question is open; the
+   * replay applies it at the same point, before answering that question.
+   */
+  | { kind: 'party'; edit: PartyEdit }
   /**
    * Which branch a member evolves along. **Stage 4.9.**
    *

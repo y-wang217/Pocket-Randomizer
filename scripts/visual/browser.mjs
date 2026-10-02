@@ -217,21 +217,29 @@ async function waitForMutation(page, timeout = MUTATION_TIMEOUT_MS) {
   return boundedWait(page, (since) => globalThis.__gymrunWalk.last > since, mark, timeout);
 }
 
-/** The starter with the most HP, ties to the leftmost card. Same as smoke. */
-async function bulkiestStarter(page) {
+/**
+ * Pick the starter with the most HP, ties to the leftmost card. Same as smoke.
+ *
+ * The max HP is the detail panel's since bible Rev 19 (D78, D79): a tap
+ * selects a card and fills the panel, and the Choose control commits. Each
+ * card is tapped in turn to read it, which is a selection and never a pick.
+ */
+async function pickBulkiestStarter(page) {
   const cards = page.locator('.starter');
   const count = await cards.count();
   let best = 0;
   let bestHp = -1;
   for (let i = 0; i < count; i++) {
-    const meta = (await cards.nth(i).locator('.starter__hp-value').textContent()) ?? '';
+    await cards.nth(i).click();
+    const meta = (await page.locator('.starter-detail .stat[data-row="hp"] .stat__value').textContent()) ?? '';
     const hp = Number(/(\d+)/.exec(meta)?.[1] ?? 0);
     if (hp > bestHp) {
       bestHp = hp;
       best = i;
     }
   }
-  return cards.nth(best);
+  await cards.nth(best).click();
+  await page.locator('.starter-select__choose').click();
 }
 
 async function hardestMove(page) {
@@ -258,14 +266,28 @@ async function hardestMove(page) {
 async function chooseNode(page) {
   const options = page.locator(`${visible('map')} .node--current`);
   if ((await options.count()) === 0) return null;
-  const hpText = (await page.locator(`${visible('map')} .panel__hp-text`).first().textContent()) ?? '';
-  const [, current, max] = /(\d+)\s*\/\s*(\d+)/.exec(hpText) ?? [];
-  const fraction = current && max ? Number(current) / Number(max) : 1;
-  if (fraction < 0.95) {
-    const rest = page.locator(`${visible('map')} .node--current.node--rest`).first();
-    if (await rest.count()) return rest;
-  }
+  const rest = page.locator(`${visible('map')} .node--current.node--rest`).first();
+  if ((await rest.count()) && (await leadHpFraction(page)) < 0.95) return rest;
   return options.first();
+}
+
+/**
+ * The lead's HP as a fraction, read off the party screen. **Stage 5.0/4.**
+ *
+ * The map carried the party until 5.0/4 and the bot read the lead's HP there;
+ * the team is the Team tab's now, so the bot looks the way a player would:
+ * the tab, the lead's card, and back to the map. Asked only when a rest is on
+ * offer, which is the only time the answer changes a pick. A readout: it
+ * submits nothing and draws nothing, so a seeded walk is the same walk.
+ */
+export async function leadHpFraction(page) {
+  await page.locator('[data-nav="team"]').click();
+  await page.waitForSelector(visible('party'));
+  const hpText = (await page.locator(`${visible('party')} .party__member .panel__hp-text`).first().textContent()) ?? '';
+  await page.locator(`${visible('party')} .primary-action`).first().click();
+  await page.waitForSelector(visible('map'));
+  const [, current, max] = /(\d+)\s*\/\s*(\d+)/.exec(hpText) ?? [];
+  return current && max ? Number(current) / Number(max) : 1;
 }
 
 /**
@@ -380,7 +402,7 @@ async function stepOnceUnparked(page, expected) {
   if (expected !== undefined && screen !== expected) return null;
   switch (screen) {
     case 'starter':
-      await (await bulkiestStarter(page)).click();
+      await pickBulkiestStarter(page);
       return screen;
     case 'locale': {
       const card = page.locator(`${visible('locale')} .locale`).last();
@@ -431,6 +453,8 @@ async function stepOnceUnparked(page, expected) {
         // of them — an empty span is not clickable, which is a second way to
         // stall on the same screen.
         await card.click({ position: { x: 8, y: 8 } });
+        // A tap selects; the claim band's commit takes it (Stage 5.0/3, D69).
+        await page.locator('.confirm-band .primary-action').click();
         return screen;
       }
       const capture = page.locator(`${visible('result')} .result__capture`);
@@ -624,26 +648,13 @@ export async function playUntil(page, predicate, maxSteps = 600, { timeoutMs = M
  * skipped unless a test asks for it (`openApp(..., { tutorial: true })`), and
  * the tutorial's own browser test is the one that asks.
  */
-export const TUTORIAL_SKIPPED_SETTINGS = JSON.stringify({ density: 'detailed', tutorial: { skipped: true, seen: [] } });
-
-/** The three density modes, in the order the settings store lists them. Density modes patch. */
-export const DENSITIES = ['detailed', 'simple', 'pocket'];
-
-/**
- * Both move bar layouts. `grid` is the stored default, so it is what every
- * entry recorded before the four-column patch describes.
- */
-export const MOVE_BARS = ['grid', 'columns'];
+export const TUTORIAL_SKIPPED_SETTINGS = JSON.stringify({ tutorial: { skipped: true, seen: [] } });
 
 /**
  * Seed a context's storage so the app's first launch is a returning one,
- * tutorial-wise, in the density mode asked for.
- *
- * The mode goes in through the store rather than through a hook on the page,
- * so the bot measures exactly what a stored preference renders: the app reads
- * it at startup and writes the root attribute itself.
+ * tutorial-wise. It took a density mode until Stage 5.0/1 retired the modes.
  */
-export async function skipTutorialIn(context, density = 'detailed') {
+export async function skipTutorialIn(context) {
   await context.addInitScript(
     (settings) => {
       try {
@@ -659,12 +670,12 @@ export async function skipTutorialIn(context, density = 'detailed') {
      * name here is older than the panel and is kept because every caller in the
      * suite uses it.
      */
-    notFirstLaunch({ density }),
+    notFirstLaunch(),
   );
 }
 
 export async function openApp(browser, url, seed, viewport = PHONE, contextOptions = {}) {
-  const { tutorial = false, density = 'detailed', ...rest } = contextOptions;
+  const { tutorial = false, ...rest } = contextOptions;
   /*
    * The engine's own context shape, then the caller's overrides. **The iOS
    * patch.** On Chromium this is the bare viewport it always was; on WebKit it
@@ -672,7 +683,7 @@ export async function openApp(browser, url, seed, viewport = PHONE, contextOptio
    * and 3x density come along without any test asking for them.
    */
   const context = await browser.newContext({ ...contextFor(viewport, browser.browserType().name()), ...rest });
-  if (!tutorial) await skipTutorialIn(context, density);
+  if (!tutorial) await skipTutorialIn(context);
   const page = await context.newPage();
   const problems = [];
   page.on('console', (msg) => {
@@ -702,10 +713,21 @@ async function measureScreen(page, name, decisionSelector) {
       const nodes = [...globalThis.document.querySelectorAll(decision)];
       const rects = nodes.map((node) => node.getBoundingClientRect());
       const r = (n) => Math.round(n * 100) / 100;
-      const scrollY = globalThis.window.scrollY;
+      /*
+       * **The frame's scroller, not the document's. Stage 5.0/2**, carried
+       * from 5.0/1. Since the shell went one viewport tall, the page never
+       * scrolls and the document's `scrollHeight` is always the viewport's,
+       * so the number this reported stopped measuring anything. A screen
+       * scrolls inside `.screens` now: its `scrollHeight` against its
+       * `clientHeight` is whether the screen fits, and its `scrollTop` is
+       * what turns a box into a position in the screen's own content.
+       */
+      const scroller = globalThis.document.querySelector('.screens');
+      const scrollY = scroller ? scroller.scrollTop : globalThis.window.scrollY;
       return {
         screenHeight: r(screen.getBoundingClientRect().height),
-        scrollHeight: globalThis.document.documentElement.scrollHeight,
+        scrollHeight: scroller ? scroller.scrollHeight : globalThis.document.documentElement.scrollHeight,
+        clientHeight: scroller ? scroller.clientHeight : globalThis.window.innerHeight,
         decisionCount: nodes.length,
         decisionTop: rects.length ? r(Math.min(...rects.map((x) => x.top + scrollY))) : null,
         decisionBottom: rects.length ? r(Math.max(...rects.map((x) => x.bottom + scrollY))) : null,
@@ -720,50 +742,19 @@ async function measureScreen(page, name, decisionSelector) {
  * nodes, and a battle with four move buttons. Same seed, same clicks, so the
  * only variable between two builds is the stylesheet.
  *
- * **In all three density modes since the density patch.** The top-level `map`
- * and `battle` are Detailed, unchanged in shape so every reader of
- * `heights.json` before the patch reads the same numbers; `modes.simple` and
- * `modes.pocket` are the same two screens under the other two stored
- * preferences, each on a fresh context.
+ * One face since Stage 5.0/1. The density patch measured all three modes
+ * (`modes.simple`, `modes.pocket`, and the four-column `layouts` M2.2
+ * deleted); with the modes retired there is one measurement.
  */
 export async function measureGuardedScreens(url, browser, seed = 'SMOKE24') {
-  const result = { seed, viewport: { ...PHONE }, modes: {}, layouts: {} };
-  const problems = [];
-  for (const density of DENSITIES) {
-    const measured = await measureGuardedScreensIn(url, browser, seed, density, 'grid');
-    problems.push(...measured.problems);
-    if (density === 'detailed') {
-      result.map = measured.map;
-      result.battle = measured.battle;
-    } else {
-      result.modes[density] = { map: measured.map, battle: measured.battle };
-    }
-  }
-  /*
-   * The second move bar layout, in all three densities. **The four-column
-   * patch.**
-   *
-   * A sibling axis rather than a replacement, and the shape is deliberate: the
-   * `map`/`battle`/`modes` entries above are the stored default, so every
-   * number recorded before this patch keeps its meaning and its history. A
-   * layout that is one tap away in the drawer is a layout a player will be
-   * looking at, and an instrument that could not see it would gate half the
-   * game.
-   */
-  for (const layout of MOVE_BARS.filter((name) => name !== 'grid')) {
-    result.layouts[layout] = {};
-    for (const density of DENSITIES) {
-      const measured = await measureGuardedScreensIn(url, browser, seed, density, layout);
-      problems.push(...measured.problems);
-      result.layouts[layout][density] = { map: measured.map, battle: measured.battle };
-    }
-  }
-  if (problems.length) result.problems = problems;
+  const measured = await measureGuardedScreensIn(url, browser, seed);
+  const result = { seed, viewport: { ...PHONE }, map: measured.map, battle: measured.battle };
+  if (measured.problems.length) result.problems = measured.problems;
   return result;
 }
 
-async function measureGuardedScreensIn(url, browser, seed, density) {
-  const { page, context, problems } = await openApp(browser, url, seed, PHONE, { density });
+async function measureGuardedScreensIn(url, browser, seed) {
+  const { page, context, problems } = await openApp(browser, url, seed, PHONE);
   const result = { problems };
 
   await playUntil(page, (screen) => screen === 'map');

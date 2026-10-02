@@ -126,7 +126,7 @@ function mount(screen: TutorialScreen): Mounted {
     }
     case 'map': {
       const map = createRunMap();
-      map.render(onMap(), fire, fire);
+      map.render(onMap(), fire);
       root = map.root;
       break;
     }
@@ -282,8 +282,16 @@ describe('every mark resolves to an anchor on its screen', () => {
       expect(ids.length, screen).toBeGreaterThan(0);
     }
     const total = TUTORIAL_SCREENS.reduce((sum, screen) => sum + TUTORIAL[screen].length, 0);
-    expect(total).toBeGreaterThanOrEqual(25);
-    expect(total).toBeLessThanOrEqual(35);
+    /*
+     * A ceiling, and the floor under it. The opening playtest QA cut 29 marks
+     * to 17 on the author's ruling that shorter is better; growing back past
+     * the ceiling is re-litigating that ruling, not adding a mark.
+     */
+    expect(total).toBeGreaterThanOrEqual(12);
+    expect(total).toBeLessThanOrEqual(17);
+    // The tester's own measure: marks a first run meets before its first fight.
+    const beforeFirstFight = TUTORIAL.starter.length + TUTORIAL.locale.length + TUTORIAL.map.length;
+    expect(beforeFirstFight).toBeLessThanOrEqual(6);
   });
 
   it('skips a mark whose anchor is not on screen, and shows the rest', () => {

@@ -192,6 +192,9 @@ export function createSeedBar(): SeedBar {
     warn: (message) => {
       notice.textContent = message;
       notice.hidden = false;
+      // A notice in a collapsed bar is hidden on a phone mid-run, which is
+      // where the resume notices are raised. The opening playtest QA.
+      setCollapsed(false);
     },
   };
 }

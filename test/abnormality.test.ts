@@ -17,7 +17,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { readFlags, type FlagDeps } from '../src/core/battle/flags';
-import { abnormalityMarks } from '../src/ui/abnormality';
+import { abnormalityMarks, firedTraits } from '../src/ui/abnormality';
 
 const STUB: FlagDeps = { priorityOf: () => 0 };
 
@@ -125,3 +125,42 @@ describe('which turn, and which slot', () => {
     expect(abnormalityMarks([])).toEqual([]);
   });
 });
+
+/**
+ * The panels' own list, beside the marks. **Stage 4.11 Tier 4, D48.**
+ */
+describe('which panels fired a trait', () => {
+  const firesFor = (lines: readonly string[]): ReturnType<typeof firedTraits> => firedTraits(readFlags([...lines], STUB));
+
+  it('lists an ability firing with the slot of the action it rode', () => {
+    const fires = firesFor([...OPEN, '|move|p1a: Snorlax|Tackle|p2a: Golem', '|-ability|p2a: Golem|Sturdy']);
+    expect(fires).toEqual([{ side: 'p2', what: 'ability', slot: 1 }]);
+  });
+
+  it('lists a berry as an item fire, on the last slot when it fired at end of turn', () => {
+    const fires = firesFor([...OPEN, '|move|p1a: Snorlax|Tackle|p2a: Golem', '|move|p2a: Golem|Tackle|p1a: Snorlax', '|upkeep', '|-enditem|p1a: Snorlax|Sitrus Berry|[eat]']);
+    expect(fires).toEqual([{ side: 'p1', what: 'item', slot: 2 }]);
+  });
+
+  it('gives a weather-setting ability both the field mark and the panel fire', () => {
+    const lines = [...OPEN, '|move|p1a: Snorlax|Tackle|p2a: Golem', '|-weather|RainDance|[from] ability: Drizzle|[of] p1a: Snorlax'];
+    expect(marksFor(lines).find((mark) => mark.side === 'p1')?.klass).toBe('field');
+    expect(firesFor(lines)).toEqual([{ side: 'p1', what: 'ability', slot: 1 }]);
+  });
+
+  it('reads the opening batch, where most fires land', () => {
+    const fires = firesFor(['|switch|p1a: Snorlax|Snorlax, L50, M|235/235', '|switch|p2a: Golem|Golem, L50, M|155/155', '|-ability|p2a: Golem|Intimidate|boost', '|turn|1']);
+    expect(fires).toEqual([{ side: 'p2', what: 'ability', slot: 2 }]);
+  });
+
+  it('lists at most one of each kind per side, first in protocol order', () => {
+    const fires = firesFor([...OPEN, '|move|p1a: Snorlax|Tackle|p2a: Golem', '|-ability|p2a: Golem|Sturdy', '|-activate|p2a: Golem|ability: Emergency Exit']);
+    expect(fires).toHaveLength(1);
+  });
+
+  it('carries nothing that ranks: no ability name, no weight', () => {
+    const fires = firesFor([...OPEN, '|move|p1a: Snorlax|Tackle|p2a: Golem', '|-ability|p2a: Golem|Intimidate|boost']);
+    expect(Object.keys(fires[0] ?? {}).sort()).toEqual(['side', 'slot', 'what']);
+  });
+});
+

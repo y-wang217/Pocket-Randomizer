@@ -20,6 +20,8 @@ export function serve(dir?: string): Promise<{ url: string; close: () => void }>
 export function launch(options?: LaunchOptions, engine?: Engine): Promise<Browser>;
 export function visible(name: string): string;
 export function openScreen(page: Page): Promise<string | null>;
+/** Resolve once a screen is visible and the DOM has been quiet for `quietMs`. */
+export function settle(page: Page, options?: { quietMs?: number; timeout?: number }): Promise<unknown>;
 /**
  * One decision. Resolves to the screen it acted on, or **null when it clicked
  * nothing** — a transition in flight, or `expected` no longer being what is up.
@@ -49,6 +51,8 @@ export function openApp(
 export interface GuardedMeasure {
   screenHeight: number;
   scrollHeight: number;
+  /** The frame scroller's visible height; the screen fits when `scrollHeight` is at or under it. Stage 5.0/2. */
+  clientHeight: number;
   decisionCount: number;
   decisionTop: number | null;
   decisionBottom: number | null;
