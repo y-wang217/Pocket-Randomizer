@@ -93,6 +93,9 @@ import {
   BATTLE_SPEED_COPY,
   DRAWER_COPY,
   REWARD_COPY,
+  CLAIM_COPY,
+  BUY_COPY,
+  BERRY_PICK_CLAIM_COPY,
   CAPTURE_SOURCE,
   KIND_HINTS,
   CAPTURE_FULL,
@@ -111,6 +114,7 @@ import {
 import { FEED_COPY } from '../src/ui/copy/feed';
 import { OUTCOME_WORDS, TIER_ROWS } from '../src/ui/copy/summary';
 import * as hpCopy from '../src/core/hpCopy';
+import { BERRY_PICK_COPY } from '../src/core/hpCopy';
 import { THREAT_TITLE, THREAT_EXPLAINER, NO_THREATS } from '../src/core/typeMatchup';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -433,6 +437,17 @@ section({
 });
 
 section({
+  title: 'Confirm band (claim, buy, berry pick)',
+  where: 'The band that commits a reward card, a shop basket, or the berry a pick card opened.',
+  source: 'src/ui/copy/screens.ts',
+  rows: [
+    ...Object.entries(CLAIM_COPY).map(([key, value]) => ({ key: `claim.${key}`, text: value })),
+    ...Object.entries(BUY_COPY).map(([key, value]) => ({ key: `buy.${key}`, text: value })),
+    ...Object.entries(BERRY_PICK_CLAIM_COPY).map(([key, value]) => ({ key: `berryPick.${key}`, text: value })),
+  ],
+});
+
+section({
   title: 'Captures',
   where: 'The capture block after a wild win, and the release control on it.',
   source: 'src/ui/copy/screens.ts',
@@ -495,10 +510,17 @@ section({
   where: 'The reward card, the shop shelf, and the item slot on the party screen.',
   source: 'src/data/items.ts',
   note: 'An item\u2019s name is the dex\u2019s and the engine keys on it, so only the effect line is rewritable. Both are listed; the name is here to read the line against. The lines moved to src/data/itemCopy.ts at M5.1 so rewriting one no longer moves contentHash.',
-  rows: ITEMS.flatMap((item) => [
-    { key: `${item.id} · name (fixed)`, text: item.name },
-    { key: `${item.id} · blurb`, text: itemCopy(item.id) },
-  ]),
+  rows: [
+    ...ITEMS.flatMap((item) => [
+      { key: `${item.id} · name (fixed)`, text: item.name },
+      { key: `${item.id} · blurb`, text: itemCopy(item.id) },
+    ]),
+    // The gym's "pick a berry" card: a choice, not an item, so its two lines
+    // are its own (`core/hpCopy.ts`) and not a dex entry's. The berry gym
+    // reward patch.
+    { key: 'berryPick · name', text: BERRY_PICK_COPY.name },
+    { key: 'berryPick · blurb', text: BERRY_PICK_COPY.line },
+  ],
 });
 
 section({
@@ -548,6 +570,7 @@ section({
     { key: 'move', text: FEED_COPY.move('Tackle') },
     { key: 'switch', text: FEED_COPY.switchTo('Pidgey') },
     { key: 'reward', text: FEED_COPY.reward('TM: Surf') },
+    { key: 'berry', text: FEED_COPY.berry('Chople Berry') },
     { key: 'shop', text: FEED_COPY.shop(['Sitrus Berry']) },
     { key: 'shop · nothing', text: FEED_COPY.shop([]) },
     { key: 'event', text: FEED_COPY.event('Take what is loose') },

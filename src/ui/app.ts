@@ -608,6 +608,7 @@ export function mountApp(root: HTMLElement): void {
     const eventPick = createPending<EventArchetype>();
     const leadPick = createPending<number>();
     const evolvePick = createPending<number>();
+    const berryPick = createPending<number>();
     let detachBattle: (() => void) | null = null;
     /*
      * The fight in progress, and the party it was sent with.
@@ -653,6 +654,7 @@ export function mountApp(root: HTMLElement): void {
       eventPick.cancel();
       leadPick.cancel();
       evolvePick.cancel();
+      berryPick.cancel();
       releaseBattle();
     };
 
@@ -848,6 +850,22 @@ export function mountApp(root: HTMLElement): void {
         });
         showScreen('result');
         return evolvePick.wait();
+      },
+      /*
+       * The berry pick, on the same screen, in the cards' place. The berry
+       * gym reward patch. `playRun` asks it right after the `berryPick` card
+       * is claimed, so the result the card came from is still `lastReview`,
+       * and the fifteen berries render where the three cards were. Choosing
+       * one is the continue, as taking a card is.
+       */
+      chooseBerry: (pick, state) => {
+        resultScreen.render(lastReview, null, state, () => undefined, null, null, {
+          pick,
+          badge: lastReview?.offer?.badge ?? 'gym',
+          onChoose: (index) => berryPick.submit(index),
+        });
+        showScreen('result');
+        return berryPick.wait();
       },
       /*
        * Required by `RunPolicy` and unreachable from `playRun` while

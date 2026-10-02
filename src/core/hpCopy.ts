@@ -180,3 +180,19 @@ export const TAKE_ONE = 'Take one ';
 /** The cards-only path: `app.ts`'s `chooseReward` fallback. */
 export const CARDS_ONLY_TITLE = 'Choose a reward';
 export const CARDS_ONLY_BLURB = 'One of the three. There is no skip.';
+
+/**
+ * The gym's "pick a berry" card, in words. **The berry gym reward patch.**
+ *
+ * Here and not in `data/itemCopy.ts`, for the reason this file's header
+ * gives: the card is named by `core/rewards.ts` (`describeReward`, which the
+ * decision feed and the sim report print) and by the inspect layer in `ui/`,
+ * and `data/itemCopy.ts` is excluded from `contentHash` on the rule that
+ * nothing under `core/` imports it. `name` is the card's label wherever a
+ * reward is written in words; `line` is its one effect line, the shape every
+ * item card's long press has.
+ */
+export const BERRY_PICK_COPY = {
+  name: 'Pick a berry',
+  line: 'Any one berry from the table. You choose which, after you take the card.',
+} as const;

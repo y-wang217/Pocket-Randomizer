@@ -39,7 +39,7 @@ import type { NodeSpec } from '../core/encounters';
 import type { ShopStock } from '../core/economy';
 import type { EventInstance } from '../core/events';
 import type { EvolutionQuestion } from '../core/evolution';
-import { describeReward, type RewardOffer } from '../core/rewards';
+import { describeReward, type BerryPick, type RewardOffer } from '../core/rewards';
 import type { RunPolicy, RunState } from '../core/run';
 import type { BattleView, ItemPlan, PokemonState, RunDecision, RunLog } from '../core/types';
 import { eventLabel } from '../data/eventCopy';
@@ -86,6 +86,7 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
   let locales: readonly LocaleId[] = [];
   let nodes: readonly NodeSpec[] = [];
   let offer: RewardOffer | null = null;
+  let pick: BerryPick | null = null;
   let stock: ShopStock | null = null;
   let event: EventInstance | null = null;
   let acquisition: { offer: AcquisitionOffer; party: Names } | null = null;
@@ -136,6 +137,10 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
       case 'reward': {
         const reward = offer?.options[decision.index];
         return FEED_COPY.reward(reward ? describeReward(reward) : '');
+      }
+      case 'berry': {
+        const berry = pick?.berries[decision.index];
+        return FEED_COPY.berry(berry ? itemName(berry) : '');
       }
       case 'shop': {
         const bought = decision.indexes.map((index) => stock?.items[index]?.reward).flatMap((reward) => (reward ? [describeReward(reward)] : []));
@@ -222,6 +227,11 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
       seen(state);
       evolution = question;
       return inner.chooseEvolution(question, state);
+    },
+    chooseBerry: (next, state) => {
+      seen(state);
+      pick = next;
+      return inner.chooseBerry(next, state);
     },
     chooseItemPlan: (state) => {
       seen(state);

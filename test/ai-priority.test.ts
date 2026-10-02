@@ -328,8 +328,11 @@ describe('the version axes', () => {
      *
      * `-22` is the writable tabs patch: an item layout is a party edit.
      * `docs/generation.md` section 98.
+     *
+     * `-23` is the berry gym reward patch: a berry pick is a logged decision.
+     * `docs/generation.md` section 99.
      */
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-22/gymrun-0.3.0');
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-23/gymrun-0.3.0');
     /*
      * Pinned literally, as the Branch 1 value was: a hash nobody can read off
      * the tree by eye is exactly the kind that moves without anyone noticing.
@@ -441,9 +444,12 @@ describe('the version axes', () => {
      * The wild-strength and early-gym-levels patch moved it from `0b2c2c`, the
      * ordinary case: two columns of `data/scaling.ts`, and `gymrun-randomizer-22`
      * arrives beside it because the level a seed draws moved.
-     * `docs/generation.md` section 78.
+     * `docs/generation.md` section 78. The berry gym reward patch moved it
+     * again, from `715122`, for one entry added to both gym bands of
+     * `data/rewardPools.ts`; `gymrun-randomizer-23` and `gymrun-run-23`
+     * arrive beside it. `docs/generation.md` section 99.
      */
-    expect(CONTENT_HASH).toBe('7151221289a1ea991d5186775e58b13ab17dbf2205de94c751df78dd186c7c79');
+    expect(CONTENT_HASH).toBe('d8e4e4678ff0e6fd419e35761bfe4275dddd7cf47106d1dda2fa6b4d58ee49bc');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

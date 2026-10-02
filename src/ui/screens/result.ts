@@ -55,14 +55,33 @@ import {
 } from '../../core/hpCopy';
 import { statusChip } from '../chip';
 import { ppTotals } from '../../core/party';
-import type { RewardOffer } from '../../core/rewards';
+import type { BerryPick, Reward, RewardOffer } from '../../core/rewards';
 import { partyCapacity, type BattleReview, type RunState } from '../../core/run';
 import type { BattleMemberState, PokemonState } from '../../core/types';
+import { BERRY_PICK_CLAIM_COPY } from '../copy/screens';
 import { el } from '../scene';
 import { renderSlots } from '../slots';
 import { renderCaptureOffer } from './acquisition';
 import { renderEvolutionBlock, type EvolutionPrompt } from './evolution';
 import { offerBadge, renderOfferCards } from './reward';
+
+/**
+ * A "pick a berry" card taken, and the pick it opens. **The berry gym reward
+ * patch.**
+ *
+ * The card is page 2 of a gym's reward, and the pick is asked on this same
+ * screen in the cards' place, after the claim: CLAUDE.md allows no second
+ * path by which a node completes, so the berries are a section of the result
+ * as the cards are, not a screen after it. Every berry on the card is one
+ * item card in the same component and the same grid, five across, selected
+ * only after a tap, claimed by the band's commit. There is no decline: the
+ * card was taken, and `onChoose` is reached exactly once.
+ */
+export interface BerryPrompt {
+  pick: BerryPick;
+  badge: RewardOffer['badge'];
+  onChoose: (index: number) => void;
+}
 
 /**
  * A Pokemon on the table, and the party it is being weighed against.
@@ -103,6 +122,11 @@ export interface ResultScreen {
      * then what the clear does to it, then what the clear pays.
      */
     evolution?: EvolutionPrompt | null,
+    /**
+     * The berry pick a taken card opened. The berry gym reward patch. Drawn
+     * in the cards' section, which is empty by then: the card has been taken.
+     */
+    berry?: BerryPrompt | null,
   ): void;
 }
 
@@ -152,7 +176,7 @@ export function createResultScreen(): ResultScreen {
 
   return {
     root,
-    render(review, offer, state, onDone, capturePrompt, evolutionPrompt) {
+    render(review, offer, state, onDone, capturePrompt, evolutionPrompt, berryPrompt) {
       const won = review?.won ?? true;
 
       if (review) {
@@ -198,8 +222,9 @@ export function createResultScreen(): ResultScreen {
         evolution.replaceChildren();
       }
 
-      cardsHeading.hidden = !offer;
-      cards.hidden = !offer;
+      cardsHeading.hidden = !offer && !berryPrompt;
+      cards.hidden = !offer && !berryPrompt;
+      cards.classList.toggle('rewards--berries', Boolean(berryPrompt && !offer));
       if (offer) {
         cardsHeading.replaceChildren(document.createTextNode(TAKE_ONE), offerBadge(offer.badge));
         // A tap selects and opens the claim band; its commit is the pick
@@ -209,6 +234,22 @@ export function createResultScreen(): ResultScreen {
             // The balance the header prints: the payout is not folded into
             // `state` until the node resolves. QA-003.
             carrying: state.currency + (review?.currencyEarned ?? 0),
+          }),
+        );
+      } else if (berryPrompt) {
+        /*
+         * The pick, in the cards' place. The same heading, the same badge and
+         * the same component: each berry is an `item` card, so its face is
+         * its sprite and its long press is its name and effect line, and the
+         * claim is the band's commit as for any card. Five across, since a
+         * sprite needs less room than a move card and fifteen at three across
+         * would push the grid off a phone.
+         */
+        cardsHeading.replaceChildren(document.createTextNode(TAKE_ONE), offerBadge(berryPrompt.badge));
+        const berries: Reward[] = berryPrompt.pick.berries.map((item) => ({ kind: 'item', item }));
+        cards.replaceChildren(
+          ...renderOfferCards(berries, state, (index) => berryPrompt.onChoose(index), {
+            claim: BERRY_PICK_CLAIM_COPY,
           }),
         );
       } else {
@@ -251,7 +292,7 @@ export function createResultScreen(): ResultScreen {
        * skipping were allowed, which it is not. Without one, this button is the
        * whole point of the screen: the confirmation a rewardless win never got.
        */
-      if (offer || capturePrompt || evolutionPrompt?.question) {
+      if (offer || capturePrompt || evolutionPrompt?.question || berryPrompt) {
         // With a capture on screen, "Take it" and "Leave it" are the continue,
         // exactly as taking a card is when the cards are up, and as choosing a
         // branch is when a fork is open. A third button beside them would read

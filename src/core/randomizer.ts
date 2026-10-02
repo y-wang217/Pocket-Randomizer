@@ -348,7 +348,21 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * `docs/spec/gymrun-patch-wild-strength-and-early-gym-levels.md`,
  * `docs/generation.md` section 78.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-22';
+/*
+ * ## `-23`: the gym pool deals a berry pick
+ *
+ * One entry added to both bands of `GYM` in `data/rewardPools.ts`, so the
+ * weighted pick over the gym's page-2 table lands differently for the same
+ * float, and the entry it lands on resolves with **no draw at all**: a berry
+ * pick is the whole table and the player resolves it. An `item` entry spends
+ * one `pick`; this spends none, so the gym's `rewards` stream is consumed a
+ * different number of times on pages that deal it and every later draw on
+ * that stream shifts. That is composition and count both, which is this axis
+ * twice over. `RUN_LOG_VERSION` moves beside it to `-23` for the answer the
+ * card asks for, and `contentHash` for the table.
+ * `docs/spec/gymrun-patch-berry-gym-reward.md`, `docs/generation.md` section 99.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-23';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

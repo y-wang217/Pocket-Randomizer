@@ -1,7 +1,7 @@
 {
-  "version": "gymrun-run-22/gymrun-0.3.0",
-  "randomizerVersion": "gymrun-randomizer-22",
-  "contentHash": "7151221289a1ea991d5186775e58b13ab17dbf2205de94c751df78dd186c7c79",
+  "version": "gymrun-run-23/gymrun-0.3.0",
+  "randomizerVersion": "gymrun-randomizer-23",
+  "contentHash": "d8e4e4678ff0e6fd419e35761bfe4275dddd7cf47106d1dda2fa6b4d58ee49bc",
   "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
   "runs": [
     {
@@ -612,14 +612,14 @@
             "Rollout",
             "Curse"
           ],
-          "item": "focussash",
+          "item": null,
           "hp": 0,
           "maxHp": 56,
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
             "damageDealt": 81,
-            "damageTaken": 56,
+            "damageTaken": 66,
             "kos": 1,
             "faints": 1,
             "turnsOnField": 4
@@ -1022,12 +1022,16 @@
           "index": 0
         },
         {
+          "kind": "berry",
+          "index": 0
+        },
+        {
           "kind": "items",
           "plan": {
             "assignments": [
               {
                 "slot": 1,
-                "item": "focussash"
+                "item": "oranberry"
               }
             ],
             "discards": [],

@@ -155,9 +155,10 @@ describe('the version axes this patch moved', () => {
      * duplicate-card fix, which narrows a pool's candidates before every
      * weighted pick; `-21` is the gym level spread, where the same float off
      * the same key lands a gym member somewhere in a range instead of on one
-     * number.
+     * number; `-22` the wild and early-gym levels; `-23` the berry pick the
+     * gym pool deals, which resolves with no draw where an item spends one.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-22');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-23');
   });
 });
 
