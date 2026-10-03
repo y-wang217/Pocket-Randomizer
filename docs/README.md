@@ -68,6 +68,41 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 **In flight: Stage 5.0, the visual redesign ([`spec/gymrun-stage5.0-visual-redesign.md`](spec/gymrun-stage5.0-visual-redesign.md)). 5.0/0, the spike and audit, is done on `claude/hopeful-shannon-kch3gw` and stopped for review.** The report is [`visual/reports/5.0-stage0-spike.md`](visual/reports/5.0-stage0-spike.md). It filed D50 to D76 in the discrepancy register. The author ruled D50 and D52 to D55 the same day ([`spec/gymrun-stage5.0-rulings-d50-d55.md`](spec/gymrun-stage5.0-rulings-d50-d55.md)); the bible is at **Rev 15** (one face and no density setting, tabs open screens, a mid-run Run Info screen, a `currency` family, and Run Progress as a decision feed replayed from the run log), recorded in [`generation.md` §87](generation.md). **5.0/1 is built and stopped for review**: one face with the density setting deleted, the shell nav with its read-only guard, the decision feed, Run Info and Settings screens, the desktop sidebar, the light palette and the asset manifest. Report [`visual/reports/5.0-stage1.md`](visual/reports/5.0-stage1.md), record [`generation.md` §87](generation.md). **D56 to D60 were ruled the same day** ([`spec/gymrun-stage5.0-rulings-d56-d60.md`](spec/gymrun-stage5.0-rulings-d56-d60.md)): the HP box is the panel restyled with every fact, the move button is the full move card, the header stays above the stage, D26's log handle stands with no Info button, and the World stays behind the frame while the painted backdrops live inside it. Bible **Rev 16**, [`generation.md` §88](generation.md). The author confirmed D60's reading and ruled D62 option 1 everywhere ([`spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md`](spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md)). **5.0/2, the battle screen, is built on `claude/wizardly-wright-cum8e0` and stopped for review**: the stage on its scene backdrop with platforms, the HP boxes and move buttons restyled with every fact kept, the header row with section 6's turn header built for the first time, the strip under the stage, and the bench behind a Switch button. The nine battle backdrops came forward from 5.0/5 into this stage at the author's request, converted from paintings at 224x136, with notes for the asset pipeline in the report. Report [`visual/reports/5.0-stage2.md`](visual/reports/5.0-stage2.md), record [`generation.md` §88](generation.md). WebKit and a real iPhone are the reviewer's. 5.0/0 and 5.0/1 merged as #77, 5.0/2 as #78. **5.0/3, the reward, result and shop cards, is built on `claude/stage-5.0-3-cards` and stopped for review**, after the author took every recommendation on D65 to D71 ([`spec/gymrun-stage5.0-rulings-d65-d71.md`](spec/gymrun-stage5.0-rulings-d65-d71.md), bible **Rev 17**): a card's face is its mark with the name and effect on the long press, a tap selects and the confirm band claims, the relic card carries its capability glyph, and the currency family is drawn. Report [`visual/reports/5.0-stage3.md`](visual/reports/5.0-stage3.md), record [`generation.md` §89](generation.md). No version axis moved; `contentHash` holds at `715122`. 5.0/4 (map) waits on D61, D63, D64, D72 and D75.
 
+**Also in flight, reapplied onto this tree on 2026-10-02: the Toll price gate,
+and a ceiling on a region with a floor under its fights.** Branch
+`claude/t2-berry-inventory-gating-7gvcye`, prompts
+[`spec/gymrun-patch-toll-affordability-gate.md`](spec/gymrun-patch-toll-affordability-gate.md)
+and
+[`spec/gymrun-patch-region-node-composition.md`](spec/gymrun-patch-region-node-composition.md),
+records [`generation.md`](generation.md) sections 99 and 100.
+
+Both were built on 2026-09-19 against a tree cut at `970c2a2` and **reapplied
+rather than rebased**, because `main` had moved 260 commits and taken
+`EventOption`'s display strings out of `core/` in between. Neither defect had
+been fixed on `main` meanwhile: `applyEffect`'s `loseItem` branch still
+no-opped on a bag that could not answer it, and no ceiling existed anywhere in
+the generator.
+
+- **A price is charged, or the option is not purchasable.** A Toll priced in
+  berries, pressed by a bag with none, took nothing and paid its guaranteed
+  `T2` in full — and the coin and HP prices had the same hole. The rule is
+  `CLAUDE.md`'s **Prices** section.
+- **A per-route ceiling of two rests and two shops**, spent during the draw so
+  the draw count does not move, plus a floor of battle-only steps.
+  `restStepsPerGuarantee` is deleted: it *guaranteed* the double rest on 100%
+  of segment 5 and 6 routes, which is what the ceiling exists to make rare.
+- `RANDOMIZER_VERSION` → `-23`, renumbered from `-22` because `main` took that
+  number for the level columns. `contentHash` moves; `RUN_LOG_VERSION` holds.
+- **Re-measured on this tree: 1.47 against a 1.55 baseline, a −0.08.** The
+  original row read 0.92 against 1.085 and is withdrawn rather than carried,
+  because reading it across a moved `randomizer` and `contentHash` is reading
+  across a yardstick that moved. The cost roughly halved and the reason is the
+  baseline rather than the patch: `main`'s level columns give a run enough
+  headroom to absorb the extra fights. 200 seeds on both arms, same prefix,
+  same AI — the count is part of the stamp and these do not read against the
+  400-seed rows. The map measurements are unchanged.
+
+
 **Stage 5.1: band bars, the starter detail over the moves, a starter screen without a scroll, built on `claude/level-15-stat-bars-layout-s8s0ma`.** The author's message of 2026-10-01, named 5.1 by the author ([`spec/gymrun-stage5.1-band-bars-and-starter-fit.md`](spec/gymrun-stage5.1-band-bars-and-starter-fit.md)): the stat bar returns beside the number on every stat block, measured against the band of values that stat takes at the Pokemon's level across the species pool (`statBandAt`); the starter detail panel opens over the selected card's moves, the card's own tap flipping back; the starter screen fits 390x700 without a scroll. The message's IV and nature marks were not built: GYMRUN has neither, and the author, asked, said to ignore them. Presentation only, no version axis moves. Bible Rev 21, D88 to D90; [`generation.md` §96](generation.md).
 
 **Patch: stats at rest, the map's later rows, the locale card as a peek, built on `claude/sleepy-dijkstra-tp2176`.** The author's feedback of 2026-10-01 against production R22 ([`spec/gymrun-patch-r22-stats-at-rest-and-map.md`](spec/gymrun-patch-r22-stats-at-rest-and-map.md)): a new rule, **R13, vital information** (the six stats, and a carried item's name and effect line, are at rest everywhere and never budgeted); the stat bars retired for numbers; the stats out of the party card's fold and on the player's battle panel; the capture swap's stat change in green and red; the bag listed at rest; later map rows down to the kind glyph on a restyled token; the locale card as a full-bleed crop of its map. The author's painting fills the page behind the frame before the first region. Bible Rev 20, D81 to D87; [`generation.md` §94 and §95](generation.md).
@@ -389,15 +424,15 @@ M4.2 both moved the number by zero and said so rather than claiming a reduction.
 **In flight: the gym deals a "pick a berry" card.** Branch
 `claude/berry-gym-rewards-gz15ms`, prompt
 [`spec/gymrun-patch-berry-gym-reward.md`](spec/gymrun-patch-berry-gym-reward.md),
-record [`generation.md`](generation.md) section 99, measurement
+record [`generation.md`](generation.md) section 101, measurement
 [`balance.md`](balance.md) section 0. The author's message of 2026-09-25 said
 resist berries are not good gym reward items and a gym reward could instead
 be "pick a berry"; the brief recorded that no gym page could deal a berry, and
 the author ruled 2026-10-02 to build the card that opens a pick. A `berryPick`
 entry in both gym bands, a `berryPick` reward kind resolved with no draw, a
 `berry` decision and `chooseBerry` on the policy, the pick drawn on the result
-screen as fifteen item cards five across. `RANDOMIZER_VERSION` and
-`RUN_LOG_VERSION` to `-23`, `contentHash` to `d8e4e4`; `AI_VERSION` holds.
+screen as fifteen item cards five across. `RANDOMIZER_VERSION` to `-24` and
+`RUN_LOG_VERSION` to `-23`, `contentHash` to `bd20d7`; `AI_VERSION` holds.
 Bible Rev 24, D99.
 
 **In flight: wild encounters below the curve, and gyms 1 to 3 one level
@@ -1275,6 +1310,23 @@ rule; report and screenshots in
 ## 5. Open items
 
 One line each. The analysis lives where the pointer goes, not here.
+
+00. **An evolution fork may still be out of reach, and the measurement that
+    said so is stale.** A fork needs a branching species in the party at a gym
+    clear. On the tree the region composition patch was built against, **no
+    seed in 400 reached one** — Stage 4.9's headline mechanic sat behind most
+    of a run's difficulty, and at 0.92 mean gyms most runs never got there.
+    `main`'s wild and early-gym level columns push hard the other way, 1.295
+    to 2.223 on the same population, so the figure needs retaking on the
+    reapplied tree before any dial is touched. `test/evolution-run.test.ts` was
+    rewritten to search rather than pin, and to assert on the fork rather than
+    on Hitmonlee, which makes it hold for every branching species in the pool;
+    what it cannot do is make the fork happen. Three ways out and the choice is
+    the author's: move `battleStepsPerGuarantee` 2 → 3 and give the difficulty
+    back, lower the evolution thresholds so a fork lands before the first gym,
+    or move the fork off the gym clear entirely. **Filed, not fixed** — it is a
+    difficulty decision and the standing policy forbids retuning between
+    checkpoints. `generation.md` section 100.8.
 
 0. **The design bible is live and nothing has been built against it yet.**
    [`design/design-bible.md`](design/design-bible.md) landed 2026-09-19 as a

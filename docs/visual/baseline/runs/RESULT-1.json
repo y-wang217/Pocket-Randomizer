@@ -2,8 +2,8 @@
   "seed": "RESULT-1",
   "versions": {
     "runLog": "gymrun-run-23/gymrun-0.3.0",
-    "contentHash": "d8e4e4678ff0e6fd419e35761bfe4275dddd7cf47106d1dda2fa6b4d58ee49bc",
-    "randomizer": "gymrun-randomizer-23",
+    "contentHash": "bd20d775d047e10808cdf60810186acc97ccaac9a815589e95a8dda3d46ba11f",
+    "randomizer": "gymrun-randomizer-24",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -13,16 +13,15 @@
     "segment": 2,
     "leader": "Volta",
     "kind": "wild",
-    "species": "Gale",
+    "species": "Verbena",
     "bySpecies": "Flamigo",
-    "byMove": "Drill Peck",
+    "byMove": "Drum Beating",
     "indirect": null
   },
-  "currency": 363,
+  "currency": 414,
   "backpack": [
     "shellbell",
-    "chopleberry",
-    "miracleseed"
+    "chopleberry"
   ],
   "relics": [
     "abyssal-lens"
@@ -33,10 +32,10 @@
       "level": 26,
       "ability": "Tera Shift",
       "moves": [
-        "Facade 31/32",
-        "Thief 40/40",
+        "Facade 28/32",
+        "Grav Apple 16/16",
         "Shadow Claw 24/24",
-        "Psycho Cut 29/32"
+        "Psycho Cut 30/32"
       ],
       "item": "miracleseed",
       "hp": "0/69",
@@ -47,10 +46,10 @@
       "level": 26,
       "ability": "Adaptability",
       "moves": [
-        "Vine Whip 39/40",
-        "Quick Attack 46/48",
+        "Vine Whip 40/40",
+        "Quick Attack 47/48",
         "Snore 24/24",
-        "Temper Flare 16/16"
+        "Temper Flare 15/16"
       ],
       "item": "mysticwater",
       "hp": "0/78",
@@ -202,8 +201,8 @@
     },
     {
       "segment": 1,
-      "kind": "shop",
-      "label": "Shop",
+      "kind": "event",
+      "label": "Something happens",
       "tier": null,
       "opponent": null,
       "turns": null,
@@ -248,11 +247,11 @@
       "segment": 2,
       "kind": "wild",
       "label": "Wild encounter",
-      "tier": "normal",
-      "opponent": "Wild Timburr",
-      "turns": 8,
+      "tier": "hard",
+      "opponent": "Wild Scraggy",
+      "turns": 7,
       "winner": "p1",
-      "hpAfter": 45,
+      "hpAfter": 83,
       "casualties": []
     },
     {
@@ -261,7 +260,7 @@
       "label": "Wild encounter",
       "tier": "elite",
       "opponent": "Wild Flamigo",
-      "turns": 3,
+      "turns": 4,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
@@ -276,20 +275,20 @@
         },
         {
           "side": "p1",
-          "name": "Verbena",
-          "level": 26,
-          "species": "Omanyte",
-          "bySpecies": "Flamigo",
-          "byMove": "Drum Beating",
-          "indirect": null
-        },
-        {
-          "side": "p1",
           "name": "Gale",
           "level": 26,
           "species": "Skiddo",
           "bySpecies": "Flamigo",
           "byMove": "Drill Peck",
+          "indirect": null
+        },
+        {
+          "side": "p1",
+          "name": "Verbena",
+          "level": 26,
+          "species": "Omanyte",
+          "bySpecies": "Flamigo",
+          "byMove": "Drum Beating",
           "indirect": null
         }
       ]
@@ -299,9 +298,9 @@
     "seed": "RESULT-1",
     "versions": {
       "runLog": "gymrun-run-23/gymrun-0.3.0",
-      "contentHash": "d8e4e4678ff0e6fd419e35761bfe4275dddd7cf47106d1dda2fa6b4d58ee49bc",
+      "contentHash": "bd20d775d047e10808cdf60810186acc97ccaac9a815589e95a8dda3d46ba11f",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-23"
+      "randomizerVersion": "gymrun-randomizer-24"
     },
     "decisions": [
       {
@@ -731,8 +730,8 @@
         "index": 0
       },
       {
-        "kind": "shop",
-        "indexes": []
+        "kind": "event",
+        "archetype": "safe"
       },
       {
         "kind": "items",
@@ -927,21 +926,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
           "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 2
         }
       },
       {
@@ -955,14 +940,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 2
+          "slot": 1
         }
       },
       {
@@ -977,6 +955,20 @@
         "choice": {
           "kind": "move",
           "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
         }
       },
       {
@@ -994,7 +986,13 @@
         "plan": {
           "assignments": [],
           "discards": [],
-          "teaches": [],
+          "teaches": [
+            {
+              "move": "Grav Apple",
+              "slot": 0,
+              "replaceSlot": 1
+            }
+          ],
           "discardTms": []
         }
       },
@@ -1013,6 +1011,27 @@
         "kind": "battle",
         "choice": {
           "kind": "switch",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
           "slot": 3
         }
       },
@@ -1021,20 +1040,6 @@
         "choice": {
           "kind": "move",
           "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
         }
       }
     ]

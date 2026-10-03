@@ -78,12 +78,25 @@ describe('the run log version', () => {
      *
      * And to `-21` by the gym level spread, which moved `contentHash` with it
      * and left `RUN_LOG_VERSION` alone — the same separation again, from the
-     * data-table side this time. `-22` for the wild and early-gym levels,
-     * and `-23` for the berry pick the gym pool deals, which is this file's
+     * data-table side this time.
+     *
+     * And to `-22` by the region composition patch: a per-route ceiling on
+     * rests and shops, and a floor of battle-only steps. Both change the
+     * shape stream's values *and* how many it hands out, and neither adds,
+     * removes or reshapes a logged decision — the separation once more.
+     */
+    /*
+     * And to `-23` by the region composition patch — a per-route ceiling on
+     * rests and shops, and a floor of battle-only steps — which moved
+     * `contentHash` with it and left `RUN_LOG_VERSION` alone. The separation
+     * once more, from the generator side.
+     */
+    /*
+     * And to `-24` by the berry pick the gym pool deals, which is this file's
      * page 2 again and moved `RUN_LOG_VERSION` beside it for the pick's
      * answer: two axes, each for its own reason, which is still the separation.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-23');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-24');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

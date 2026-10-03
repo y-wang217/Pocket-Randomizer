@@ -2,8 +2,8 @@
   "seed": "SEED-B",
   "versions": {
     "runLog": "gymrun-run-23/gymrun-0.3.0",
-    "contentHash": "d8e4e4678ff0e6fd419e35761bfe4275dddd7cf47106d1dda2fa6b4d58ee49bc",
-    "randomizer": "gymrun-randomizer-23",
+    "contentHash": "bd20d775d047e10808cdf60810186acc97ccaac9a815589e95a8dda3d46ba11f",
+    "randomizer": "gymrun-randomizer-24",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -14,8 +14,8 @@
     "leader": "Garnet",
     "kind": "wild",
     "species": "Fennel",
-    "bySpecies": "Gulpin",
-    "byMove": "Cross Poison",
+    "bySpecies": "Minun",
+    "byMove": "Parabolic Charge",
     "indirect": null
   },
   "currency": 69,
@@ -27,9 +27,9 @@
       "level": 15,
       "ability": "Shed Skin",
       "moves": [
-        "Bug Bite 30/32",
+        "Bug Bite 29/32",
         "Snarl 21/24",
-        "Incinerate 23/24",
+        "Incinerate 24/24",
         "Synthesis 8/8"
       ],
       "item": "lumberry",
@@ -41,9 +41,9 @@
       "level": 15,
       "ability": "Mind's Eye",
       "moves": [
-        "Swift 29/32",
+        "Swift 30/32",
         "Pounce 32/32",
-        "Brutal Swing 32/32",
+        "Brutal Swing 31/32",
         "Spore 24/24"
       ],
       "item": "silkscarf",
@@ -100,8 +100,8 @@
       "segment": 0,
       "kind": "wild",
       "label": "Wild encounter",
-      "tier": "normal",
-      "opponent": "Wild Gulpin",
+      "tier": "hard",
+      "opponent": "Wild Minun",
       "turns": 2,
       "winner": "p2",
       "hpAfter": 0,
@@ -111,8 +111,8 @@
           "name": "Umber",
           "level": 15,
           "species": "Cutiefly",
-          "bySpecies": "Gulpin",
-          "byMove": "Cross Poison",
+          "bySpecies": "Minun",
+          "byMove": "Parabolic Charge",
           "indirect": null
         },
         {
@@ -120,8 +120,8 @@
           "name": "Fennel",
           "level": 15,
           "species": "Rattata",
-          "bySpecies": "Gulpin",
-          "byMove": "Cross Poison",
+          "bySpecies": "Minun",
+          "byMove": "Parabolic Charge",
           "indirect": null
         }
       ]
@@ -131,9 +131,9 @@
     "seed": "SEED-B",
     "versions": {
       "runLog": "gymrun-run-23/gymrun-0.3.0",
-      "contentHash": "d8e4e4678ff0e6fd419e35761bfe4275dddd7cf47106d1dda2fa6b4d58ee49bc",
+      "contentHash": "bd20d775d047e10808cdf60810186acc97ccaac9a815589e95a8dda3d46ba11f",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-23"
+      "randomizerVersion": "gymrun-randomizer-24"
     },
     "decisions": [
       {
@@ -315,7 +315,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 1
         }
       },
       {
@@ -329,7 +329,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 3
         }
       }
     ]

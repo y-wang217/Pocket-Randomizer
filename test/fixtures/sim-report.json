@@ -1,7 +1,7 @@
 {
   "version": "gymrun-run-23/gymrun-0.3.0",
-  "randomizerVersion": "gymrun-randomizer-23",
-  "contentHash": "d8e4e4678ff0e6fd419e35761bfe4275dddd7cf47106d1dda2fa6b4d58ee49bc",
+  "randomizerVersion": "gymrun-randomizer-24",
+  "contentHash": "bd20d775d047e10808cdf60810186acc97ccaac9a815589e95a8dda3d46ba11f",
   "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
   "runs": [
     {
@@ -28,13 +28,13 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 19,
+            "damageDealt": 15,
             "damageTaken": 41,
             "kos": 0,
             "faints": 1,
             "turnsOnField": 2
           },
-          "status": "tox",
+          "status": null,
           "pp": [
             24,
             30,
@@ -47,7 +47,7 @@
         {
           "id": "s0-badlands-0-0",
           "segment": 0,
-          "kind": "trainer",
+          "kind": "wild",
           "tier": "normal",
           "winner": "p2",
           "turns": 2,
@@ -56,8 +56,8 @@
             {
               "side": "p1",
               "name": "Clover",
-              "bySpecies": "Buneary",
-              "byMove": "Poison Fang"
+              "bySpecies": "Scraggy",
+              "byMove": "Brutal Swing"
             }
           ]
         }
@@ -95,7 +95,7 @@
       "seed": "FIXTURE-BRAVO",
       "outcome": "defeat",
       "gymsCleared": 1,
-      "currency": 61,
+      "currency": 70,
       "backpack": [
         "passhoberry",
         "leftovers"
@@ -112,17 +112,17 @@
             "Syrup Bomb",
             "Water Pulse"
           ],
-          "item": "wiseglasses",
+          "item": "chestoberry",
           "hp": 0,
           "maxHp": 64,
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 93,
-            "damageTaken": 134,
+            "damageDealt": 118,
+            "damageTaken": 148,
             "kos": 2,
-            "faints": 2,
-            "turnsOnField": 14
+            "faints": 3,
+            "turnsOnField": 18
           },
           "status": null,
           "pp": [
@@ -149,11 +149,11 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 79,
-            "damageTaken": 72,
-            "kos": 2,
-            "faints": 1,
-            "turnsOnField": 7
+            "damageDealt": 107,
+            "damageTaken": 116,
+            "kos": 3,
+            "faints": 2,
+            "turnsOnField": 10
           },
           "status": "par",
           "pp": [
@@ -189,11 +189,18 @@
           "id": "s0-marsh-2-0",
           "segment": 0,
           "kind": "wild",
-          "tier": "hard",
+          "tier": "normal",
           "winner": "p1",
-          "turns": 2,
-          "hpAfter": 62,
-          "casualties": []
+          "turns": 5,
+          "hpAfter": 27,
+          "casualties": [
+            {
+              "side": "p1",
+              "name": "Grist",
+              "bySpecies": "Mareanie",
+              "byMove": "Horn Leech"
+            }
+          ]
         },
         {
           "id": "s0-marsh-3-0",
@@ -202,18 +209,25 @@
           "tier": null,
           "winner": null,
           "turns": null,
-          "hpAfter": 62,
+          "hpAfter": 49,
           "casualties": []
         },
         {
           "id": "s0-marsh-4-0",
           "segment": 0,
-          "kind": "rest",
-          "tier": null,
-          "winner": null,
-          "turns": null,
-          "hpAfter": 88,
-          "casualties": []
+          "kind": "trainer",
+          "tier": "normal",
+          "winner": "p1",
+          "turns": 4,
+          "hpAfter": 22,
+          "casualties": [
+            {
+              "side": "p1",
+              "name": "Sorrel",
+              "bySpecies": "Morelull",
+              "byMove": "Disarming Voice"
+            }
+          ]
         },
         {
           "id": "s0-gym",
@@ -222,7 +236,7 @@
           "tier": null,
           "winner": "p1",
           "turns": 7,
-          "hpAfter": 27,
+          "hpAfter": 23,
           "casualties": [
             {
               "side": "p1",
@@ -323,8 +337,36 @@
         {
           "kind": "battle",
           "choice": {
+            "kind": "switch",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
             "kind": "move",
-            "slot": 1
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "switch",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
           }
         },
         {
@@ -350,7 +392,7 @@
             "assignments": [
               {
                 "slot": 0,
-                "item": "wiseglasses"
+                "item": "chestoberry"
               }
             ],
             "discards": [],
@@ -382,6 +424,45 @@
         },
         {
           "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "switch",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "reward",
           "index": 0
         },
         {
@@ -567,7 +648,7 @@
       "seed": "FIXTURE-CHARLIE",
       "outcome": "defeat",
       "gymsCleared": 1,
-      "currency": 138,
+      "currency": 146,
       "backpack": [],
       "party": [
         {
@@ -577,9 +658,9 @@
           "gender": "M",
           "moves": [
             "Force Palm",
-            "Circle Throw",
+            "Fury Attack",
             "Sludge",
-            "Fury Attack"
+            "Ice Fang"
           ],
           "item": "blackbelt",
           "hp": 0,
@@ -587,18 +668,18 @@
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 472,
+            "damageDealt": 558,
             "damageTaken": 116,
-            "kos": 11,
+            "kos": 13,
             "faints": 2,
-            "turnsOnField": 21
+            "turnsOnField": 24
           },
           "status": null,
           "pp": [
-            8,
-            16,
+            7,
             32,
-            32
+            29,
+            24
           ]
         },
         {
@@ -612,21 +693,21 @@
             "Rollout",
             "Curse"
           ],
-          "item": null,
+          "item": "habanberry",
           "hp": 0,
           "maxHp": 56,
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
-            "damageDealt": 81,
+            "damageDealt": 105,
             "damageTaken": 66,
-            "kos": 1,
+            "kos": 2,
             "faints": 1,
-            "turnsOnField": 4
+            "turnsOnField": 5
           },
           "status": null,
           "pp": [
-            13,
+            12,
             24,
             32,
             16
@@ -643,21 +724,21 @@
             "Thunder Shock",
             "Glaciate"
           ],
-          "item": "mysticwater",
+          "item": null,
           "hp": 0,
           "maxHp": 56,
           "fainted": true,
           "joinedSegment": 1,
           "contribution": {
-            "damageDealt": 60,
+            "damageDealt": 27,
             "damageTaken": 56,
-            "kos": 2,
+            "kos": 1,
             "faints": 1,
-            "turnsOnField": 4
+            "turnsOnField": 3
           },
           "status": null,
           "pp": [
-            14,
+            15,
             23,
             48,
             16
@@ -739,38 +820,31 @@
           "id": "s1-shore-1-0",
           "segment": 1,
           "kind": "wild",
-          "tier": "normal",
+          "tier": "hard",
           "winner": "p1",
-          "turns": 3,
-          "hpAfter": 158,
+          "turns": 5,
+          "hpAfter": 120,
           "casualties": []
         },
         {
           "id": "s1-shore-2-0",
           "segment": 1,
-          "kind": "event",
-          "tier": null,
-          "winner": null,
-          "turns": null,
-          "hpAfter": 158,
+          "kind": "wild",
+          "tier": "normal",
+          "winner": "p1",
+          "turns": 3,
+          "hpAfter": 112,
           "casualties": []
         },
         {
           "id": "s1-shore-3-0",
           "segment": 1,
-          "kind": "trainer",
+          "kind": "wild",
           "tier": "normal",
           "winner": "p1",
-          "turns": 5,
-          "hpAfter": 59,
-          "casualties": [
-            {
-              "side": "p1",
-              "name": "Onyx",
-              "bySpecies": "Spoink",
-              "byMove": "Mystical Power"
-            }
-          ]
+          "turns": 2,
+          "hpAfter": 112,
+          "casualties": []
         },
         {
           "id": "s1-shore-4-0",
@@ -778,9 +852,16 @@
           "kind": "wild",
           "tier": "normal",
           "winner": "p1",
-          "turns": 4,
-          "hpAfter": 69,
-          "casualties": []
+          "turns": 5,
+          "hpAfter": 68,
+          "casualties": [
+            {
+              "side": "p1",
+              "name": "Onyx",
+              "bySpecies": "Slowpoke",
+              "byMove": "Frost Breath"
+            }
+          ]
         },
         {
           "id": "s1-gym",
@@ -799,13 +880,13 @@
             },
             {
               "side": "p1",
-              "name": "Fennel",
+              "name": "Nettle",
               "bySpecies": "Finneon",
               "byMove": "Aqua Jet"
             },
             {
               "side": "p1",
-              "name": "Nettle",
+              "name": "Fennel",
               "bySpecies": "Finneon",
               "byMove": "Aqua Jet"
             }
@@ -1099,6 +1180,20 @@
         {
           "kind": "battle",
           "choice": {
+            "kind": "switch",
+            "slot": 2
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
             "kind": "move",
             "slot": 1
           }
@@ -1134,7 +1229,7 @@
             "discards": [],
             "teaches": [
               {
-                "move": "Fury Attack",
+                "move": "Ice Fang",
                 "slot": 0,
                 "replaceSlot": 3
               }
@@ -1147,16 +1242,43 @@
           "index": 0
         },
         {
-          "kind": "event",
-          "archetype": "safe"
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "acquisition",
+          "decision": {
+            "kind": "decline"
+          }
+        },
+        {
+          "kind": "reward",
+          "index": 0
         },
         {
           "kind": "items",
           "plan": {
             "assignments": [
               {
-                "slot": 2,
-                "item": "mysticwater"
+                "slot": 1,
+                "item": "habanberry"
               }
             ],
             "discards": [],
@@ -1180,6 +1302,57 @@
           "choice": {
             "kind": "move",
             "slot": 1
+          }
+        },
+        {
+          "kind": "acquisition",
+          "decision": {
+            "kind": "decline"
+          }
+        },
+        {
+          "kind": "reward",
+          "index": 0
+        },
+        {
+          "kind": "items",
+          "plan": {
+            "assignments": [],
+            "discards": [],
+            "teaches": [],
+            "discardTms": []
+          }
+        },
+        {
+          "kind": "node",
+          "index": 0
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 1
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
+          }
+        },
+        {
+          "kind": "battle",
+          "choice": {
+            "kind": "move",
+            "slot": 3
           }
         },
         {
@@ -1197,65 +1370,6 @@
           }
         },
         {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "reward",
-          "index": 0
-        },
-        {
-          "kind": "items",
-          "plan": {
-            "assignments": [],
-            "discards": [],
-            "teaches": [],
-            "discardTms": []
-          }
-        },
-        {
-          "kind": "node",
-          "index": 0
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "switch",
-            "slot": 2
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
-          "kind": "battle",
-          "choice": {
-            "kind": "move",
-            "slot": 1
-          }
-        },
-        {
           "kind": "acquisition",
           "decision": {
             "kind": "decline"
@@ -1274,7 +1388,7 @@
               {
                 "move": "Fury Attack",
                 "slot": 0,
-                "replaceSlot": null
+                "replaceSlot": 1
               }
             ],
             "discardTms": []
@@ -1295,7 +1409,7 @@
           "kind": "battle",
           "choice": {
             "kind": "switch",
-            "slot": 2
+            "slot": 3
           }
         },
         {
@@ -1316,7 +1430,7 @@
           "kind": "battle",
           "choice": {
             "kind": "switch",
-            "slot": 3
+            "slot": 2
           }
         },
         {

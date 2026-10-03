@@ -349,7 +349,35 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * `docs/generation.md` section 78.
  */
 /*
- * ## `-23`: the gym pool deals a berry pick
+ * ## `-23`: the route's ceiling, and the floor under its fights
+ *
+ * **Built 2026-09-19 as `-22` and renumbered on 2026-10-02**, because it was
+ * reapplied onto a `main` that had taken `-22` for the level columns above in
+ * the meantime. The number is a position in this file's sequence rather than a
+ * property of the change, so renumbering costs nothing — and holding the
+ * collision would have been two different generators answering to one string,
+ * which is the exact failure the axis exists to announce.
+ *
+ * Three changes to how a route's shape is drawn, all in
+ * `encounters.buildRoute` and `enforceComposition`:
+ *
+ *   1. A kind that has spent its `kindCapPerRoute` allowance leaves the
+ *      allowed list for every later step, so the *same* draw off the *same*
+ *      key now picks from a different pool.
+ *   2. `ensureBattleSteps` converts steps to a straight wild-versus-trainer
+ *      choice until the route meets `battleStepFloorFor`, drawing two values
+ *      per conversion.
+ *   3. `restStepsPerGuarantee` is deleted, so `ensureKind`'s rest pass has a
+ *      smaller floor to meet and converts fewer steps, drawing less.
+ *
+ * All three change which values the shape stream hands back **and** how many
+ * it hands out, so every recorded map moves — the routes and the tiers on
+ * them, and through the tiers the contents. `contentHash` moves beside it for
+ * the table. `RUN_LOG_VERSION` holds: a step is still a step and a node is
+ * still picked by index. `docs/generation.md` section 100.
+ */
+/*
+ * ## `-24`: the gym pool deals a berry pick
  *
  * One entry added to both bands of `GYM` in `data/rewardPools.ts`, so the
  * weighted pick over the gym's page-2 table lands differently for the same
@@ -360,9 +388,9 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * that stream shifts. That is composition and count both, which is this axis
  * twice over. `RUN_LOG_VERSION` moves beside it to `-23` for the answer the
  * card asks for, and `contentHash` for the table.
- * `docs/spec/gymrun-patch-berry-gym-reward.md`, `docs/generation.md` section 99.
+ * `docs/spec/gymrun-patch-berry-gym-reward.md`, `docs/generation.md` section 101.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-23';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-24';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

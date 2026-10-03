@@ -330,7 +330,7 @@ describe('the version axes', () => {
      * `docs/generation.md` section 98.
      *
      * `-23` is the berry gym reward patch: a berry pick is a logged decision.
-     * `docs/generation.md` section 99.
+     * `docs/generation.md` section 101.
      */
     expect(RUN_LOG_VERSION).toBe('gymrun-run-23/gymrun-0.3.0');
     /*
@@ -444,12 +444,20 @@ describe('the version axes', () => {
      * The wild-strength and early-gym-levels patch moved it from `0b2c2c`, the
      * ordinary case: two columns of `data/scaling.ts`, and `gymrun-randomizer-22`
      * arrives beside it because the level a seed draws moved.
-     * `docs/generation.md` section 78. The berry gym reward patch moved it
-     * again, from `715122`, for one entry added to both gym bands of
-     * `data/rewardPools.ts`; `gymrun-randomizer-23` and `gymrun-run-23`
-     * arrive beside it. `docs/generation.md` section 99.
+     * `docs/generation.md` section 78.
+     *
+     * And again for the region composition patch: `data/tuning.ts` loses
+     * `restStepsPerGuarantee` and gains `kindCapPerRoute`,
+     * `minBattleStepsPerRoute` and `battleStepsPerGuarantee`, with
+     * `gymrun-randomizer-23` beside it because a capped kind leaves the
+     * allowed list and the battle-step floor converts steps the old table left
+     * alone. `docs/generation.md` section 100.
+     *
+     * And again for the berry gym reward patch, from `d4af80`, for one entry
+     * added to both gym bands of `data/rewardPools.ts`; `gymrun-randomizer-24`
+     * and `gymrun-run-23` arrive beside it. `docs/generation.md` section 101.
      */
-    expect(CONTENT_HASH).toBe('d8e4e4678ff0e6fd419e35761bfe4275dddd7cf47106d1dda2fa6b4d58ee49bc');
+    expect(CONTENT_HASH).toBe('bd20d775d047e10808cdf60810186acc97ccaac9a815589e95a8dda3d46ba11f');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {
