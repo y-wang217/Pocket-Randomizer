@@ -114,7 +114,8 @@ describe('an item layout made between nodes', () => {
   }, 240_000);
 
   it('moved the run log axis', () => {
-    expect(RUN_LOG_VERSION.startsWith('gymrun-run-22/')).toBe(true);
+    // To `-22`; the berry gym reward patch moved it again, so "at least".
+    expect(Number(/^gymrun-run-(\d+)\//.exec(RUN_LOG_VERSION)?.[1])).toBeGreaterThanOrEqual(22);
   });
 });
 

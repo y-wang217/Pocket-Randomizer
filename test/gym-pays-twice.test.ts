@@ -91,7 +91,12 @@ describe('the run log version', () => {
      * `contentHash` with it and left `RUN_LOG_VERSION` alone. The separation
      * once more, from the generator side.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-23');
+    /*
+     * And to `-24` by the berry pick the gym pool deals, which is this file's
+     * page 2 again and moved `RUN_LOG_VERSION` beside it for the pick's
+     * answer: two axes, each for its own reason, which is still the separation.
+     */
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-24');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

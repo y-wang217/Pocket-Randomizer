@@ -328,8 +328,11 @@ describe('the version axes', () => {
      *
      * `-22` is the writable tabs patch: an item layout is a party edit.
      * `docs/generation.md` section 98.
+     *
+     * `-23` is the berry gym reward patch: a berry pick is a logged decision.
+     * `docs/generation.md` section 101.
      */
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-22/gymrun-0.3.0');
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-23/gymrun-0.3.0');
     /*
      * Pinned literally, as the Branch 1 value was: a hash nobody can read off
      * the tree by eye is exactly the kind that moves without anyone noticing.
@@ -449,8 +452,12 @@ describe('the version axes', () => {
      * `gymrun-randomizer-23` beside it because a capped kind leaves the
      * allowed list and the battle-step floor converts steps the old table left
      * alone. `docs/generation.md` section 100.
+     *
+     * And again for the berry gym reward patch, from `d4af80`, for one entry
+     * added to both gym bands of `data/rewardPools.ts`; `gymrun-randomizer-24`
+     * and `gymrun-run-23` arrive beside it. `docs/generation.md` section 101.
      */
-    expect(CONTENT_HASH).toBe('d4af80078075e0ec97fcbef717b22e31cf90ab00b2b89638f2201f36d8691394');
+    expect(CONTENT_HASH).toBe('bd20d775d047e10808cdf60810186acc97ccaac9a815589e95a8dda3d46ba11f');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

@@ -89,6 +89,7 @@ import { applyItemPlan, backpackCapacity, needsItemPlan, spendItems, stowAll } f
 import {
   applyReward,
   resolveOffer,
+  type BerryPick,
   type Reward,
   type RewardOffer,
 } from './rewards';
@@ -415,7 +416,18 @@ import { DEFAULT_TUNING, type NodeKind, type Tuning } from '../data/tuning';
  * `RANDOMIZER_VERSION` and `contentHash` hold: the edit draws nothing and no
  * table is touched. `docs/spec/gymrun-patch-tabs-writable-and-stage-cells.md`.
  */
-export const RUN_LOG_VERSION = `gymrun-run-22/${ENGINE_VERSION}`;
+/*
+ * ## `-23`: a berry pick is a logged decision
+ *
+ * **A decision is added**, `{ kind: 'berry', index }`, recorded immediately
+ * after the `reward` entry that took a "pick a berry" card from a gym page.
+ * It is the plain case of the four-word rule: a `-22` reader meets a kind it
+ * does not know. `RANDOMIZER_VERSION` moves beside it to `-24`, because the
+ * gym pool gained the entry the card is dealt from; `contentHash` moves for
+ * the table. `docs/spec/gymrun-patch-berry-gym-reward.md`,
+ * `docs/generation.md` section 101.
+ */
+export const RUN_LOG_VERSION = `gymrun-run-23/${ENGINE_VERSION}`;
 
 /**
  * The node kinds at which a **stored** TM may be spent. **Rest and shop only.**
@@ -1641,6 +1653,18 @@ export interface RunPolicy {
    */
   chooseEvolution: (question: EvolutionQuestion, state: RunState) => Promise<number>;
   /**
+   * Which berry to take from a "pick a berry" card. An index into
+   * `pick.berries`. **The berry gym reward patch.**
+   *
+   * Asked immediately after `chooseReward` returns a `berryPick` card, and
+   * never otherwise; there is no decline, because the card was taken. Takes
+   * the state because the pick is a plan: which gym is next is on
+   * `state.currentSegment`, and a resist berry is the one berry a player
+   * chooses *for* something. Player decisions consume no RNG, so the seed is
+   * untouched by whatever is answered here.
+   */
+  chooseBerry: (pick: BerryPick, state: RunState) => Promise<number>;
+  /**
    * What to do with the run's items, asked once at each node boundary.
    *
    * **One question per boundary, not one per swap.** The spec asks that items
@@ -2275,7 +2299,25 @@ export async function playRun(
       record({ kind: 'reward', index });
       const choice = offer.options[index];
       if (!choice) throw new RangeError(`Reward choice ${index} out of range (${offer.options.length} offered)`);
-      result.reward = choice;
+      if (choice.kind === 'berryPick') {
+        /*
+         * **The pick, asked here and answered into the card.** The berry gym
+         * reward patch. A `berry` entry follows the `reward` entry that took
+         * the card, in the log and in play, and the replay cursor steps
+         * through the pair positionally as it does the gym's two pages. The
+         * card handed to `resolveNode` carries the answer, so `applyReward`
+         * sees one object and never a second question.
+         */
+        const berryIndex = await policy.chooseBerry(choice, state);
+        const picked = choice.berries[berryIndex];
+        if (picked === undefined) {
+          throw new RangeError(`Berry pick ${berryIndex} out of range (${choice.berries.length} offered)`);
+        }
+        record({ kind: 'berry', index: berryIndex });
+        result.reward = { ...choice, picked };
+      } else {
+        result.reward = choice;
+      }
     }
 
     const beforeNode = state;
@@ -2786,6 +2828,10 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
     // with a preference would put an evolution heuristic into every sweep.
     chooseEvolution: async () => 0,
     chooseReward: async () => 0,
+    // The first berry on the card, which is Oran. A baseline that reached for
+    // the next gym's resist berry would put a planning heuristic into every
+    // sweep; `--policy` in the simulator is where that belongs.
+    chooseBerry: async () => 0,
     // Buys nothing. A scripted baseline that spent money would make every
     // sweep it appears in a measurement of one shopping heuristic.
     chooseShopPurchases: async () => [],
@@ -3030,6 +3076,11 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
       const decision = next('evolve');
       if (!decision) return live ? live.chooseEvolution(question, state) : exhausted('evolve');
       return decision.kind === 'evolve' ? decision.index : exhausted('evolve');
+    },
+    chooseBerry: async (pick, state) => {
+      const decision = next('berry');
+      if (!decision) return live ? live.chooseBerry(pick, state) : exhausted('berry');
+      return decision.kind === 'berry' ? decision.index : exhausted('berry');
     },
     chooseItemPlan: async (state) => {
       const decision = next('items');

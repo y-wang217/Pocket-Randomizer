@@ -96,8 +96,11 @@ describe('the versions block', () => {
      *
      * `-22` adds a party edit kind, the item layout applied when it is made
      * (bible Rev 23, D94). `docs/generation.md` section 98.
+     *
+     * `-23` adds a decision, the berry pick a gym card opens.
+     * `docs/generation.md` section 101.
      */
-    expect(RUN_LOG_VERSION.startsWith('gymrun-run-22/')).toBe(true);
+    expect(RUN_LOG_VERSION.startsWith('gymrun-run-23/')).toBe(true);
     expect(RUN_LOG_VERSION).not.toContain('gymrun-run-14/');
   });
 });
