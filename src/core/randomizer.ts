@@ -1228,3 +1228,28 @@ export function drawHighlightSlot(spec: PokemonSpec, stream: RngStream): number 
   const roll = stream.nextInt(Math.max(1, slots.length));
   return slots[roll];
 }
+
+/**
+ * A defender rank's boss. **Not type-locked** (report ruling R6): the gym's
+ * level column, the gym's team size (`opponentTeamSize('gym', …)`, the slot
+ * schedule) and the gym's move band bonus, over the segment's untyped pool,
+ * with the rank's flat IV. `generateGymTeam` with the type filter removed, and
+ * otherwise the same draws in the same order.
+ */
+export function generateBossTeam(segment: number, ivs: number, stream: RngStream): TeamSpec {
+  const tier: Tier = 'normal';
+  const level = opponentLevel('gym', segment, tier);
+  const pool = bandedSpeciesPool(
+    speciesBandWeightsFor(segment, tier),
+    { min: level.max, max: level.max },
+    () => true,
+    `a defender boss at segment ${segment}`,
+  );
+  const damaging = gymMovePool(segment);
+  const size = opponentTeamSize('gym', segment, tier);
+  const seen = new Set<string>();
+  return Array.from({ length: size }, () => ({
+    ...rollSpec(pool, damaging, level, stream, { kind: 'gym', segment }, seen),
+    ivs,
+  }));
+}

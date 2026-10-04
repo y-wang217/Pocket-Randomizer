@@ -582,7 +582,7 @@ function shareViewOf(
     locales: state.localeChoices.flatMap((choice, index) => {
       if (choice == null) return [];
       const route = state.segments[index]?.routes[choice];
-      const locale = route ? localeById(route.locale) : null;
+      const locale = route?.locale ? localeById(route.locale) : null;
       return locale ? [locale.name] : [];
     }),
   };

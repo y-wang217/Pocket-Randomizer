@@ -490,6 +490,9 @@ move buttons ending at 704 against the 740 usable line, on a screen whose
   log's new `"mode": "attacker"`: every decision, visit, casualty and party is
   byte identical, and `battles/` is unchanged. `docs/generation.md` section
   101.
+- **2026-10-04, Defender Mode v0 step 3.** `runs/` and `data-digest.txt`
+  re-recorded for `contentHash` alone (`bfe391`, the defender relic list).
+  Nothing else in any file moved.
 
 ## The data digest is `contentHash`
 

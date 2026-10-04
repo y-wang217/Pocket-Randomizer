@@ -455,10 +455,11 @@ describe('the version axes', () => {
      *
      * And for Defender Mode v0: three new hashed tables (`defender.ts`,
      * `trainerClasses.ts`, and the IV rows in `scaling.ts`) and one excluded
-     * copy file. No attacker number moved; `test/attacker-generation-golden.test.ts`
-     * is the proof. `docs/generation.md` section 101.
+     * copy file, then step 3's defender relic list. No attacker number moved;
+     * `test/attacker-generation-golden.test.ts` is the proof.
+     * `docs/generation.md` section 101.
      */
-    expect(CONTENT_HASH).toBe('ae31553cf94918c000d738b7aeda98b2de6c84f2b50e682930538f937be3ccad');
+    expect(CONTENT_HASH).toBe('bfe391dab09567e86d2ecb60e18c1cc0b5d2653adbf59de8d6b61b5e3160a1bd');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

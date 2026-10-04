@@ -69,6 +69,8 @@ import {
   gymTypeOptions,
   type DefenderRunState,
 } from './defender/opening';
+import { DEFENDER_RANKS } from '../data/defender';
+import { generateRank } from './defender/waves';
 import type { RelicId } from '../data/relics';
 import { applyRelicPassives } from './relics';
 import { RANDOMIZER_VERSION } from './randomizer';
@@ -552,8 +554,16 @@ export function canTeachNow(state: { history: readonly NodeVisit[] }): boolean {
 export function teachableNow(state: {
   history: readonly NodeVisit[];
   tms: readonly string[];
+  mode?: RunMode;
 }): ReadonlySet<string> {
   const last = state.history[state.history.length - 1];
+  /*
+   * **Defender Mode v0: the intermission is the only place a TM is taught.** A
+   * defender run has no rest nodes and one shop per rank, the intermission, so
+   * teaching opens there and nowhere else — not even for a move a door or a
+   * boss just paid, which waits in the bag for the next intermission.
+   */
+  if (state.mode === 'defender') return last?.node.kind === 'shop' ? new Set(state.tms) : new Set();
   return last ? teachableAt(last, state.tms) : new Set();
 }
 
@@ -761,12 +771,17 @@ export function createRun(seed: string, tuning: Tuning = DEFAULT_TUNING, mode: R
  */
 function createDefenderRun(seed: string, tuning: Tuning): RunState {
   const rng = createRng(seed);
+  // The opening first, then every rank, all at creation: the same order the
+  // attacker draws its starters before its map, and for the same reason.
+  const defender = createDefenderState(rng);
+  const segments = Array.from({ length: DEFENDER_RANKS }, (_, rank) => generateRank(rank, rng, tuning));
   return {
     seed,
     tuning,
-    segments: [],
+    segments,
     currentSegment: 0,
-    localeChoices: [],
+    // One route per rank and no locale to pick, so every rank's choice is made.
+    localeChoices: segments.map(() => 0),
     position: 0,
     party: [],
     currency: 0,
@@ -778,7 +793,7 @@ function createDefenderRun(seed: string, tuning: Tuning): RunState {
     history: [],
     outcome: null,
     mode: 'defender',
-    defender: createDefenderState(rng),
+    defender,
   };
 }
 
@@ -1558,6 +1573,8 @@ export interface RunPolicy {
    */
   chooseGymType?: (options: readonly string[], state: RunState) => Promise<number>;
   chooseDraftPick?: (options: readonly PokemonSpec[], state: RunState) => Promise<number>;
+  /** **Defender Mode v0.** Which challenger at a door, as an index into `options`. */
+  chooseDoor?: (options: NodeSpec[], state: RunState) => Promise<number>;
   /**
    * Handed the run's party editor once, before the first question. **The
    * opening playtest QA, QA-001.**
@@ -1940,14 +1957,6 @@ export async function playRun(
 
   if (mode === 'defender') {
     state = await playDefenderOpening(state, policy, record, options);
-    /*
-     * **Step 2 of the defender prompt stops here, loudly.** The ranks are
-     * step 3's; a defender state has no segments until then, and a loop that
-     * ran over none would end the run with no outcome and a misleading error.
-     */
-    if (state.segments.length === 0) {
-      throw new Error('Defender Mode v0: the waves are step 3 of the prompt and are not built yet; the run ends after the draft');
-    }
   } else {
     const starterIndex = await policy.chooseStarter(state.starterOptions);
     record({ kind: 'starter', index: starterIndex });
@@ -1995,11 +2004,31 @@ export async function playRun(
        * It consumes no RNG and it is not a node: nothing about the map, the
        * step budget or the payouts is touched by it.
        */
-      const gym = gymForSegment(state.currentSegment);
+      // A defender boss has no leader identity of its own; the rank's
+      // definition carries its segment and nothing else (report ruling R6).
+      const gym = mode === 'defender' ? segmentOf(state).gymDefinition : gymForSegment(state.currentSegment);
       const index = await policy.chooseLead(state.party, gym, state);
       record({ kind: 'lead', index });
       state = chooseLead(state, index);
       options.onState?.(state);
+    } else if (mode === 'defender') {
+      /*
+       * **Defender Mode v0: a door, or the intermission.** The intermission is
+       * a step holding one shop node, and it is played without a question for
+       * the reason the gym is: a step of one option is not a choice, and
+       * asking would log a decision the player never made. Every other step is
+       * a door of two challengers, answered by a `door` decision.
+       */
+      const options = nodeOptions(state);
+      const only = options.length === 1 ? options[0] : undefined;
+      if (only && only.kind === 'shop') {
+        node = only;
+      } else {
+        if (!policy.chooseDoor) throw new Error('A defender run needs a policy that answers chooseDoor');
+        const choice = await policy.chooseDoor(options, state);
+        record({ kind: 'door', index: choice });
+        node = nextNode(state, choice);
+      }
     } else {
       const choice = await policy.chooseNode(nodeOptions(state), state);
       record({ kind: 'node', index: choice });
@@ -2906,6 +2935,7 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
     // pick, for the reason every answer here is the first one.
     chooseGymType: async () => 0,
     chooseDraftPick: async () => 0,
+    chooseDoor: async () => 0,
     /*
      * The first locale offered, like every other scripted answer here.
      *
@@ -3145,6 +3175,11 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy, mode: RunMode = '
       const decision = next('draft');
       if (!decision) return live?.chooseDraftPick ? live.chooseDraftPick(options, state) : exhausted('draft');
       return decision.kind === 'draft' ? decision.index : exhausted('draft');
+    },
+    chooseDoor: async (options, state) => {
+      const decision = next('door');
+      if (!decision) return live?.chooseDoor ? live.chooseDoor(options, state) : exhausted('door');
+      return decision.kind === 'door' ? decision.index : exhausted('door');
     },
     chooseLocale: async (options, state) => {
       const decision = next('locale');

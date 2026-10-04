@@ -922,7 +922,9 @@ export type RunDecision =
    * draws: every draft option for every type was drawn at generation.
    */
   | { kind: 'gymType'; index: number }
-  | { kind: 'draft'; index: number };
+  | { kind: 'draft'; index: number }
+  /* Defender Mode v0: which of a door's two challengers, by index. */
+  | { kind: 'door'; index: number };
 
 /**
  * Which game a run is. **Defender Mode v0.**

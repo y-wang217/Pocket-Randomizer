@@ -277,6 +277,12 @@ export function generateRewardOffer(
   segment: number,
   stream: RngStream,
   tuning: Tuning,
+  /**
+   * The relics a relic card may shuffle. **Defender Mode v0**, which offers
+   * its own list (`DEFENDER_RELIC_IDS`); every attacker caller passes nothing
+   * and shuffles `RELIC_IDS` exactly as before.
+   */
+  relics: readonly RelicId[] = RELIC_IDS,
 ): RewardOffer {
   void tuning;
   const pool = rewardEntriesFor(tier, segment);
@@ -303,7 +309,7 @@ export function generateRewardOffer(
     if (!entry) break;
     remaining = remaining.filter((candidate) => candidate !== entry);
 
-    const reward = resolveRewardEntry(entry, segment, tier, stream, taken, pool);
+    const reward = resolveRewardEntry(entry, segment, tier, stream, taken, pool, relics);
     if (reward) options.push(reward);
   }
 
@@ -372,6 +378,8 @@ export function generateGymRewardOffer(
   segment: number,
   stream: RngStream,
   tuning: Tuning,
+  /** As `generateRewardOffer`'s: the defender relic list, or `RELIC_IDS`. */
+  relics: readonly RelicId[] = RELIC_IDS,
 ): { moveOffer: RewardOffer; offer: RewardOffer } {
   void tuning;
 
@@ -439,7 +447,7 @@ export function generateGymRewardOffer(
      */
     const entry = pickWeighted(drawable(pool, taken), stream);
     if (!entry) break;
-    const reward = resolveRewardEntry(entry, segment, 'elite', stream, taken, pool);
+    const reward = resolveRewardEntry(entry, segment, 'elite', stream, taken, pool, relics);
     if (reward) options.push(reward);
   }
 
@@ -502,6 +510,7 @@ export function resolveRewardEntry(
   stream: RngStream,
   taken: OfferDraw,
   pool: readonly RewardEntry[] = [],
+  relics: readonly RelicId[] = RELIC_IDS,
 ): Reward | null {
   taken.kinds.add(entry.kind);
   switch (entry.kind) {
@@ -521,7 +530,7 @@ export function resolveRewardEntry(
        * in full anyway costs nothing: the shuffle is the same shuffle and the
        * draw count is the same draw count.
        */
-      const order = shuffledRelics(RELIC_IDS, stream);
+      const order = shuffledRelics(relics, stream);
       /*
        * **The fallback excludes the fungible kinds as well as relics**, and
        * that one filter is both halves of the R19 item-1a ask.

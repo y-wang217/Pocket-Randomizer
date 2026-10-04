@@ -162,6 +162,7 @@ function isRunDecision(value: unknown): boolean {
     case 'starter':
     case 'gymType':
     case 'draft':
+    case 'door':
     case 'locale':
     case 'lead':
     case 'evolve':

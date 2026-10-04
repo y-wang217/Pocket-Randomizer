@@ -12932,3 +12932,46 @@ reproduce on `origin/main` at `47bd73f` in the same container
 `visual-backdrop-contrast` (two backdrop rows) and `visual-chips` (the type
 chip floor), **identically on `origin/main`**: pre-existing, presentation,
 and untouched by this step.
+
+### 101.5 Step 3: the waves, the door, the intermission, the boss
+
+**2026-10-04.** The author's go-ahead after step 2's review read "go ahead
+step 2", with step 2 already built and pushed; it was taken as approval of step
+2 and the go-ahead for step 3, and said so in the session.
+
+- **A rank is a `Segment` with one route and no locale**, built by
+  `core/defender/waves.ts` `generateRank`. The route is
+  `DEFENDER_WAVE_LENGTH[rank]` door steps of two trainer nodes, then one
+  intermission step holding one shop node; the boss is the segment's `gym`.
+  Emitting the attacker's own shape is what lets `playNode`, `resolveNode`, the
+  result screen, the two-page boss payout, the full restore and the slot
+  unlock run unchanged. `LocaleRoute.locale` became `LocaleId | null` for it.
+- **Each door draws two different classes, then two tiers**, on one `map` key
+  per door; each side's team is `generateClassTeam` on its own `randomizer`
+  key, with the rank's IV; each side carries its reward offer of three.
+  Every key is `defender/…`.
+- **The intermission is played without a question**, as the gym is: a step of
+  one option is not a choice. Its shop question is asked as any shop's. **A TM
+  is taught there and nowhere else**: `teachableNow` in defender mode opens only
+  after a shop visit, so a move a door or a boss pays waits in the bag.
+- **The boss is not type-locked** (ruling R6): `generateBossTeam` is
+  `generateGymTeam`'s level column, team size and move band bonus over the
+  untyped pool, with the rank's IV. It is unnamed; the pre-boss lead question
+  is the attacker's, handed the rank's own definition. Its payout is the
+  existing two pages.
+- **The defender relic list** (ruling R2) is `DEFENDER_RELIC_IDS`, eight
+  relics, threaded into `generateRewardOffer`, `generateGymRewardOffer` and
+  `resolveRewardEntry` as an optional last argument that every attacker caller
+  leaves at `RELIC_IDS`.
+- **The door is a `door` decision** (ruling R4), added under the step-2
+  `RUN_LOG_VERSION` bump.
+
+**Measured, not a gate.** Under `scriptedRunPolicy(greedyAiPolicy)` (first
+door, buys nothing) over 40 seeds per type, prefix `DIST-`: bosses beaten
+Fire 2.0, Psychic 1.8, Flying 2.0 mean; no run passed rank 5. Even with an
+opponent that always picks its weakest move, ten runs (`WIN-`) ended between
+ranks 2 and 6. The party stays at three until step 5's recruit drafts fill the
+unlocked slots, against bosses that field the full schedule, so this is the
+expected shape for a step that has not built recruitment yet. Recorded, not
+chased; step 6 takes the real benchmark. The full eight ranks to victory are
+held by a structural walk in `test/defender-waves.test.ts`.

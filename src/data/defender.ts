@@ -12,6 +12,7 @@
  * reads it is keyed in `core/streamKeys.ts` under `defender/`.
  */
 import type { TypeName } from '../core/types';
+import type { RelicId } from './relics';
 
 /**
  * The three gym types a defender run may be. **Order is the offer order** and
@@ -57,3 +58,28 @@ export const DEFENDER_SLOT_SCHEDULE_OFFSET = 1;
  * that relic is held, and the relic grants exactly one (step 5).
  */
 export const DEFENDER_BASE_EXEMPT_SLOTS = 0;
+
+/**
+ * The relics a defender run's relic cards may shuffle. **Report ruling R2,
+ * 2026-10-04.**
+ *
+ * Every relic grants a capability, so "today's pool minus capability relics"
+ * read literally is empty. The ruling: drop the two whose passive is `none`
+ * (`woodsmans-hatchet`, `windrider-feather`), because a capability is all they
+ * are, and keep the other eight for their passives, with the capability inert
+ * because a defender run has no events. A separate list rather than a filter on
+ * `RELIC_IDS`, because the attacker's shuffle reads that list's length.
+ *
+ * **Order is a draw order**, as `RELIC_IDS`'s is. The off-type slot relic joins
+ * at step 5.
+ */
+export const DEFENDER_RELIC_IDS: readonly RelicId[] = [
+  'rusted-machete',
+  'tidecaller-shell',
+  'ferrymans-oar',
+  'ironbound-gauntlet',
+  'prospectors-hammer',
+  'cascade-talisman',
+  'abyssal-lens',
+  'everburning-lantern',
+];

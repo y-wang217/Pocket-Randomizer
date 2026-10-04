@@ -120,6 +120,7 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
       // prompt's step 7, which writes these lines; until then they say nothing.
       case 'gymType':
       case 'draft':
+      case 'door':
         return '';
       case 'starter':
         return FEED_COPY.starter(starters[decision.index]?.species ?? '');

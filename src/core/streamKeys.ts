@@ -169,3 +169,26 @@ export function defenderDraftKey(gymType: string): string {
 export function defenderHighlightKey(mon: string): string {
   return `defender/highlight/${mon}`;
 }
+
+/**
+ * One defender node's contents on `randomizer` and its sim seed on `battle`,
+ * as `nodeKey` is for an attacker node. Defender node ids are `r<rank>-…`.
+ */
+export function defenderNodeKey(nodeId: string): string {
+  return `defender/node/${nodeId}`;
+}
+
+/** What a defender node pays, on `rewards`, as `nodeRewardKey`. */
+export function defenderNodeRewardKey(nodeId: string, purpose: 'offer' | 'shop'): string {
+  return `defender/node/${nodeId}/${purpose}`;
+}
+
+/** One door's two classes and two tiers, on `map`. */
+export function defenderDoorKey(rank: number, door: number): string {
+  return `defender/r${rank}/door${door}`;
+}
+
+/** A rank's boss payout, both pages, on `rewards`. */
+export function defenderBossRewardKey(rank: number): string {
+  return `defender/r${rank}/boss-reward`;
+}

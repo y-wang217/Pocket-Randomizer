@@ -167,20 +167,10 @@ describe('the same seed and decisions give the same defender opening (prompt tes
 });
 
 describe('the mode is recorded and guarded (prompt test 10, the guard)', () => {
-  it('records the mode on the log, and step 2 stops loudly after the draft', async () => {
-    let saved: RunLog | null = null;
-    await expect(
-      playRun('MODE-LOG', openingPolicy(0, [0, 0, 0]), DEFAULT_TUNING, {
-        mode: 'defender',
-        onDecision: (log) => {
-          saved = log;
-        },
-      }),
-    ).rejects.toThrow(/step 3/);
-    expect(saved).not.toBeNull();
-    const log = saved as unknown as RunLog;
-    expect(log.mode).toBe('defender');
-    expect(log.decisions.map((d) => d.kind)).toEqual(['gymType', 'draft', 'draft', 'draft']);
+  it('records the mode on the log, and opens with the gym type and the draft', async () => {
+    const run = await playRun('MODE-LOG', openingPolicy(0, [0, 0, 0]), DEFAULT_TUNING, { mode: 'defender' });
+    expect(run.log.mode).toBe('defender');
+    expect(run.log.decisions.slice(0, 4).map((d) => d.kind)).toEqual(['gymType', 'draft', 'draft', 'draft']);
   });
 
   it('throws when a defender log is replayed as attacker, naming both modes', () => {
