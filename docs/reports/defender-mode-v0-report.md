@@ -595,3 +595,19 @@ three times.**
 - The intermission's shop stock is drawn on a new key, from the existing
   `generateShopStock` tables.
 - Opponent IVs ride an optional flat `PokemonSpec.ivs`, absent meaning 31.
+
+---
+
+## 10. Rulings, 2026-10-04
+
+The author's answer, verbatim: "Go with recommended and start step 2".
+
+Every recommendation in section 9 stands as the ruling: R1 (a), the schedule
+read one row ahead; R2, drop `woodsmans-hatchet` and `windrider-feather`, keep
+the other eight for their passives, add the off-type relic, as a separate
+defender list; R3 as stated; R4, a distinct `door` decision; R5, hold
+`AI_VERSION`; R6, a sibling untyped boss generator, bosses unnamed in v0; R7,
+the streak holds on a turn the move does not run, eligibility off the spec at
+battle start; R8, a monotonic acquisition index, a quality step is one tier
+up; R9, the bible is read and reported on before step 7 writes UI; R10 as
+listed.
