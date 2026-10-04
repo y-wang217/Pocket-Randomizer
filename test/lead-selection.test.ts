@@ -288,9 +288,18 @@ describe('a whole run', () => {
      * The proof that the decision is a decision at all. Same seed, same
      * everything except the answer to one question — and the run diverges,
      * because who is in front decides who takes the gym leader's first hit.
+     *
+     * Searched rather than pinned from `-25`, like the tests above:
+     * `LEAD-RUN-25` stopped reaching a gym when the species-locked abilities
+     * and moves left the pools.
      */
-    const contrary = await playRun('LEAD-RUN-25', contrarian(), DEFAULT_TUNING);
-    const flat = await playRun('LEAD-RUN-25', scriptedRunPolicy(greedyAiPolicy), DEFAULT_TUNING);
+    const { seed, run: contrary } = await firstRunWhere(
+      seedRange('LEAD-RUN-', 40),
+      (candidate) => playRun(candidate, contrarian(), DEFAULT_TUNING),
+      (run) => run.log.decisions.some((decision) => decision.kind === 'lead' && decision.index !== 0),
+      'reached a gym with a party to reorder',
+    );
+    const flat = await playRun(seed, scriptedRunPolicy(greedyAiPolicy), DEFAULT_TUNING);
 
     const leads = contrary.log.decisions.filter((decision) => decision.kind === 'lead');
     expect(leads.length).toBeGreaterThan(0);

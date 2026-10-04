@@ -2,8 +2,8 @@
   "seed": "GYMRUN01",
   "versions": {
     "runLog": "gymrun-run-23/gymrun-0.3.0",
-    "contentHash": "bd20d775d047e10808cdf60810186acc97ccaac9a815589e95a8dda3d46ba11f",
-    "randomizer": "gymrun-randomizer-24",
+    "contentHash": "1ba85628b9d9f0be536aa8f964d0ae18a198b7dc5955ae4812ec856383c1112d",
+    "randomizer": "gymrun-randomizer-25",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -27,21 +27,21 @@
     {
       "species": "Snubbull",
       "level": 20,
-      "ability": "Mimicry",
+      "ability": "Minus",
       "moves": [
         "Draining Kiss 16/16",
         "Upper Hand 20/24",
         "Force Palm 16/16",
         "Poison Fang 24/24"
       ],
-      "item": null,
+      "item": "payapaberry",
       "hp": "0/60",
       "fainted": true
     },
     {
       "species": "Nosepass",
       "level": 20,
-      "ability": "Healer",
+      "ability": "Hospitality",
       "moves": [
         "Rock Throw 18/24",
         "Frost Breath 13/16",
@@ -125,20 +125,10 @@
       "label": "Garnet's Gym",
       "tier": null,
       "opponent": "Garnet (Rock)",
-      "turns": 7,
+      "turns": 5,
       "winner": "p1",
-      "hpAfter": 28,
-      "casualties": [
-        {
-          "side": "p1",
-          "name": "Cedar",
-          "level": 15,
-          "species": "Snubbull",
-          "bySpecies": null,
-          "byMove": null,
-          "indirect": "Salt Cure"
-        }
-      ]
+      "hpAfter": 46,
+      "casualties": []
     },
     {
       "segment": 1,
@@ -175,9 +165,9 @@
     "seed": "GYMRUN01",
     "versions": {
       "runLog": "gymrun-run-23/gymrun-0.3.0",
-      "contentHash": "bd20d775d047e10808cdf60810186acc97ccaac9a815589e95a8dda3d46ba11f",
+      "contentHash": "1ba85628b9d9f0be536aa8f964d0ae18a198b7dc5955ae4812ec856383c1112d",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-24"
+      "randomizerVersion": "gymrun-randomizer-25"
     },
     "decisions": [
       {
@@ -408,27 +398,6 @@
         "choice": {
           "kind": "move",
           "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
         }
       },
       {

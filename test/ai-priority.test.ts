@@ -456,8 +456,12 @@ describe('the version axes', () => {
      * And again for the berry gym reward patch, from `d4af80`, for one entry
      * added to both gym bands of `data/rewardPools.ts`; `gymrun-randomizer-24`
      * and `gymrun-run-23` arrive beside it. `docs/generation.md` section 101.
+     *
+     * And from `bd20d7` for the species-locked pool patch: twenty-four rows
+     * out of `data/abilities.ts` and three out of `data/movePools.ts`, with
+     * `gymrun-randomizer-25` beside it. `docs/generation.md` section 102.
      */
-    expect(CONTENT_HASH).toBe('bd20d775d047e10808cdf60810186acc97ccaac9a815589e95a8dda3d46ba11f');
+    expect(CONTENT_HASH).toBe('1ba85628b9d9f0be536aa8f964d0ae18a198b7dc5955ae4812ec856383c1112d');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

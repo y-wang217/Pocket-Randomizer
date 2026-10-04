@@ -165,8 +165,9 @@ describe('the version axes this patch moved', () => {
      * composition patch: a per-route ceiling on rests and shops, spent during
      * the draw, and a floor of battle-only steps.
      */
-    // And `-24` the berry pick the gym pool deals, resolved with no draw.
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-24');
+    // And `-24` the berry pick the gym pool deals, resolved with no draw;
+    // `-25` the species-locked abilities and moves out of the pools.
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-25');
   });
 });
 
