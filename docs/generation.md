@@ -12921,3 +12921,14 @@ challenger's bars can sit below their floor. A display question for step 7.
 - **The decision feed says nothing for the two new decisions** until step 7
   writes their lines (`ui/decision-feed.ts`); no defender run reaches a
   screen before then.
+
+### 101.4 Gates at step 2
+
+Type check, lint, hedge lint, build and smoke run are clean. The node half
+under `GYMRUN_TRIM_STRICT=1` passes 156 files and 2055 tests; it exits 1 on
+three `[vitest-worker]: Timeout calling "onTaskUpdate"` errors, which
+reproduce on `origin/main` at `47bd73f` in the same container
+(`test/run-replay.test.ts` alone). The browser half fails three tests,
+`visual-backdrop-contrast` (two backdrop rows) and `visual-chips` (the type
+chip floor), **identically on `origin/main`**: pre-existing, presentation,
+and untouched by this step.
