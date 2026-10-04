@@ -71,6 +71,27 @@ export interface PokemonSpec {
    * species side of the line, with ability and moves.
    */
   gender?: Gender;
+  /**
+   * One IV applied to every stat. **Defender Mode v0.** Absent means 31, which
+   * is what every Pokemon in attacker mode carries, so no attacker spec sets it
+   * and nothing an attacker run generates or fights moved when it arrived.
+   *
+   * Flat rather than a table because the only producer is the defender rank
+   * table, `data/scaling.ts` `DEFENDER_OPPONENT_IVS`, which is one number per
+   * rank. On the spec rather than beside it for the reason gender is: it is
+   * fixed when the Pokemon is generated and never changes.
+   */
+  ivs?: number;
+  /**
+   * The move slot the Fire badge highlights, zero-based. **Defender Mode v0.**
+   *
+   * Drawn when a defender-side mon is generated, from its damaging slots, and
+   * drawn for every such mon whatever the gym type, so the draw count never
+   * depends on the player's choice. It names a *slot*, so a TM taught into it
+   * inherits it. Absent on every attacker spec, and on a mon with no damaging
+   * move.
+   */
+  highlightSlot?: number;
 }
 
 export type TeamSpec = PokemonSpec[];
@@ -195,6 +216,8 @@ export interface SwitchView {
   ability: string;
   /** Move ids, so a policy can estimate what this member would threaten with. */
   moves: string[];
+  /** The flat IV when it is not 31, as `ActiveView.ivs`. Defender Mode v0. */
+  ivs?: number;
   hp: number;
   maxHp: number;
   hpFraction: number;
@@ -241,6 +264,12 @@ export interface ActiveView {
    * approximation the AI orders a turn by.
    */
   baseSpeed: number;
+  /**
+   * The flat IV this Pokemon carries, when it is not 31. **Defender Mode v0.**
+   * Absent everywhere in attacker mode. Public: a defender opponent's IV is
+   * its rank's row in `DEFENDER_OPPONENT_IVS`, which is data.
+   */
+  ivs?: number;
   /**
    * Known ability, or null when it is not public information.
    *
@@ -886,7 +915,25 @@ export type RunDecision =
    * `pendingEvolutionQuestion`), which is what lets a replay ask at exactly
    * the points the live run did.
    */
-  | { kind: 'evolve'; index: number };
+  | { kind: 'evolve'; index: number }
+  /*
+   * Defender Mode v0. The gym type, as an index into `DEFENDER_GYM_TYPES`, and
+   * one draft pick, as an index into that pick's offered options. Neither
+   * draws: every draft option for every type was drawn at generation.
+   */
+  | { kind: 'gymType'; index: number }
+  | { kind: 'draft'; index: number };
+
+/**
+ * Which game a run is. **Defender Mode v0.**
+ *
+ * An input, like the seed, rather than a build axis: the same build plays
+ * both, and the same seed means two different runs in the two modes. So it is
+ * recorded on the log beside the seed, not in `RunLogVersions`, and a log
+ * replayed in the other mode is refused by name (`core/run.ts`
+ * `assertReplayable`).
+ */
+export type RunMode = 'attacker' | 'defender';
 
 /**
  * The four version axes a run log is stamped with, and replay checks.
@@ -930,6 +977,8 @@ export interface RunLogVersions {
  */
 export interface RunLog {
   seed: string;
+  /** Defender Mode v0. Which game the decisions answer. See `RunMode`. */
+  mode: RunMode;
   versions: RunLogVersions;
   decisions: RunDecision[];
 }

@@ -65,9 +65,9 @@ export const MAX_STAGE = 6;
  * and a panel that computed 130 for something the engine gave 1 HP would be
  * wrong in the single most visible way available.
  */
-export function hpAtLevel(base: number, level: number, maxHpOverride?: number): number {
+export function hpAtLevel(base: number, level: number, maxHpOverride?: number, iv: number = GYMRUN_IV): number {
   if (maxHpOverride !== undefined) return maxHpOverride;
-  return Math.trunc(((2 * base + GYMRUN_IV + Math.trunc(GYMRUN_EV / 4) + 100) * level) / 100 + 10);
+  return Math.trunc(((2 * base + iv + Math.trunc(GYMRUN_EV / 4) + 100) * level) / 100 + 10);
 }
 
 /**
@@ -77,19 +77,24 @@ export function hpAtLevel(base: number, level: number, maxHpOverride?: number): 
  * minus stat, so both branches are identity. Spelling that out rather than
  * multiplying by 1 keeps the function honest about what it assumes.
  */
-export function statAtLevel(base: number, level: number): number {
-  return Math.trunc(((2 * base + GYMRUN_IV + Math.trunc(GYMRUN_EV / 4)) * level) / 100 + 5);
+export function statAtLevel(base: number, level: number, iv: number = GYMRUN_IV): number {
+  return Math.trunc(((2 * base + iv + Math.trunc(GYMRUN_EV / 4)) * level) / 100 + 5);
 }
 
 /** The whole spread at once, from a species' base stats. */
-export function statsAtLevel(base: StatsTable, level: number, maxHpOverride?: number): StatsTable {
+export function statsAtLevel(
+  base: StatsTable,
+  level: number,
+  maxHpOverride?: number,
+  iv: number = GYMRUN_IV,
+): StatsTable {
   return {
-    hp: hpAtLevel(base.hp, level, maxHpOverride),
-    atk: statAtLevel(base.atk, level),
-    def: statAtLevel(base.def, level),
-    spa: statAtLevel(base.spa, level),
-    spd: statAtLevel(base.spd, level),
-    spe: statAtLevel(base.spe, level),
+    hp: hpAtLevel(base.hp, level, maxHpOverride, iv),
+    atk: statAtLevel(base.atk, level, iv),
+    def: statAtLevel(base.def, level, iv),
+    spa: statAtLevel(base.spa, level, iv),
+    spd: statAtLevel(base.spd, level, iv),
+    spe: statAtLevel(base.spe, level, iv),
   };
 }
 

@@ -155,6 +155,8 @@ export interface ActiveFacts {
    * defences an attacker.
    */
   baseStats: StatsTable;
+  /** The flat IV when it is not 31. **Defender Mode v0.** See `ActiveView.ivs`. */
+  ivs?: number;
   boosts: StatStages;
   /** Volatile condition ids currently on this Pokemon: `confusion`, `substitute`, ... */
   volatiles: string[];
@@ -1009,7 +1011,7 @@ export function fasterSide(facts: BattleFacts, reveal: RevealPolicy): 'player' |
 function visibleSpeed(facts: ActiveFacts, reveal: RevealPolicy): number {
   if (reveal.ability || !facts.speed.abilityModified) return facts.speed.engine;
 
-  let speed = applyStage(statAtLevel(facts.baseStats.spe, facts.level), facts.boosts.spe ?? 0);
+  let speed = applyStage(statAtLevel(facts.baseStats.spe, facts.level, facts.ivs), facts.boosts.spe ?? 0);
   if (facts.status === 'par') speed = applyParalysis(speed);
   if (reveal.item && facts.item?.id === 'choicescarf') speed = Math.floor(speed * 1.5);
   return speed;

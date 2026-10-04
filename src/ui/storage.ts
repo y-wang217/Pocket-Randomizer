@@ -160,6 +160,8 @@ function isRunDecision(value: unknown): boolean {
   const decision = value as { kind?: unknown } & Record<string, unknown>;
   switch (decision.kind) {
     case 'starter':
+    case 'gymType':
+    case 'draft':
     case 'locale':
     case 'lead':
     case 'evolve':

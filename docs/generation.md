@@ -12841,3 +12841,83 @@ fork, and `main`'s level columns take gym 1's clear rate to 78% on 148 parties,
 which pushes reachability the other way. Whether a fork is now common enough
 to meet by playing is the open item in `README.md` section 5, and it is a
 difficulty question for the author rather than an assertion for a file.
+
+## 101. Defender Mode v0: a second run mode
+
+**2026-10-04**, on `claude/eager-turing-0059br`. Prompt:
+[`spec/gymrun-defender-mode-v0-fun-test.md`](spec/gymrun-defender-mode-v0-fun-test.md).
+Pre-code report and rulings:
+[`reports/defender-mode-v0-report.md`](reports/defender-mode-v0-report.md).
+A fun test, not a stage: if it is not fun by hand the branch is thrown away,
+so everything it adds sits in `core/defender/`, `data/defender.ts`,
+`data/trainerClasses.ts` and clearly fenced additions elsewhere.
+
+### 101.1 Step 2: the mode flag, gym select, the draft, the type lock, IVs, classes
+
+- **The mode is an input, not an axis.** `RunLog.mode` sits beside the seed,
+  not in `versions`, and `assertReplayable(log, mode)` refuses a log replayed
+  in the other mode with a message naming both, after the four axes. A log on
+  the current schema with no mode is refused as `(none)`. `replayRun` and
+  `resumeRun` take the mode from `PlayRunOptions.mode`, so a defender log
+  replayed with the defaults throws rather than replaying as attacker.
+- **A defender run has its own generator** (report section 8), `createRun(seed,
+  tuning, 'defender')`, and every draw it makes is under a `defender/` key.
+  `test/attacker-generation-golden.test.ts` was minted before the first change
+  to `src/` and holds 200 whole attacker maps byte-identical.
+- **The draft is drawn for all three gym types** (report ruling R3): the gym
+  type is a decision, so a draw that depended on it would make the draft's RNG
+  consumption a function of play. 27 specs and 27 highlight draws per run.
+  Drafted mons are generated as starters are — starter level, starter move
+  bands, no held item — from the segment-0 species distribution narrowed to
+  the type.
+- **The Fire highlight is drawn now, at generation, for every drafted mon**,
+  whatever the type: one uniform draw over the mon's damaging slots on its own
+  key, exactly one draw even for a mon with none. The badge that reads it is
+  step 4.
+- **Party capacity reads the shipped schedule one row ahead** (ruling R1(a)):
+  3, 3, 4, 4, 5, 5, 6, 6. `DEFENDER_SLOT_SCHEDULE_OFFSET` in `data/defender.ts`.
+- **Trainer classes** are a new table. Early ranks 0 to 2 are Bug Catcher
+  (Bug), Youngster (Normal) and Lass (Grass); ranks 3 to 5 are Hiker
+  (Rock/Ground), Swimmer (Water), Black Belt (Fighting) and Bird Keeper
+  (Flying); ranks 6 and 7 are the untyped Ace Trainer and Veteran. **The prompt
+  names the classes but not Lass's or Youngster's type**, and those two are
+  this step's choice. `generateClassTeam` is `generateTrainerTeam` with a
+  type-set admit and the rank's IV, and nothing else differs.
+
+### 101.2 The IV reversal
+
+`pokerun-build-spec.md` line 149 keeps IVs out "through Stage 5". The defender
+prompt reverses that for this mode and asks for the reversal to be recorded
+here. **Recorded: defender opponents, bosses included, carry one flat IV per
+rank from `DEFENDER_OPPONENT_IVS` = [0, 5, 10, 14, 18, 24, 26, 28]; player mons
+carry 31.** It reaches the sim through an optional `PokemonSpec.ivs` that no
+attacker spec sets, so every attacker set is unchanged.
+
+The one-spread rule was what made the opponent's stat readout exact without
+reading the engine. It survives because the IV is still public — it is the
+rank's row in a data table — so `statsAtLevel`, `visibleSpeed` and the AI's
+`@smogon/calc` bodies now take the IV the sim was built with, read off the set
+the adapter built (`driver.ts` `ivOf`). Views carry `ivs` only when it is not
+31, so attacker views are the objects they were. **Not yet followed:**
+`statBandAt`, the stat bar's floor and ceiling, still assumes 31, so a rank-0
+challenger's bars can sit below their floor. A display question for step 7.
+
+### 101.3 Deviations from the prompt at step 2
+
+- **`playRun` in defender mode stops after the draft, loudly**, with an error
+  naming step 3. The prompt orders the waves after this step, and a defender
+  state has no segments until they exist. Recorded rather than papered over
+  with a fake ending.
+- **`RANDOMIZER_VERSION` moves to `-24` and `RUN_LOG_VERSION` to `-23` now**,
+  once, for the whole branch. Later steps add decisions and draws under the
+  same two bumps rather than moving them again on a branch nothing has
+  released.
+- **Class names live in `data/trainerClassCopy.ts`, not `data/trainerClasses.ts`.**
+  The prompt puts the name in the class table. The 2026-09-22 ruling (D12,
+  section 65) is that no copy a player reads is inside `contentHash`, and the
+  class table is hashed because `core/` draws from it, so the name moved to an
+  excluded copy file keyed by class id. The table keeps the id, the type set,
+  the rank band and the sprite key.
+- **The decision feed says nothing for the two new decisions** until step 7
+  writes their lines (`ui/decision-feed.ts`); no defender run reaches a
+  screen before then.

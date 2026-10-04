@@ -376,7 +376,22 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * the table. `RUN_LOG_VERSION` holds: a step is still a step and a node is
  * still picked by index. `docs/generation.md` section 100.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-23';
+/*
+ * ## `-24`: Defender Mode v0's draws
+ *
+ * A second run mode, and a set of draws that did not exist: the defender
+ * draft for all three gym types, the Fire badge's highlighted slot, class
+ * teams, and (in later steps of the same branch) the waves, doors, recruit
+ * drafts and trades. **No attacker draw moved**: every defender key starts
+ * `defender/`, the attacker functions above are untouched, and
+ * `test/attacker-generation-golden.test.ts` holds 200 whole attacker maps
+ * byte-identical to their pre-branch mint. The axis moves because the prompt
+ * asks for it and because a defender log recorded against `-23` would be a log
+ * from a build that could not have generated it.
+ * `docs/spec/gymrun-defender-mode-v0-fun-test.md`, `docs/generation.md`
+ * section 101.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-24';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered
@@ -1126,4 +1141,90 @@ export function generateStarters(
     });
   }
   return picked;
+}
+
+// ---------------------------------------------------------------------------
+// Defender Mode v0
+// ---------------------------------------------------------------------------
+//
+// Additions only. Nothing above this line reads anything below it, and no
+// attacker draw moved when this block arrived:
+// `test/attacker-generation-golden.test.ts` holds that over 200 whole maps.
+
+/** Whether a species carries `type` in either slot. The type lock's one test. */
+export function speciesCarries(entry: Pick<SpeciesEntry, 'types'>, type: string): boolean {
+  return entry.types.includes(type);
+}
+
+/**
+ * `count` distinct mons carrying `type` in either slot, for the player's side
+ * of a defender run: a draft or a recruit draft.
+ *
+ * The species pool is the segment's own `normal`-tier distribution, stage
+ * gated at `level` and narrowed to the type, the way `gymSpeciesFor` narrows a
+ * gym's. `seen` is shared across calls by the caller, so a draft never offers
+ * the same species twice across its picks. No held item is drawn: a player's
+ * mon is not in the population that holds one, as a starter is not.
+ */
+export function generateTypedMons(
+  type: string,
+  segment: number,
+  level: number,
+  damaging: BandedMovePool,
+  count: number,
+  stream: RngStream,
+  seen: Set<string>,
+): PokemonSpec[] {
+  const range = { min: level, max: level };
+  const pool = bandedSpeciesPool(
+    speciesBandWeightsFor(segment, 'normal'),
+    range,
+    (entry) => speciesCarries(entry, type),
+    `a ${type} defender draft at segment ${segment}`,
+  );
+  return Array.from({ length: count }, () => rollSpec(pool, damaging, range, stream, undefined, seen));
+}
+
+/**
+ * A challenger's team for a defender door: a trainer narrowed to its class.
+ *
+ * `generateTrainerTeam` with two differences, and only two. The species pool
+ * admits a species carrying any one of `types` (every species, for an untyped
+ * class), and every member carries the rank's flat IV. Level, size, moves and
+ * held items are the trainer's own, from the same curves.
+ */
+export function generateClassTeam(
+  types: readonly string[],
+  segment: number,
+  tier: Tier,
+  ivs: number,
+  stream: RngStream,
+): TeamSpec {
+  const level = opponentLevel('trainer', segment, tier);
+  const pool = bandedSpeciesPool(
+    speciesBandWeightsFor(segment, tier),
+    level,
+    (entry) => types.length === 0 || types.some((type) => speciesCarries(entry, type)),
+    `a ${types.join('/') || 'untyped'} class at segment ${segment}`,
+  );
+  const damaging = damagingFor(segment, tier);
+  const size = opponentTeamSize('trainer', segment, tier);
+  const seen = new Set<string>();
+  return Array.from({ length: size }, () => ({
+    ...rollSpec(pool, damaging, level, stream, { kind: 'trainer', segment }, seen),
+    ivs,
+  }));
+}
+
+const DAMAGING_NAMES = new Set(DAMAGING_MOVES.map((move) => move.name));
+
+/**
+ * The Fire badge's highlighted slot for `spec`: one of its damaging slots,
+ * uniformly. **Always exactly one draw**, including for a mon with no damaging
+ * move (which gets no highlight), so the count never depends on the moveset.
+ */
+export function drawHighlightSlot(spec: PokemonSpec, stream: RngStream): number | undefined {
+  const slots = spec.moves.flatMap((move, slot) => (DAMAGING_NAMES.has(move) ? [slot] : []));
+  const roll = stream.nextInt(Math.max(1, slots.length));
+  return slots[roll];
 }

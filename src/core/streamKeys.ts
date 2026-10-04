@@ -141,3 +141,31 @@ export const FIXTURE_BATTLE_KEY = 'fixture-battle';
  * it — a run's policy is the player — so moving it moves no seed.
  */
 export const SIM_POLICY_KEY = 'sim-policy';
+
+/*
+ * ---------------------------------------------------------------------------
+ * Defender Mode v0
+ * ---------------------------------------------------------------------------
+ *
+ * Every defender key starts `defender/`, and no attacker key does, so nothing
+ * the mode draws can share a sequence with anything an attacker run draws.
+ * `test/attacker-generation-golden.test.ts` is what holds that.
+ */
+
+/**
+ * One gym type's whole opening draft, on `randomizer`: every option of every
+ * pick, in pick order. Opened for all three types on every defender run,
+ * because the type is a decision (report ruling R3).
+ */
+export function defenderDraftKey(gymType: string): string {
+  return `defender/draft/${gymType}`;
+}
+
+/**
+ * The Fire badge's highlighted slot for one generated defender-side mon, on
+ * `randomizer`. `mon` names the mon, never a moment: `draft/Fire/4` is the
+ * fifth option drawn in the Fire draft.
+ */
+export function defenderHighlightKey(mon: string): string {
+  return `defender/highlight/${mon}`;
+}

@@ -90,8 +90,11 @@ describe('the run log version', () => {
      * rests and shops, and a floor of battle-only steps — which moved
      * `contentHash` with it and left `RUN_LOG_VERSION` alone. The separation
      * once more, from the generator side.
+     *
+     * And to `-24` by Defender Mode v0, whose draws are all new keys, with
+     * `RUN_LOG_VERSION` moving beside it for the mode's own decisions.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-23');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-24');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

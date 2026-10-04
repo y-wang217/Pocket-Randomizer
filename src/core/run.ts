@@ -59,6 +59,16 @@ import {
   type AcquisitionOffer,
 } from './acquisition';
 import { partyCapacityAfter } from '../data/partyTuning';
+import { DEFENDER_SLOT_SCHEDULE_OFFSET } from '../data/defender';
+import {
+  chooseDraftPick,
+  chooseGymType,
+  createDefenderState,
+  defenderOpeningComplete,
+  draftOptions,
+  gymTypeOptions,
+  type DefenderRunState,
+} from './defender/opening';
 import type { RelicId } from '../data/relics';
 import { applyRelicPassives } from './relics';
 import { RANDOMIZER_VERSION } from './randomizer';
@@ -94,6 +104,7 @@ import {
 } from './rewards';
 import { createAiStream, createRng } from './rng';
 import type {
+  RunMode,
   BattleMemberState,
   BattleResult,
   Contribution,
@@ -415,7 +426,19 @@ import { DEFAULT_TUNING, type NodeKind, type Tuning } from '../data/tuning';
  * `RANDOMIZER_VERSION` and `contentHash` hold: the edit draws nothing and no
  * table is touched. `docs/spec/gymrun-patch-tabs-writable-and-stage-cells.md`.
  */
-export const RUN_LOG_VERSION = `gymrun-run-22/${ENGINE_VERSION}`;
+/*
+ * ## `-23`: a run log says which game it is
+ *
+ * **Defender Mode v0.** The log gains a top-level `mode`, and two decision
+ * kinds arrive with the mode: `gymType` and `draft`. A `-22` reader meets a
+ * field and two kinds it does not know, and a `-22` log carries no mode to
+ * check, so the axis moves. A log replayed in the other mode is refused by
+ * name in `assertReplayable`, never reinterpreted. Later steps of the same
+ * branch add the rest of the mode's decisions under this one bump.
+ * `docs/spec/gymrun-defender-mode-v0-fun-test.md`, `docs/generation.md`
+ * section 101.
+ */
+export const RUN_LOG_VERSION = `gymrun-run-23/${ENGINE_VERSION}`;
 
 /**
  * The node kinds at which a **stored** TM may be spent. **Rest and shop only.**
@@ -654,6 +677,19 @@ export interface RunState {
   starterIndex: number | null;
   history: NodeVisit[];
   outcome: RunOutcome | null;
+  /**
+   * Which game this run is. **Defender Mode v0.** Absent is `attacker`, so
+   * every attacker state built by hand before the mode existed still reads as
+   * one; `runMode` is the one reader.
+   */
+  mode?: RunMode;
+  /** The defender half of the run, present exactly when `mode` is `defender`. */
+  defender?: DefenderRunState;
+}
+
+/** The run's mode. Absent on the state is `attacker`; see `RunState.mode`. */
+export function runMode(state: Pick<RunState, 'mode'>): RunMode {
+  return state.mode ?? 'attacker';
 }
 
 // ---------------------------------------------------------------------------
@@ -666,7 +702,8 @@ export interface RunState {
  * Starter options come first and the map second, so that adding a starter to
  * the pool later does not reshape a recorded seed's map.
  */
-export function createRun(seed: string, tuning: Tuning = DEFAULT_TUNING): RunState {
+export function createRun(seed: string, tuning: Tuning = DEFAULT_TUNING, mode: RunMode = 'attacker'): RunState {
+  if (mode === 'defender') return createDefenderRun(seed, tuning);
   const rng = createRng(seed);
   const starterOptions = generateStarterOptions(rng, tuning);
 
@@ -713,6 +750,39 @@ export function createRun(seed: string, tuning: Tuning = DEFAULT_TUNING): RunSta
 }
 
 /**
+ * A defender run, built from a seed. **Defender Mode v0.**
+ *
+ * Its own generator rather than a branch inside the attacker's (report section
+ * 8): every draw is under a `defender/` key, so nothing here can move an
+ * attacker draw, and throwing the mode away is deleting this function and the
+ * directory it calls. **Step 2 builds the opening only**: the draft for all
+ * three gym types. The ranks arrive at step 3, so `segments` is empty and
+ * `playRun` stops loudly after the draft until then.
+ */
+function createDefenderRun(seed: string, tuning: Tuning): RunState {
+  const rng = createRng(seed);
+  return {
+    seed,
+    tuning,
+    segments: [],
+    currentSegment: 0,
+    localeChoices: [],
+    position: 0,
+    party: [],
+    currency: 0,
+    backpack: [],
+    tms: [],
+    relics: [],
+    starterOptions: [],
+    starterIndex: null,
+    history: [],
+    outcome: null,
+    mode: 'defender',
+    defender: createDefenderState(rng),
+  };
+}
+
+/**
  * How many segments a run is.
  *
  * Stage 1 was one and this was a named constant precisely so that Stage 2 would
@@ -725,6 +795,7 @@ export const SEGMENTS_PER_RUN = SEGMENT_COUNT;
 
 export function phaseOf(state: RunState): RunPhase {
   if (state.outcome) return 'complete';
+  if (state.defender) return defenderOpeningComplete(state.defender) ? 'map' : 'starter';
   return state.starterIndex === null ? 'starter' : 'map';
 }
 
@@ -827,7 +898,13 @@ export function gymsCleared(state: RunState): number {
  * of that is a saved run whose capacity disagrees with its own gym count.
  */
 export function partyCapacity(state: RunState): number {
-  return partyCapacityAfter(gymsCleared(state));
+  /*
+   * Defender reads the shipped schedule one row ahead (report ruling R1(a)):
+   * the draft fills three slots and the schedule opens at two. Attacker adds
+   * nothing.
+   */
+  const ahead = runMode(state) === 'defender' ? DEFENDER_SLOT_SCHEDULE_OFFSET : 0;
+  return partyCapacityAfter(gymsCleared(state) + ahead);
 }
 
 /**
@@ -1474,6 +1551,14 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
 export interface RunPolicy {
   chooseStarter: (options: PokemonSpec[]) => Promise<number>;
   /**
+   * **Defender Mode v0.** The gym type, as an index into `options`, and one
+   * draft pick, as an index into that pick's offered mons. Optional, because
+   * an attacker run never asks either; a defender run refuses a policy that
+   * lacks them (`playDefenderOpening`).
+   */
+  chooseGymType?: (options: readonly string[], state: RunState) => Promise<number>;
+  chooseDraftPick?: (options: readonly PokemonSpec[], state: RunState) => Promise<number>;
+  /**
    * Handed the run's party editor once, before the first question. **The
    * opening playtest QA, QA-001.**
    *
@@ -1662,6 +1747,12 @@ export interface RunPolicy {
 }
 
 export interface PlayRunOptions {
+  /**
+   * Which game to play. **Defender Mode v0.** Absent is `attacker`. Recorded
+   * on the log, and a replay asked for in one mode refuses a log recorded in
+   * the other (`assertReplayable`).
+   */
+  mode?: RunMode;
   /** Fired after every transition, so a UI can render without owning the loop. */
   onState?: (state: RunState) => void;
   /**
@@ -1745,6 +1836,39 @@ export interface RunResult {
 }
 
 /**
+ * The defender opening: the gym type, then every draft pick. **Defender Mode
+ * v0.**
+ *
+ * Asked in that order and nowhere else, and each is a pure selection over
+ * options drawn at generation, so neither draws. A policy without the two
+ * defender questions is refused by name rather than answered for.
+ */
+export async function playDefenderOpening(
+  initial: RunState,
+  policy: RunPolicy,
+  record: (decision: RunDecision) => void,
+  options: PlayRunOptions = {},
+): Promise<RunState> {
+  const { chooseGymType: askType, chooseDraftPick: askPick } = policy;
+  if (!askType || !askPick) {
+    throw new Error('A defender run needs a policy that answers chooseGymType and chooseDraftPick');
+  }
+  let state = initial;
+  const gymIndex = await askType(gymTypeOptions(), state);
+  record({ kind: 'gymType', index: gymIndex });
+  state = chooseGymType(state, gymIndex);
+  options.onState?.(state);
+
+  for (let offered = draftOptions(state); offered.length > 0; offered = draftOptions(state)) {
+    const index = await askPick(offered, state);
+    record({ kind: 'draft', index });
+    state = chooseDraftPick(state, index);
+    options.onState?.(state);
+  }
+  return state;
+}
+
+/**
  * Play a run to its end under a policy.
  *
  * Must complete headless under Node with no DOM. That is not a nice-to-have:
@@ -1762,10 +1886,11 @@ export async function playRun(
 
   const record = (decision: RunDecision): void => {
     decisions.push(decision);
-    options.onDecision?.(makeLog(seed, [...decisions]));
+    options.onDecision?.(makeLog(seed, [...decisions], mode));
   };
 
-  let state = createRun(seed, tuning);
+  const mode = options.mode ?? 'attacker';
+  let state = createRun(seed, tuning, mode);
   options.onState?.(state);
 
   /*
@@ -1813,10 +1938,22 @@ export async function playRun(
   };
   policy.bindPartyEditor?.(editParty);
 
-  const starterIndex = await policy.chooseStarter(state.starterOptions);
-  record({ kind: 'starter', index: starterIndex });
-  state = chooseStarter(state, starterIndex);
-  options.onState?.(state);
+  if (mode === 'defender') {
+    state = await playDefenderOpening(state, policy, record, options);
+    /*
+     * **Step 2 of the defender prompt stops here, loudly.** The ranks are
+     * step 3's; a defender state has no segments until then, and a loop that
+     * ran over none would end the run with no outcome and a misleading error.
+     */
+    if (state.segments.length === 0) {
+      throw new Error('Defender Mode v0: the waves are step 3 of the prompt and are not built yet; the run ends after the draft');
+    }
+  } else {
+    const starterIndex = await policy.chooseStarter(state.starterOptions);
+    record({ kind: 'starter', index: starterIndex });
+    state = chooseStarter(state, starterIndex);
+    options.onState?.(state);
+  }
 
   // A generated map is finite, so this loop is too; the guard exists to fail
   // loudly if a future transition ever forgets to advance rather than hanging
@@ -2319,7 +2456,7 @@ export async function playRun(
   return {
     state,
     outcome: state.outcome,
-    log: makeLog(seed, decisions),
+    log: makeLog(seed, decisions, mode),
   };
 }
 
@@ -2416,8 +2553,8 @@ export function currentVersions(): RunLogVersions {
 }
 
 /** The one place a `RunLog` is built, so every stamp on it agrees. */
-function makeLog(seed: string, decisions: RunDecision[]): RunLog {
-  return { seed, versions: currentVersions(), decisions };
+function makeLog(seed: string, decisions: RunDecision[], mode: RunMode): RunLog {
+  return { seed, mode, versions: currentVersions(), decisions };
 }
 
 function maxNodes(state: RunState): number {
@@ -2765,6 +2902,10 @@ export function defaultItemPlan(state: RunState, teachable: ReadonlySet<string> 
 export function scriptedRunPolicy(battle: Policy): RunPolicy {
   return {
     chooseStarter: async () => 0,
+    // Defender Mode v0: the first type offered and the first mon of every
+    // pick, for the reason every answer here is the first one.
+    chooseGymType: async () => 0,
+    chooseDraftPick: async () => 0,
     /*
      * The first locale offered, like every other scripted answer here.
      *
@@ -2891,9 +3032,22 @@ export function isReplayable(log: RunLog): boolean {
  * the opponent plays differently, `randomizerVersion` that a draw moved in
  * code — and a reader diagnosing the refusal wants to know which.
  */
-export function assertReplayable(log: RunLog): void {
+export function assertReplayable(log: RunLog, mode: RunMode = 'attacker'): void {
   const mismatch = versionMismatch(log);
   if (mismatch) throw new Error(describeVersionMismatch(mismatch));
+  /*
+   * **The mode, checked after the axes and as loudly.** Defender Mode v0. A
+   * log on the current schema always carries one (`makeLog`), so a log without
+   * one is malformed, not old, and is refused with the same message shape: the
+   * recorded value, the expected one, and why it matters.
+   */
+  const recorded: unknown = (log as { mode?: unknown }).mode;
+  if (recorded !== mode) {
+    throw new Error(
+      `RunLog mode mismatch: the log was recorded in ${typeof recorded === 'string' ? recorded : '(none)'} mode, ` +
+        `this replay is ${mode} mode. The same seed and decisions are a different run in the other mode.`,
+    );
+  }
 }
 
 /** A run policy backed by a recorded log, optionally handing over when it runs dry. */
@@ -2915,8 +3069,8 @@ export interface ReplayRunPolicy extends RunPolicy {
  * without it, running past the end of the log is an error rather than a
  * silently improvised continuation.
  */
-export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy {
-  assertReplayable(log);
+export function replayRunPolicy(log: RunLog, live?: RunPolicy, mode: RunMode = 'attacker'): ReplayRunPolicy {
+  assertReplayable(log, mode);
   let cursor = 0;
 
   /*
@@ -2981,6 +3135,16 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy): ReplayRunPolicy 
       const decision = next('starter');
       if (!decision) return live ? live.chooseStarter(options) : exhausted('starter');
       return decision.kind === 'starter' ? decision.index : exhausted('starter');
+    },
+    chooseGymType: async (options, state) => {
+      const decision = next('gymType');
+      if (!decision) return live?.chooseGymType ? live.chooseGymType(options, state) : exhausted('gymType');
+      return decision.kind === 'gymType' ? decision.index : exhausted('gymType');
+    },
+    chooseDraftPick: async (options, state) => {
+      const decision = next('draft');
+      if (!decision) return live?.chooseDraftPick ? live.chooseDraftPick(options, state) : exhausted('draft');
+      return decision.kind === 'draft' ? decision.index : exhausted('draft');
     },
     chooseLocale: async (options, state) => {
       const decision = next('locale');
@@ -3050,7 +3214,7 @@ export function replayRun(
   tuning: Tuning = DEFAULT_TUNING,
   options: PlayRunOptions = {},
 ): Promise<RunResult> {
-  return playRun(log.seed, replayRunPolicy(log), tuning, options);
+  return playRun(log.seed, replayRunPolicy(log, undefined, options.mode), tuning, options);
 }
 
 /**
@@ -3065,5 +3229,5 @@ export function resumeRun(
   tuning: Tuning = DEFAULT_TUNING,
   options: PlayRunOptions = {},
 ): Promise<RunResult> {
-  return playRun(log.seed, replayRunPolicy(log, live), tuning, options);
+  return playRun(log.seed, replayRunPolicy(log, live, options.mode), tuning, options);
 }

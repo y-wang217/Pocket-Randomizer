@@ -49,7 +49,7 @@ import { GYMRUN_GEN, TURN_LIMIT, gymrunFormat } from './format';
 import { bandOfMove } from '../../data/moveOverrides';
 import type { Policy } from './policy';
 import { readContribution } from './contribution';
-import { DISPLAY_STATS, statsAtLevel } from './stats';
+import { DISPLAY_STATS, GYMRUN_IV, statsAtLevel } from './stats';
 import { SPECIES_POOL } from '../../data/speciesPools';
 import { stageAllowedAt } from '../../data/evolution';
 import { isSpeciesBlacklisted } from '../../data/blacklists';
@@ -94,6 +94,25 @@ const VALID_STATUSES: readonly string[] = ['brn', 'par', 'slp', 'frz', 'psn', 't
  * means the AI's damage estimate of the opponent is exact rather than a guess,
  * which keeps Stage 0's AI honest without giving it hidden information.
  */
+function flatIvs(iv: number): PokemonSet['ivs'] {
+  return { hp: iv, atk: iv, def: iv, spa: iv, spd: iv, spe: iv };
+}
+
+/**
+ * The flat IV a sim Pokemon was built with, and the spread field a view
+ * carries for it: nothing at 31, so an attacker view is the object it always
+ * was, and `ivs` otherwise. **Defender Mode v0.** Read off the set the adapter
+ * built, so it cannot disagree with `toPokemonSet`.
+ */
+function ivOf(pokemon: SimPokemon): number {
+  return pokemon.set.ivs?.spe ?? GYMRUN_IV;
+}
+
+function ivField(pokemon: SimPokemon): { ivs?: number } {
+  const iv = ivOf(pokemon);
+  return iv === GYMRUN_IV ? {} : { ivs: iv };
+}
+
 export function toPokemonSet(spec: PokemonSpec): PokemonSet {
   return {
     name: spec.nickname ?? spec.species,
@@ -121,7 +140,12 @@ export function toPokemonSet(spec: PokemonSpec): PokemonSet {
      */
     gender: spec.gender ?? '',
     evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-    ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+    /*
+     * One flat IV on every stat: 31 unless the spec names another. **Defender
+     * Mode v0.** Only a defender opponent ever does (`PokemonSpec.ivs`), so
+     * every attacker set is the set it always was.
+     */
+    ivs: flatIvs(spec.ivs ?? GYMRUN_IV),
     level: spec.level,
     shiny: false,
     happiness: 255,
@@ -249,6 +273,7 @@ export function describeSpecCard(spec: PokemonSpec): SpecCard {
     spec.level,
     spec.item ?? '',
     spec.nickname ?? '',
+    spec.ivs ?? GYMRUN_IV,
   ]);
   const cached = vitalsCache.get(key);
   if (cached) return cached;
@@ -567,6 +592,7 @@ function toActiveView(pokemon: SimPokemon, revealAbility: boolean): ActiveView {
     // `stats.ts` computes from species and level (`test/stats.test.ts` holds
     // the two together), so reading it off the foe leaks nothing.
     baseSpeed: pokemon.storedStats.spe,
+    ...ivField(pokemon),
     ability: revealAbility ? Dex.forGen(GYMRUN_GEN).abilities.get(pokemon.ability).name : null,
     // Same rule as the ability, and for the same reason: an item the opponent
     // has not shown is not public information. `itemAware` reads its own side's
@@ -608,7 +634,9 @@ function toActiveFacts(pokemon: SimPokemon, own: boolean): ActiveFacts {
   const base = pokemon.species.baseStats;
   const level = pokemon.level;
 
-  const computed = statsAtLevel(base, level, pokemon.species.maxHP);
+  // The rank's IV for a defender opponent (`ivOf`), 31 for everyone else.
+  // Public either way: the rank table is data, so the computation stays exact.
+  const computed = statsAtLevel(base, level, pokemon.species.maxHP, ivOf(pokemon));
   const stats: Record<StatName, number> = own
     ? {
         atk: pokemon.storedStats.atk,
@@ -636,6 +664,7 @@ function toActiveFacts(pokemon: SimPokemon, own: boolean): ActiveFacts {
     status: readStatus(pokemon),
     stats,
     baseStats: { hp: base.hp, atk: base.atk, def: base.def, spa: base.spa, spd: base.spd, spe: base.spe },
+    ...ivField(pokemon),
     boosts: readStatStages(pokemon),
     volatiles: Object.keys(pokemon.volatiles),
     ability: ability?.exists ? { id: ability.id, name: ability.name } : null,
@@ -767,6 +796,7 @@ function readSwitches(battle: Battle, side: SideId): SwitchView[] {
       types: mon.getTypes(),
       ability: dex.abilities.get(mon.ability).name,
       moves: mon.moveSlots.map((slot) => slot.id),
+      ...ivField(mon),
       hp: mon.hp,
       maxHp: mon.maxhp,
       hpFraction: Math.max(0, Math.min(1, mon.hp / maxHp)),

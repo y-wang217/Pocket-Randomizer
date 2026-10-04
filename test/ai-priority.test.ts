@@ -272,7 +272,7 @@ describe('the version axes', () => {
     expect(AI_VERSION).toBe('gymrun-ai-7-tiers-reach-the-app');
     const prePatch: RunLog = {
       seed: 'PRE-PRIORITY',
-      versions: { ...currentVersions(), aiVersion: 'gymrun-ai-2-switching' },
+      mode: 'attacker', versions: { ...currentVersions(), aiVersion: 'gymrun-ai-2-switching' },
       decisions: [],
     };
     expect(isReplayable(prePatch)).toBe(false);
@@ -328,8 +328,11 @@ describe('the version axes', () => {
      *
      * `-22` is the writable tabs patch: an item layout is a party edit.
      * `docs/generation.md` section 98.
+     *
+     * `-23` is Defender Mode v0: the log records its mode, and the mode brings
+     * its own decisions. `docs/generation.md` section 101.
      */
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-22/gymrun-0.3.0');
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-23/gymrun-0.3.0');
     /*
      * Pinned literally, as the Branch 1 value was: a hash nobody can read off
      * the tree by eye is exactly the kind that moves without anyone noticing.
@@ -449,8 +452,13 @@ describe('the version axes', () => {
      * `gymrun-randomizer-23` beside it because a capped kind leaves the
      * allowed list and the battle-step floor converts steps the old table left
      * alone. `docs/generation.md` section 100.
+     *
+     * And for Defender Mode v0: three new hashed tables (`defender.ts`,
+     * `trainerClasses.ts`, and the IV rows in `scaling.ts`) and one excluded
+     * copy file. No attacker number moved; `test/attacker-generation-golden.test.ts`
+     * is the proof. `docs/generation.md` section 101.
      */
-    expect(CONTENT_HASH).toBe('d4af80078075e0ec97fcbef717b22e31cf90ab00b2b89638f2201f36d8691394');
+    expect(CONTENT_HASH).toBe('ae31553cf94918c000d738b7aeda98b2de6c84f2b50e682930538f937be3ccad');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

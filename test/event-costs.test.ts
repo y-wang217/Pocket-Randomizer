@@ -274,7 +274,7 @@ describe('a pre-patch log is refused, loudly and by name', () => {
   it('names the axis and both values', () => {
     const prePatch: RunLog = {
       seed: 'PRE-REJIG',
-      versions: { ...currentVersions(), runLog: `gymrun-run-13/${ENGINE_VERSION}` },
+      mode: 'attacker', versions: { ...currentVersions(), runLog: `gymrun-run-13/${ENGINE_VERSION}` },
       decisions: [],
     };
     expect(isReplayable(prePatch)).toBe(false);

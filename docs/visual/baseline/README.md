@@ -484,6 +484,13 @@ move buttons ending at 704 against the 740 usable line, on a screen whose
   above; the patch's delta against it is −15,596 B of font files and the
   licence beside them.
 
+- **2026-10-04, Defender Mode v0 step 2.** `runs/` and `data-digest.txt`
+  re-recorded. The only lines that move are the version stamps
+  (`gymrun-run-23`, `gymrun-randomizer-24`, `contentHash` `ae3155`) and the
+  log's new `"mode": "attacker"`: every decision, visit, casualty and party is
+  byte identical, and `battles/` is unchanged. `docs/generation.md` section
+  101.
+
 ## The data digest is `contentHash`
 
 **2026-09-11, overnight Branch 3.** `data-digest.txt` was a plain sha256 over

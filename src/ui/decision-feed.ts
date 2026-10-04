@@ -116,6 +116,11 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
 
   const line = (decision: RunDecision): string => {
     switch (decision.kind) {
+      // Defender Mode v0. No defender run reaches a screen before the
+      // prompt's step 7, which writes these lines; until then they say nothing.
+      case 'gymType':
+      case 'draft':
+        return '';
       case 'starter':
         return FEED_COPY.starter(starters[decision.index]?.species ?? '');
       case 'locale': {

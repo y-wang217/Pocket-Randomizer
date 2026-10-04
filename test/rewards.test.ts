@@ -663,7 +663,7 @@ describe('rewards in a played run', () => {
     // guard refuses up front and names both versions.
     const stale: RunLog = {
       seed: 'REW-STALE',
-      versions: { ...currentVersions(), runLog: 'gymrun-run-3/gymrun-0.1.0' },
+      mode: 'attacker', versions: { ...currentVersions(), runLog: 'gymrun-run-3/gymrun-0.1.0' },
       decisions: [{ kind: 'starter', index: 0 }],
     };
     // Thrown synchronously, before `playRun` is even entered: `replayRunPolicy`
