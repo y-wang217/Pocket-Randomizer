@@ -100,7 +100,7 @@ describe('the offer a gym clear produces', () => {
     }
   });
 
-  it('offers a relic, a currency lump or a premium item, at every segment', () => {
+  it('offers a relic, a currency lump, a premium item or a berry pick, at every segment', () => {
     /*
      * **This read `['relic', 'currency']` and the R19 rulings widened it.**
      *
@@ -120,7 +120,7 @@ describe('the offer a gym clear produces', () => {
     for (const seed of seeds) {
       for (const gym of gymsOf(seed)) {
         for (const option of gym.reward?.options ?? []) {
-          expect(['relic', 'currency', 'item'], `${gym.id} offered a ${option.kind}`).toContain(
+          expect(['relic', 'currency', 'item', 'berryPick'], `${gym.id} offered a ${option.kind}`).toContain(
             option.kind,
           );
         }

@@ -74,6 +74,24 @@ import { GYM_MOVE_BAND_BONUS } from './scaling';
 export type RewardEntry =
   /** One item, drawn from `items` (ids from data/items.ts). */
   | { kind: 'item'; weight: number; items: readonly string[] }
+  /**
+   * A berry of the player's choosing. **Gym pool only, and a choice rather
+   * than a draw.**
+   *
+   * The author's ruling behind it: a berry that halves one super effective
+   * hit is only worth anything if it is the *right* berry, and a random one
+   * dealt onto a gym page is a coin flip on a card the player cannot skip. So
+   * the gym does not deal a berry. It deals the choice of one, and the
+   * player answers it after taking the card, with the next gym's type on the
+   * rail in front of them. `berries` is the table the pick is made from; the
+   * resolver consumes no RNG for it, because there is nothing to draw.
+   *
+   * **Absence from `NORMAL`, `HARD` and `ELITE` is the restriction**, as it
+   * is for `relic` and `technique`: those pools keep dealing berries as
+   * `item` entries, which is the random berry a battle node has always paid.
+   * `docs/spec/gymrun-patch-berry-gym-reward.md`.
+   */
+  | { kind: 'berryPick'; weight: number; berries: readonly string[] }
   /** Run currency, drawn from an inclusive range and scaled by segment. */
   | { kind: 'currency'; weight: number; min: number; max: number }
   /**
@@ -409,6 +427,27 @@ const GYM: readonly RewardBand[] = [
        * per member, so paying a *better* item here would buy nothing.
        */
       { kind: 'item', weight: 4, items: PREMIUM_ITEM_IDS },
+      /*
+       * **The berry pick, from the author's ruling of 2026-09-25**: *"berries
+       * that reduce a super effective hit are not good gym reward items.
+       * Instead, it could be 'pick a berry' for a gym reward."*
+       *
+       * It is the one entry here that is not "strictly better than elite,
+       * entry for entry" by the header's own measure, and the header's
+       * measure is why it is here anyway. The gradient is carried by moves
+       * and money because an *object* saturates at one held item per member.
+       * A choice does not saturate the same way: the player picks the berry
+       * for the gym they are walking into, which is the only berry a player
+       * can plan with (`data/items.ts`, "why these fifteen"), and no other
+       * pool offers that. A random berry is a normal-tier card. A chosen one
+       * is a gym's.
+       *
+       * Weighted at the currency lump rather than at the relic, and the
+       * table is still the fix if the simulator disagrees. The pick card is
+       * fungible with itself (`FUNGIBLE_KINDS` in `core/rewards.ts`), so a
+       * page never shows two of it.
+       */
+      { kind: 'berryPick', weight: 3, berries: BERRY_IDS },
     ],
   },
   {
@@ -419,6 +458,9 @@ const GYM: readonly RewardBand[] = [
       // Choice items join from segment 3, the same gate `ELITE` applies and for
       // the same reason — see the note above the elite bands.
       { kind: 'item', weight: 4, items: [...PREMIUM_ITEM_IDS, ...CHOICE_ITEM_IDS] },
+      // The same pick at the same weight: a late berry is worth less, but the
+      // *choice* of one is what the card pays and that does not fade.
+      { kind: 'berryPick', weight: 3, berries: BERRY_IDS },
     ],
   },
 ];

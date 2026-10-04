@@ -59,6 +59,7 @@ import type { FlagKind } from '../core/battle/flags';
 import { categoryInfo } from '../data/categoryInfo';
 import { itemById } from '../data/items';
 import { itemCopy, relicCopy } from '../data/itemCopy';
+import { BERRY_PICK_COPY } from '../core/hpCopy';
 import { statInfo } from '../data/statInfo';
 import { statBlock } from './stat-block';
 import { stageRowValue } from '../data/statStages';
@@ -254,7 +255,13 @@ type TipKind =
    * `Reward: T0 to T2`. The id is the span — `T2` or `T0-T2` — and the panel
    * carries a line per tier inside it, from `data/eventCopy.ts`.
    */
-  | 'reward-tier';
+  | 'reward-tier'
+  /**
+   * The "pick a berry" card, whose face is a fan of berry sprites and whose
+   * words are here. The berry gym reward patch. `berrypick:all` is the
+   * trigger the card carries; there is one card and one explanation.
+   */
+  | 'berrypick';
 
 const KINDS = [
   'type',
@@ -301,6 +308,7 @@ const KINDS = [
   'capability-band',
   'tier',
   'reward-tier',
+  'berrypick',
 ] as const satisfies readonly TipKind[];
 
 /**
@@ -861,7 +869,20 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
       return renderCapabilityBand(id);
     case 'reward-tier':
       return renderRewardTier(id);
+    case 'berrypick':
+      return renderBerryPick();
   }
+}
+
+/**
+ * The berry pick card, in words. **The berry gym reward patch.** Section 3's
+ * item row for a card that is a choice: the name and the one effect line,
+ * from `core/hpCopy.ts`, as every item card's long press reads.
+ */
+function renderBerryPick(): HTMLElement {
+  const body = panel(BERRY_PICK_COPY.name);
+  body.append(line(BERRY_PICK_COPY.line, 'tip__text'));
+  return body;
 }
 
 /**

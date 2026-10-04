@@ -421,6 +421,20 @@ condition an item exists for cannot measure that item**, which is why M4.1 and
 M4.2 both moved the number by zero and said so rather than claiming a reduction.
 
 
+**In flight: the gym deals a "pick a berry" card.** Branch
+`claude/berry-gym-rewards-gz15ms`, prompt
+[`spec/gymrun-patch-berry-gym-reward.md`](spec/gymrun-patch-berry-gym-reward.md),
+record [`generation.md`](generation.md) section 101, measurement
+[`balance.md`](balance.md) section 0. The author's message of 2026-09-25 said
+resist berries are not good gym reward items and a gym reward could instead
+be "pick a berry"; the brief recorded that no gym page could deal a berry, and
+the author ruled 2026-10-02 to build the card that opens a pick. A `berryPick`
+entry in both gym bands, a `berryPick` reward kind resolved with no draw, a
+`berry` decision and `chooseBerry` on the policy, the pick drawn on the result
+screen as fifteen item cards five across. `RANDOMIZER_VERSION` to `-24` and
+`RUN_LOG_VERSION` to `-23`, `contentHash` to `bd20d7`; `AI_VERSION` holds.
+Bible Rev 24, D99.
+
 **In flight: wild encounters below the curve, and gyms 1 to 3 one level
 lower.** Branch `claude/wild-pokemon-gym-balance-gpykz5`, prompt
 [`spec/gymrun-patch-wild-strength-and-early-gym-levels.md`](spec/gymrun-patch-wild-strength-and-early-gym-levels.md),

@@ -766,6 +766,17 @@ export type RunDecision =
    */
   | { kind: 'reward'; index: number }
   /**
+   * Which berry a "pick a berry" card was answered with. An index into the
+   * card's `berries`, recorded immediately after the `reward` entry that took
+   * the card, and only then.
+   *
+   * An index for the reason every other index here is one: the card's table
+   * is reconstructed from the seed, so a log naming `'chopleberry'` would
+   * survive a table edit and hand the player a berry their card never
+   * listed. The pick consumes no RNG. The berry gym reward patch.
+   */
+  | { kind: 'berry'; index: number }
+  /**
    * Which shelf slots were bought, as indexes into the shop's stock.
    *
    * A set, recorded in the order the player selected them and applied in shelf

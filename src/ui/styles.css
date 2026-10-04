@@ -4727,6 +4727,22 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 
 .rewards:has(.move--card) { grid-template-columns: minmax(0, 1fr); }
 
+/*
+ * The berry pick: fifteen item cards, five across. The berry gym reward
+ * patch. A sprite needs less room than a move card, and fifteen at three
+ * across would run off a phone; five across is three rows of the same card.
+ */
+.rewards--berries { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.rewards--berries .reward:not(:has(.move--card)) { min-height: 64px; padding: calc(var(--space-2) * var(--chrome-pad)); }
+
+/*
+ * The berry pick card's face: three berry sprites fanned in the item slot.
+ * Each cell is the sheet's 24px and the slot is the item card's 44px, so the
+ * cells overlap by design rather than shrink; the slot itself does not move.
+ */
+.reward__berries > * { margin-left: calc(-1 * var(--space-2h)); }
+.reward__berries > :first-child { margin-left: 0; }
+
 .rewards .reward:not(:has(.move--card)) {
   align-items: center;
   justify-content: center;

@@ -284,6 +284,12 @@ export const REWARD_COPY = {
  * question and the band's two controls. The way out returns to the cards.
  */
 export const CLAIM_COPY = { title: 'Take this?', confirm: 'Take', cancel: 'Back' } as const;
+/**
+ * The berry pick's claim band, after a "pick a berry" card is taken. The
+ * berry gym reward patch. The band's cancel returns to the fifteen berries,
+ * never past them: the card is taken and the pick has no decline.
+ */
+export const BERRY_PICK_CLAIM_COPY = { title: 'This one?', confirm: 'Take', cancel: 'Back' } as const;
 export const BUY_COPY = { title: 'Buy and leave?', confirm: 'Buy', cancel: 'Back' } as const;
 
 /**

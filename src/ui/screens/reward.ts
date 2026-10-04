@@ -128,6 +128,12 @@ export interface RewardCardOptions {
    * The claim band's copy of the selected card (Stage 5.0/3, D69).
    */
   inert?: boolean;
+  /**
+   * The claim band's words, when the offer is not the fight's three cards.
+   * The berry pick asks "this one?" over fifteen berries; the band is the same
+   * band. The berry gym reward patch.
+   */
+  claim?: { title: string; confirm: string; cancel: string };
 }
 
 export function renderRewardCard(
@@ -251,6 +257,34 @@ export function renderRewardCard(
       if (facts) card.append(moveCard(moveCardData(facts, tuning)));
       break;
     }
+
+    /*
+     * **The berry pick's face is a fan of berry sprites, and nothing else.
+     * The berry gym reward patch.**
+     *
+     * Section 3's item row, read for a card that is a choice rather than an
+     * object: the face is the sprite, and the sprite of a choice among
+     * berries is several of them. Three cells of the same Showdown sheet
+     * `itemIcon` draws every other berry from, overlapped in the item card's
+     * fixed slot, so the card says "berries" at a glance the way an item card
+     * says "Leftovers". No word at rest (R2), one fact in one channel (R3):
+     * the sprites are the kind, and the name and the one effect line are the
+     * long press, from `BERRY_PICK_COPY`, as on every item card.
+     *
+     * Which three is not a draw and not a verdict: the first three of the
+     * card's own table, in table order, which are the healing and status
+     * berries and not the resist ones. A card already answered (`picked`
+     * set) wears the chosen berry alone, so the claim band and the decision
+     * feed show what was decided.
+     */
+    case 'berryPick': {
+      const slot = el('span', 'reward__sprite reward__berries');
+      slot.dataset['tip'] = reward.picked === null ? 'berrypick:all' : `item:${reward.picked}`;
+      const shown = reward.picked === null ? reward.berries.slice(0, 3) : [reward.picked];
+      for (const id of shown) slot.append(itemIcon(id));
+      card.append(slot);
+      break;
+    }
   }
 
   /*
@@ -303,11 +337,12 @@ export function renderOfferCards(
       () => {
         if (claimed) return;
         select(index);
+        const claim = cardOptions.claim ?? CLAIM_COPY;
         openBand({
-          title: CLAIM_COPY.title,
+          title: claim.title,
           content: renderRewardCard(reward, state, () => undefined, { ...cardOptions, inert: true }),
-          confirm: CLAIM_COPY.confirm,
-          cancel: CLAIM_COPY.cancel,
+          confirm: claim.confirm,
+          cancel: claim.cancel,
           onConfirm: () => {
             if (claimed) return;
             claimed = true;

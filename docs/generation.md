@@ -12841,3 +12841,135 @@ fork, and `main`'s level columns take gym 1's clear rate to 78% on 148 parties,
 which pushes reachability the other way. Whether a fork is now common enough
 to meet by playing is the open item in `README.md` section 5, and it is a
 difficulty question for the author rather than an assertion for a file.
+
+## 101. The gym deals a berry pick, and the player resolves it
+
+**2026-10-02**, on `claude/berry-gym-rewards-gz15ms`. Prompt
+[`spec/gymrun-patch-berry-gym-reward.md`](spec/gymrun-patch-berry-gym-reward.md),
+filed 2026-09-25 and built after the author's ruling of 2026-10-02: *"build the
+card that opens a pick."* Moves `RANDOMIZER_VERSION` to `-24`, `RUN_LOG_VERSION`
+to `-23` and `contentHash` from `d4af80` to `bd20d7`; `AI_VERSION` holds.
+Bible Rev 24, D99.
+
+The message's first sentence, that resist berries are not good gym reward
+items, had nothing to remove: no gym page on `main` could deal a berry (the
+brief records the check). The second sentence is what was built. **A gym's
+second page can now deal a "pick a berry" card.** Taking it opens a choice of
+every berry in the table, and the player's answer is what lands in the bag.
+
+### The card is a kind, not a row
+
+`data/rewardPools.ts` gains a `berryPick` entry, `{ weight, berries }`, in
+both bands of `GYM` at the currency lump's weight and in no other pool. It is
+a kind because no `item` row can express it: an item entry draws one id from
+its list at generation, and the whole point of this card is that nothing is
+drawn. `core/rewards.ts` resolves the entry to
+`{ kind: 'berryPick', berries, picked: null }` and spends no RNG doing so.
+
+**That is why the randomizer axis moves twice over.** The weighted pick over
+the gym's page-2 table lands differently for the same float, which is
+composition; and the entry it lands on consumes zero draws where an `item`
+entry consumes one, so the gym's `rewards` stream is read a different number
+of times on a page that deals it, and every later draw on that stream shifts.
+A recorded seed produces a different gym page, which is exactly what the axis
+guards.
+
+The card is fungible with itself (`FUNGIBLE_KINDS`), so `drawable` never
+deals two onto one page: two picks from one table are one card printed twice,
+the same reading the R19 fix gave two coin cards. The relic fallback excludes
+it for the same reason it excludes coins.
+
+### The pick is a decision
+
+`RunDecision` gains `{ kind: 'berry', index }`, an index into the card's
+`berries`, and `RunPolicy` gains `chooseBerry`. `playRun` asks it immediately
+after the `reward` entry that took the card and records the pair in that
+order; the replay cursor steps through them positionally as it does the gym's
+two pages. The card handed to `resolveNode` carries the answer in `picked`,
+so `applyReward` sees one object and asks nothing. An unanswered pick is
+refused there with a thrown error rather than resolved to berry 0: the card's
+only value is that the player chose, and a default would be the run choosing
+for them.
+
+`RUN_LOG_VERSION` moves for the added kind, the plain case of the four-word
+rule. The scripted baseline answers 0 (Oran); the sim's greedy bot answers
+with the berry its own `ITEM_VALUE` prices highest (Sitrus), and prices the
+card at its best option, which keeps the baseline's stated refusal to plan
+around the next gym's type. A `--policy` that plans the pick is where that
+would belong.
+
+### The surface
+
+Read against the bible before any of it was drawn. Rules touched: **R1**
+(the sprite sits in the item card's fixed slot), **R2** (no word at rest on
+the card or the pick), **R3** (the fan is the kind, once), **R5** (the card's
+long press is its name and one effect line, `BERRY_PICK_COPY`, as every item
+card's), **R6** (one face), section 3's *Berry* row, section 4's *Item, berry
+or relic reward card* row, and section 5's *Reward card* and *Confirm band*
+rows. **C1** is untouched: the fifteen berries render in table order, none
+selected at rest, none marked, and the next gym's type is on the rail where
+it has always been, not on the cards.
+
+- **The card's face** is a fan of three berry sprites in the item card's
+  slot, the first three of the card's own table (the healing and status
+  berries, never the resist ones, so the face cannot read as a hint). Once
+  answered, the chosen berry alone, with that berry's press. `src/ui/screens/reward.ts`.
+- **The pick** is drawn on the result screen in the cards' place, after the
+  claim band commits the card: fifteen `item` reward cards, five across, the
+  same component, the same heading and badge, selected only after a tap and
+  claimed by the band's commit (`This one?` / `Take` / `Back`). The band's
+  cancel returns to the fifteen and never past them, since the card is taken.
+  `src/ui/screens/result.ts`, `BerryPrompt`; `src/ui/app.ts`, `chooseBerry`. No second
+  path by which a node completes.
+- **The decision feed** prints `Berry · <name>` at the `berry` entry and
+  `Reward · Pick a berry` at the `reward` entry before it. The saved-log
+  validator admits the kind.
+
+**Filed as the bible's D99 rather than built around it**: section 5's Reward
+card row did not name a face for a card that is a choice, and the row is
+descriptive of every kind, so it gains the fan and the pick's grid. No
+sentence at rest, no second mechanism, no glyph family and no third move-card
+call site, so section 10's rule 3 did not stop the build; the row is amended
+because the canon would otherwise be silent on a face the tree draws.
+
+### What re-recorded, and why each was owed
+
+- **`RANDOMIZER_VERSION` to `-24`**, for the reasons above.
+- **`RUN_LOG_VERSION` to `-23`**, for the added decision.
+- **`contentHash` to `bd20d7`.** The table moved.
+- **`test/fixtures/sim-report.json`**, by its own write command. Three axes
+  moved in the same commit.
+- **`docs/visual/baseline/`**, by its own write command: every run file and
+  the data digest. Every seed's run moved, not only the ones that reach a gym
+  page that deals the pick, because the scripted bot's index-0 answer on page
+  2 lands on a different card wherever the weighted pick shifted, and the
+  bag, the shop and the fights after it follow. `docs/visual/baseline/battles/GYMRUN01.json` is
+  unmoved: no battle draw changed.
+- **`test/gym-held-items.test.ts`'s digest** is unmoved: it covers wild and
+  trainer teams, and no team draw changed.
+- **`docs/copy.md`**, regenerated. It had not been since before the Rev 22
+  and Rev 23 work, so the diff carries those line moves too. The audit gains
+  the berry pick's two lines, the feed's `berry` line, and a *Confirm band*
+  section that registers `CLAIM_COPY` and `BUY_COPY` for the first time
+  beside the pick's band.
+
+### What it measured
+
+The benchmark row is in [`balance.md`](balance.md) section 0, stamped
+`randomizer-24` · `bd20d7`, RETUNE, 400 seeds, `table` AI, read against a
+baseline row taken on `main` at `47bd73f` on the same prefix and AI, recorded
+beside it because the head of the merged tree had no `table` row. **Recorded, not chased.**
+
+### The gate, in the container that built it
+
+Types, lint, build, smoke, the Node half of the suite and the browser half
+were run; the strict-trim leg was run after them. Two browser cases were red
+before and after this patch and are not its own:
+`test/visual-backdrop-contrast.test.ts`'s *HP boxes distinct from all nine
+backdrops* under `weather=none` and under `terrain=misty`, which fail
+identically on `main` at `c1d527d` in a clean worktree, and which no file this
+patch touches can reach. Left open for whoever owns the stage. A third,
+`test/visual-chips.test.ts`, never left its setup in this container: ten
+minutes alone on the CPU with no case reported, and on `main` in the same
+worktree its setup fails and all seventeen cases skip. Environmental here,
+not this patch's; it is the one browser file this branch has no reading for.

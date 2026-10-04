@@ -1,7 +1,7 @@
 {
-  "version": "gymrun-run-22/gymrun-0.3.0",
-  "randomizerVersion": "gymrun-randomizer-23",
-  "contentHash": "d4af80078075e0ec97fcbef717b22e31cf90ab00b2b89638f2201f36d8691394",
+  "version": "gymrun-run-23/gymrun-0.3.0",
+  "randomizerVersion": "gymrun-randomizer-24",
+  "contentHash": "bd20d775d047e10808cdf60810186acc97ccaac9a815589e95a8dda3d46ba11f",
   "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
   "runs": [
     {
@@ -693,14 +693,14 @@
             "Rollout",
             "Curse"
           ],
-          "item": "focussash",
+          "item": "habanberry",
           "hp": 0,
           "maxHp": 56,
           "fainted": true,
           "joinedSegment": 0,
           "contribution": {
             "damageDealt": 105,
-            "damageTaken": 56,
+            "damageTaken": 66,
             "kos": 2,
             "faints": 1,
             "turnsOnField": 5
@@ -724,7 +724,7 @@
             "Thunder Shock",
             "Glaciate"
           ],
-          "item": "habanberry",
+          "item": null,
           "hp": 0,
           "maxHp": 56,
           "fainted": true,
@@ -823,7 +823,7 @@
           "tier": "hard",
           "winner": "p1",
           "turns": 5,
-          "hpAfter": 110,
+          "hpAfter": 120,
           "casualties": []
         },
         {
@@ -833,7 +833,7 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 3,
-          "hpAfter": 102,
+          "hpAfter": 112,
           "casualties": []
         },
         {
@@ -843,7 +843,7 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 2,
-          "hpAfter": 102,
+          "hpAfter": 112,
           "casualties": []
         },
         {
@@ -853,7 +853,7 @@
           "tier": "normal",
           "winner": "p1",
           "turns": 5,
-          "hpAfter": 58,
+          "hpAfter": 68,
           "casualties": [
             {
               "side": "p1",
@@ -1103,12 +1103,16 @@
           "index": 0
         },
         {
+          "kind": "berry",
+          "index": 0
+        },
+        {
           "kind": "items",
           "plan": {
             "assignments": [
               {
                 "slot": 1,
-                "item": "focussash"
+                "item": "oranberry"
               }
             ],
             "discards": [],
@@ -1273,7 +1277,7 @@
           "plan": {
             "assignments": [
               {
-                "slot": 2,
+                "slot": 1,
                 "item": "habanberry"
               }
             ],

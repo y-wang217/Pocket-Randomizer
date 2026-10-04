@@ -49,6 +49,8 @@ function wobbling(): RunPolicy {
     chooseLocale: async () => 0,
     chooseLead: async () => 0,
     chooseEvolution: async () => 0,
+    // Last berry, for the same reason as the last card.
+    chooseBerry: async (pick) => pick.berries.length - 1,
     chooseNode: async (options) => options.length - 1,
     // Last card, for the same reason as the last node: a policy that always
     // answers 0 would agree with the scripted default and prove nothing.
@@ -284,6 +286,10 @@ describe('save mid-run, reload, continue', () => {
         return 0;
       },
       chooseEvolution: async () => {
+        liveCalls++;
+        return 0;
+      },
+      chooseBerry: async () => {
         liveCalls++;
         return 0;
       },
