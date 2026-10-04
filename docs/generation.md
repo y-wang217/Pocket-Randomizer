@@ -12973,3 +12973,91 @@ patch touches can reach. Left open for whoever owns the stage. A third,
 minutes alone on the CPU with no case reported, and on `main` in the same
 worktree its setup fails and all seventeen cases skip. Environmental here,
 not this patch's; it is the one browser file this branch has no reading for.
+
+## 102. No species-locked ability or move in the pools
+
+**2026-10-04**, on `claude/species-locked-pool`. Prompt
+[`spec/gymrun-patch-species-locked-pool.md`](spec/gymrun-patch-species-locked-pool.md).
+Moves `RANDOMIZER_VERSION` to `-25` and `contentHash` from `bd20d7` to
+`1ba856`; `RUN_LOG_VERSION` and `AI_VERSION` hold.
+
+The bug report asked whether species-dependent abilities and moves had already
+been filtered out. **They had not.** The ability pool was "every standard
+ability in the generation" minus `No Ability`, and no move filter looked at
+species. Zen Mode, Stance Change, Multitype, Zero to Hero and twenty more could
+all be rolled, and so could Aura Wheel and Hyperspace Fury.
+
+### What was checked, and how
+
+Every entry in both pools was read against `@pkmn/sim`'s own handler, not the
+dex text: any ability or move whose handler names a species, a forme, a held
+type item or a type check was listed and read. That read gives three shapes.
+
+- **A no-op on anyone else** (the handler returns early unless the holder is
+  Darmanitan, Aegislash, Mimikyu and so on, or needs a Plate, a Memory, a
+  doubles ally or terastallization): Battle Bond, Commander, Disguise, the four
+  Embody Aspects, Flower Gift, Forecast, Gulp Missile, Hunger Switch, Ice Face,
+  Multitype, Poison Puppeteer, Power Construct, RKS System, Schooling, Shields
+  Down, Stance Change, Teraform Zero, Zen Mode. Moves: Aura Wheel fails unless
+  the user is Morpeko, Hyperspace Fury unless it is Hoopa-Unbound.
+- **A forme change into somebody else**: Zero to Hero and Tera Shift call
+  `formeChange` into Palafin-Hero and Terapagos-Terastal with no species check.
+  Any holder became that Pokemon. Worse than a blank.
+- **Locked to a type, not a species.** Double Shock fails from a user that is
+  not Electric, and Flower Veil only guards the side's Grass types, which in
+  singles is the holder or nobody. The prompt said species. These two are the
+  same failure (a dead slot on whoever rolls it off-type) and abilities and
+  coverage moves are drawn off-type, so they went with the rest. Burn Up is
+  the same lock and was already out: the gen 9 dex marks it Unobtainable.
+
+**Kept**, because they do the whole of what they say on any holder even though
+the dex calls them signatures: As One (both), Comatose, Tera Shell, Illusion,
+Drizzle and Drought (the species check only adds the Primal), Natural Cure,
+Ivy Cudgel, Raging Bull, Judgment (they change type only for their owner),
+Order Up, Relic Song, Water Shuriken (the extras are owner-only, the hit is
+not).
+
+### Where it lives
+
+In `scripts/gen-pools.ts`, as `SPECIES_LOCKED_ABILITIES` and
+`SPECIES_LOCKED_MOVES`, beside the other structural exclusions, and **not** in
+`data/blacklists.ts`. The blacklist is for entries the engine plays and the
+simulator shows ruining a distribution. These are entries the engine refuses,
+which is the same class as `UNSCOREABLE` and `SELF_KO`. The pools went from 310
+abilities to 286 and lost three damaging moves.
+
+`test/species-locked.test.ts` holds it two ways. The excluded ids are absent.
+And every pooled entry whose handler names a species, a forme, a Plate, a
+Memory or a type check is in a reviewed list with the reason it works on any
+holder. A signature arriving with a `@pkmn/sim` upgrade fails the test instead
+of reaching a run.
+
+### What re-recorded
+
+The sim fixture, the visual baseline and its data digest, the content-hash pin
+in `test/ai-priority.test.ts`, and the held-item team digest in
+`test/gym-held-items.test.ts`: each one is a seed's draw, and a shorter list
+moves it. Two played-run tests had pinned seeds that stopped reaching their
+branch, `ALL-DECISIONS-1` in `test/move-replacement.test.ts` and `LEAD-RUN-25`
+in `test/lead-selection.test.ts`. Both now search under `test/seed-search.ts`
+instead of pinning a fifth replacement.
+
+### What it measured
+
+[`balance.md`](balance.md) section 0, stamped `randomizer-25` · `1ba856`,
+RETUNE, 400 seeds, `table` AI, read against the `randomizer-24` row on the same
+prefix and AI: mean gyms 1.83 to 1.72, completion 0.8% both. Inside a standard
+error. **Recorded, not chased.**
+
+### The gate, in the container that built it
+
+Types, lint, build, smoke, the Node half of the suite and its strict-trim run
+are green. The browser half has three red cases, and none of them is this
+patch's. Two are the `test/visual-backdrop-contrast.test.ts` HP-box cases that
+section 101 records as red on `main`. The third is
+`test/visual-chips.test.ts`'s *type chip at or above the contrast floor*: type
+chips on the locale and starter screens at 2 to 4.5:1. It fails identically on
+`main` at `ad8016d`, with the same eleven samples, in a clean worktree. Section
+101 had no reading of that file in its container, and this is the first. It
+comes from the palette, and nothing in the pools can reach it. Left open for
+whoever owns the stage.

@@ -95,8 +95,9 @@ describe('the run log version', () => {
      * And to `-24` by the berry pick the gym pool deals, which is this file's
      * page 2 again and moved `RUN_LOG_VERSION` beside it for the pick's
      * answer: two axes, each for its own reason, which is still the separation.
+     * `-25` is the species-locked entries leaving the pools, not this file.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-24');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-25');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

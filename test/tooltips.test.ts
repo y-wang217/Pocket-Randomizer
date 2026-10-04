@@ -4,7 +4,7 @@
  * The stage's requirement is that a player who has never played Pokemon can
  * find out what any ability on the field does, and what any status on it does,
  * without leaving the battle screen. That is not a claim about the five
- * abilities somebody remembered to check — it is a claim about all 310 the
+ * abilities somebody remembered to check — it is a claim about all 286 the
  * randomizer can draw, on any of a thousand seeds.
  *
  * So these are sweeps rather than examples. **Random abilities will find the

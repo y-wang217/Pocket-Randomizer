@@ -3,7 +3,7 @@
  * to a new player.
  *
  * **Empty on arrival, and that is the design.** The dex's `shortDesc` is the
- * default for all 310 abilities in the pool, and it is usually good — it is
+ * default for all 286 abilities in the pool, and it is usually good — it is
  * written by people who play the game, it is kept current with the generation,
  * and wrapping it means the tooltip cannot drift from the mechanic the way a
  * hand-written copy would.

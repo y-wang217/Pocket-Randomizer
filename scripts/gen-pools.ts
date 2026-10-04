@@ -347,6 +347,17 @@ const UNSCOREABLE = new Set([
   'flail', 'reversal', 'endeavor', 'painsplit',
 ]);
 
+const SPECIES_LOCKED_MOVES = new Set([
+  // The engine refuses these from anyone but their owner, and every move here
+  // is drawn off-species. Aura Wheel fails unless the user is a Morpeko and
+  // Hyperspace Fury unless it is Hoopa-Unbound: a slot that prints "But it
+  // failed!" every turn. Double Shock is locked to a type rather than a
+  // species, and fails the same way from a Pokemon that is not Electric, which
+  // the open coverage slots and every move reward can hand it. Burn Up is the
+  // same lock and is already out (the gen 9 dex marks it Unobtainable).
+  'aurawheel', 'hyperspacefury', 'doubleshock',
+]);
+
 function moveAllowed(move: Move): boolean {
   if (!move.exists || move.isNonstandard !== null) return false;
   if (move.isZ || move.isMax) return false;
@@ -361,7 +372,7 @@ function moveAllowed(move: Move): boolean {
   if (move.accuracy !== true && move.accuracy < 70) return false;
   const id = move.id;
   return !SELF_KO.has(id) && !SWITCH_MOVES.has(id) && !OHKO_ADJACENT.has(id) &&
-    !SELF_HALVING.has(id) && !UNSCOREABLE.has(id);
+    !SELF_HALVING.has(id) && !UNSCOREABLE.has(id) && !SPECIES_LOCKED_MOVES.has(id);
 }
 
 /**
@@ -476,10 +487,47 @@ const statusRows: MoveRow[] = [...new Set(STATUS_MOVES)]
  *
  * `No Ability` goes because it is the dex's placeholder for "none" rather than
  * an ability, and rolling it would be rolling a blank 1% of the time.
+ *
+ * The species-locked abilities go for the same reason, because they are blanks
+ * too once they are drawn off-species. Every entry was read off the engine's
+ * own handler, not the dex text. Two shapes:
+ *
+ *   - **A no-op on anyone else.** The handler returns early unless the holder
+ *     is the named species or forme (Zen Mode reads `baseSpecies !==
+ *     'Darmanitan'`), or the effect is a held-item type change only Arceus and
+ *     Silvally have the item for, or it needs a doubles ally or a
+ *     terastallization this game never has.
+ *   - **A forme change into somebody else.** Zero to Hero and Tera Shift call
+ *     `formeChange` with a fixed forme and no species check, so a Rattata that
+ *     rolls one switches out a Palafin or switches in a Terapagos. That is
+ *     worse than a blank.
+ *
+ * What stays despite being a signature: As One, Comatose, Tera Shell,
+ * Illusion, Drizzle, Drought and Natural Cure name a species in the dex or in
+ * their handler, but do the whole of what they say on any holder.
  */
+const SPECIES_LOCKED_ABILITIES = new Set([
+  // No-op off-species: the handler checks the holder's species or forme.
+  'battlebond', 'disguise', 'flowergift', 'forecast', 'gulpmissile', 'hungerswitch',
+  'iceface', 'poisonpuppeteer', 'powerconstruct', 'schooling', 'shieldsdown',
+  'stancechange', 'zenmode',
+  // No-op off-species: Plates and Memories are not in this game.
+  'multitype', 'rkssystem',
+  // No-op in a singles game with no terastallization.
+  'commander', 'embodyaspectcornerstone', 'embodyaspecthearthflame', 'embodyaspectteal',
+  'embodyaspectwellspring', 'teraformzero',
+  // A forme change into a fixed species, on any holder.
+  'terashift', 'zerotohero',
+  // Locked to a type rather than a species, the Double Shock case: it guards
+  // the side's Grass types, which in singles is the holder or nobody.
+  'flowerveil',
+]);
+
 const abilityRows: string[] = dex.abilities
   .all()
-  .filter((ability) => ability.exists && ability.isNonstandard === null && ability.id !== 'noability')
+  .filter((ability) =>
+    ability.exists && ability.isNonstandard === null && ability.id !== 'noability' &&
+    !SPECIES_LOCKED_ABILITIES.has(ability.id))
   .map((ability) => ability.name)
   .sort((a, b) => a.localeCompare(b));
 

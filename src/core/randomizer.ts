@@ -389,8 +389,18 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * twice over. `RUN_LOG_VERSION` moves beside it to `-23` for the answer the
  * card asks for, and `contentHash` for the table.
  * `docs/spec/gymrun-patch-berry-gym-reward.md`, `docs/generation.md` section 101.
+ *
+ * ## `-25`: no species-locked ability or move
+ *
+ * Twenty-four abilities and three moves leave the generated pools: the ones
+ * whose engine handler only fires for a named species or type (Zen Mode, Stance
+ * Change, Aura Wheel, Double Shock) or turns any holder into a fixed species
+ * (Zero to Hero, Tera Shift). Rolled off-species they were blanks. Shorter
+ * lists, so the same float picks a different entry: composition, this axis.
+ * `contentHash` moves beside it for the tables.
+ * `docs/spec/gymrun-patch-species-locked-pool.md`, `docs/generation.md` section 102.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-24';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-25';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

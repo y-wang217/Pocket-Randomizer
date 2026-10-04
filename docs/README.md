@@ -421,6 +421,16 @@ condition an item exists for cannot measure that item**, which is why M4.1 and
 M4.2 both moved the number by zero and said so rather than claiming a reduction.
 
 
+**In flight: no species-locked ability or move.** Branch
+`claude/species-locked-pool`, prompt
+[`spec/gymrun-patch-species-locked-pool.md`](spec/gymrun-patch-species-locked-pool.md),
+record [`generation.md`](generation.md) section 102, measurement
+[`balance.md`](balance.md) section 0. Twenty-four abilities (Zen Mode, Stance
+Change, Zero to Hero and the rest) and three moves (Aura Wheel, Hyperspace
+Fury, Double Shock) that only work for their owner leave the generated pools.
+`RANDOMIZER_VERSION` to `-25`, `contentHash` to `1ba856`; `RUN_LOG_VERSION` and
+`AI_VERSION` hold.
+
 **In flight: the gym deals a "pick a berry" card.** Branch
 `claude/berry-gym-rewards-gz15ms`, prompt
 [`spec/gymrun-patch-berry-gym-reward.md`](spec/gymrun-patch-berry-gym-reward.md),
