@@ -12982,7 +12982,7 @@ held by a structural walk in `test/defender-waves.test.ts`.
 carries the gym type (`core/defender/badge.ts` `battleBadgeFor`, read off the
 spec, never live types, ruling R7). The core builds a `BattleBadge` per battle;
 the adapter executes it. **The mechanism is `Battle#onEvent(eventid, format,
-callback)`** in `battle/format.ts` `installDefenderBadge`: handlers on the
+callback)`** in `core/battle/format.ts` `installDefenderBadge`: handlers on the
 battle keyed to the format, each checking a flag on the eligible p1 Pokemon's
 `m`. An attacker battle passes no badge, registers no handler, appends no move
 and reorders nothing: the sim fixture and the visual baseline battles are
@@ -13009,7 +13009,7 @@ byte-identical apart from `contentHash`.
 - **Flying.** `ModifySpe` chains `flyingSpeed` (1.1, a 4505/4096 numerator
   after the sim's truncation) for eligible members, so every engine read of
   Speed carries it. The AI orders turns off `ActiveView.baseSpeed`, which is
-  `storedStats`, so the view carries `speedModifier` and `battle/speed.ts`
+  `storedStats`, so the view carries `speedModifier` and `core/battle/speed.ts`
   applies it the sim's way: after the stage, **before paralysis**, because
   paralysis runs last in `ModifySpe` and finalises every modifier first, and
   with `Battle#modify`'s rounding (`stats.ts` `applySimModifier`). Test 5
