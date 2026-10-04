@@ -493,6 +493,8 @@ move buttons ending at 704 against the 740 usable line, on a screen whose
 - **2026-10-04, Defender Mode v0 step 3.** `runs/` and `data-digest.txt`
   re-recorded for `contentHash` alone (`bfe391`, the defender relic list).
   Nothing else in any file moved.
+- **2026-10-04, Defender Mode v0 step 4.** The same, for `9ad1d9`, the badge
+  numbers in `data/defender.ts`. Runs and battles byte identical otherwise.
 
 ## The data digest is `contentHash`
 

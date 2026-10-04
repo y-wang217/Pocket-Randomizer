@@ -71,6 +71,7 @@ import {
 } from './defender/opening';
 import { DEFENDER_RANKS } from '../data/defender';
 import { generateRank } from './defender/waves';
+import { battleBadgeFor } from './defender/badge';
 import type { RelicId } from '../data/relics';
 import { applyRelicPassives } from './relics';
 import { RANDOMIZER_VERSION } from './randomizer';
@@ -2651,8 +2652,11 @@ async function playNode(
     return choice;
   };
 
+  const team = battleTeamFor(state.party);
+  // Defender Mode v0: the gym badge, for gym-type members of the player's team.
+  const gymType = state.defender?.gymType;
   const run = await runBattle(
-    battleTeamFor(state.party),
+    team,
     node.encounter.team,
     state.seed,
     recording,
@@ -2660,6 +2664,7 @@ async function playNode(
     {
       simSeed: node.encounter.simSeed,
       carryOver: carryOverFor(state.party),
+      ...(gymType ? { badge: battleBadgeFor(team, gymType) } : {}),
       onStart: (session) => options.onBattle?.(session, node, state),
     },
   );

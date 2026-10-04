@@ -194,6 +194,14 @@ export interface MoveView {
    * generated table; `test/ai-priority.test.ts` sweeps it.
    */
   priority: number;
+  /**
+   * The chance this move crits on its next use, 0..1, on the Fire badge's
+   * highlighted slot only. **Defender Mode v0.** The move's own ratio plus the
+   * streak stage its next use would carry.
+   */
+  critChance?: number;
+  /** True on the Flying badge's once-per-battle fifth move. Defender Mode v0. */
+  badgeMove?: true;
 }
 
 /**
@@ -265,6 +273,14 @@ export interface ActiveView {
    */
   baseSpeed: number;
   /**
+   * The Flying badge's Speed modifier, as the sim's own 4096-based numerator
+   * (4506 for 1.1x), when this Pokemon carries the badge. **Defender Mode v0.**
+   * Absent everywhere else. `battle/speed.ts` applies it the way the sim does,
+   * after paralysis and with the sim's rounding, so the AI's turn-order read is
+   * the engine's number.
+   */
+  speedModifier?: number;
+  /**
    * The flat IV this Pokemon carries, when it is not 31. **Defender Mode v0.**
    * Absent everywhere in attacker mode. Public: a defender opponent's IV is
    * its rank's row in `DEFENDER_OPPONENT_IVS`, which is data.
@@ -304,6 +320,37 @@ export interface ActiveView {
  * sweep measures something real.
  */
 /** The two effective Speeds a policy compares. See `battle/speed.ts`. */
+/**
+ * One p1 team member's badge, in submitted order. **Defender Mode v0.**
+ *
+ * Null for a member that does not carry the gym type: a badge applies to
+ * gym-type members only, and the off-type slot gets nothing.
+ */
+export interface BadgeMember {
+  /** Fire: the move id in the highlighted slot, or null without one. */
+  highlight: string | null;
+  /** Flying: the once-per-battle fifth move's name, Peck or Pluck. */
+  fifthMove: string | null;
+}
+
+/**
+ * The gym badge a defender battle runs under, for the player's side only.
+ * Built by `core/defender/badge.ts` from the team and the gym type, executed by
+ * the adapter (`battle/format.ts` `installDefenderBadge`). Absent on every
+ * attacker battle, which is therefore the battle it always was.
+ */
+export interface BattleBadge {
+  gymType: string;
+  members: readonly (BadgeMember | null)[];
+}
+
+/**
+ * The opponent's committed action for this turn, as the Psychic badge reveals
+ * it before the player chooses. **Defender Mode v0.** The move by name, or the
+ * bench member it is switching to.
+ */
+export type FoeIntent = { kind: 'move'; move: string } | { kind: 'switch'; species: string; name: string };
+
 export interface SpeedView {
   me: number;
   foe: number;
@@ -362,6 +409,12 @@ export interface BattleView {
    * `core/battle/knowledge.ts` is the reader and carries the rule.
    */
   seen?: SeenKnowledge;
+  /**
+   * The foe's committed action this turn, shown before this side chooses.
+   * **Defender Mode v0, the Psychic badge**, and only while this side's active
+   * Pokemon carries the gym type. Never on a forced replacement.
+   */
+  foeIntent?: FoeIntent;
 }
 
 /** What a battle has revealed about one side's active Pokemon. See `battle/knowledge.ts`. */

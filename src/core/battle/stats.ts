@@ -126,6 +126,15 @@ export function applyStage(value: number, stage: number): number {
  */
 export const PARALYSIS_SPEED_MULTIPLIER = 0.5;
 
+/**
+ * A 4096-based modifier applied the sim's way: `Battle#modify`, truncation and
+ * the half-up rounding included. **Defender Mode v0**, for the Flying badge's
+ * Speed, which the sim chains through `ModifySpe` and applies before paralysis.
+ */
+export function applySimModifier(value: number, numerator: number): number {
+  return Math.trunc((Math.trunc(value * numerator) + 2048 - 1) / 4096);
+}
+
 export function applyParalysis(speed: number): number {
   return Math.floor(speed * PARALYSIS_SPEED_MULTIPLIER);
 }

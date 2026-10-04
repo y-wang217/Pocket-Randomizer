@@ -12975,3 +12975,73 @@ unlocked slots, against bosses that field the full schedule, so this is the
 expected shape for a step that has not built recruitment yet. Recorded, not
 chased; step 6 takes the real benchmark. The full eight ranks to victory are
 held by a structural walk in `test/defender-waves.test.ts`.
+
+### 101.6 Step 4: the three badges, through the sim
+
+**2026-10-04.** A badge applies to a party member exactly when its species
+carries the gym type (`core/defender/badge.ts` `battleBadgeFor`, read off the
+spec, never live types, ruling R7). The core builds a `BattleBadge` per battle;
+the adapter executes it. **The mechanism is `Battle#onEvent(eventid, format,
+callback)`** in `battle/format.ts` `installDefenderBadge`: handlers on the
+battle keyed to the format, each checking a flag on the eligible p1 Pokemon's
+`m`. An attacker battle passes no badge, registers no handler, appends no move
+and reorders nothing: the sim fixture and the visual baseline battles are
+byte-identical apart from `contentHash`.
+
+- **Fire.** `ModifyCritRatio` adds `fireCritStages[streak]` (+1, +2, +3, then
+  +3) when the move used is the highlighted slot's; `AfterMove` counts a use of
+  it and zeroes the streak on any other move; `SwitchIn`, `SwitchOut` and
+  `Faint` zero it. A turn on which the move never runs (flinch, full
+  paralysis, sleep) fires no `AfterMove`, so the streak holds (R7). Each
+  boosted use prints `|debug|gymrun-fire-streak … stage +N`, which Custom Game
+  emits, so test 3 asserts the stage on the protocol and the third use's
+  `|-crit|`. The move button's `MoveView.critChance` is the move's own ratio
+  plus the next use's stage, through Gen 9's table restated in
+  `format.ts` `critChanceAt`.
+- **Psychic.** Under the Psychic badge, on a turn where both sides choose and
+  the opponent is not replacing a faint, `runBattle` asks the opponent first,
+  holds its answer on the session (`revealFoeIntent`), and builds the player's
+  view with `foeIntent` set, while the player's active Pokemon carries the
+  type. The opponent reads only its own view and draws only on its own stream,
+  and submission order is unchanged, so **the battle is the battle without the
+  badge**: test 4's second case holds the protocols equal. The answer shown is
+  the one answer the policy returned; nothing asks it twice.
+- **Flying.** `ModifySpe` chains `flyingSpeed` (1.1, a 4505/4096 numerator
+  after the sim's truncation) for eligible members, so every engine read of
+  Speed carries it. The AI orders turns off `ActiveView.baseSpeed`, which is
+  `storedStats`, so the view carries `speedModifier` and `battle/speed.ts`
+  applies it the sim's way: after the stage, **before paralysis**, because
+  paralysis runs last in `ModifySpe` and finalises every modifier first, and
+  with `Battle#modify`'s rounding (`stats.ts` `applySimModifier`). Test 5
+  holds the AI's read equal to the engine's, paralysed and not.
+- **The fifth move** is appended to an eligible member's set after its own
+  moves (`driver.ts` `withFifthMoves`; `toPokemonSet` still keeps four), its
+  slot's PP set to `fifthMovePp` = 1 after the carry-over, and stripped from
+  the read-back so it never reaches the party. A fresh `Battle` per fight is
+  "resets every battle". `MoveView.badgeMove` marks it for the UI.
+
+**Versions.** `AI_VERSION` holds (ruling R5): the policy code reads one new
+optional field that is absent on every attacker view, and no attacker decision
+moved. `ENGINE_VERSION` holds for the same reason on the adapter: an attacker
+battle is the battle it was. `RUN_LOG_VERSION` and `RANDOMIZER_VERSION` hold at
+step 2's values; `contentHash` moves to `9ad1d9` for `DEFENDER_BADGE`.
+
+**Known edges, recorded rather than handled.**
+
+- A Leppa Berry restores the fifth move's PP like any other slot's.
+- Pluck eats the target's berry and gains its effect, as it does in the
+  games; it is not Peck with more power.
+- A `BattleLog` replayed on its own (`replayBattle`, which nothing under
+  `src/` calls) does not carry the badge; a defender battle reproduces through
+  the run log, which does.
+- **The stat block's Speed number at stage 0** still reads `storedStats` for
+  the player's own Pokemon, as it already does for Choice Scarf and paralysis.
+  The prompt asks that no Speed readout contradict the multiplier, and the
+  stat block is a surface, so that is step 7's, under the bible.
+
+**Measured, not a gate.** `scriptedRunPolicy(greedyAiPolicy)`, prefix
+`DIST-`, 40 seeds per type, `AI_VERSION` `gymrun-ai-7-tiers-reach-the-app`:
+mean bosses beaten Fire 2.08, Psychic 1.80, Flying 2.33 (step 3: 2.03, 1.80,
+2.08). Psychic is unchanged to the run, which is the reveal changing nothing the
+opponent does and a bot that does not read it. The bot holds no Fire streak
+and never presses the fifth move, so both rows understate their badge.

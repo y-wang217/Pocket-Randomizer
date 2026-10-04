@@ -83,3 +83,22 @@ export const DEFENDER_RELIC_IDS: readonly RelicId[] = [
   'abyssal-lens',
   'everburning-lantern',
 ];
+
+/**
+ * The three badges' numbers. **Defender Mode v0, step 4.** A badge applies
+ * only to party members carrying the gym type.
+ *
+ * - **Fire.** `fireCritStages[n]` is the crit stage the highlighted move adds
+ *   on its `n+1`th consecutive use, the last entry holding from then on: +1,
+ *   +2, +3, which in Gen 9 is 1/8, 1/2 and certain on a ratio-1 move.
+ * - **Flying.** `flyingSpeed` multiplies Speed through the sim's own
+ *   `ModifySpe` event, so every engine read of Speed already carries it. The
+ *   fifth move is Peck for a species that can still evolve and Pluck for a
+ *   final stage, with `fifthMovePp` uses per battle.
+ */
+export const DEFENDER_BADGE = {
+  fireCritStages: [1, 2, 3],
+  flyingSpeed: 1.1,
+  fifthMove: { canEvolve: 'Peck', finalStage: 'Pluck' },
+  fifthMovePp: 1,
+} as const;
