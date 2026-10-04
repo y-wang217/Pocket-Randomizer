@@ -56,6 +56,9 @@
 import { spawn } from 'node:child_process';
 
 import { browserTests, nodeTests } from './browser-tests.mjs';
+// Why these live in their own module, and why they strip colour before they
+// read anything: the header of `check-tally.mjs`.
+import { everyTestPassedAnyway, tally } from './check-tally.mjs';
 
 const CI = Boolean(process.env.CI);
 const NPX = process.platform === 'win32' ? 'npx.cmd' : 'npx';
@@ -151,44 +154,6 @@ const LEGS = [
  * cannot start for want of a system library is just as absent as one that is
  * not installed, and the remedy is the same `--with-deps` install.
  */
-/**
- * Vitest's reporter channel giving up while every test passed.
- *
- * `[vitest-worker]: Timeout calling "onTaskUpdate"` is vitest's own RPC
- * reporting channel timing out under load. It is **not** a test, not the app,
- * and not a defect in the tree — but vitest counts it as an unhandled error and
- * exits non-zero, so it turns a green suite red. This repo has met it
- * repeatedly: `docs/generation.md` section 15 records it against two full suite
- * runs, and the branch reports carry it as the reason a 136-file run with every
- * test passing exited 1.
- *
- * The first CI run of this workflow failed the Node leg on exactly this, with
- * `112 passed (112)` and `1604 passed (1604)` in the same output. A gate that
- * reports a fully passing suite as a failure is the cry-wolf problem
- * `test/boundaries.test.ts` already warns about, so the runner reads the tally
- * rather than trusting the exit code.
- *
- * **Deliberately narrow, because the failure mode of getting this wrong is a
- * masked defect.** All three must hold: the specific `onTaskUpdate` string, a
- * files tally that says passed, and **no** failure tally anywhere in the
- * output. Any real failure prints `N failed` and is reported as FAILED with the
- * exit code, whatever else went wrong alongside it.
- */
-const REPORTER_RPC_TIMEOUT = /Timeout calling "onTaskUpdate"/;
-const ALL_FILES_PASSED = /Test Files\s+\d+ passed \(\d+\)/;
-const ANY_FAILED = /\d+ failed/;
-
-function everyTestPassedAnyway(output) {
-  return REPORTER_RPC_TIMEOUT.test(output) && ALL_FILES_PASSED.test(output) && !ANY_FAILED.test(output);
-}
-
-/** The tallies, for the note on a leg that passed under a reporter timeout. */
-function tally(output) {
-  const files = /Test Files\s+(\d+) passed/.exec(output)?.[1];
-  const tests = /Tests\s+(\d+) passed/.exec(output)?.[1];
-  return files && tests ? `${files} files, ${tests} tests` : 'every test';
-}
-
 const NO_BROWSER = [
   /Executable doesn't exist at/,
   /Please run the following command to download new browsers/,
