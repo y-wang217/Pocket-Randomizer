@@ -6023,20 +6023,68 @@ that it is now an assertion instead of a comment.
    | sprites arriving between the box pass and the screenshot | geometry identical, **0 boxes differ** |
    | the chips genuinely sit on the HP bar | no chip overlaps an HP fill, in either sprite state |
    | the `fullPage` screenshot is mis-scaled | 390x8305, scale error 1.0000x, short by 0px |
-   | the engine build — CI's exact Chromium 1243, installed in order to test it | 0 of 45 under the floor |
+   | the engine build — CI's exact Chromium 1243, installed in order to test it | 158 chips parsed, 0 under the floor |
    | the font stack | this box's font *packages* are the Playwright noble image's set — `fonts-liberation`, `fonts-freefont-ttf`, `fonts-ipafont-gothic`, `fonts-wqy-zenhei`, `fonts-tlwg-loma-otf`, `fonts-unifont`, `xfonts-cyrillic`, dejavu — so fontconfig resolves `monospace` the same way in both. Fingerprint 67.44 |
-   | the `figure-idle` bob, which **only runs when a sprite loaded** (`styles.css:5116` disables it on `data-missing`) — a genuine sprites-present difference that is paint and not layout | both discrete `steps(1, end)` states pinned and sampled: 0 under the floor either way, and `--idle-rise` is 2px |
+   | the `figure-idle` bob, which **only runs when a sprite loaded** (`styles.css:5116` disables it on `data-missing`) — a genuine sprites-present difference that is paint and not layout | both discrete `steps(1, end)` states pinned: 0 under the floor in each, and `--idle-rise` is 2px |
 
-   The last row is the one worth keeping in mind: it is the only *behavioural*
+   The last row is worth keeping in mind: it is the only *behavioural*
    difference between a box that can reach the CDN and one that cannot, a
    transform rather than a reflow, and therefore invisible to the box
    comparison. It still does not reproduce the failure.
 
-   **Local investigation is out of leads, which is why the instrument was given
-   a voice instead.** The next CI run reports each failure with its box, the
-   modal colour's share of it, the screenshot geometry and the font fingerprint
-   — or reports a drifted box as an instrument fault. Any of those names the
-   cause without another round of guessing.
+   **Four of those rows were first "established" by a probe that measured
+   nothing, and the mistake is recorded because it is the same mistake this
+   whole section is about.** The scratch probes parsed only `rgb()`. A `.chip`'s
+   colour is a `color-mix()`, which computes to `color(srgb ...)`, so the parser
+   returned null for all 158 chips — and the probes did `if (!col) continue`,
+   printing "0 under the floor" while skipping every chip. `test/visual-chips.test.ts`
+   has always handled both forms, so the suite's own green was never in doubt;
+   it was the probe conclusions stacked on top of it that were hollow. Each row
+   above now carries a parsed count, which is the assertion the probes were
+   missing. A measurement that cannot say how much it measured is the
+   instrument fault of this section in miniature.
+
+   With the parser fixed, the four chips read, on the same screen and seed CI
+   flags them on:
+
+   | chip | CI reported | here, Chromium 1194 | modal share |
+   |---|---|---|---|
+   | `"Ghost"` | 4.43 on rgb(46,50,54) | **5.13** on rgb(34,38,58) | 56% |
+   | `"Dark"` | 4.21 on rgb(46,50,54) | **4.97** on rgb(34,38,42) | 58% |
+   | `"◎100"` | 1.32 on rgb(62,186,82) | **6.79** on rgb(46,50,54) | 55% |
+   | `"✦10%"` | 1.32 on rgb(62,186,82) | **6.79** on rgb(46,50,54) | 59% |
+
+   **So all six of run #9's failures are unreproducible here, including the
+   three filed as "genuine near-misses" — and that label never had a
+   measurement behind it.** It came from the numbers' plausibility: 4.21 to
+   4.43 reads like a marginal miss and 1.32 reads like a wrong-pixel read.
+   Locally Ghost and Dark clear the floor outright. Whatever CI is doing
+   differently affects all six, so they are more likely one cause than two.
+   Note also that CI reads `rgb(46,50,54)` beneath Ghost and Dark, which is
+   what `"◎100"` sits on *here* — CI's reads look displaced with respect to
+   content rather than merely pessimistic.
+
+   **The likeliest root cause is now the sampler's own quantity, not the
+   chips.** The modal colour covers only **31% to 59%** of a box, and the same
+   `"Dark"` chip reads 4.97 on Chromium 1194 and 5.29 on 1243 as its share
+   moves from 58% to 31%. A "background" that is barely a third of the pixels
+   it is read from is not a background; it is whichever colour won a close
+   count, and anti-aliasing or a one-pixel shift can hand that to a
+   neighbouring HP bar. That would produce exactly run #9's shape. **It is not
+   fixed here** — measuring a chip's actual backdrop rather than the mode of
+   its own box is a redesign of `sampleBoxes`, well past this patch's scope —
+   so the share travels in every failure message and the question is filed as
+   item 4.
 3. **The other visual suites still depend on the sprite CDN.** `stubSprites` is
    scoped to the chip suite, because re-pointing `docs/visual/baseline/` and the
    V1 contrast corpus at a fixture is a separate decision from fixing one file.
+4. **`sampleBoxes` reads the mode of a chip's own box and calls it the
+   background.** At a 31% to 59% share that is a coin toss between the chip's
+   fill and whatever is behind it, and the reading moves between engine builds
+   on identical content. The honest fix is to measure the backdrop — sample
+   immediately outside the box, or hide the chip and re-shoot, or composite the
+   known fill out — rather than to hope the mode lands on the right thing.
+   Deliberately not attempted in this patch: it changes what every chip reading
+   in the suite means, which wants its own prompt and its own benchmark against
+   the current numbers. Until then the share is in every failure message, so a
+   low-confidence reading is at least visible as one.

@@ -716,11 +716,18 @@ One line each. The analysis lives where the pointer goes, not here.
    an option** — `CLAUDE.md` forbids moving a target to make a miss disappear —
    so the fix raises real contrast and the lever is undecided.
    `generation.md` section 36.
-0. **`"◎100"` and `"✦10%"` at 1.32:1 against the HP bar fill are unexplained.**
-   Not reproducible in a sandbox against either Chromium the repo knows about,
-   and the sprite-timing explanation was tested and disproved. The sampler now
-   reports the box, the modal colour's share of it and the screenshot geometry,
-   so the next CI run should name the cause or report a drifted box instead.
+0. **All six of run #9's chip contrast failures are unreproducible locally** —
+   including on CI's exact Chromium 1243 and on a real WebKit, and including the
+   three above, whose "genuine near-miss" label came from the numbers looking
+   plausible rather than from any measurement. Locally `"Ghost"` reads 5.13 and
+   `"Dark"` 4.97, both clear. Six candidate causes ruled out, sprite timing
+   among them. `generation.md` section 36.
+0. **`sampleBoxes` calls the mode of a chip's own box its background, at a 31%
+   to 59% share.** The same `"Dark"` chip reads 4.97 on Chromium 1194 and 5.29
+   on 1243 as its share moves from 58% to 31%, on identical content. That is
+   the likeliest root cause of the six, and fixing it means measuring the
+   backdrop rather than hoping the mode lands on it — a redesign that wants its
+   own prompt. The share now travels in every failure message.
    `generation.md` section 36.
 0. **The visual suites outside the chip one still depend on Showdown's CDN.**
    `stubSprites` is scoped to `test/visual-chips.test.ts`; re-pointing
