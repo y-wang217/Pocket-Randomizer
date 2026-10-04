@@ -13048,3 +13048,16 @@ instead of pinning a fifth replacement.
 RETUNE, 400 seeds, `table` AI, read against the `randomizer-24` row on the same
 prefix and AI: mean gyms 1.83 to 1.72, completion 0.8% both. Inside a standard
 error. **Recorded, not chased.**
+
+### The gate, in the container that built it
+
+Types, lint, build, smoke, the Node half of the suite and its strict-trim run
+are green. The browser half has three red cases, and none of them is this
+patch's. Two are the `test/visual-backdrop-contrast.test.ts` HP-box cases that
+section 101 records as red on `main`. The third is
+`test/visual-chips.test.ts`'s *type chip at or above the contrast floor*: type
+chips on the locale and starter screens at 2 to 4.5:1. It fails identically on
+`main` at `ad8016d`, with the same eleven samples, in a clean worktree. Section
+101 had no reading of that file in its container, and this is the first. It
+comes from the palette, and nothing in the pools can reach it. Left open for
+whoever owns the stage.
