@@ -5820,3 +5820,182 @@ The direction is the one the change argues for and the magnitude is larger than
 the level arithmetic alone suggests, which is the Speed threshold showing up in
 the number. Nothing else was tuned against this run. The full row, including
 what it says about the standing gym 3 outlier, is in `balance.md` section 0.
+
+## 36. The tolerance that never fired, and a sampler that answered
+
+**2026-10-04**, on `claude/sleepy-mccarthy-crfmqt`. Prompt
+[`spec/gymrun-patch-ci-ansi-and-chip-instrument.md`](spec/gymrun-patch-ci-ansi-and-chip-instrument.md).
+
+Two defects, neither in `src/`. **No version axis moves** — nothing under
+`src/data/**` is touched and `contentHash` holds at `94c6c1`, verified by
+`npm run content-hash` rather than assumed; `RUN_LOG_VERSION`,
+`RANDOMIZER_VERSION` and `AI_VERSION` are untouched. No baseline re-recorded.
+
+**This patch does not turn CI green, and was not scoped to.** Three of the six
+chip failures on run #9 are genuine contrast near-misses, left open by the
+answer to Q1 of the prompt. They are listed at the end.
+
+### The brief continued a report, and three of that report's claims were wrong
+
+The prompt records them, because the brief's instruction was to find the unclear
+places and that is what the instruction found. Briefly: "byte-identical" held of
+one engine across two commits, not of the two engines; "a genuine accessibility
+miss" held of three of the six failures, not all six; and "the sprites-loaded
+hypothesis" named a chip variant that does not exist, where the real thing is
+the gallery leg's `fixture=loaded` surface.
+
+**A fourth claim was mine, made in this patch's own plan, and the work disproved
+it.** It is recorded here at length because the disproof is the most useful
+thing in this section.
+
+### Item 1: the reporter-timeout tolerance has never once fired
+
+Section 33 taught `check.mjs` to rescue a vitest leg that passed every test and
+exited 1 on `[vitest-worker]: Timeout calling "onTaskUpdate"`. It has never
+worked. Vitest colours through `tinyrainbow`, which enables colour when `CI` is
+in the environment whether or not a TTY is attached, and `check.mjs` captures a
+pipe — so **every CI run has been coloured**, and the tally arrives as
+
+```
+^[[2m Test Files ^[[22m ^[[1m^[[32m113 passed^[[39m^[[22m^[[90m (113)^[[39m
+```
+
+with the escapes sitting exactly where `ALL_FILES_PASSED` expects whitespace.
+Run #9 failed the Node leg with all 113 files and 1611 tests passing, which is
+the shape section 33 exists to stop. The same flaw sat in `tally()`, which
+degraded its note to `'every test'` for the same reason.
+
+Against run #9's real output, coloured as Actions delivered it:
+
+| | timeout seen | files passed | tolerated | note |
+|---|---|---|---|---|
+| before | true | **false** | **false** | `every test` |
+| after | true | true | **true** | `113 files, 1611 tests` |
+
+**Stripping happens at the point of asking, not at capture.** Two reasons, both
+load-bearing. `tail(output, 40)` prints a failing leg's own output and Actions
+renders its colour, so a gate that strips only for matching costs a reader
+nothing. And stripping at capture means stripping each chunk as it arrives,
+where a sequence straddling a chunk boundary survives — this is a whole-string
+transformation, not a stream one. `everyTestPassedAnyway` strips once and asks
+all three questions of that one string, so the veto can never be applied to
+different text from the permission. Stripping cannot loosen the veto: vitest
+wraps `1 failed` rather than splitting it, so the token matches either way.
+
+The predicates moved to `scripts/check-tally.mjs`. `check.mjs` ends in
+`process.exit(await main())`, so a test that imported it would run the gate; an
+`import.meta.url` entry guard is the worse seam, because getting it wrong means
+a test run recursively invokes the nine-leg gate it is part of.
+`no-control-regex` is in ESLint's recommended set, which this repo applies to
+every file, so the escape is built with `String.fromCharCode(27)` rather than
+written as a literal.
+
+**Why this was not caught.** `check.mjs` had no test of any kind.
+Section 33 records the tolerance as "checked against six cases including that
+one" — and **every one of those six was uncoloured**, because they were run by
+hand in a terminal where `CI` was not set. A hand-check that cannot be re-run is
+not a backstop, which is the argument `test/boundaries.test.ts` already makes
+about lint. `test/check-gate.test.ts` is the first test to cover the runner, and
+its fixtures are real output: the escape pattern captured from this repo under
+`FORCE_COLOR=1`, the failing shape verbatim from run #9's WebKit job, and the
+counts from the Node leg this was meant to rescue and did not.
+
+### Item 2: the chip sampler's 1.32:1 is still unexplained, and now says so
+
+Run #9 failed three browser jobs on `test/visual-chips.test.ts`. Six samples
+below the 4.5 floor, and they are **not** one finding:
+
+| screen | chip | ratio | on | reading |
+|---|---|---|---|---|
+| `party (gallery, loaded)` | `"Ghost"` | 4.43:1 | rgb(46,50,54) | genuine near-miss |
+| `party (gallery, loaded)` | `"Dark"` | 4.21:1 | rgb(46,50,54) | genuine near-miss |
+| `party (gallery, loaded)` | `""` | 1.32:1 | rgb(62,186,82) | **meaningless** |
+| `party (gallery, loaded)` | `"◎100"` | 1.32:1 | rgb(62,186,82) | unexplained |
+| `party (gallery, loaded)` | `"✦10%"` | 1.32:1 | rgb(62,186,82) | unexplained |
+| `battle` (WebKit only) | `"Not very effective"` | 4.36:1 | rgb(70,82,58) | genuine near-miss |
+
+`rgb(62,186,82)` is `--hp-high: #3fb950` quantised — the HP bar fill. A chip's
+own translucent fill should dominate its own box and never a neighbour's solid
+one, so this is the signature of a box indexing the wrong pixels, the same
+1.32:1 the `sampleBoxes` note records from the `dpr` defect.
+
+**The filed hypothesis: sprites arrive from Showdown's CDN between the box pass
+and the screenshot, so the boxes point at a layout that moved. It is wrong.**
+
+The suite was made hermetic first, so the mechanism could be tested rather than
+argued: `stubSprites` serves the sprite host from a 96x96 RGBA fixture. Then,
+with sprites served and the engine pinned:
+
+| | sprites failing | sprites served |
+|---|---|---|
+| document height | 8305 | 8305 |
+| chips sampled | 158 | 158 |
+| boxes that differ | — | **0** |
+| chips overlapping an HP fill | 0 | 0 |
+| screenshot | — | 390x8305, scale error 1.0000x |
+| chips under the 4.5 floor | 0 | **0 of 45** |
+
+The route fired — sprites went `natural=0` to `natural=96` — so this is not a
+stub that quietly did nothing. `styles.css:5069` is why nothing moved: a sprite
+whose load fails gets `data-missing`, and the rule is
+`visibility: hidden; display: inline-block`, so **the box is kept either way and
+only the painted pixels differ**. That is exactly the difference a contrast
+measurement is sensitive to and a height measurement is not, which is why this
+suite diverged between CI and a sandbox while `heights.json` never did.
+
+The full suite passes locally with sprites served. So the hermetic stub is kept
+on its own merit — a visual assertion whose verdict depends on a third-party CDN
+is not an assertion — and **not** as a fix for run #9.
+
+**One of the three is answered, though.** The `""` sample is a `band` chip,
+which draws a 38x9 bar; its fill *is* the HP green. Both floors here are floors
+on reading words — `minChipFontSizePx` is a type size and `minChipContrastRatio`
+is WCAG AA for normal text, as `data/displayTuning.ts` says — and a chip that
+paints no glyphs has nothing either can be about. That sample was a true
+statement about a foreground that is not drawn anywhere. Textless chips are now
+excluded from both floors and asserted to occur only in `band`, so "every chip
+of this variant is textless" cannot hide inside a passing run.
+
+**The other two are left to report themselves.** Rather than ship a fix for a
+mechanism that cannot be demonstrated, the instrument was made able to answer
+the question from its own failure message:
+
+- **The boxes are read a second time, after the screenshot, and required to
+  match.** Everything downstream assumes a box and the image describe one
+  layout; `fullPage: true` is what makes that non-free, since capturing beyond
+  the viewport re-resolves anything sized against it — `body` has
+  `min-height: 100vh`, the tooltip panel `max-height: calc(100vh - 16px)` — and
+  on WebKit Playwright resizes the viewport outright. A drifted box is reported
+  as an **instrument fault**, asserted ahead of every contrast finding, so a
+  reader is never asked to guess which kind of failure they are holding.
+- Fonts and every image are awaited before the first box is read. `openApp`
+  awaits `document.fonts.ready` once at startup, which says nothing about a face
+  first used on a later screen and nothing about images at all.
+- A contrast failure now carries the box, the modal colour's **share** of that
+  box, and the document, image and `dpr` geometry. Run #9 reported a ratio and
+  nothing else, so separating "this chip really is on a green bar" from "this
+  box is not where the sampler thinks" cost a full reproduction attempt. A low
+  modal share is itself the tell for a box straddling two surfaces.
+
+**An instrument that reads the wrong pixels does not fail; it answers.** The
+note above `sampleBoxes` has said so since the `dpr` defect. The change here is
+that it is now an assertion instead of a comment.
+
+### Still open
+
+1. **`"Ghost"` 4.43:1 and `"Dark"` 4.21:1** on `rgb(46,50,54)`, and WebKit's
+   **`"Not very effective"` 4.36:1** on `rgb(70,82,58)`. Genuine near-misses,
+   out of scope by Q1, and still red on `main`. `--chip-text` went 70% to 60% at
+   patch 4.7.2 to clear 4.5 on the darkest type hues, worst then 4.81; these sit
+   under it on a surface that tuning did not cover. **Lowering
+   `minChipContrastRatio` is not an option** — `CLAUDE.md` forbids moving a
+   target to make a miss disappear — so the fix raises real contrast, and which
+   lever is Q3, deliberately deferred until the instrument could be trusted.
+2. **`"◎100"` and `"✦10%"` at 1.32:1 remain unexplained.** Not reproducible in
+   a sandbox against either Chromium the repo knows about. The next CI run is
+   expected to report them with a box, a modal share and the screenshot
+   geometry, or to report a drifted box instead — either of which names the
+   cause.
+3. **The other visual suites still depend on the sprite CDN.** `stubSprites` is
+   scoped to the chip suite, because re-pointing `docs/visual/baseline/` and the
+   V1 contrast corpus at a fixture is a separate decision from fixing one file.

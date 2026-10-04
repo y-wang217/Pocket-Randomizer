@@ -58,11 +58,29 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 ## 4. Current state
 
-**In flight: the bench carryover and the gym level column.** Branch
-`claude/amazing-edison-1koyiy`, prompt
+**In flight: the gate runner's ANSI blindness and the chip sampler.** Branch
+`claude/sleepy-mccarthy-crfmqt`, prompt
+[`spec/gymrun-patch-ci-ansi-and-chip-instrument.md`](spec/gymrun-patch-ci-ansi-and-chip-instrument.md),
+record [`generation.md`](generation.md) section 36. Two defects, neither in
+`src/`. **No version axis moves**; `contentHash` holds at `94c6c1`. **It does
+not turn CI green and was not scoped to** — three genuine chip contrast
+near-misses are deliberately left open, in item 1 of the open items below.
+
+The section 33 reporter-timeout tolerance **had never once fired**: vitest
+colours whenever `CI` is set, TTY or not, and the escapes land where the tally
+regex expects whitespace. Run #9 failed the Node leg with all 113 files and 1611
+tests passing. The chip half is more interesting for what it *disproved*: the
+filed explanation for three 1.32:1 failures — sprites arriving between the box
+pass and the screenshot — does not hold. With the suite made hermetic and the
+sprites served, geometry is identical to the pixel (8305 to 8305, zero boxes
+differ) and the suite passes. So the sampler was made able to answer from its own
+failure message instead, and two of those three remain open.
+
+**Merged: the bench carryover and the gym level column.** PR #49 at `379c154`,
+prompt
 [`spec/gymrun-patch-bench-carryover-and-gym-levels.md`](spec/gymrun-patch-bench-carryover-and-gym-levels.md),
 record [`generation.md`](generation.md) section 35. Two items from one playtest
-report. `contentHash` moves from `fd9b5e` to `94c6c1`, by one column of
+report. `contentHash` moved from `fd9b5e` to `94c6c1`, by one column of
 `data/scaling.ts`;
 `RUN_LOG_VERSION`, `RANDOMIZER_VERSION` and `AI_VERSION` all hold.
 
@@ -690,6 +708,24 @@ rule; report and screenshots in
 ## 5. Open items
 
 One line each. The analysis lives where the pointer goes, not here.
+
+0. **Three chip contrast near-misses are red on `main`.** `"Ghost"` 4.43:1 and
+   `"Dark"` 4.21:1 on `rgb(46,50,54)`, and WebKit's `"Not very effective"`
+   4.36:1 on `rgb(70,82,58)`. Genuine, and under the 4.5 floor on a surface
+   patch 4.7.2's `--chip-text` pass did not cover. **Lowering the floor is not
+   an option** — `CLAUDE.md` forbids moving a target to make a miss disappear —
+   so the fix raises real contrast and the lever is undecided.
+   `generation.md` section 36.
+0. **`"◎100"` and `"✦10%"` at 1.32:1 against the HP bar fill are unexplained.**
+   Not reproducible in a sandbox against either Chromium the repo knows about,
+   and the sprite-timing explanation was tested and disproved. The sampler now
+   reports the box, the modal colour's share of it and the screenshot geometry,
+   so the next CI run should name the cause or report a drifted box instead.
+   `generation.md` section 36.
+0. **The visual suites outside the chip one still depend on Showdown's CDN.**
+   `stubSprites` is scoped to `test/visual-chips.test.ts`; re-pointing
+   `docs/visual/baseline/` and the V1 contrast corpus at a fixture is a separate
+   decision. `generation.md` section 36.
 
 0. **Fight length.** Early fights are an exchange rather than a shape. It is now
    the root cause behind two separate carried misses, below, and has earned its
