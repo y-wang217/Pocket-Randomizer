@@ -13061,3 +13061,79 @@ chips on the locale and starter screens at 2 to 4.5:1. It fails identically on
 101 had no reading of that file in its container, and this is the first. It
 comes from the palette, and nothing in the pools can reach it. Left open for
 whoever owns the stage.
+
+## 103. A test for the tally, and the patch main overtook
+
+**2026-10-04**, on `claude/sleepy-mccarthy-crfmqt`. Prompt
+[`spec/gymrun-patch-gate-tally-test.md`](spec/gymrun-patch-gate-tally-test.md).
+Test and tooling only: nothing under `src/`, no version axis moves, no baseline
+re-recorded.
+
+### 103.1 What this is the remainder of
+
+A patch filed on this same branch against `379c154` — "the tolerance that never
+fired, and a sampler that answered", PR #93 — was overtaken while open, and its
+prompt never reached `main`, so it is named here rather than linked: `main` moved 354 commits,
+and sections 47 and 57 had already landed every part of it. Recorded as a
+comparison rather than quietly dropped, because two of the rows are cases where
+the version already here is the better one and the reasoning is worth keeping:
+
+| that patch | `main`, and why it wins |
+|---|---|
+| strip ANSI before reading the tally | 47.5, same diagnosis |
+| wait for images before a box is measured | 47.2. The same `img.decode()` hang on a `loading="lazy"` sprite below the fold was met from both directions; that patch **deleted** the wait, 47.2 flips `loading` to `eager` so the wait terminates *and* still means something |
+| skip a chip with no text | 47.3, and further: `band` comes off `VARIANTS` rather than going quietly absent |
+| serve the sprite host from a local fixture | 57.4's `GYMRUN_PROXY`, which measures **real sprites** through the box's egress proxy — a fixture only ever proves the fixture |
+| carry box, modal share and geometry in the message | superseded by uploading the failing screenshots |
+
+Two findings from it are kept because they cost real time, and one is a
+correction:
+
+- **The font was ruled out, and that was wrong.** Installed font *packages* on
+  the sandbox match the Playwright image's set, and that was taken as
+  equivalence. 57.3 needed `FONTCONFIG_FILE` to reject DejaVu and prefer
+  Liberation Mono to reproduce the CI number: `fc-match` on one box says
+  nothing about another's preference order. Comparing package lists is not
+  comparing resolution, and the candidate dismissed that way was the one that
+  mattered.
+- **Independent corroboration of 47.1**: the gallery Ghost chip reads
+  **5.13:1 on `rgb(34,38,58)`** here, on Chromium 1194 and on the container's
+  1243, matching the developer-box figure 47.1 recorded. Five type hues under
+  4.5 on `rgb(46,50,54)` reproduces 47.4's shape too.
+
+PR #93 is closed carrying that table.
+
+### 103.2 The one gap: `check.mjs` had no test of any kind
+
+The tolerance from section 33 did not fire once until 47.5 fixed it, and the
+guard's own comment says why it survived:
+
+> Locally, with no `CI`, vitest emits plain text and the same guard matched —
+> which is exactly how a bug of this shape survives being tested.
+
+A guard exercised only in the environment where it cannot fail is untested,
+which is the cry-wolf problem `test/boundaries.test.ts` already warns about —
+and it had been sitting in the gate itself.
+
+The tally predicates move to `scripts/check-tally.mjs` **byte-for-byte**, with
+their prose, so a test can reach them. `check.mjs` ends in
+`process.exit(await main())`, so a test that imported it would run the gate; an
+`import.meta.url` entry guard was the alternative and is the worse seam,
+because a guard that fails open means a test run invokes the ten-leg gate it is
+part of. `scripts/check-tally.d.mts` follows the convention
+`scripts/visual/contrast.d.mts` sets.
+
+`test/check-gate.test.ts` is the first test to cover the runner. Its fixtures
+are real: the escape pattern is what this repo emits under `FORCE_COLOR=1`, the
+failing shape is run 37205550086's chromium leg, and the passing counts are
+47.5's own. Against the coloured passing tally under an `onTaskUpdate` timeout:
+
+| | tolerated |
+|---|---|
+| section 33's predicates, before the strip | **false** — the bug |
+| `main` today | **true**, note `120 files, 1650 tests` |
+
+**The guard then fired for real while this was being verified.** `test:node` on
+this branch hit the reporter RPC timeout on its own and reported
+`ERRORED — 157 files, 2051 tests passed`, `check: green`. That is the behaviour
+under test, observed rather than argued.
