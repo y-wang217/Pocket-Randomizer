@@ -18,6 +18,8 @@ export function contextFor(
 
 export function serve(dir?: string): Promise<{ url: string; close: () => void }>;
 export function launch(options?: LaunchOptions, engine?: Engine): Promise<Browser>;
+/** Serve the sprite host from a local fixture, so a measurement means the same everywhere. */
+export function stubSprites(context: BrowserContext, fixture?: string): Promise<void>;
 export function visible(name: string): string;
 export function openScreen(page: Page): Promise<string | null>;
 export function stepOnce(page: Page): Promise<string | null>;

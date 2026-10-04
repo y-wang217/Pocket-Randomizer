@@ -111,6 +111,42 @@ export async function launch(options = {}, engine = ENGINE) {
   return ENGINE_API[engine].launch({ ...(executablePath ? { executablePath } : {}), ...options });
 }
 
+/**
+ * Serve the sprite host from disk, so a measurement means the same everywhere.
+ *
+ * **A visual assertion whose verdict depends on a third-party CDN is not an
+ * assertion.** `ui/sprites.ts` addresses Showdown's Gen 5 set by species id,
+ * and nothing raster ships in the repo by the plan's asset rule, so whether a
+ * sprite paints at all depends on whether the box running the test can reach
+ * `play.pokemonshowdown.com`. The Playwright CI container can; a sandbox behind
+ * an agent proxy the browser does not use cannot, and there the `onerror`
+ * handler sets `data-missing` and `styles.css` hides the image. The box is kept
+ * either way — `visibility: hidden; display: inline-block` — so **geometry is
+ * identical and only the painted pixels differ**, which is exactly the
+ * difference a contrast measurement is sensitive to and a height measurement is
+ * not.
+ *
+ * The fixture is 96x96 RGBA, matching the real Gen 5 sprites' intrinsic size,
+ * mostly transparent with an opaque centre block. Both properties are
+ * load-bearing: a different size would lay out differently from production,
+ * and an opaque full-bleed rectangle would paint over whatever a real sprite
+ * lets show through. Generated rather than copied so no third-party art is in
+ * the tree; it is a 48x48 mid-grey square centred on a transparent 96x96
+ * canvas, written with `zlib.deflateSync` over raw RGBA rows.
+ *
+ * Fulfilled by `path` rather than `body` because `route.fulfill({ body })`
+ * wants a `Buffer`, and `eslint.config.js` declares only `console` and
+ * `process` as globals for `scripts/**\/*.mjs`.
+ *
+ * Deliberately **not** applied to every visual test. The heights in
+ * `docs/visual/baseline/heights.json` and the V1 contrast corpus were all
+ * recorded against whatever the recording box could reach, and re-pointing
+ * them at a fixture is a separate decision from fixing one suite.
+ */
+export async function stubSprites(context, fixture = join(process.cwd(), 'test/fixtures/sprite-stub.png')) {
+  await context.route('**play.pokemonshowdown.com/**', (route) => route.fulfill({ path: fixture }));
+}
+
 export const visible = (name) => `.screen[data-screen="${name}"]:not([hidden])`;
 
 /** Which screen is open, or null. */
@@ -451,7 +487,7 @@ export async function skipTutorialIn(context, density = 'detailed', moveBar = 'g
 }
 
 export async function openApp(browser, url, seed, viewport = PHONE, contextOptions = {}) {
-  const { tutorial = false, density = 'detailed', moveBar = 'grid', ...rest } = contextOptions;
+  const { tutorial = false, density = 'detailed', moveBar = 'grid', stubSpriteHost = false, ...rest } = contextOptions;
   /*
    * The engine's own context shape, then the caller's overrides. **The iOS
    * patch.** On Chromium this is the bare viewport it always was; on WebKit it
@@ -459,6 +495,9 @@ export async function openApp(browser, url, seed, viewport = PHONE, contextOptio
    * and 3x density come along without any test asking for them.
    */
   const context = await browser.newContext({ ...contextFor(viewport, browser.browserType().name()), ...rest });
+  // Before the first navigation, or the sprite requests it fires are already
+  // out and a route added afterwards is too late for them.
+  if (stubSpriteHost) await stubSprites(context);
   if (!tutorial) await skipTutorialIn(context, density, moveBar);
   const page = await context.newPage();
   const problems = [];

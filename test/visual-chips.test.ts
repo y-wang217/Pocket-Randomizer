@@ -34,7 +34,7 @@
 import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { PHONE, openApp, openScreen, stepOnce, visible } from '../scripts/visual/browser.mjs';
+import { PHONE, openApp, openScreen, stepOnce, stubSprites, visible } from '../scripts/visual/browser.mjs';
 import { ratio } from '../scripts/visual/contrast.mjs';
 import { DEFAULT_DISPLAY_TUNING } from '../src/data/displayTuning';
 import { openHarness, type Harness } from './visual/harness';
@@ -77,6 +77,31 @@ const VARIANTS = [
   'neutral',
 ] as const;
 
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * What the instrument was doing when it took a reading.
+ *
+ * Carried on every sample so a failure can say where it looked, not only what
+ * it concluded. **Run #9 is the argument for this.** Three chips came back at
+ * 1.32:1 against the HP bar's green, which is the signature of a box indexing
+ * the wrong pixels — and the message said only the ratio, so distinguishing
+ * "this chip really is on a green bar" from "this box is not where the sampler
+ * thinks" needed a local reproduction that, with sprites served and the engine
+ * matched, does not fail. A reading that cannot be interrogated from its own
+ * failure message costs a round trip per hypothesis.
+ */
+interface Geometry {
+  docHeight: number;
+  imageHeight: number;
+  dpr: number;
+}
+
 interface ChipSample {
   variant: string;
   screen: string;
@@ -84,8 +109,29 @@ interface ChipSample {
   fontSize: number;
   color: [number, number, number];
   background: [number, number, number];
+  /** How much of the box the modal colour covered. A low share is an ambiguous read. */
+  backgroundShare: number;
   ratio: number;
+  box: Box;
+  geometry: Geometry;
 }
+
+/**
+ * Instrument faults the sweep met, kept apart from contrast findings.
+ *
+ * Module-level rather than threaded through `chipsOn`'s return, because it is
+ * not a sample: a drifted box produces no trustworthy reading at all, and the
+ * assertion that reports it has to be able to fail even on a run where every
+ * ratio that *was* read came back fine.
+ */
+const drift: string[] = [];
+
+/** Everything a contrast failure needs in order to be diagnosed without a re-run. */
+const describeSample = (sample: ChipSample): string =>
+  `${sample.screen} "${sample.text}" ${sample.ratio}:1 rgb(${sample.color}) on rgb(${sample.background})` +
+  ` [box ${Math.round(sample.box.x)},${Math.round(sample.box.y)} ${Math.round(sample.box.width)}x${Math.round(sample.box.height)}` +
+  `; modal share ${(sample.backgroundShare * 100).toFixed(0)}%` +
+  `; doc ${sample.geometry.docHeight} image ${sample.geometry.imageHeight} dpr ${sample.geometry.dpr}]`;
 
 /** rgb(), and the `color(srgb …)` form a `color-mix()` computes to. */
 function parseColor(text: string): [number, number, number] | null {
@@ -132,7 +178,7 @@ async function sampleBoxes(
   png: Buffer,
   boxes: { x: number; y: number; width: number; height: number }[],
   ratio: number,
-): Promise<([number, number, number] | null)[]> {
+): Promise<({ color: [number, number, number]; share: number } | null)[]> {
   const scaled = boxes.map((box) => ({
     x: box.x * ratio,
     y: box.y * ratio,
@@ -157,13 +203,18 @@ async function sampleBoxes(
         if (w < 1 || h < 1) return null;
         const { data } = ctx.getImageData(x, y, w, h);
         const counts = new Map<string, number>();
+        let total = 0;
         for (let i = 0; i < data.length; i += 4) {
           const key = `${data[i]! >> 2},${data[i + 1]! >> 2},${data[i + 2]! >> 2}`;
           counts.set(key, (counts.get(key) ?? 0) + 1);
+          total++;
         }
         let best: [string, number] | null = null;
         for (const entry of counts) if (!best || entry[1] > best[1]) best = entry;
-        return best![0].split(',').map((v) => (Number(v) << 2) + 2) as [number, number, number];
+        return {
+          color: best![0].split(',').map((v) => (Number(v) << 2) + 2) as [number, number, number],
+          share: best![1] / total,
+        };
       });
     },
     [png.toString('base64'), scaled] as const,
@@ -172,55 +223,111 @@ async function sampleBoxes(
 
 /** Every rendered chip on the screen currently open, measured. */
 async function chipsOn(page: Page, scratch: Page, screen: string): Promise<ChipSample[]> {
-  const found = await page.evaluate((sel) => {
-    const root = globalThis.document.querySelector(sel);
-    if (!root) return [];
-    return [...root.querySelectorAll('.chip')].flatMap((node) => {
-      const rect = node.getBoundingClientRect();
-      const style = globalThis.getComputedStyle(node);
-      // Present but not rendered — inside a closed overlay, or on a turn that
-      // did not produce one. Skipping it is right; skipping it *silently* is
-      // what the variant assertion catches.
-      if (rect.width < 1 || rect.height < 1) return [];
-      if (style.visibility === 'hidden' || style.opacity === '0') return [];
-      const variant = [...node.classList].find((name) => name.startsWith('chip--'))?.slice(6);
-      if (!variant) return [];
-      return [{
-        variant,
-        text: (node.textContent ?? '').trim(),
-        fontSize: Number.parseFloat(style.fontSize),
-        color: style.color,
-        // Page coordinates, to index into a full-page screenshot.
-        box: {
-          x: rect.left + globalThis.scrollX,
-          y: rect.top + globalThis.scrollY,
-          width: rect.width,
-          height: rect.height,
-        },
-      }];
-    });
-  }, visible(screen));
+  /**
+   * Nothing may still be arriving when the first box is read.
+   *
+   * A box read before a webfont swaps or an image gets its intrinsic size
+   * describes a layout that is about to change, and the screenshot it is
+   * indexed into is taken afterwards. `openApp` awaits `document.fonts.ready`
+   * once at startup, which does not cover a face first used on a later screen,
+   * and says nothing about images at all.
+   */
+  const readChips = (): Promise<{ variant: string; text: string; fontSize: number; color: string; box: Box }[]> =>
+    page.evaluate(async (sel) => {
+      await globalThis.document.fonts.ready;
+      await Promise.all(
+        [...globalThis.document.images].map((img) => (img.complete ? null : img.decode().catch(() => null))),
+      );
+      const root = globalThis.document.querySelector(sel);
+      if (!root) return [];
+      return [...root.querySelectorAll('.chip')].flatMap((node) => {
+        const rect = node.getBoundingClientRect();
+        const style = globalThis.getComputedStyle(node);
+        // Present but not rendered — inside a closed overlay, or on a turn that
+        // did not produce one. Skipping it is right; skipping it *silently* is
+        // what the variant assertion catches.
+        if (rect.width < 1 || rect.height < 1) return [];
+        if (style.visibility === 'hidden' || style.opacity === '0') return [];
+        const variant = [...node.classList].find((name) => name.startsWith('chip--'))?.slice(6);
+        if (!variant) return [];
+        return [{
+          variant,
+          text: (node.textContent ?? '').trim(),
+          fontSize: Number.parseFloat(style.fontSize),
+          color: style.color,
+          // Page coordinates, to index into a full-page screenshot.
+          box: {
+            x: rect.left + globalThis.scrollX,
+            y: rect.top + globalThis.scrollY,
+            width: rect.width,
+            height: rect.height,
+          },
+        }];
+      });
+    }, visible(screen));
 
+  const found = await readChips();
   if (found.length === 0) return [];
   const png = await page.screenshot({ fullPage: true });
   // Device pixels per CSS pixel, asked of the page rather than assumed. 1 on
   // the Chromium leg, 3 on the WebKit one's iPhone descriptor.
   const dpr = await page.evaluate(() => globalThis.devicePixelRatio);
+  const docHeight = await page.evaluate(() => globalThis.document.documentElement.scrollHeight);
+  const imageHeight = png.readUInt32BE(20);
+  const geometry: Geometry = { docHeight, imageHeight, dpr };
+
+  /*
+   * **The boxes are read a second time, after the screenshot, and required to
+   * be the same.**
+   *
+   * Everything below this point assumes a box and the image index the same
+   * layout. `fullPage: true` is the reason that is not free: capturing beyond
+   * the viewport re-resolves anything sized against it — `body` carries
+   * `min-height: 100vh` and the tooltip panel a `max-height: calc(100vh - 16px)`
+   * — and on WebKit Playwright resizes the viewport outright. If that moves a
+   * chip, every box after it indexes pixels belonging to something else, and
+   * the suite reports a contrast number for a region it never measured.
+   *
+   * Run #9 is why this is an assertion and not a comment. Three chips came back
+   * at 1.32:1 against the HP bar's solid green, which is what a wrong-pixel
+   * read looks like, and the suite had no way to say so — the same 1.32:1 the
+   * `sampleBoxes` note above records from the `dpr` defect. **An instrument
+   * that reads the wrong pixels does not fail; it answers.** So it is made to
+   * fail, as an instrument fault, named separately from a contrast one.
+   */
+  const after = await readChips();
+  if (after.length !== found.length) {
+    drift.push(`${screen}: chip count changed under the screenshot, ${found.length} -> ${after.length}`);
+  } else {
+    for (const [index, before] of found.entries()) {
+      const now = after[index]!.box;
+      if (before.box.x === now.x && before.box.y === now.y && before.box.width === now.width && before.box.height === now.height) continue;
+      drift.push(
+        `${screen}: "${before.text}" moved under the screenshot, ` +
+          `[${Math.round(before.box.x)},${Math.round(before.box.y)} ${Math.round(before.box.width)}x${Math.round(before.box.height)}] -> ` +
+          `[${Math.round(now.x)},${Math.round(now.y)} ${Math.round(now.width)}x${Math.round(now.height)}]`,
+      );
+    }
+  }
+
   const backgrounds = await sampleBoxes(scratch, png, found.map((chip) => chip.box), dpr);
 
   const out: ChipSample[] = [];
   for (const [index, chip] of found.entries()) {
     const color = parseColor(chip.color);
-    const background = backgrounds[index];
-    if (!color || !background) continue;
+    const read = backgrounds[index];
+    if (!color || !read) continue;
     out.push({
       variant: chip.variant,
       screen,
       text: chip.text,
       fontSize: chip.fontSize,
       color,
-      background,
-      ratio: ratio(color, background),
+      background: read.color,
+      backgroundShare: read.share,
+      ratio: ratio(color, read.color),
+      box: chip.box,
+      geometry,
     });
   }
   return out;
@@ -243,7 +350,12 @@ async function chipsOn(page: Page, scratch: Page, screen: string): Promise<ChipS
  * variant list rather than by the length of the run.
  */
 async function sweep(): Promise<ChipSample[]> {
-  const { page, context } = await openApp(harness.browser, harness.url, 'STAT49-298');
+  // `stubSpriteHost` is why this suite gives the same answer on a CI container
+  // that can reach Showdown's CDN and a sandbox that cannot. See `stubSprites`
+  // in `scripts/visual/browser.mjs`: the sprite box is kept either way, so the
+  // divergence is in painted pixels, which is precisely what a contrast
+  // measurement reads.
+  const { page, context } = await openApp(harness.browser, harness.url, 'STAT49-298', PHONE, { stubSpriteHost: true });
   const scratch = await context.newPage();
   await scratch.setContent('<canvas></canvas>');
   const samples: ChipSample[] = [];
@@ -323,6 +435,7 @@ async function sweep(): Promise<ChipSample[]> {
   const galleryHarness = await openHarness({ gallery: true });
   try {
     const galleryContext = await galleryHarness.browser.newContext({ viewport: PHONE });
+    await stubSprites(galleryContext);
     const gallery = await galleryContext.newPage();
     await gallery.goto(`${galleryHarness.url}/gallery.html#seed=S49B-1&screen=party&fixture=loaded`, { waitUntil: 'load' });
     await gallery.waitForSelector(`${visible('party')} .chip`, { timeout: 20_000 });
@@ -352,6 +465,39 @@ describe('the chip legibility floor', () => {
     expect([...seen].sort()).toEqual([...VARIANTS].sort());
   });
 
+  /**
+   * The instrument before the finding.
+   *
+   * This fails *first* on a run where a box moved, so a reader is never asked
+   * to decide whether a ratio below the floor is a chip problem or a sampler
+   * problem. Nothing below it means anything if this one is red.
+   */
+  it('measures a layout that did not move under the screenshot', () => {
+    expect(drift, 'the boxes and the image do not describe the same layout').toEqual([]);
+  });
+
+  /**
+   * A chip with no text is measured for its fill, never for its legibility.
+   *
+   * **Both floors here are floors on reading words.** `minChipFontSizePx` is a
+   * type size and `minChipContrastRatio` is WCAG AA for normal text, and the
+   * note in `data/displayTuning.ts` ties the 4.5 to text explicitly. A chip
+   * that renders no glyphs has nothing either one can be about: the `band`
+   * variant draws a 38x9 bar, and run #9 reported one of them at 1.32:1
+   * against the HP green its own fill is made of — a true statement about a
+   * foreground that is not painted anywhere.
+   *
+   * They are counted rather than quietly dropped, because "no chip was
+   * rendered" and "every chip of this variant is textless" are different facts
+   * and the second one should not be able to hide inside a passing run.
+   */
+  const withText = (sample: ChipSample) => sample.text !== '';
+
+  it('finds textless chips only in the variants that draw a bar rather than a word', () => {
+    const textless = new Set(samples.filter((sample) => !withText(sample)).map((sample) => sample.variant));
+    expect([...textless].sort()).toEqual(['band']);
+  });
+
   /*
    * Per surface rather than over the pile, and both floors read off `Tuning`.
    *
@@ -365,6 +511,7 @@ describe('the chip legibility floor', () => {
       const mine = samples.filter((sample) => sample.variant === variant);
       expect(mine.length, `no ${variant} chip was rendered`).toBeGreaterThan(0);
       const under = mine
+        .filter(withText)
         .filter((sample) => sample.fontSize < DEFAULT_DISPLAY_TUNING.minChipFontSizePx)
         .map((sample) => `${sample.screen} "${sample.text}" ${sample.fontSize}px`);
       expect(under, `below displayTuning.minChipFontSizePx (${DEFAULT_DISPLAY_TUNING.minChipFontSizePx})`).toEqual([]);
@@ -374,8 +521,9 @@ describe('the chip legibility floor', () => {
       const mine = samples.filter((sample) => sample.variant === variant);
       expect(mine.length, `no ${variant} chip was rendered`).toBeGreaterThan(0);
       const under = mine
+        .filter(withText)
         .filter((sample) => sample.ratio < DEFAULT_DISPLAY_TUNING.minChipContrastRatio)
-        .map((sample) => `${sample.screen} "${sample.text}" ${sample.ratio}:1 rgb(${sample.color}) on rgb(${sample.background})`);
+        .map(describeSample);
       expect(under, `below displayTuning.minChipContrastRatio (${DEFAULT_DISPLAY_TUNING.minChipContrastRatio})`).toEqual([]);
     });
   }
