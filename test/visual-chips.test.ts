@@ -100,6 +100,23 @@ interface Geometry {
   docHeight: number;
   imageHeight: number;
   dpr: number;
+  /**
+   * A fixed string's width in the body face, as a fingerprint of text metrics.
+   *
+   * **Nothing in this repo ships a font.** `tokens.css` sets every face to
+   * `ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace`, and
+   * on Linux not one of the named five exists — so both a CI container and a
+   * sandbox fall through to generic `monospace` and get whatever their
+   * fontconfig prefers. A container with a different mono font installed lays
+   * every chip out at a different width, which is a difference this suite is
+   * sensitive to and `heights.json` would also have caught had it been one of
+   * the surfaces it records.
+   *
+   * It is carried here because it is the cheapest way to settle that from a
+   * failure message: the same number in CI and locally means the metrics match
+   * and the font is not the cause, and a different number names it outright.
+   */
+  fontProbe: number;
 }
 
 interface ChipSample {
@@ -131,7 +148,8 @@ const describeSample = (sample: ChipSample): string =>
   `${sample.screen} "${sample.text}" ${sample.ratio}:1 rgb(${sample.color}) on rgb(${sample.background})` +
   ` [box ${Math.round(sample.box.x)},${Math.round(sample.box.y)} ${Math.round(sample.box.width)}x${Math.round(sample.box.height)}` +
   `; modal share ${(sample.backgroundShare * 100).toFixed(0)}%` +
-  `; doc ${sample.geometry.docHeight} image ${sample.geometry.imageHeight} dpr ${sample.geometry.dpr}]`;
+  `; doc ${sample.geometry.docHeight} image ${sample.geometry.imageHeight} dpr ${sample.geometry.dpr}` +
+  `; font probe ${sample.geometry.fontProbe}]`;
 
 /** rgb(), and the `color(srgb …)` form a `color-mix()` computes to. */
 function parseColor(text: string): [number, number, number] | null {
@@ -223,21 +241,30 @@ async function sampleBoxes(
 
 /** Every rendered chip on the screen currently open, measured. */
 async function chipsOn(page: Page, scratch: Page, screen: string): Promise<ChipSample[]> {
-  /**
-   * Nothing may still be arriving when the first box is read.
+  /*
+   * Fonts, before the first box is read — and **fonts only.**
    *
-   * A box read before a webfont swaps or an image gets its intrinsic size
-   * describes a layout that is about to change, and the screenshot it is
-   * indexed into is taken afterwards. `openApp` awaits `document.fonts.ready`
-   * once at startup, which does not cover a face first used on a later screen,
-   * and says nothing about images at all.
+   * A box read before a face swaps describes a layout about to change, and the
+   * screenshot it is indexed into is taken afterwards. `openApp` awaits
+   * `document.fonts.ready` once at startup, which does not cover a face first
+   * used on a later screen.
+   *
+   * **Images are deliberately not awaited, and trying to was a real defect.**
+   * `img.decode()` on an element that is `loading="lazy"` and below the fold
+   * never settles, because nothing is going to fetch it until it scrolls into
+   * view — and the gallery's loaded party is 8305px tall with most of its
+   * sprites off screen, so awaiting them took the sweep from 433s to past its
+   * 900s hook timeout. Nothing was lost by dropping it: `ui/sprites.ts` pins
+   * `width` and `height` to 96 and `styles.css` keeps a failed sprite's box
+   * with `display: inline-block`, so an image cannot move this layout — which
+   * is measured, not assumed, and is the same finding that refuted the
+   * sprite-timing explanation for run #9. The drift check below is the backstop
+   * for anything that does move.
    */
+  await page.evaluate(() => globalThis.document.fonts.ready);
+
   const readChips = (): Promise<{ variant: string; text: string; fontSize: number; color: string; box: Box }[]> =>
-    page.evaluate(async (sel) => {
-      await globalThis.document.fonts.ready;
-      await Promise.all(
-        [...globalThis.document.images].map((img) => (img.complete ? null : img.decode().catch(() => null))),
-      );
+    page.evaluate((sel) => {
       const root = globalThis.document.querySelector(sel);
       if (!root) return [];
       return [...root.querySelectorAll('.chip')].flatMap((node) => {
@@ -273,8 +300,23 @@ async function chipsOn(page: Page, scratch: Page, screen: string): Promise<ChipS
   // the Chromium leg, 3 on the WebKit one's iPhone descriptor.
   const dpr = await page.evaluate(() => globalThis.devicePixelRatio);
   const docHeight = await page.evaluate(() => globalThis.document.documentElement.scrollHeight);
+  const fontProbe = await page.evaluate(() => {
+    const probe = globalThis.document.createElement('span');
+    probe.style.position = 'absolute';
+    probe.style.visibility = 'hidden';
+    probe.style.whiteSpace = 'pre';
+    probe.style.fontSize = '16px';
+    probe.style.fontFamily = globalThis
+      .getComputedStyle(globalThis.document.documentElement)
+      .getPropertyValue('--font-body');
+    probe.textContent = 'MWil0◎✦';
+    globalThis.document.body.append(probe);
+    const width = probe.getBoundingClientRect().width;
+    probe.remove();
+    return Math.round(width * 100) / 100;
+  });
   const imageHeight = png.readUInt32BE(20);
-  const geometry: Geometry = { docHeight, imageHeight, dpr };
+  const geometry: Geometry = { docHeight, imageHeight, dpr, fontProbe };
 
   /*
    * **The boxes are read a second time, after the screenshot, and required to

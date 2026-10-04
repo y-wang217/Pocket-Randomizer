@@ -5968,9 +5968,31 @@ the question from its own failure message:
   on WebKit Playwright resizes the viewport outright. A drifted box is reported
   as an **instrument fault**, asserted ahead of every contrast finding, so a
   reader is never asked to guess which kind of failure they are holding.
-- Fonts and every image are awaited before the first box is read. `openApp`
-  awaits `document.fonts.ready` once at startup, which says nothing about a face
-  first used on a later screen and nothing about images at all.
+- Fonts are awaited before the first box is read. `openApp` awaits
+  `document.fonts.ready` once at startup, which says nothing about a face first
+  used on a later screen.
+
+  **Images are not, and awaiting them was a defect this patch introduced and
+  then removed.** `img.decode()` on an element that is `loading="lazy"` and
+  below the fold never settles — nothing fetches it until it scrolls into view —
+  and the gallery's loaded party is 8305px tall with most of its sprites off
+  screen. The sweep went from 433s to past its 900s hook timeout and the whole
+  file failed. Nothing was lost by dropping it: `ui/sprites.ts` pins `width` and
+  `height` to 96 and `styles.css:5069` keeps a failed sprite's box, so an image
+  cannot move this layout — the same measurement that refuted the sprite-timing
+  explanation. The drift check is the backstop for anything that does move,
+  which is the point of having one.
+- **A font-metric fingerprint travels with every reading.** Nothing in this repo
+  ships a font: `tokens.css:191` sets every face to
+  `ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace`, and on
+  Linux **not one of the named five exists**, so a CI container and a sandbox
+  both fall through to generic `monospace` and take whatever their fontconfig
+  prefers — DejaVu Sans Mono here, not necessarily there. Different mono
+  metrics lay every chip out at a different width. So a fixed string's width in
+  the body face is measured and carried in the failure message: the same number
+  in CI and locally rules the font out, a different one names it. This is the
+  last candidate standing, and it is the reason the next CI run is expected to
+  be informative rather than merely red.
 - A contrast failure now carries the box, the modal colour's **share** of that
   box, and the document, image and `dpr` geometry. Run #9 reported a ratio and
   nothing else, so separating "this chip really is on a green bar" from "this
@@ -5991,11 +6013,21 @@ that it is now an assertion instead of a comment.
    `minChipContrastRatio` is not an option** — `CLAUDE.md` forbids moving a
    target to make a miss disappear — so the fix raises real contrast, and which
    lever is Q3, deliberately deferred until the instrument could be trusted.
-2. **`"◎100"` and `"✦10%"` at 1.32:1 remain unexplained.** Not reproducible in
-   a sandbox against either Chromium the repo knows about. The next CI run is
-   expected to report them with a box, a modal share and the screenshot
-   geometry, or to report a drifted box instead — either of which names the
-   cause.
+2. **`"◎100"` and `"✦10%"` at 1.32:1 remain unexplained.** Four candidates were
+   ruled out by measurement rather than by argument:
+
+   | candidate | result |
+   |---|---|
+   | sprites arriving between the box pass and the screenshot | geometry identical, 0 boxes differ |
+   | the chips genuinely sit on the HP bar | no chip overlaps an HP fill, in either sprite state |
+   | the `fullPage` screenshot is mis-scaled | 390x8305, scale error 1.0000x |
+   | the engine build — CI's exact Chromium 1243, installed to test it | 0 of 45 under the floor |
+
+   **The font stack is the one candidate left standing**, for the reason in the
+   fingerprint bullet above: nothing here ships a font and Linux resolves the
+   whole stack to generic `monospace`. The next CI run reports each failure with
+   its box, the modal colour's share of it, the screenshot geometry and that
+   fingerprint — or reports a drifted box instead. Any of those names the cause.
 3. **The other visual suites still depend on the sprite CDN.** `stubSprites` is
    scoped to the chip suite, because re-pointing `docs/visual/baseline/` and the
    V1 contrast corpus at a fixture is a separate decision from fixing one file.
