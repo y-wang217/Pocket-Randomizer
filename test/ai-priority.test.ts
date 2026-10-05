@@ -461,15 +461,18 @@ describe('the version axes', () => {
      * out of `data/abilities.ts` and three out of `data/movePools.ts`, with
      * `gymrun-randomizer-25` beside it. `docs/generation.md` section 102.
      *
-     * And from `1ba856` for Stage 6.0's encounter library, checkpoints 1 and
-     * 2: the record type and nine generated tables under `data/encounters/`,
-     * hashed because they are data. **No randomizer axis moves beside it**,
-     * for once: nothing under `core/` reads the tables yet, so every seed
-     * still draws what it drew. The hash moving ahead of the draws is the
-     * honest order; a seed string minted now already names the library its
-     * next release will draw from. `docs/spec/gymrun-stage6.0-encounter-library.md`.
+     * And from `1ba856` for Stage 6.0's encounter library, checkpoints 1 to
+     * 3: the record type and nineteen generated tables under
+     * `data/encounters/` (nine Gen 1 to 4 games from the pret decompilations
+     * at `39088c`, ten Gen 5 to 9 games from pokemondb's roster pages at
+     * `933311`), hashed because they are data. **No randomizer axis moves
+     * beside it**, for once: nothing under `core/` reads the tables yet, so
+     * every seed still draws what it drew. The hash moving ahead of the
+     * draws is the honest order; a seed string minted now already names the
+     * library its next release will draw from.
+     * `docs/spec/gymrun-stage6.0-encounter-library.md`.
      */
-    expect(CONTENT_HASH).toBe('39088c78d7d38d547ed5e9633f2ee8cb627be2a44d27d3bed0f20b30cc65fe8a');
+    expect(CONTENT_HASH).toBe('933311cefc3ddc29d88b26085d76ead4c99c51ae519ba6511ce0cd3e2029783f');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

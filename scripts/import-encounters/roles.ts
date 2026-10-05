@@ -126,6 +126,7 @@ const FRONTIER = /^(SALON_MAIDEN|DOME_ACE|PALACE_MAVEN|ARENA_TYCOON|FACTORY_HEAD
 const VILLAIN = /^(ROCKET_BOSS|BOSS|BOSS_\w+|GALACTIC_BOSS|COMMANDER_\w+|AQUA_LEADER|MAGMA_LEADER|AQUA_ADMIN|MAGMA_ADMIN|EXECUTIVE|EXECUTIVE_\w+|MYSTERY_MAN)$/;
 
 export function roleOf(row: RawEncounter): TrainerRole {
+  if (row.role) return row.role;
   const key = row.classKey;
   const gen = GAME_GEN[row.game];
   const gb = gen <= 2;
@@ -146,6 +147,7 @@ export function roleOf(row: RawEncounter): TrainerRole {
 
 export function gymTypeOf(row: RawEncounter, role: TrainerRole): TypeName | undefined {
   if (role !== 'gym') return undefined;
+  if (row.gymType) return row.gymType as TypeName;
   const type = GYM_TYPE[row.name.toLowerCase()];
   return type ?? undefined;
 }

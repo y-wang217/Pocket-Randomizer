@@ -2,7 +2,7 @@
  * What a parser hands back: one row per trainer battle, before roles, sprites
  * and ids are assigned. Species, moves and items are already Showdown ids.
  */
-import type { GameId, PartyMember } from '../../src/data/encounters/types';
+import type { GameId, PartyMember, TrainerRole } from '../../src/data/encounters/types';
 
 /** A regex group or table cell that the source guarantees. Throws with the reason rather than passing `undefined` on. */
 export function must<T>(value: T | undefined, what: string): T {
@@ -24,6 +24,10 @@ export interface RawEncounter {
   double?: boolean;
   /** The trainer is drawn as a woman, where the source says: picks the `f` sprite of a gendered class. */
   female?: boolean;
+  /** A role the source states outright (the pokemondb sections), overriding the class-constant rules. */
+  role?: TrainerRole;
+  /** A gym type the source states outright, for a stated `gym` role. */
+  gymType?: string;
   /** The file and label the row was read from, relative to the repository. */
   cite: string;
 }

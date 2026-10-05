@@ -3,39 +3,83 @@
   "repos": {
     "pokered": {
       "sha": "d2704a63c26f9ba046ade877445216b3de0519a4",
-      "paths": ["data/trainers/parties.asm", "data/trainers/names.asm"]
+      "paths": [
+        "data/trainers/parties.asm",
+        "data/trainers/names.asm"
+      ]
     },
     "pokeyellow": {
       "sha": "e89ead154b9968aa50eed9328ff2b38b6c194382",
-      "paths": ["data/trainers/parties.asm", "data/trainers/names.asm"]
+      "paths": [
+        "data/trainers/parties.asm",
+        "data/trainers/names.asm"
+      ]
     },
     "pokegold": {
       "sha": "62388c7204e5d13aa05b4231e220b6760584d1b5",
-      "paths": ["data/trainers/parties.asm", "data/trainers/class_names.asm"]
+      "paths": [
+        "data/trainers/parties.asm",
+        "data/trainers/class_names.asm"
+      ]
     },
     "pokecrystal": {
       "sha": "5beda23ffa505f62e1dad7e3d7c214d1737b3358",
-      "paths": ["data/trainers/parties.asm", "data/trainers/class_names.asm"]
+      "paths": [
+        "data/trainers/parties.asm",
+        "data/trainers/class_names.asm"
+      ]
     },
     "pokeruby": {
       "sha": "5784633ce4ef7ade1a7f2d2d0c288e3d5e6cdd7f",
-      "paths": ["src/data/trainers_en.h", "src/data/trainer_parties.h", "src/data/text/trainer_class_names_en.h"]
+      "paths": [
+        "src/data/trainers_en.h",
+        "src/data/trainer_parties.h",
+        "src/data/text/trainer_class_names_en.h"
+      ]
     },
     "pokeemerald": {
       "sha": "731ad5bfd6e6f265508d0efcca0ba42f9dcf5881",
-      "paths": ["src/data/trainers.h", "src/data/trainer_parties.h", "src/data/text/trainer_class_names.h"]
+      "paths": [
+        "src/data/trainers.h",
+        "src/data/trainer_parties.h",
+        "src/data/text/trainer_class_names.h"
+      ]
     },
     "pokefirered": {
       "sha": "037335f4c725d7c9aecdac87066f2002b4bd7e14",
-      "paths": ["src/data/trainers.h", "src/data/trainer_parties.h", "src/data/text/trainer_class_names.h"]
+      "paths": [
+        "src/data/trainers.h",
+        "src/data/trainer_parties.h",
+        "src/data/text/trainer_class_names.h"
+      ]
     },
     "pokeplatinum": {
       "sha": "c248fb3f8cc9934ded800e489567c5c0eeee92eb",
-      "paths": ["res/trainers/data"]
+      "paths": [
+        "res/trainers/data"
+      ]
     },
     "pokeheartgold": {
       "sha": "9d8b7591f09b65804da2fb2dfd56f320633e0d36",
-      "paths": ["files/poketool/trainer/trainers.json"]
+      "paths": [
+        "files/poketool/trainer/trainers.json"
+      ]
+    }
+  },
+  "pokemondb": {
+    "$comment": "Gen 5 to 9, read from pokemondb.net on the date below. A page has no revision id; the data test pins the counts, so a refetch that changes a roster is loud.",
+    "fetchedAt": "2026-10-05",
+    "pages": {
+      "bw": "black-white/gymleaders-elitefour",
+      "b2w2": "black-white-2/gymleaders-elitefour",
+      "xy": "x-y/gymleaders-elitefour",
+      "oras": "omega-ruby-alpha-sapphire/gymleaders-elitefour",
+      "sm": "sun-moon/kahunas-elitefour",
+      "usum": "ultra-sun-ultra-moon/kahunas-elitefour",
+      "lgpe": "lets-go-pikachu-eevee/gymleaders-elitefour",
+      "swsh": "sword-shield/gymleaders",
+      "bdsp": "brilliant-diamond-shining-pearl/gymleaders-elitefour",
+      "sv": "scarlet-violet/gymleaders-elitefour"
     }
   }
 }

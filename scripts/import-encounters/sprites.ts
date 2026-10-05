@@ -53,7 +53,7 @@ const ERA: Record<GameId, string[]> = {
   bw: ['-gen5bw', '-gen5', ''],
   b2w2: ['-gen5bw2', '-gen5', ''],
   xy: ['-gen6xy', '-gen6', ''],
-  oras: ['-gen6', '-gen6xy', ''],
+  oras: ['-gen6', '-gen6xy', '', '-gen3'],
   sm: ['-gen7', ''],
   usum: ['-gen7', ''],
   lgpe: ['-lgpe', ''],
@@ -68,6 +68,10 @@ const NAME_SPRITES: Record<string, string[]> = {
   'tate & liza': ['tateandliza'],
   'crasher wake': ['crasherwake'],
   'professor oak': ['oak'],
+  // Scarlet and Violet's named trainers are drawn per version on the CDN; Scarlet's art is the one chosen.
+  nemona: ['nemona-s', 'nemona-v'],
+  arven: ['arven-s', 'arven-v'],
+  clavell: ['clavell-s', 'clavell-v'],
 };
 
 /**

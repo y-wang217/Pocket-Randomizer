@@ -12,9 +12,9 @@
 import { BLACKLISTED_SPECIES } from '../../src/data/blacklists';
 import { DAMAGING_MOVES, STATUS_MOVES } from '../../src/data/movePools';
 import { SPECIES_POOL } from '../../src/data/speciesPools';
-import type { EncounterRecord, GameId } from '../../src/data/encounters/types';
+import type { EncounterRecord, EncounterSource, GameId } from '../../src/data/encounters/types';
 import { emitGame, toRecords } from './emit';
-import { fetchAll, loadSources } from './fetch';
+import { fetchAll, fetchPokemondb, loadPokemondb, loadSources } from './fetch';
 import type { RawEncounter } from './model';
 import { GAME_LABEL } from './model';
 import { unresolvedItems } from './names';
@@ -22,7 +22,10 @@ import { parseGen1 } from './parse-gen1';
 import { parseGen2 } from './parse-gen2';
 import { parseGen3 } from './parse-gen3';
 import { parseHgss, parsePlatinum } from './parse-gen4';
+import { parsePokemondb, unplacedNames } from './parse-pokemondb';
 import { refreshSpriteList } from './sprites';
+
+const POKEMONDB_GAMES: GameId[] = ['bw', 'b2w2', 'xy', 'oras', 'sm', 'usum', 'lgpe', 'swsh', 'bdsp', 'sv'];
 
 const IMPORTS: { game: GameId; repo: string; parse: () => RawEncounter[] }[] = [
   { game: 'rby', repo: 'pokered', parse: () => parseGen1('pokered', 'rby') },
@@ -34,6 +37,7 @@ const IMPORTS: { game: GameId; repo: string; parse: () => RawEncounter[] }[] = [
   { game: 'frlg', repo: 'pokefirered', parse: () => parseGen3('pokefirered', 'frlg') },
   { game: 'platinum', repo: 'pokeplatinum', parse: parsePlatinum },
   { game: 'hgss', repo: 'pokeheartgold', parse: parseHgss },
+  ...POKEMONDB_GAMES.map((game) => ({ game, repo: 'pokemondb', parse: () => parsePokemondb(game) })),
 ];
 
 const poolSpecies = new Set(SPECIES_POOL.map((s) => s.id).filter((id) => !BLACKLISTED_SPECIES.includes(id)));
@@ -133,6 +137,8 @@ function printReport(all: Stats[], records: EncounterRecord[]): void {
   for (const r of records) for (const m of r.party) for (const mv of m.moves ?? []) if (!poolMoves.has(mv)) movesOut.set(mv, (movesOut.get(mv) ?? 0) + 1);
   console.log(`Set moves outside the pool (${movesOut.size} distinct): ${[...movesOut.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} (${n})`).join(', ')}`);
   console.log('');
+  console.log(`Other-trainers names with no role (${unplacedNames.size}): ${[...unplacedNames.entries()].map(([k, v]) => `${k} [${v}]`).join(', ') || 'none'}`);
+  console.log('');
   console.log(`Items with no modern counterpart, dropped: ${[...unresolvedItems.entries()].map(([k, n]) => `${k} (${n})`).join(', ') || 'none'}`);
   console.log('');
   const gymTypes = new Map<string, Set<string>>();
@@ -154,17 +160,29 @@ function printReport(all: Stats[], records: EncounterRecord[]): void {
 async function main(): Promise<void> {
   const args = new Set(process.argv.slice(2));
   if (args.has('--refresh-sprites')) await refreshSpriteList();
-  if (args.has('--fetch')) fetchAll();
+  if (args.has('--fetch')) {
+    fetchAll();
+    await fetchPokemondb();
+  }
   const sources = loadSources();
+  const pokemondb = loadPokemondb();
   const all: Stats[] = [];
   const everything: EncounterRecord[] = [];
   for (const entry of IMPORTS) {
-    const pin = sources[entry.repo];
-    if (!pin) throw new Error(`${entry.repo} is not pinned in sources.json`);
+    let source: EncounterSource;
+    if (entry.repo === 'pokemondb') {
+      const page = pokemondb.pages[entry.game];
+      if (!page) throw new Error(`${entry.game} has no pokemondb page in sources.json`);
+      source = { repo: 'pokemondb.net', sha: pokemondb.fetchedAt, files: [page] };
+    } else {
+      const pin = sources[entry.repo];
+      if (!pin) throw new Error(`${entry.repo} is not pinned in sources.json`);
+      source = { repo: `pret/${entry.repo}`, sha: pin.sha, files: pin.paths };
+    }
     const records = toRecords(entry.parse());
     all.push(stats(entry.game, records));
     everything.push(...records);
-    if (!args.has('--report')) emitGame(entry.game, records, entry.repo, pin);
+    if (!args.has('--report')) emitGame(entry.game, records, source);
   }
   const ids = new Set<string>();
   for (const r of everything) {

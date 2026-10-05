@@ -10,7 +10,6 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { EncounterRecord, EncounterSource, GameId } from '../../src/data/encounters/types';
-import type { SourcePin } from './fetch';
 import type { RawEncounter } from './model';
 import { GAME_GEN, GAME_LABEL } from './model';
 import { slug } from './names';
@@ -69,9 +68,8 @@ function literal(record: EncounterRecord): string {
   return `  { ${fields.join(', ')} },`;
 }
 
-export function emitGame(game: GameId, records: EncounterRecord[], repo: string, pin: SourcePin): void {
+export function emitGame(game: GameId, records: EncounterRecord[], source: EncounterSource): void {
   const constName = game.toUpperCase();
-  const source: EncounterSource = { repo: `pret/${repo}`, sha: pin.sha, files: pin.paths };
   const body = records.map(literal).join('\n');
   const text = `/**
  * GENERATED FILE — do not hand-edit. Produced by \`npm run gen:encounters\`

@@ -268,6 +268,42 @@ that a one-line edit reverses.
 - HGSS's trainer table is not where the Platinum one is; it is one JSON at
   `files/poketool/trainer/trainers.json`. Found by sparse-cloning the
   repository, since the GitHub contents API is not reachable from here.
-- No decompilation exists for Gen 5 onward. Those rosters are curated from
-  Bulbapedia by hand, with the page URL as the citation, and are limited to
-  bosses: roughly 15 named fights per game across ten games.
+- No decompilation exists for Gen 5 onward, and **Bulbapedia cannot be read
+  from here**: its raw wikitext endpoint and its rendered pages both answer
+  with a Cloudflare browser challenge (HTTP 403) to curl and to the fetch
+  tool alike, so nothing on it can be parsed or pinned. Checkpoint 3 reads
+  pokemondb.net instead, whose robots policy permits it (crawl delay 2 s,
+  honoured): one roster page per game, with every gym leader, kahuna, trial
+  captain, Elite Four member, champion, rival and villain the page lists,
+  rematches included, as species and levels. No set moves and no items,
+  which is the shape Gen 1 has. Each table cites the page, and each row the
+  section id and head it was read from; the pin is the fetch date plus the
+  counts the data test holds, since a page has no revision.
+
+  | game | page | encounters |
+  |---|---|---|
+  | Black and White | `black-white/gymleaders-elitefour` | 23 |
+  | Black 2 and White 2 | `black-white-2/gymleaders-elitefour` | 20 |
+  | X and Y | `x-y/gymleaders-elitefour` | 13 |
+  | Omega Ruby and Alpha Sapphire | `omega-ruby-alpha-sapphire/gymleaders-elitefour` | 18 |
+  | Sun and Moon | `sun-moon/kahunas-elitefour` | 23 |
+  | Ultra Sun and Ultra Moon | `ultra-sun-ultra-moon/kahunas-elitefour` | 31 |
+  | Let's Go, Pikachu! and Let's Go, Eevee! | `lets-go-pikachu-eevee/gymleaders-elitefour` | 31 |
+  | Sword and Shield | `sword-shield/gymleaders` | 20 |
+  | Brilliant Diamond and Shining Pearl | `brilliant-diamond-shining-pearl/gymleaders-elitefour` | 38 |
+  | Scarlet and Violet | `scarlet-violet/gymleaders-elitefour` | 36 |
+
+  253 encounters, bringing the library to **5,627**. Kahunas and trial
+  captains are read as gym leaders of their stated type, since a grand trial
+  is Alola's gym. The Sword and Shield page has no Champion Cup, so Leon,
+  Hop and Marnie are not in it; that is a gap to curate later, not a parse
+  miss. Twenty species on these rosters fall outside the pool: the regional
+  formes the pool excludes (Alolan Ninetales, Galarian Weezing, Lycanroc
+  Midnight and the like) and Zekrom and Reshiram on N's team; the fit rule
+  drops them, and the data test pins the set. Every named trainer resolves
+  to a sprite except Game Freak's Morimoto, who has none on the CDN.
+
+  What this changes in section 5: Ghost gains Allister (SwSh), Ryme (SV),
+  Fantina's BDSP rosters, and Acerola, Phoebe and Shauntal rematches on the
+  Elite Four rule; Dragon gains Drayden and Iris (BW, B2W2), Raihan (SwSh),
+  and Drasna, Drake and Hassel on the Elite Four rule.

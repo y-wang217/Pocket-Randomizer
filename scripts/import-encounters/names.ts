@@ -113,6 +113,7 @@ const NAME_OVERRIDES: Record<string, string> = {
   LT_SURGE: 'Lt. Surge',
   'TATE&LIZA': 'Tate & Liza',
   TATE_AND_LIZA: 'Tate & Liza',
+  'Liza & Tate': 'Tate & Liza',
   Wake: 'Crasher Wake',
 };
 

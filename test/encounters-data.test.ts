@@ -24,13 +24,18 @@ const root = new URL('..', import.meta.url).pathname;
 
 const pins = JSON.parse(readFileSync(`${root}scripts/import-encounters/sources.json`, 'utf8')) as {
   repos: Record<string, { sha: string; paths: string[] }>;
+  pokemondb: { fetchedAt: string; pages: Record<string, string> };
 };
 const spriteList = new Set(
   (JSON.parse(readFileSync(`${root}scripts/import-encounters/sprites.json`, 'utf8')) as { ids: string[] }).ids,
 );
 const poolSpecies = new Set(SPECIES_POOL.map((entry) => entry.id));
 
-/** The library as reviewed at checkpoint 2. A regenerate updates these on purpose. */
+/**
+ * The library as reviewed at checkpoints 2 and 3. A regenerate updates these
+ * on purpose. Gen 1 to 4 are every trainer in the game; Gen 5 to 9 are the
+ * bosses pokemondb's roster pages list, rematches included.
+ */
 const EXPECTED_COUNTS: Record<string, number> = {
   rby: 352,
   yellow: 343,
@@ -41,6 +46,16 @@ const EXPECTED_COUNTS: Record<string, number> = {
   frlg: 639,
   platinum: 725,
   hgss: 734,
+  bw: 23,
+  b2w2: 20,
+  xy: 13,
+  oras: 18,
+  sm: 23,
+  usum: 31,
+  lgpe: 31,
+  swsh: 20,
+  bdsp: 38,
+  sv: 36,
 };
 
 describe('the encounter library', () => {
@@ -76,13 +91,18 @@ describe('the encounter library', () => {
     }
   });
 
-  it('cites a pinned revision per game, and a label per row', () => {
+  it('cites a pinned revision or date per game, and a label per row', () => {
     for (const [game, table] of Object.entries(ENCOUNTER_TABLES)) {
-      const repo = table.source.repo.replace(/^pret\//, '');
-      const pin = pins.repos[repo];
-      expect(pin, `${game} pins ${repo}`).toBeDefined();
-      expect(table.source.sha, `${game} revision`).toBe(pin!.sha);
-      expect([...table.source.files]).toEqual(pin!.paths);
+      if (table.source.repo === 'pokemondb.net') {
+        expect(table.source.sha, `${game} fetch date`).toBe(pins.pokemondb.fetchedAt);
+        expect([...table.source.files]).toEqual([pins.pokemondb.pages[game]]);
+      } else {
+        const repo = table.source.repo.replace(/^pret\//, '');
+        const pin = pins.repos[repo];
+        expect(pin, `${game} pins ${repo}`).toBeDefined();
+        expect(table.source.sha, `${game} revision`).toBe(pin!.sha);
+        expect([...table.source.files]).toEqual(pin!.paths);
+      }
       for (const record of table.records) expect(record.cite.length, record.id).toBeGreaterThan(0);
     }
   });
@@ -103,16 +123,40 @@ describe('every record', () => {
     }
   });
 
-  it('keeps the set of species outside the pool to the three reviewed', () => {
+  it('keeps the set of species outside the pool to the ones reviewed', () => {
     // The fit rule drops these at draw time. A regenerate that widens the
-    // set, or a pool change that shrinks it, is a deliberate act.
+    // set, or a pool change that shrinks it, is a deliberate act. Gen 1 to 4
+    // contribute a blacklisted species and two Wormadam formes; Gen 5 to 9
+    // add the regional formes the pool excludes and the two box legendaries
+    // N fields in Black and White.
     const outside = new Set<string>();
     for (const record of ENCOUNTERS) {
       for (const member of record.party) {
         if (!poolSpecies.has(member.species) || BLACKLISTED_SPECIES.includes(member.species)) outside.add(member.species);
       }
     }
-    expect([...outside].sort()).toEqual(['shedinja', 'wormadamsandy', 'wormadamtrash']);
+    expect([...outside].sort()).toEqual([
+      'aegislash',
+      'darmanitangalar',
+      'dudunsparcethreesegment',
+      'dugtrioalola',
+      'exeggutoralola',
+      'golemalola',
+      'lycanrocmidnight',
+      'marowakalola',
+      'ninetalesalola',
+      'oricoriopompom',
+      'rapidashgalar',
+      'reshiram',
+      'sandslashalola',
+      'shedinja',
+      'toxtricitylowkey',
+      'weezinggalar',
+      'wormadamsandy',
+      'wormadamtrash',
+      'yamaskgalar',
+      'zekrom',
+    ]);
   });
 
   it('wears a sprite the CDN listing has, or none', () => {
@@ -124,8 +168,9 @@ describe('every record', () => {
       }
       expect(spriteList.has(record.trainer.sprite), `${record.id} ${record.trainer.sprite}`).toBe(true);
     }
-    // Platinum's PI class and one Emerald row with no class text.
-    expect(missing).toBe(5);
+    // Platinum's PI class, one Emerald row with no class text, and Game
+    // Freak's Morimoto in BDSP, who has no sprite on the CDN at all.
+    expect(missing).toBe(6);
   });
 
   it('carries a gym type only on a gym, and one the dex knows', () => {
@@ -164,6 +209,15 @@ describe('the gyms can be cast', () => {
     expectLeader('emerald', 'Tate & Liza', 'Psychic');
     expectLeader('platinum', 'Crasher Wake', 'Water');
     expectLeader('hgss', 'Janine', 'Poison');
+    // Gen 5 to 9: the thin types from checkpoint 1 widen here.
+    expectLeader('bw', 'Drayden', 'Dragon');
+    expectLeader('bw', 'Iris', 'Dragon');
+    expectLeader('swsh', 'Raihan', 'Dragon');
+    expectLeader('swsh', 'Allister', 'Ghost');
+    expectLeader('sv', 'Ryme', 'Ghost');
+    expectLeader('sm', 'Hala', 'Fighting');
+    expect(ENCOUNTERS.filter((r) => r.game === 'bw' && r.trainer.name === 'Shauntal').every((r) => r.role === 'elite')).toBe(true);
+    expect(ENCOUNTERS.filter((r) => r.game === 'bw' && r.trainer.name === 'N').every((r) => r.role === 'boss' && r.place === "N's Castle")).toBe(true);
     // Koga is Elite Four in Johto, a gym leader in Kanto.
     expect(ENCOUNTERS.filter((r) => r.game === 'crystal' && r.trainer.name === 'Koga').every((r) => r.role === 'elite')).toBe(true);
     expect(ENCOUNTERS.filter((r) => r.game === 'frlg' && r.trainer.name === 'Koga').every((r) => r.role === 'gym')).toBe(true);
