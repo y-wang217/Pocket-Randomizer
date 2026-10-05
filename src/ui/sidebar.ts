@@ -20,7 +20,7 @@
  * Run Info tab reaches the same feed.
  */
 import { heldItem } from '../core/items';
-import { gymsCleared, localeOf, partyCapacity, type RunState } from '../core/run';
+import { localeOf, partyCapacity, type RunState } from '../core/run';
 import { GYMS, gymForSegment } from '../data/gyms';
 import { localeById } from '../data/locales';
 import { assetIcon } from './assets/manifest';
@@ -29,6 +29,7 @@ import { SIDEBAR_COPY } from './copy/screens';
 import type { FeedEntry } from './decision-feed';
 import { el } from './dom';
 import { renderFeed } from './run-info';
+import { nextChallengerOf, renderNextChallenger } from './next-challenger';
 import { renderSlots } from './slots';
 
 export interface Sidebar {
@@ -74,14 +75,9 @@ export function createSidebar(): Sidebar {
       const locale = localeOf(state);
       const line = el('p', 'sidebar__line');
       line.textContent = SIDEBAR_COPY.where(locale ? localeById(locale).name : null, segment, GYMS.length, state.segments[segment]?.leader ?? `Challenger ${gym.segment + 1}`);
-      const pips = el('ol', 'sidebar__pips');
-      const cleared = gymsCleared(state);
-      GYMS.forEach((_, index) => {
-        const pip = el('li', 'sidebar__pip');
-        pip.dataset['phase'] = index < cleared ? 'done' : index === segment ? 'current' : 'upcoming';
-        pips.append(pip);
-      });
-      where.replaceChildren(title(SIDEBAR_COPY.whereTitle), line, pips);
+      // The eight pips stood here until D102 (checkpoint 7); the run's
+      // position is the where-line's, and the distance is the bar's.
+      where.replaceChildren(title(SIDEBAR_COPY.whereTitle), line, renderNextChallenger(nextChallengerOf(state)));
 
       team.replaceChildren(
         title(SIDEBAR_COPY.team),

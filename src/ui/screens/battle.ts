@@ -21,8 +21,8 @@ import type { NodeSpec } from '../../core/encounters';
 import type { Choice } from '../../core/types';
 import { abilityEffects } from '../../data/abilityEffects';
 import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
-import { GLYPH_LABELS } from '../../data/glyphLabels';
-import { nodeKindGlyph } from '../chip';
+import { GLYPH_LABELS, NODE_KIND_WORDS } from '../../data/glyphLabels';
+import { challengerMark, nodeKindGlyph } from '../chip';
 import { createBattleLog, type BattleLogView } from '../battle-log';
 import { createSpeciesIndex } from '../species-index';
 import { createFlagStrip, type FlagStrip } from '../flag-strip';
@@ -178,9 +178,10 @@ export function createBattleScreen(): BattleScreen {
        * leader's name beside the badge; the other kinds carry the mark alone,
        * because the detail line below already names who is in the fight.
        */
-      title.replaceChildren(nodeKindGlyph(node.kind, GLYPH_LABELS[`node-${node.kind}`] ?? node.kind, 16));
-      // The leader's name from the gym table, not the node's `"<Leader>'s Gym"`
-      // label, which `core/` keeps for the log and which would double the mark.
+      // A challenger wears its own sprite in the kind's slot (D102) and its
+      // name beside it; the other kinds wear the kind's mark alone.
+      const kindLabel = NODE_KIND_WORDS[node.kind] ?? node.kind;
+      title.replaceChildren(node.kind === 'gym' ? challengerMark(node.encounter?.source ?? null, kindLabel, 16) : nodeKindGlyph(node.kind, kindLabel, 16));
       if (node.kind === 'gym') {
         title.append(document.createTextNode(node.encounter?.source?.name ?? node.label));
       }
@@ -210,7 +211,8 @@ export function createBattleScreen(): BattleScreen {
        * A gym's title carries the name beside the badge, so its detail line
        * reads the class alone (`Leader · Ace`): one fact, one channel (R3).
        * The trainer sprite sits before the words at 16, where the record has
-       * one; nothing where it does not.
+       * one; nothing where it does not. On a challenger the title already
+       * wears it (D102), so the detail line does not: one mark, one channel.
        */
       const source = node.encounter?.source ?? null;
       const opponent =
@@ -218,7 +220,7 @@ export function createBattleScreen(): BattleScreen {
       const words = [opponent, ...(tier ? [AI_TIER_LABEL[tier]] : [])]
         .filter((part) => part.length > 0)
         .join(' · ');
-      detailText.replaceChildren(...(source?.sprite ? [opponentImg(source.sprite)] : []), document.createTextNode(words));
+      detailText.replaceChildren(...(source?.sprite && node.kind !== 'gym' ? [opponentImg(source.sprite)] : []), document.createTextNode(words));
       field.replaceChildren();
       /*
        * The scene backdrop. **Stage 5.0/2, D60.** The gym's at a gym, the

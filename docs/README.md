@@ -457,8 +457,14 @@ gym's type retired from `data/gyms.ts` and from every chip that showed it
 appear on routes at `hard` and `elite`; rivals are challengers only.
 `RANDOMIZER_VERSION` to `-28`, `contentHash` to `16dc95`. The second
 message, *maps are training, no badge, a progress bar to the next
-challenger*, is **D102**, filed with options for checkpoint 7. Record
-[`generation.md`](generation.md) section 105.
+challenger*, was **D102**, ruled option 1 and **built as checkpoint 7**
+(bible **Rev 27**): one *Next challenger* bar, the challenger's class and
+name with their sprite over the distance left to them, at the rail's four
+mounts and the locale screen; the eight-badge rail, the sidebar's pips and
+the badge glyph retired; the boss node and the battle title wear the
+challenger's own sprite. No draw moved: `RANDOMIZER_VERSION` holds at `-28`
+and `contentHash` at `16dc95`. Record [`generation.md`](generation.md)
+section 106.
 
 **In flight: no species-locked ability or move.** Branch
 `claude/species-locked-pool`, prompt
@@ -1360,12 +1366,10 @@ rule; report and screenshots in
 
 One line each. The analysis lives where the pointer goes, not here.
 
-0. **D102 is open: no badge, a progress bar that shrinks as the next
-   challenger approaches.** The author's design for the map as training;
-   three options and a recommendation filed 2026-10-05 in
-   [`design/bible-discrepancies.md`](design/bible-discrepancies.md). The
-   badge mark and the eight-badge rail stand until it is ruled and built as
-   Stage 6.0 checkpoint 7. `generation.md` section 105.
+0. ~~**D102 is open: no badge, a progress bar that shrinks as the next
+   challenger approaches.**~~ **Closed 2026-10-05, same branch**: ruled
+   option 1 and built as Stage 6.0 checkpoint 7, bible Rev 27.
+   `generation.md` section 106.
 
 0. **The library has no Gen 5 to 9 rival.** pokemondb's leader pages carry
    none, so Cheren, Bianca, Hugh, Calem, Serena, Shauna, Hau's rival fights,

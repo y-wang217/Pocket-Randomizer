@@ -105,8 +105,9 @@ export function spriteFigure(species: string, options: FigureOptions = {}): HTML
  * The player's marker on the map: a stock trainer sprite. **Stage 5.0/4, D61.**
  *
  * Class A, from the same CDN as the Pokemon, through `@pkmn/img`'s own avatar
- * path, so nothing raster ships. D61 keeps trainer sprites to this one use:
- * the gym node wears the badge mark, never its leader's sprite.
+ * path, so nothing raster ships. D61 kept trainer sprites to this one use
+ * until D100 let the battle header wear the opponent's and D102 retired the
+ * badge mark for the challenger's own (`opponentImg`).
  *
  * Decorative, for the reason the stage's actors are: the node it stands on is
  * named already. A missing file keeps its box and says so on `data-missing`,
@@ -126,13 +127,13 @@ export const PLAYER_TRAINER = 'lucas';
  * than keeping a box: the header is a text row and a blank would read as a
  * gap in it.
  */
-export function opponentImg(spriteId: string): HTMLImageElement {
+export function opponentImg(spriteId: string, size: 16 | 24 = 16): HTMLImageElement {
   const img = el('img', 'sprite sprite--opponent');
   img.src = (sprites as unknown as { getAvatar(avatar: string): string }).getAvatar(spriteId);
   img.alt = '';
   img.setAttribute('aria-hidden', 'true');
-  img.width = 16;
-  img.height = 16;
+  img.width = size;
+  img.height = size;
   img.decoding = 'async';
   img.addEventListener('error', () => {
     img.dataset['missing'] = 'true';

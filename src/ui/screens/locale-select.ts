@@ -60,6 +60,7 @@ import type { GymDefinition } from '../../data/gyms';
 import { localeById, type LocaleId } from '../../data/locales';
 import { el, levelAria, levelText } from '../scene';
 import { typeChip } from './starter-select';
+import { renderNextChallenger } from '../next-challenger';
 import { applyBackdrop } from '../assets/manifest';
 import { abilityChip, monTypeChip } from '../chip';
 
@@ -77,6 +78,8 @@ export interface LocaleSelectView {
   leader: string;
   /** The challenger's class and name, as the node's opponent reads (checkpoint 6). Falls back to the name. */
   challenger?: string;
+  /** The challenger's trainer sprite id, or null (checkpoint 7, D102). */
+  sprite?: string | null;
   /** The party as it stands, for the compact strip. */
   party: readonly PokemonState[];
 }
@@ -112,11 +115,10 @@ export function createLocaleSelect(): LocaleSelect {
    * words introducing a leader name and a type chip that sit directly above
    * the region cards, which is the position R1 says carries the meaning. The
    * type chip went at checkpoint 6: a challenger has none, and the region
-   * cards' own type chips are the typed fact the choice is about.
+   * cards' own type chips are the typed fact the choice is about. Since
+   * checkpoint 7 (D102) the slot holds the next-challenger bar, full here
+   * because no step has been walked.
    */
-  const railLabel = el('span', 'locale__gym-label');
-  const railLeader = el('span', 'locale__gym-leader');
-  rail.append(railLabel, railLeader);
 
   /*
    * The party strip: a name, a level, types and the archetype label per member.
@@ -145,7 +147,7 @@ export function createLocaleSelect(): LocaleSelect {
        * anything else.
        */
       heading.textContent = 'Choose a region';
-      railLeader.textContent = view.challenger ?? view.leader;
+      rail.replaceChildren(renderNextChallenger({ opponent: view.challenger ?? view.leader, sprite: view.sprite ?? null, total: 0, remaining: 0 }));
       strip.replaceChildren(...view.party.map(renderStripMember));
       grid.replaceChildren(
         ...view.options.map((locale, index) => renderCard(locale, () => onPick(index))),

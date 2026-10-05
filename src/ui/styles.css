@@ -3402,7 +3402,7 @@ body {
   align-items: start;
 }
 
-.rail { grid-area: rail; }
+.map__next { grid-area: rail; }
 .map__heading { grid-area: heading; display: flex; flex-direction: row; gap: calc(var(--space-h) * var(--chrome-gap)) var(--space-2); }
 
 /* The region this segment is being walked through, as one line above the
@@ -3437,75 +3437,56 @@ body {
   }
 }
 
-/* The eight-gym rail. Scrolls sideways rather than wrapping: it is a
-   progression and a wrapped progression stops reading as one. */
-.rail {
-  margin: 0;
-  padding: 0 0 calc(var(--space-1) * var(--chrome-gap));
-  list-style: none;
-  display: flex;
-  gap: calc(var(--space-1h) * var(--chrome-gap));
-  overflow-x: auto;
-  /* Scrolls, with no scrollbar drawn (the author's *"the map buttons look
-     awful"*, 2026-10-01): the cut-off gym at the edge says there is more. */
-  scrollbar-width: none;
-}
-.rail::-webkit-scrollbar { display: none; }
-
-.rail__gym {
-  /* Two rows per gym — number and leader above, type below — rather than one
-     row that has to truncate "Garnet" to "Gar..." to fit eight of them. The
-     leader's name and their type are the two things a player plans around, so
-     neither gets abbreviated. */
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) calc(var(--space-1) + var(--hairline));
+/* The next challenger (D102, checkpoint 7), in the rail's grid area: the
+   class and name with the trainer sprite, over a bar that empties as the
+   segment's steps are walked. One component for the map, the drawer, Run
+   Info, the sidebar and the locale screen. */
+.next-challenger {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "label who" "bar bar";
+  align-items: baseline;
+  column-gap: var(--space-2);
+  row-gap: var(--space-1);
   padding: calc(var(--space-1h) * var(--chrome-pad)) calc(var(--space-2) * var(--chrome-pad));
   border: var(--hairline) solid var(--border);
   border-radius: var(--radius-card);
   background: var(--bg-sunken);
-  font-size: var(--fs-sm);
-  white-space: nowrap;
 }
-
-.rail__number {
-  flex: 0 0 auto;
+.next-challenger__label { grid-area: label; color: var(--text-faint); font-size: var(--fs-md); white-space: nowrap; }
+.next-challenger__who {
+  grid-area: who;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-width: 16px;
+  gap: var(--space-1);
+  min-width: 0;
+  font-weight: 600;
+  font-size: var(--fs-md);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.next-challenger__bar {
+  grid-area: bar;
+  height: 6px;
+  border-radius: var(--radius-card);
+  background: var(--border);
+  overflow: hidden;
+}
+.next-challenger__fill {
+  display: block;
+  height: 100%;
+  background: var(--emphasis);
+  transition: width var(--motion-beat) ease-out;
+}
+.next-challenger .sprite--opponent {
+  width: 16px;
   height: 16px;
-  border-radius: var(--radius-chip);
-  background: var(--border-strong);
-  color: var(--text-dim);
-  font-family: var(--font-body);
-  font-size: var(--fs-sm);
+  object-fit: cover;
+  object-position: 50% 0;
+  image-rendering: pixelated;
 }
-
-.rail__label { color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; }
-
-/* Below this the leaders' names and types stop fitting side by side, so the
-   rail becomes a scrolling strip of numbers and types — still a progression,
-   just a narrower one. */
-@container frame (max-width: 700px) {
-  .rail__gym { flex: 0 0 auto; }
-}
-
-.rail__gym--done { border-color: color-mix(in srgb, var(--win) 45%, var(--border)); }
-.rail__gym--done .rail__number { background: var(--win); color: var(--emphasis-ink); }
-.rail__gym--done .rail__label { color: var(--text); }
-
-.rail__gym--current {
-  border-color: var(--emphasis);
-  background: color-mix(in srgb, var(--emphasis) 10%, var(--bg-sunken));
-}
-.rail__gym--current .rail__number { background: var(--emphasis); color: var(--emphasis-ink); }
-.rail__gym--current .rail__label { color: var(--text); font-weight: 600; }
-
-.rail__gym--upcoming { opacity: 0.62; }
+.next-challenger .sprite--opponent[data-missing] { display: none; }
 
 /* Dim rather than faint since V1: it is the one sub-AA style that sat on the
    world, and a tinted world took it under 4:1. Faint text stays on cards. */
@@ -7095,19 +7076,8 @@ button,
 }
 
 /* Locale select's new context: the gym rail and the party strip. */
-.locale__gym {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  padding: calc(var(--space-2) * var(--chrome-pad)) calc(var(--space-2h) * var(--chrome-pad));
-  border: var(--hairline) solid var(--border);
-  border-radius: var(--radius-card);
-  background: var(--bg-sunken);
-}
-
-.locale__gym-label { color: var(--text-faint); font-size: var(--fs-md); }
-.locale__gym-leader { font-weight: 600; }
+/* The next-challenger bar in the rail's place (D102); the component carries its own box. */
+.locale__gym { display: block; }
 
 .locale__party {
   display: flex;
@@ -7316,10 +7286,6 @@ button,
 .sidebar__wordmark-text { font-family: var(--font-display); font-size: var(--fs-4xl); font-weight: 700; letter-spacing: var(--tracking-title); }
 .sidebar__title { margin: 0 0 var(--space-1h); font-size: var(--fs-md); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--text-dim); }
 .sidebar__line { margin: 0 0 var(--space-1h); font-size: var(--fs-md); }
-.sidebar__pips { display: flex; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
-.sidebar__pip { width: var(--pip-size); height: var(--pip-size); border: var(--rule-heavy) solid var(--border-heavy); border-radius: 50%; }
-.sidebar__pip[data-phase='done'] { background: var(--border-heavy); }
-.sidebar__pip[data-phase='current'] { background: var(--selected); }
 .sidebar__progress { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 
 /* The decision feed, on the Run Info screen and in the sidebar. */
@@ -7864,6 +7830,9 @@ button,
   image-rendering: pixelated;
 }
 .battle__detail-text .sprite--opponent[data-missing] { display: none; }
+/* The challenger's sprite in the kind's slot on the boss node and the battle title (D102). */
+.node__kind--challenger .sprite--opponent { object-fit: cover; object-position: 50% 0; image-rendering: pixelated; vertical-align: middle; }
+.node__kind--challenger .sprite--opponent[data-missing] { display: none; }
 .map-graph__player:has(.sprite--trainer[data-missing]) {
   border-radius: 50%;
   background: var(--selected);

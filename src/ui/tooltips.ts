@@ -73,7 +73,7 @@ import {
 } from '../data/archetypes';
 import { statusInfo, STATUS_PERSISTENCE_NOTE } from '../data/statusInfo';
 import { TIER_INFO } from '../data/tierInfo';
-import { GLYPH_LABELS } from '../data/glyphLabels';
+import { GLYPH_LABELS, NODE_KIND_WORDS } from '../data/glyphLabels';
 import { carryingLine, CURRENCY_COPY, KIND_HINTS, restoreTitle, REWARD_COPY, STAT_BAND_COPY } from './copy/screens';
 import { FIELD_SUPPRESSED, fieldEffect, fieldName } from '../data/fieldCopy';
 import { capabilityTypes, type Capability } from '../data/capabilities';
@@ -1000,7 +1000,7 @@ function renderTier(id: string): HTMLElement | null {
 function renderNodeKind(id: string, detail?: string): HTMLElement | null {
   const hint = KIND_HINTS[id as keyof typeof KIND_HINTS];
   if (!hint) return null;
-  const body = panel(GLYPH_LABELS[`node-${id}`] ?? id);
+  const body = panel(NODE_KIND_WORDS[id as keyof typeof NODE_KIND_WORDS] ?? id);
   body.append(line(hint.long, 'tip__text'));
   /*
    * **The rest of the node card, for a row that does not carry it. Stage

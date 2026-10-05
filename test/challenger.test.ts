@@ -17,7 +17,8 @@ import { createRun, RUN_LOG_VERSION } from '../src/core/run';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 import { createPreGymScreen } from '../src/ui/screens/pre-gym';
 import { createLocaleSelect } from '../src/ui/screens/locale-select';
-import { renderHeading, renderRail } from '../src/ui/screens/run-map';
+import { renderHeading } from '../src/ui/screens/run-map';
+import { nextChallengerOf, renderNextChallenger } from '../src/ui/next-challenger';
 
 const ROLES = new Set(['rival', 'gym', 'elite']);
 const TITLED = new Set(['Red', 'Blue', 'Green', 'Leaf', 'Trace', 'Hau']);
@@ -77,17 +78,13 @@ describe('the screens', () => {
     expect(screen.root.querySelector('.pre-gym .type')).toBeNull();
   });
 
-  it('read the challenger on the map heading and the rail with no type chip', () => {
+  it('read the position on the map heading and the challenger on the bar, with no type chip', () => {
     const heading = el(renderHeading(run, segment));
-    expect(heading.querySelector('.screen__title')?.textContent).toBe(`Challenger 1 of 8 — ${opponent}`);
+    expect(heading.querySelector('.screen__title')?.textContent).toBe('Challenger 1 of 8');
     expect(heading.querySelector('.type')).toBeNull();
-    const rail = el(renderRail(run));
-    const items = [...rail.querySelectorAll('.rail__gym')];
-    expect(items).toHaveLength(8);
-    items.forEach((item, index) => {
-      expect(item.querySelector('.rail__label')?.textContent).toBe(run.segments[index]!.leader);
-      expect(item.querySelector('.type')).toBeNull();
-    });
+    const bar = renderNextChallenger(nextChallengerOf(run));
+    expect(bar.querySelector('.next-challenger__who')?.textContent).toBe(opponent);
+    expect(bar.querySelector('.type')).toBeNull();
   });
 
   it('read the challenger on the locale rail with no type chip', () => {
@@ -104,7 +101,7 @@ describe('the screens', () => {
       },
       () => undefined,
     );
-    expect(screen.root.querySelector('.locale__gym-leader')?.textContent).toBe(opponent);
+    expect(screen.root.querySelector('.locale__gym .next-challenger__who')?.textContent).toBe(opponent);
     expect(screen.root.querySelector('.locale__gym-type')).toBeNull();
     expect(screen.root.querySelector('.locale__gym .type')).toBeNull();
   });

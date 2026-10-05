@@ -721,6 +721,7 @@ export function mountApp(root: HTMLElement): void {
             gym: gymForSegment(state.currentSegment),
             leader: state.segments[state.currentSegment]?.leader ?? '',
             challenger: state.segments[state.currentSegment]?.gym.encounter?.opponent ?? '',
+            sprite: state.segments[state.currentSegment]?.gym.encounter?.source?.sprite ?? null,
             party: state.party,
           },
           (index) => localePick.submit(index),

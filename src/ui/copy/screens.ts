@@ -200,6 +200,11 @@ export const RUN_INFO_COPY = {
 } as const;
 
 /** The desktop sidebar. Stage 5.0/1. */
+/** The one component in place of the badge rail (D102): its label is the author's phrase. */
+export const NEXT_CHALLENGER_COPY = {
+  label: 'Next challenger',
+} as const;
+
 export const SIDEBAR_COPY = {
   label: 'Run at a glance',
   wordmark: 'GYMRUN',

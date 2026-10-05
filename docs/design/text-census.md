@@ -24,21 +24,21 @@ the three density columns this table carried are one.
 | Surface | words | less shell | first run |
 |---|---:|---:|---:|
 | starter | 29 | 20 | 38 |
-| locale | 12 | 3 | 9 |
-| map | 19 | 10 | 22 |
+| locale | 15 | 6 | 12 |
+| map | 17 | 8 | 19 |
 | battle | 16 | 7 | 31 |
 | result | 11 | 2 | 4 |
 | result-capture | 49 | 40 | 64 |
 | target | 61 | 52 | 76 |
 | replace | 24 | 15 | 23 |
 | party | 28 | 19 | 43 |
-| pre-gym | 12 | 3 | 24 |
+| pre-gym | 13 | 4 | 25 |
 | shop | 26 | 17 | 29 |
 | event | 63 | 54 | 54 |
 | result-relic | 21 | 12 | 16 |
 | shop-relic | 26 | 17 | 32 |
-| drawer | 26 | 17 | 38 |
-| map-drawer | 31 | 22 | 34 |
+| drawer | 24 | 15 | 36 |
+| map-drawer | 27 | 18 | 29 |
 | confirm-replace | 28 | 19 | 27 |
 | confirm-forfeit | 69 | 60 | 84 |
 | summary | 426 | 400 | 467 |
@@ -73,7 +73,7 @@ budget is 0 or the component renders once.
 | starter detail panel | 0 | 0 |
 | event choice | 40 | 13 |
 | app shell | 197 | 14 |
-| screen chrome (no component) | 838 | — |
+| screen chrome (no component) | 834 | — |
 
 ## Every word counted
 
@@ -81,21 +81,21 @@ The one face. One row per surface, so a number
 above can be argued with rather than taken on faith.
 
 - **starter** (29): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Choose` `your` `starter` `Species` `ability` `and` `moves` `are` `randomized` `HP` `and` `PP` `carry` `between` `fights` `a` `gym` `clear` `restores` `both` `GYMRUN-16dc95-SMOKE24` `r28`
-- **locale** (12): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Choose` `a` `region` `GYMRUN-16dc95-SMOKE24` `r28`
-- **map** (19): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Challenger` `of` `Leader` `Pokemon` `steps` `before` `the` `challenger` `Pokemon` `Rookie` `GYMRUN-16dc95-SMOKE24` `r28`
+- **locale** (15): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Choose` `a` `region` `Next` `challenger` `Leader` `GYMRUN-16dc95-SMOKE24` `r28`
+- **map** (17): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Next` `challenger` `Leader` `Challenger` `of` `Pokemon` `Pokemon` `Rookie` `GYMRUN-16dc95-SMOKE24` `r28`
 - **battle** (16): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Trainer's` `Seasoned` `Turn` `Paralysed` `Badly` `poisoned` `Switch` `GYMRUN-16dc95-SMOKE24` `r28`
 - **result** (11): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `one` `NORMAL` `GYMRUN-16dc95-SMOKE24` `r28`
 - **result-capture** (49): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Lv58` `Beaten` `Yours` `to` `take` `Party` `full` `one` `goes` `Your` `party` `of` `choose` `who` `to` `release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `to` `bag` `Release` `Keep` `my` `party` `as` `it` `is` `GYMRUN-16dc95-SMOKE24` `r28`
 - **target** (61): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `TM` `Who` `learns` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `GYMRUN-16dc95-SMOKE24` `r28`
 - **replace** (24): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `learns` `Pick` `the` `move` `it` `replaces` `undo` `Learning` `Phys` `Attacker` `Knows` `tap` `one` `to` `replace` `GYMRUN-16dc95-SMOKE24` `r28`
 - **party** (28): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Your` `party` `Slot` `leads` `Release` `is` `permanent` `Watch` `for` `Stats` `Moves` `Coverage` `Sort` `Party` `order` `Back` `to` `the` `map` `GYMRUN-16dc95-SMOKE24` `r28`
-- **pre-gym** (12): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Send` `in` `Items` `GYMRUN-16dc95-SMOKE24` `r28`
+- **pre-gym** (13): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Leader` `Send` `in` `Items` `GYMRUN-16dc95-SMOKE24` `r28`
 - **shop** (26): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Shop` `Nothing` `is` `bought` `until` `you` `leave` `selling` `no` `coming` `back` `Carrying` `Basket` `Left` `Leave` `without` `buying` `GYMRUN-16dc95-SMOKE24` `r28`
 - **event** (63): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `A` `sinkhole` `pool` `with` `a` `clear` `bottom` `and` `no` `shallows` `at` `all` `Fish` `from` `the` `rim` `A` `line` `brings` `something` `up` `Drop` `in` `and` `grab` `to` `the` `bottom` `and` `deep` `Drag` `it` `with` `nets` `Every` `pair` `of` `hands` `then` `cramp` `Costs` `HP` `party` `Go` `to` `the` `bottom` `there` `it` `has` `a` `floor` `Carry` `on` `GYMRUN-16dc95-SMOKE24` `r28`
 - **result-relic** (21): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Choose` `a` `reward` `of` `the` `three` `There` `is` `no` `skip` `one` `ELITE` `GYMRUN-16dc95-SMOKE24` `r28`
 - **shop-relic** (26): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Shop` `Nothing` `is` `bought` `until` `you` `leave` `selling` `no` `coming` `back` `Carrying` `Basket` `Left` `Leave` `without` `buying` `GYMRUN-16dc95-SMOKE24` `r28`
-- **drawer** (26): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Challenger` `of` `Leader` `Pokemon` `steps` `before` `the` `challenger` `Pokemon` `Rookie` `Your` `party` `Carrying` `now` `Relics` `Read` `only` `GYMRUN-16dc95-SMOKE24` `r28`
-- **map-drawer** (31): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Challenger` `of` `Leader` `Pokemon` `steps` `before` `the` `challenger` `Pokemon` `Rookie` `The` `run` `Challenger` `of` `Leader` `Pokemon` `steps` `before` `the` `challenger` `Pokemon` `Rookie` `GYMRUN-16dc95-SMOKE24` `r28`
+- **drawer** (24): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Next` `challenger` `Leader` `Challenger` `of` `Pokemon` `Pokemon` `Rookie` `Your` `party` `Carrying` `now` `Relics` `Read` `only` `GYMRUN-16dc95-SMOKE24` `r28`
+- **map-drawer** (27): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `Next` `challenger` `Leader` `Challenger` `of` `Pokemon` `Pokemon` `Rookie` `The` `run` `Next` `challenger` `Leader` `Challenger` `of` `Pokemon` `Pokemon` `Rookie` `GYMRUN-16dc95-SMOKE24` `r28`
 - **confirm-replace** (28): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `learns` `Pick` `the` `move` `it` `replaces` `undo` `Learning` `Phys` `Attacker` `Knows` `tap` `one` `to` `replace` `GYMRUN-16dc95-SMOKE24` `r28` `Replace` `with` `Replace` `Keep`
 - **confirm-forfeit** (69): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Tutorial` `TM` `Who` `learns` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Four` `moves` `You` `choose` `what` `replaces` `Teach` `it` `Don't` `learn` `it` `GYMRUN-16dc95-SMOKE24` `r28` `Forfeit` `this` `reward` `Forfeit` `Keep`
 - **summary** (426): `Map` `Team` `Bag` `Info` `Settings` `GYMRUN` `Stage` `gen9customgame` `a` `roster` `that` `grows` `caught` `in` `eight` `regions` `and` `scored` `Tutorial` `run` `Copy` `seed` `New` `seed` `gyms` `nodes` `fights` `turns` `rests` `seed` `GYMRUN-16dc95-SMOKE24` `The` `first` `gyms` `Past` `the` `opening` `The` `far` `side` `of` `the` `map` `gym` `short` `All` `eight` `Rematch` `this` `seed` `Copy` `seed` `Copy` `result` `New` `seed` `Score` `Gyms` `cleared` `Elite` `nodes` `taken` `Hard` `nodes` `taken` `Pokemon` `caught` `Relics` `held` `Standing` `at` `the` `end` `Turns` `taken` `Party` `slots` `Final` `party` `Phys` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `Phys` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `Phys` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `Phys` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `Mixed` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `Phys` `Attacker` `HP` `Dealt` `Taken` `KOs` `Faints` `Turns` `in` `battle` `Lv32` `fell` `at` `challenger` `to` `Lv30` `fell` `at` `challenger` `to` `Lv27` `fell` `at` `challenger` `to` `Lv31` `fell` `at` `challenger` `to` `Lv46` `fell` `at` `challenger` `to` `Lv45` `fell` `at` `challenger` `to` `Lv32` `fell` `at` `challenger` `to` `Lv30` `fell` `at` `challenger` `to` `Coverage` `Reaches` `Fighting` `Ghost` `Ground` `Normal` `The` `run` `won` `in` `HP` `site` `rested` `HP` `Pokéfan` `Hoenn` `Emerald` `won` `in` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `Leader` `Oreburgh` `Gym` `Brilliant` `and` `Shining` `Pearl` `won` `in` `HP` `won` `in` `HP` `Girl` `Hoenn` `Emerald` `won` `in` `HP` `Johto` `won` `in` `HP` `Johto` `HeartGold` `and` `SoulSilver` `won` `in` `HP` `Hoenn` `Emerald` `won` `in` `HP` `Leader` `Nacrene` `Gym` `and` `won` `in` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `site` `rested` `HP` `Jogger` `Sinnoh` `Platinum` `won` `in` `HP` `won` `in` `HP` `Maniac` `Hoenn` `Ruby` `and` `Sapphire` `won` `in` `HP` `Leader` `Hearthome` `Gym` `Platinum` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `Something` `happens` `rested` `HP` `Something` `happens` `rested` `HP` `Johto` `won` `in` `HP` `Leader` `Mahogany` `Town` `Gym` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `Hoenn` `Emerald` `won` `in` `HP` `Leader` `Dewford` `Town` `Gym` `Emerald` `won` `in` `HP` `won` `in` `HP` `Shop` `rested` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `Something` `happens` `rested` `HP` `Kanto` `FireRed` `and` `LeafGreen` `won` `in` `HP` `Leader` `Saffron` `Gym` `Let's` `Go` `and` `Let's` `Go` `won` `in` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `won` `in` `HP` `Something` `happens` `rested` `HP` `Elite` `Four` `Pokemon` `League` `and` `won` `in` `HP` `Kanto` `FireRed` `and` `LeafGreen` `won` `in` `HP` `Something` `happens` `rested` `HP` `won` `in` `HP` `won` `in` `HP` `Johto` `HeartGold` `and` `SoulSilver` `won` `in` `HP` `won` `in` `HP` `Leader` `Fight` `Area` `Platinum` `won` `in` `HP` `GYMRUN-16dc95-SMOKE24` `r28`

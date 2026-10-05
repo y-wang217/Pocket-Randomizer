@@ -102,8 +102,8 @@ describe('the glyph sheet', () => {
     ]);
     expect(glyphsOf('stat')).toHaveLength(6);
     // Section 2's node row, D46: one mark per kind, in the map's own order.
-    // The gym's mark reads `Challenger` since D101 (checkpoint 6); the mark itself is D102's.
-    expect(glyphsOf('node').map((glyph) => glyph.label)).toEqual(['Wild', 'Trainer', 'Rest', 'Challenger', 'Shop', 'Event']);
+    // No gym entry since D102 (checkpoint 7): the boss wears the challenger's own sprite.
+    expect(glyphsOf('node').map((glyph) => glyph.label)).toEqual(['Wild', 'Trainer', 'Rest', 'Shop', 'Event']);
     // Section 2's field row, D47: five weathers then four terrains, nine marks.
     expect(glyphsOf('field').map((glyph) => glyph.label)).toEqual(['Rain', 'Sun', 'Sand', 'Snow', 'Wind', 'Electric', 'Grassy', 'Misty', 'Psychic']);
   });

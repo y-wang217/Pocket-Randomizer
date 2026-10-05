@@ -100,10 +100,12 @@ describe('the battle header', () => {
     const brock: EncounterRef = { ...JOEY, id: 'rby/brock-1', name: 'Brock', class: 'Leader', sprite: 'brock-gen1rb', game: 'rby', place: 'Pewter City Gym', role: 'gym' };
     const { root, detach } = mount(nodeFor('gym', foe, brock, 'Leader Brock'), foe);
     expect(root.querySelector('.screen__title')?.textContent).toContain('Brock');
+    // D102: the title wears the challenger's sprite in the kind's slot, so the detail line does not.
+    expect(root.querySelector('.screen__title img.sprite--opponent')).not.toBeNull();
     const detail = root.querySelector<HTMLElement>('.battle__detail-text')!;
     expect(detail.textContent).toMatch(/^Leader · /);
     expect(detail.textContent).not.toContain('Brock');
-    expect(detail.querySelector('img.sprite--opponent')).not.toBeNull();
+    expect(detail.querySelector('img.sprite--opponent')).toBeNull();
     detach();
   });
 

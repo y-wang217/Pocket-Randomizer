@@ -13541,3 +13541,110 @@ to `PROJ-31` and `PROJ-34`), then **2,079 of 2,079** on both; `npm run
 build` (one chunk, the warning it has always tripped); `npm run smoke`
 passed; `npm run measure` and the benchmark as above. The Chromium leg as
 recorded above; WebKit was not run here.
+
+## 106. No badge: the next challenger, and how far off they are
+
+**2026-10-05**, Stage 6.0 checkpoint 7, on `claude/dazzling-noether-vb19k9`.
+Prompt [`spec/gymrun-stage6.0-checkpoint7-progress-bar.md`](spec/gymrun-stage6.0-checkpoint7-progress-bar.md),
+the author's ruling of D102, option 1; bible **Rev 27**. No version axis
+moves: no draw changed, no decision changed, nothing under `src/data/`
+changed, so `RANDOMIZER_VERSION` holds at `-28` and `contentHash` at
+`16dc95`.
+
+The author's design, filed by section 105: *"maps are training, and there's
+only a progress bar that shrinks as the 'next challenger approaches' so
+there doesn't need to be a badge."* Option 1 built it as described.
+
+### What shows
+
+- **One component, `ui/next-challenger.ts`.** `nextChallengerOf(state)`
+  reads the current segment's challenger (class and name, as the node's
+  opponent string), their sprite id, the route's step count and the steps
+  remaining (`stepsOf(state).length − state.position`); `renderNextChallenger`
+  draws the label *Next challenger*, the class and name with the sprite at
+  16 before them, and a `progressbar` whose fill is `remaining / total`:
+  full before the locale is picked (no route yet, so the segment has not
+  begun), empty at the boss. It is a fact about the route the seed drew,
+  every step of which is on the map already, and never a forecast.
+- **Five mounts, one function**: the map screen's rail area
+  (`.map__next`), the map drawer, Run Info, the desktop sidebar (whose eight
+  pips go with it) and the locale screen's rail slot, where the bar is full.
+  `renderRail` is deleted; the segment heading reads `Challenger n of 8` and
+  the team size, and no longer the steps, which are the bar's.
+- **The badge is gone.** `ui/theme/glyphs.ts` loses its `node-gym` entry.
+  The boss node on the map and the battle header's title wear the
+  challenger's own sprite in the kind glyph's slot (`ui/chip.ts`
+  `challengerMark`, at 24 and 16), falling back to the trainer kind's glyph
+  where the record has no sprite on the CDN, so the slot is never empty. On
+  a challenger the battle header's detail line carries the class alone with
+  no sprite, since the title has it (one mark, one channel). The summary's
+  route keeps its eight marks: an archive, where the run's shape is the
+  point. `opponentImg` takes a size.
+- **Copy**: one string, `NEXT_CHALLENGER_COPY.label`, the author's phrase.
+  `docs/copy.md` regenerated.
+
+### The bible (Rev 27)
+
+Section 3's *Node* family row (five glyphs, the boss wears its sprite) and
+*Node kind* row; section 4's new *Next challenger* row at 3 (the label's two
+words and the class word; the name is a proper noun) and the *Locale screen*
+budget 4 → 7 to carry the component; section 5's *Battle screen header*,
+*Next challenger*, *Map node card*, *Run Info screen* and *Locale card*
+rows; section 9's bet that the bar reads as approach and not as a timer.
+D102 is ruled in the register with the rulings table; the playtest row's
+amendment column reads Rev 27.
+
+### Tests
+
+- New `test/next-challenger.test.ts` (jsdom): the bar is full before the
+  route exists, shrinks strictly as `position` walks the first route, and is
+  empty at the boss with `aria-valuenow` 0; the label, the class and name,
+  the sprite's CDN id and no type chip; the sidebar mounts it where the pips
+  were; `glyphNode('node-gym')` is null; `challengerMark` wears the sprite at
+  the asked size and falls back to the trainer glyph.
+- `test/challenger.test.ts`: the heading reads the position alone and the
+  bar the challenger; the locale screen's bar. `test/map-drawer.test.ts`:
+  the bar in the rail's place. `test/glyphs.test.ts`: five node labels.
+  `test/opponent-identity.test.ts`: the gym title wears the sprite and the
+  detail line does not. `scripts/smoke.mjs`: the bar mounted during the run,
+  in place of the rail's cleared count.
+- `src/ui/gallery.ts` passes the challenger's class and name and sprite to
+  the locale and pre-gym fixtures, so the census counts what ships.
+
+### What it measured
+
+- **The census** (`docs/design/text-census.md`), less shell: locale 3 → 6
+  against the amended budget of 7 (*Next challenger* and the class word
+  beside the instruction); pre-gym 3 → 4 against 4 (the class word, which
+  checkpoint 6's fixture left out); map 10 → 8 and map-drawer 22 → 18 (the
+  steps line and the rail's title words gone, the label in); drawer 17 → 15.
+  No surface over its budget.
+- **The bundle.** `dist/assets/index-*.js` 5,020 kB minified, 1,013 kB
+  gzipped, unchanged to the kilobyte from sections 104 and 105: one small
+  component in, one rail and one glyph path out.
+- **The Chromium leg** (`GYMRUN_ENGINE=chromium npm run test:browser`):
+  192 of 199, the same seven failures as section 105 records, in the same
+  three groups (backdrop contrast, the vertical budget against one machine's
+  font stack, the starter and locale type-chip contrast), none of them
+  surfaces this checkpoint touched. Run on the tree before the two token
+  swaps and the kind-word move below, which change no pixel the leg
+  measures. WebKit was not run here; CI runs both.
+
+### The gate, as run
+
+In this container, on 2026-10-05, in this order: `npm run types` clean;
+`npm run lint` clean; `npm run hedge` clean; the jsdom suites the component
+touches (`next-challenger`, `challenger`, `opponent-identity`, `map-drawer`,
+`glyphs`, `sidebar`, `run-info`, `party-drawer`, `tutorial`, `sprites`,
+`field-readout`) green; `npm run copy-audit` and `npm run census`; `npm run
+test:unit` **2,080 of 2,083** on the first run, the three failures this
+checkpoint's own (`test/visual-tokens.test.ts` caught a literal radius and a
+literal duration in the bar's CSS, swapped for `--radius-card` and
+`--motion-beat`; `test/glyph-labels.test.ts` caught `GLYPH_LABELS` carrying
+`node-gym` with no sheet entry, so the boss's kind word moved to
+`NODE_KIND_WORDS` in `data/glyphLabels.ts` and its four readers follow it),
+then **2,083 of 2,083** on `test:unit` and `test:trim`; `npm run build` (one
+chunk, the warning it has always tripped); `npm run smoke` passed with the
+bar in the rail's place; `npm run measure` as above; the Chromium leg as
+above. No re-record was owed: no draw, no decision and no data table moved,
+and the sim fixture and the visual baseline held without being touched.

@@ -10,7 +10,7 @@
  * pressed. Inputs only. No line says how a choice went, and none rates one.
  */
 import type { Tier } from '../../core/types';
-import { GLYPH_LABELS } from '../../data/glyphLabels';
+import { NODE_KIND_WORDS } from '../../data/glyphLabels';
 import type { NodeKind } from '../../data/tuning';
 
 const TIER_WORD: Readonly<Record<Tier, string>> = { normal: 'Normal', hard: 'Hard', elite: 'Elite' };
@@ -25,7 +25,7 @@ export const FEED_COPY = {
   starter: (species: string): string => `Starter · ${species}`,
   locale: (name: string): string => `Region · ${name}`,
   node: (kind: NodeKind, tier: Tier | null): string =>
-    `${GLYPH_LABELS[`node-${kind}`] ?? kind}${tier ? ` · ${TIER_WORD[tier]}` : ''}`,
+    `${NODE_KIND_WORDS[kind] ?? kind}${tier ? ` · ${TIER_WORD[tier]}` : ''}`,
   move: (name: string): string => `Move · ${name}`,
   switchTo: (name: string): string => `Switch · ${name}`,
   reward: (name: string): string => `Reward · ${name}`,
