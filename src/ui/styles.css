@@ -3471,15 +3471,6 @@ body {
   white-space: nowrap;
 }
 
-.rail__gym .type {
-  flex-basis: 100%;
-  max-width: fit-content;
-  padding: var(--hairline) calc(var(--space-1) + var(--hairline));
-  /* No font-size from 4.7.2. It overrode `.type` down to --fs-2xs, 9px, for
-     the rail's sake; the rail is not a reason to print a chip the player
-     cannot read. */
-}
-
 .rail__number {
   flex: 0 0 auto;
   display: inline-flex;

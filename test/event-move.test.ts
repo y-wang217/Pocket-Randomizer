@@ -168,8 +168,9 @@ describe('the version axes this patch moved', () => {
     // And `-24` the berry pick the gym pool deals, resolved with no draw;
     // `-25` the species-locked abilities and moves out of the pools;
     // `-26` every trainer and gym a record from the encounter library;
-    // `-27` the Champion Cup joining it, which reorders the candidate windows.
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-27');
+    // `-27` the Champion Cup joining it, which reorders the candidate windows;
+    // `-28` the boss a challenger, one record per name in every window.
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-28');
   });
 });
 

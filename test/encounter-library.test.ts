@@ -2,11 +2,12 @@
  * The encounter library as the randomizer draws from it. **Stage 6.0.**
  *
  * Four things the keyed design rests on, each asserted rather than promised:
- * a node's candidates are a function of its structural inputs alone; a gym's
- * candidates all carry its type; the fit keeps the ace on the cap and every
- * member in range; and a node spends one draw on the pick and the same count
- * on its members whichever record it drew, so a library edit moves the record
- * and nothing beside it.
+ * a node's candidates are a function of its structural inputs alone; a boss's
+ * candidates are challengers (checkpoint 6: rivals, protagonists, leaders and
+ * the Elite Four, one record per name) and a route's are route trainers; the
+ * fit keeps the ace on the cap and every member in range; and a node spends
+ * one draw on the pick and the same count on its members whichever record it
+ * drew, so a library edit moves the record and nothing beside it.
  */
 import { describe, expect, it } from 'vitest';
 
@@ -21,49 +22,72 @@ import { createRng } from '../src/core/rng';
 import { createRun } from '../src/core/run';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
+const TITLED = new Set(['Red', 'Blue', 'Green', 'Leaf', 'Trace', 'Hau']);
+
 describe('candidates', () => {
-  it('are a pure function of kind, segment and type', () => {
+  it('are a pure function of kind, segment and tier, one record per name, a full window', () => {
     for (const gym of GYMS) {
-      const first = encounterCandidates('gym', gym.segment, gym.type).map((r) => r.id);
-      const again = encounterCandidates('gym', gym.segment, gym.type).map((r) => r.id);
+      const first = encounterCandidates('gym', gym.segment).map((r) => r.id);
+      const again = encounterCandidates('gym', gym.segment).map((r) => r.id);
       expect(again).toEqual(first);
-      expect(first.length).toBeGreaterThan(0);
-      expect(first.length).toBeLessThanOrEqual(CANDIDATE_WINDOW.gym);
+      expect(first.length).toBe(CANDIDATE_WINDOW.gym);
     }
     for (let segment = 0; segment < 8; segment++) {
-      const list = encounterCandidates('trainer', segment);
-      expect(list.length).toBe(CANDIDATE_WINDOW.trainer);
-      expect(new Set(list.map((r) => r.id)).size).toBe(list.length);
+      for (const tier of ['normal', 'hard', 'elite'] as const) {
+        const list = encounterCandidates('trainer', segment, tier);
+        expect(list.length, `trainer ${segment} ${tier}`).toBe(CANDIDATE_WINDOW.trainer);
+        expect(new Set(list.map((r) => r.id)).size).toBe(list.length);
+        expect(new Set(list.map((r) => r.trainer.name)).size, `names at ${segment} ${tier}`).toBe(list.length);
+      }
+      const bosses = encounterCandidates('gym', segment);
+      expect(new Set(bosses.map((r) => r.trainer.name)).size).toBe(bosses.length);
     }
   });
 
-  it('give every gym at least three leaders of its own type at every segment', () => {
-    // Three is the floor below which a type reads as one leader with costumes.
-    for (const gym of GYMS) {
-      for (let segment = 0; segment < 8; segment++) {
-        const list = encounterCandidates('gym', segment, gym.type);
-        expect(list.length, `${gym.type} at segment ${segment}`).toBeGreaterThanOrEqual(3);
-        for (const record of list) {
-          const members = playable(record)!;
-          expect(members, record.id).not.toBeNull();
-          // A leader by its stated type, or an Elite Four roster that is wholly the type.
-          if (record.role === 'gym') expect(record.gymType, record.id).toBe(gym.type);
-          else expect(members.every((m) => m.entry.types.includes(gym.type)), record.id).toBe(true);
+  it('cast a challenger from rivals, protagonists, leaders and the Elite Four, never a villain or an untitled champion', () => {
+    const roles = new Set<string>();
+    for (let segment = 0; segment < 8; segment++) {
+      for (const record of encounterCandidates('gym', segment)) {
+        expect(playable(record), record.id).not.toBeNull();
+        const admitted = record.role === 'rival' || record.role === 'gym' || record.role === 'elite' || TITLED.has(record.trainer.name);
+        expect(admitted, `${record.id} is a ${record.role}`).toBe(true);
+        roles.add(record.role);
+      }
+    }
+    // A cast and not a roster: more than one role reaches the windows.
+    expect(roles.size).toBeGreaterThan(1);
+    // The rival in Red and Blue is in some window; Red at Mt. Silver (ace 77
+    // to 85) sits above every cap and is eligible without being drawn.
+    const everywhere = new Set(GYMS.flatMap((gym) => encounterCandidates('gym', gym.segment).map((r) => r.trainer.name)));
+    expect(everywhere.has('Blue')).toBe(true);
+    expect(everywhere.has('Silver')).toBe(true);
+  });
+
+  it('keep rivals off the routes, and admit leaders there only at hard and elite', () => {
+    for (let segment = 0; segment < 8; segment++) {
+      for (const tier of ['normal', 'hard', 'elite'] as const) {
+        for (const record of encounterCandidates('trainer', segment, tier)) {
+          expect(record.role, `${record.id} at ${tier}`).not.toBe('rival');
+          expect(record.role, `${record.id} at ${tier}`).not.toBe('elite');
+          if (tier === 'normal') expect(record.role, `${record.id} at normal`).not.toBe('gym');
         }
       }
     }
+    const tough = new Set([...encounterCandidates('trainer', 3, 'hard'), ...encounterCandidates('trainer', 3, 'elite')].map((r) => r.role));
+    expect(tough.has('gym')).toBe(true);
   });
 
   it('rank by distance from the segment cap, nearest first', () => {
     for (let segment = 0; segment < 8; segment++) {
       const target = opponentLevel('gym', segment, 'normal').max;
-      const list = encounterCandidates('gym', segment, 'Rock');
+      const list = encounterCandidates('gym', segment);
       const distances = list.map((r) => Math.abs(r.party[r.party.length - 1]!.level - target));
       for (let i = 1; i < distances.length; i++) expect(distances[i]!).toBeGreaterThanOrEqual(distances[i - 1]!);
     }
-    // Brock's Pewter roster is a first-gym pick and not a last-gym one.
-    expect(encounterCandidates('gym', 0, 'Rock').map((r) => r.id)).toContain('rby/brock-1');
-    expect(encounterCandidates('gym', 7, 'Rock').map((r) => r.id)).not.toContain('rby/brock-1');
+    // Brock is a first-segment pick (one of his Pewter rosters, the nearest by
+    // id among ties) and not a last-segment one.
+    expect(encounterCandidates('gym', 0).map((r) => r.trainer.name)).toContain('Brock');
+    expect(encounterCandidates('gym', 7).map((r) => r.trainer.name)).not.toContain('Brock');
   });
 
   it('exclude every record whose ace the pool cannot play', () => {
@@ -154,9 +178,9 @@ describe('the draw', () => {
       const { team, source } = generateGymEncounter(gym, gym.segment, rng.randomizer.at('members'), rng.randomizer.at('pick'));
       const record = encounterById(source.id)!;
       const level = opponentLevel('gym', gym.segment, 'normal');
-      const fitted = fitParty(record, level, team.length, gym.type);
+      const fitted = fitParty(record, level, team.length);
       // A set move is kept only where the node could have drawn it: inside the
-      // gym's band window, or a status move the pool carries.
+      // boss's band window, or a status move the pool carries.
       const admitted = new Set([...gymMovePool(gym.segment).all.map((m) => m.name), ...STATUS_MOVES.map((m) => m.name)]);
       fitted.forEach((member, slot) => {
         expect(team[slot]!.species).toBe(member.entry.species);
@@ -164,7 +188,7 @@ describe('the draw', () => {
         for (const move of member.moves) if (admitted.has(move)) expect(team[slot]!.moves, `${source.id} ${move}`).toContain(move);
       });
       for (const member of team) {
-        expect(entryOfSpecies(member.species)?.types, `${source.id} ${member.species}`).toContain(gym.type);
+        expect(entryOfSpecies(member.species), `${source.id} ${member.species}`).toBeDefined();
         expect(member.moves.length).toBeGreaterThan(0);
         expect(member.moves.length).toBeLessThanOrEqual(4);
       }
@@ -172,7 +196,7 @@ describe('the draw', () => {
     }
   });
 
-  it('names a leader of the gym type for every segment, twice over for the same seed', () => {
+  it('names a challenger for every segment, twice over for the same seed', () => {
     const leaders = (seed: string) => createRun(seed, DEFAULT_TUNING).segments.map((s) => `${s.leader}:${s.gymEncounter.id}`);
     for (const seed of ['LIBRARY-A', 'LIBRARY-B', 'LIBRARY-C']) {
       const first = leaders(seed);
@@ -181,9 +205,10 @@ describe('the draw', () => {
       const run = createRun(seed, DEFAULT_TUNING);
       run.segments.forEach((segment, index) => {
         const record = encounterById(segment.gymEncounter.id)!;
-        expect(segment.gym.label).toBe(`${record.trainer.name}'s Gym`);
+        expect(segment.gym.label).toBe(`Challenger ${segment.gym.encounter!.opponent}`);
+        expect(segment.gym.encounter?.opponent).toContain(record.trainer.name);
         expect(segment.gym.encounter?.source?.id).toBe(record.id);
-        expect(segment.gymDefinition.type).toBe(GYMS[index]!.type);
+        expect(segment.gymDefinition.id).toBe(GYMS[index]!.id);
         for (const node of segment.routes.flatMap((r) => r.steps.flatMap((s) => s.options))) {
           if (node.kind === 'trainer') expect(node.encounter?.source?.id, node.id).toBeTruthy();
           if (node.kind === 'wild') expect(node.encounter?.source, node.id).toBeNull();

@@ -13373,3 +13373,171 @@ grammar. The nineteen files went from 1.76 MB to 1.39 MB of source.
   `npm run copy-audit` regenerated `docs/copy.md` with only line numbers
   moving, since no string was added. The Chromium and WebKit legs and the
   census were not run here; CI runs them.
+
+## 105. The boss is a challenger
+
+**2026-10-05**, Stage 6.0 checkpoint 6, on `claude/dazzling-noether-vb19k9`.
+Prompt [`spec/gymrun-stage6.0-checkpoint6-challengers.md`](spec/gymrun-stage6.0-checkpoint6-challengers.md),
+the author's two messages after checkpoint 5 and six rulings; bible **Rev
+26**, D101 built and D102 filed in
+[`design/bible-discrepancies.md`](design/bible-discrepancies.md). Moves
+`RANDOMIZER_VERSION` to `-28` and `contentHash` from `5b7add` to `16dc95`;
+`RUN_LOG_VERSION` and `AI_VERSION` hold.
+
+**Superseded, 2026-10-05.** The stage's ruling 1 at filing, *"gyms draw
+canonical leaders of the gym's type, per seed; the type stays the gym's
+identity"*, and with it the mono-type gym rule that `data/gyms.ts`,
+`core/randomizer.ts` (`gymSpeciesFor`) and `test/randomizer.test.ts` section
+5 held since Stage 1. The author's redirect: *"bosses should be more like
+'this is an ace trainer at this stage' like the rival in red/blue or the main
+character in any of the games"*, and, asked what becomes of the type, *"the
+challenger is agnostic of the training"*. The rule is deleted, not flagged;
+the ruling stands in the spec file as what was asked.
+
+### What is drawn, where
+
+- **The boss node draws a challenger.** `encounterCandidates('gym', segment)`
+  ranks every playable record of role `rival`, `gym` or `elite`, and any
+  record whose trainer is a titled protagonist (`TITLED_PROTAGONISTS`: Red,
+  Blue, Green, Leaf, Trace, Hau, whatever role the record carries, because
+  Blue's Champion fight is the Red and Blue rival the ruling names and Red at
+  Mt. Silver is the protagonist), by `|ace − cap|`, ties by id. Champions
+  otherwise and every villain stay out (ruling 1). One draw on
+  `encounterKey`, as before.
+- **Every window keeps one record per trainer name** (ruling 5), the nearest
+  by rank: `CANDIDATE_WINDOW` (12 for a challenger, 48 for a route trainer)
+  now counts names. Brock is in the segment-0 window once; Gen 1's
+  class-named route trainers (`Youngster`) are one name each, which is the
+  rule applied evenly.
+- **A route node draws route trainers and villains at every tier, and gym
+  leaders at `hard` and `elite`** (ruling 4). Rivals leave the route windows:
+  a rival is a challenger, and Blue on Route 3 beside Blue as the stage's
+  boss would be one string meaning two things.
+- **The fit has no type.** `fitParty(record, level, size)` trims, shifts,
+  clamps and devolves as section 103 says; the off-type drop is gone with
+  the type. The boss's rolled fill is the segment's own pool
+  (`speciesFor(segment, 'normal', …)`), stage-gated at the cap as the
+  trainer path is; `gymSpeciesFor` and the `allow`/`deny` lists are deleted.
+  Same count on every key: one draw on the pick, 21 per member on `nodeKey`.
+- **`data/gyms.ts` is eight slots**, `{ id: 'gym-n', segment }`. The names
+  `GymDefinition`, `GYMS`, `gymForSegment` and the node kind `gym` stay on
+  forty call sites because renaming them is churn and the player never reads
+  the word; the node ids (`s<n>-gym`) never carried the table's id, so no
+  stream key moved for the rename. `Segment.type` is deleted (it had no
+  reader); `leader`, `gymDefinition` and `gymEncounter` stay.
+
+### What the player reads (D101)
+
+- **The node's label** is `Challenger ${opponent}`: `Challenger Rival Blue`,
+  `Challenger Leader Brock`, `Challenger Elite Four Lorelei`, `Challenger
+  Pokemon Trainer Red`. `opponent` is the record's class and name as D100
+  wrote it, read once where a Gen 1 route trainer's name is its class.
+- **Every type chip that described the gym comes off**: the pre-gym heading
+  (which now reads the challenger's class and name, and loses its `gym-type`
+  coach mark), the map heading (`Challenger 1 of 8 — Rival Blue`, the team
+  size and the steps on the line below), the map rail (eight names, the
+  title the class and name) and the locale screen's rail. The sidebar's
+  where-line and the decision feed's segment line read *Challenger n*; the
+  share text reads *fell at challenger n*; `GLYPH_LABELS['node-gym']` is
+  *Challenger*, which is the kind word the census counts. The locale card's
+  four type chips are untouched: they are the area's, the typed resource the
+  author's design keeps.
+- **The views** (`PreGymView`, `LocaleSelectView`) gain `opponent?: string`,
+  the node's opponent string, falling back to the name so the fixtures that
+  pass `leader: 'Brock'` still build.
+- **`chooseLead` keeps its signature** (a logged decision, so
+  `RUN_LOG_VERSION` holds) and loses the claim in its doc that the leader's
+  type is what the choice reads; `scripts/sim.ts`'s lead bot read the gym's
+  type and now leads with its highest-level standing member, which the
+  benchmark row names as a second change in the same run.
+- **The badge mark stays for one checkpoint.** D46's mark on the node and
+  the battle header, D72's rail and the summary's route dots are D102's,
+  filed with three options and a recommendation (one bar, four mounts, the
+  badge retired) for checkpoint 7.
+
+### Tests
+
+- `test/encounter-library.test.ts` rewritten for the cast: pure in `(kind,
+  segment, tier)`; one record per name and a full window at every segment
+  and tier; only the four admitted roles or a titled protagonist in a
+  challenger window, more than one role across the eight, Blue and Silver
+  present; no rival and no Elite Four on a route, no leader at `normal`, a
+  leader at `hard` or `elite`; Brock a segment-0 challenger by name and not a
+  segment-7 one; the overlay test holds the record's slots and the pool's.
+- New `test/challenger.test.ts` (jsdom): every segment of three seeds names
+  a challenger of an admitted role, `leader` is the name, `opponent` the
+  class and name, the label `Challenger ${opponent}`, the slot has no
+  `type`; twenty seeds cast more than one role; `RUN_LOG_VERSION` pinned;
+  the pre-gym heading, the map heading and rail, and the locale rail read
+  the challenger and carry no type chip.
+- `test/randomizer.test.ts` section 5 is *challenger identity*: pool species,
+  no repeats; the first-gym assertion reads the stage gate (`evoLevel ≤
+  level`) rather than *nothing evolved*, which held by accident of the Rock
+  pool (a challenger's canonical Kakuna at 11 is what the gate permits).
+  `test/data-tables.test.ts` loses its two typed gym tests for one that holds
+  eight slots in order; `test/gym-level-spread.test.ts` checks the segment
+  pool; `test/encounters-data.test.ts` keeps the named-leader facts and loses
+  the per-GYMRUN-type one. `test/opponent-identity.test.ts` gains the rival
+  case (`Rival · Ace` under `Blue`). The share-text expectations read
+  *challenger*.
+- Pins: `RANDOMIZER_VERSION` in `event-move` and `gym-pays-twice`; the hash
+  in `ai-priority`; the held-item digest from `2459bb59723d1708` to
+  `021d1ac5804761f9` (rivals out of the route windows, leaders in at the
+  tiers, one record per name); `test/fixtures/sim-report.json`;
+  `docs/visual/baseline/`.
+
+### What it measured
+
+- **The benchmark**, 400 seeds on `RETUNE` with the table AI, in
+  [`balance.md`](balance.md) section 0: **1.89 mean gyms** against 1.86 on
+  the `-27` row, completion 1.5% to 1.0%; two changes in one run (the boss,
+  and the sim's lead bot), which the row says. Gym 1 clears 86.4% of 323
+  against 80.9%: a segment-0 challenger is as often Blue's Pidgey and Rattata
+  as Brock's Onix. The species check passes for the first time since the
+  library: Geodude in 24.5% of runs against Onix in 37.0%. Recorded, not
+  chased.
+- **The census**, recorded for the first time since checkpoint 4 (it runs in
+  this container): summary 335 → 400 less shell (D100's citation line, an
+  unbudgeted archive), battle 6 → 7 (D100's class word, inside the header's
+  3), map 9 → 10 and map-drawer 20 → 22 (the class word on the heading, which
+  section 4 does not budget), log-sheet 136 → 137, locale 3 → 3 (the chip
+  was a glyph), pre-gym 3 → 3 (the class word replaces nothing counted).
+  `docs/design/text-census.md`.
+- **The bundle.** `dist/assets/index-*.js` 5,019 kB minified, 1,013 kB
+  gzipped, the same as section 104 to the kilobyte: the tables did not move
+  and a few hundred bytes of chip code left. The open item in
+  [`README.md`](README.md) section 5 stands.
+- **The Chromium leg**, run here for the first time since section 99
+  (`GYMRUN_ENGINE=chromium npm run test:browser`): 192 of 199 on this tree,
+  seven failures in three groups, none of them this checkpoint's. The two
+  `visual-backdrop-contrast` cases (both HP boxes distinct from all nine
+  backdrops) fail identically on `5a43eae`, run in a worktree before this
+  checkpoint's code existed. The four `visual-v0` to `v3` vertical-budget
+  cases compare to `heights.json`, which their own label says records one
+  machine's system font stack. The `visual-chips` type-chip contrast case
+  flags the starter and locale screens' chips, which this checkpoint did not
+  touch (the chips it removed were the gym's; the starter's and the locale
+  card's are unchanged, and so is the chip CSS); on `5a43eae` that file
+  timed out in its 900-second hook on both attempts, so the comparison is by
+  the diff rather than by a run. WebKit was not run here. CI runs both.
+
+### The gate, as run
+
+In this container, on 2026-10-05, in this order: `npm run types` clean;
+`npm run lint` clean; `npm run hedge` clean; the generation suites
+(`encounter-library`, `randomizer`, `data-tables`, `encounters-data`,
+`gym-level-spread`, `gym-held-items`, `generation`, `tiers`, `banding`,
+`berries`, `gym-rewards`, `evolution-run`) green after the rewrites above;
+the re-mints (`RANDOMIZER_VERSION` pins, the hash pin, the held-item digest,
+`test/fixtures/sim-report.json`, `docs/visual/baseline/`); `npm run
+copy-audit` and `npm run census`; `npm run test:unit` and `npm run test:trim`
+**2,075 of 2,079** on the first run, the four failures all seed or wording
+pins this checkpoint moved (`test/ai-tiers.test.ts`'s source guard on
+`app.ts` caught the new view field named `opponent:`, renamed `challenger`;
+`test/glyphs.test.ts`'s node labels; `test/party.test.ts`'s `WIN-MECH-0`
+clearing four gyms against a pacifist where it cleared seven, now searched
+by `firstRunWhere`; `test/run-projection.test.ts`'s relic seeds, re-scanned
+to `PROJ-31` and `PROJ-34`), then **2,079 of 2,079** on both; `npm run
+build` (one chunk, the warning it has always tripped); `npm run smoke`
+passed; `npm run measure` and the benchmark as above. The Chromium leg as
+recorded above; WebKit was not run here.

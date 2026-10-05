@@ -481,8 +481,13 @@ describe('the version axes', () => {
      * Bede gain their places, and `GAME_LABEL` moves under `data/`.
      * `gymrun-randomizer-27` moves beside it for the twelve records that
      * entered the candidate windows. `docs/generation.md` section 104.
+     *
+     * And at checkpoint 6, from `5b7add`: `data/gyms.ts` loses its types,
+     * the library's candidate rules cast a challenger, and the glyph label
+     * and coach mark read it. `gymrun-randomizer-28` moves beside it.
+     * `docs/generation.md` section 105.
      */
-    expect(CONTENT_HASH).toBe('5b7addde47cb1d0b09270dca61f5f9ae40e5c2987f25626e5e467c6a9d32df3e');
+    expect(CONTENT_HASH).toBe('16dc9508fc4b5db49a4a16d0794c9381c4b0bb789683c897c63dfefe6162a6cb');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

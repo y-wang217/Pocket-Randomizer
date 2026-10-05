@@ -225,9 +225,9 @@ export const TUTORIAL: Readonly<Record<TutorialScreen, readonly TutorialMark[]>>
     {
       id: 'gym',
       anchor: '[data-tutorial="gym-counter"]',
-      title: 'The gym',
+      title: 'The challenger',
       text:
-        'The end of the region. The leader’s Pokemon share the type shown here. ' +
+        'The end of the region. A named trainer waits here with their own team. ' +
         'Winning begins the next region; losing ends the run.',
     },
     {

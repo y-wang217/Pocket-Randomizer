@@ -16,7 +16,6 @@ import { describe, expect, it } from 'vitest';
 import { BLACKLISTED_SPECIES } from '../src/data/blacklists';
 import { ENCOUNTERS, ENCOUNTER_TABLES, decodeParty, encodeParty, encounterById } from '../src/data/encounters';
 import type { GameId } from '../src/data/encounters/types';
-import { GYMS } from '../src/data/gyms';
 import { SPECIES_POOL } from '../src/data/speciesPools';
 
 const dex = Dex.forGen(9);
@@ -225,14 +224,7 @@ describe('every record', () => {
   });
 });
 
-describe('the gyms can be cast', () => {
-  it('has at least one gym leader of every GYMRUN gym type', () => {
-    for (const gym of GYMS) {
-      const leaders = ENCOUNTERS.filter((record) => record.role === 'gym' && record.gymType === gym.type);
-      expect(leaders.length, gym.type).toBeGreaterThan(0);
-    }
-  });
-
+describe('the leaders are who the games say', () => {
   it('names the leaders the games had, once per game at least', () => {
     const expectLeader = (game: GameId, name: string, type: string) => {
       const rows = ENCOUNTERS.filter((r) => r.game === game && r.role === 'gym' && r.trainer.name === name);

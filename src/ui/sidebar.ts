@@ -73,7 +73,7 @@ export function createSidebar(): Sidebar {
       const gym = gymForSegment(segment);
       const locale = localeOf(state);
       const line = el('p', 'sidebar__line');
-      line.textContent = SIDEBAR_COPY.where(locale ? localeById(locale).name : null, segment, GYMS.length, state.segments[segment]?.leader ?? gym.type);
+      line.textContent = SIDEBAR_COPY.where(locale ? localeById(locale).name : null, segment, GYMS.length, state.segments[segment]?.leader ?? `Challenger ${gym.segment + 1}`);
       const pips = el('ol', 'sidebar__pips');
       const cleared = gymsCleared(state);
       GYMS.forEach((_, index) => {

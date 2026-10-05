@@ -51,7 +51,6 @@ import {
   isAbilityBlacklisted,
   isMoveBlacklisted,
   isSpeciesBlacklisted,
-  toId,
 } from '../data/blacklists';
 import { ABILITY_POOL } from '../data/abilities';
 import type { GymDefinition } from '../data/gyms';
@@ -433,7 +432,21 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * beside it for the tables. `RUN_LOG_VERSION` holds.
  * `docs/spec/gymrun-stage6.0-encounter-library.md`, `docs/generation.md` section 104.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-27';
+/*
+ * ## `-28`: the boss is a challenger, and a window is a cast
+ *
+ * Stage 6.0, checkpoint 6. Three composition changes at once. The boss node
+ * draws among rivals, protagonists, gym leaders and the Elite Four nearest
+ * the cap instead of the leaders of the gym's type, and its rolled fill is
+ * the segment's pool rather than the type's. Every candidate window keeps one
+ * record per trainer name, so the same draw on `encounterKey` lands on a
+ * different record at every node. Route windows lose the rivals and gain the
+ * leaders at `hard` and `elite`. Same count on every key. `contentHash` moves
+ * beside it for `data/gyms.ts` and the library. `RUN_LOG_VERSION` holds: the
+ * node choice and the lead choice are the same questions in the same order.
+ * `docs/spec/gymrun-stage6.0-checkpoint6-challengers.md`, `docs/generation.md` section 105.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-28';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered
@@ -529,18 +542,6 @@ function wildSpeciesFor(segment: number, tier: Tier, level: { min: number; max: 
     level,
     (entry) => !locale || localeAdmits(locale, entry.types),
     `a wild ${locale ?? 'encounter'} at segment ${segment}`,
-  );
-}
-
-/** A gym's pool: its own type, its own restrictions, the segment's own distribution. */
-function gymSpeciesFor(gym: GymDefinition, segment: number, level: { min: number; max: number }): BandedSpeciesPool {
-  const allow = gym.allow ? new Set(gym.allow.map(toId)) : null;
-  const deny = gym.deny ? new Set(gym.deny.map(toId)) : null;
-  return bandedSpeciesPool(
-    speciesBandWeightsFor(segment, 'normal'),
-    level,
-    (entry) => entry.types.includes(gym.type) && (!allow || allow.has(entry.id)) && (!deny || !deny.has(entry.id)),
-    `a ${gym.type} gym at segment ${segment}`,
   );
 }
 
@@ -1116,7 +1117,7 @@ export function generateTrainerEncounter(segment: number, tier: Tier, stream: Rn
   const pool = speciesFor(segment, tier, level);
   const damaging = damagingFor(segment, tier);
   const size = opponentTeamSize('trainer', segment, tier);
-  const candidates = encounterCandidates('trainer', segment, undefined, tier);
+  const candidates = encounterCandidates('trainer', segment, tier);
   const record = candidates[pick.nextInt(candidates.length)]!;
   const fitted = fitParty(record, level, size);
   const seen = new Set<string>(fitted.map((member) => member.entry.id));
@@ -1140,13 +1141,16 @@ export function generateTrainerTeam(segment: number, tier: Tier, stream: RngStre
 }
 
 /**
- * A gym leader's team: every member of the leader's type.
+ * A challenger's team: a record from the library, fitted to the curve, with
+ * the segment's pool filling the slots the record does not.
  *
- * No `tier` parameter, and that is deliberate rather than an oversight. A gym
- * is the segment's difficulty statement; letting a node tier modify it would
- * mean two dials on the same number, and the report could not tell them apart.
+ * No `tier` parameter, and that is deliberate rather than an oversight. A
+ * challenger is the segment's difficulty statement; letting a node tier
+ * modify it would mean two dials on the same number, and the report could not
+ * tell them apart. `gym` is the slot, a segment and a number; nothing in it
+ * shapes the team.
  */
-export function generateGymEncounter(gym: GymDefinition, segment: number, stream: RngStream, pick: RngStream): GeneratedEncounter {
+export function generateGymEncounter(_gym: GymDefinition, segment: number, stream: RngStream, pick: RngStream): GeneratedEncounter {
   const tier: Tier = 'normal';
   const level = opponentLevel('gym', segment, tier);
   /*
@@ -1167,7 +1171,7 @@ export function generateGymEncounter(gym: GymDefinition, segment: number, stream
    * 2026-09-18, so the floor and the ceiling were the same number and this line
    * asks what it always asked.
    */
-  const pool = gymSpeciesFor(gym, segment, { min: level.max, max: level.max });
+  const pool = speciesFor(segment, tier, { min: level.max, max: level.max });
   /*
    * The one place a move pool is not the segment's own: a gym leader draws one
    * band higher (`GYM_MOVE_BAND_BONUS`). That is the difficulty spike, and it
@@ -1188,17 +1192,19 @@ export function generateGymEncounter(gym: GymDefinition, segment: number, stream
    * 1.0 and `heldItemPoolFor` widens with the segment, and nothing here moved.
    */
   /*
-   * **The leader is a record. Stage 6.0.** One draw on `pick` chooses among
-   * the gym leaders of this type nearest this segment's cap (and the Elite
-   * Four rosters that are wholly this type), and the record's party, fitted to
-   * the range and the slot count, overlays the first slots. Every canonical
-   * member carries the type by the candidate rule, and every rolled fill
-   * member carries it by the pool, so the identity the player plans against
-   * holds whichever half a slot came from.
+   * **The challenger is a record. Stage 6.0, checkpoint 6.** One draw on
+   * `pick` chooses among the challengers nearest this segment's cap, one per
+   * name (a rival, a protagonist, a gym leader or an Elite Four member), and
+   * the record's party, fitted to the range and the slot count, overlays the
+   * first slots. A leader's canonical roster is one type on its own; a
+   * rival's is mixed; the fill is the segment's pool either way, because the
+   * challenger has no type and the player plans against the area, not the
+   * boss (ruling 3). Until checkpoint 6 the gym had a type, the candidates
+   * were its leaders and the fill was filtered to it.
    */
-  const candidates = encounterCandidates('gym', segment, gym.type);
+  const candidates = encounterCandidates('gym', segment);
   const record = candidates[pick.nextInt(candidates.length)]!;
-  const fitted = fitParty(record, level, size, gym.type);
+  const fitted = fitParty(record, level, size);
   for (const member of fitted) seen.add(member.entry.id);
 
   const team = Array.from({ length: size }, (_, slot) =>
@@ -1207,7 +1213,7 @@ export function generateGymEncounter(gym: GymDefinition, segment: number, stream
   return { team, source: refOf(record) };
 }
 
-/** A gym leader's team alone. `pick` defaults as on `generateTrainerTeam`. */
+/** A challenger's team alone. `pick` defaults as on `generateTrainerTeam`. */
 export function generateGymTeam(gym: GymDefinition, segment: number, stream: RngStream, pick: RngStream = stream): TeamSpec {
   return generateGymEncounter(gym, segment, stream, pick).team;
 }

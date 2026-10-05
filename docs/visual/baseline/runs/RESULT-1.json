@@ -2,26 +2,25 @@
   "seed": "RESULT-1",
   "versions": {
     "runLog": "gymrun-run-23/gymrun-0.3.0",
-    "contentHash": "5b7addde47cb1d0b09270dca61f5f9ae40e5c2987f25626e5e467c6a9d32df3e",
-    "randomizer": "gymrun-randomizer-27",
+    "contentHash": "16dc9508fc4b5db49a4a16d0794c9381c4b0bb789683c897c63dfefe6162a6cb",
+    "randomizer": "gymrun-randomizer-28",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
   "outcome": "defeat",
-  "gymsCleared": 2,
+  "gymsCleared": 1,
   "causeOfDeath": {
-    "segment": 2,
-    "leader": "Wattson",
-    "kind": "wild",
-    "species": "Verbena",
-    "bySpecies": "Scraggy",
-    "byMove": "Fell Stinger",
+    "segment": 1,
+    "leader": "Silver",
+    "kind": "gym",
+    "species": "Cedar",
+    "bySpecies": "Bayleef",
+    "byMove": "Breaking Swipe",
     "indirect": null
   },
-  "currency": 397,
+  "currency": 152,
   "backpack": [
-    "shellbell",
-    "chopleberry"
+    "shellbell"
   ],
   "relics": [
     "abyssal-lens"
@@ -29,35 +28,35 @@
   "party": [
     {
       "species": "Pumpkaboo",
-      "level": 26,
+      "level": 20,
       "ability": "Tera Shell",
       "moves": [
-        "Facade 29/32",
+        "Trailblaze 25/32",
         "Thief 40/40",
-        "Shadow Claw 22/24",
-        "Psycho Cut 31/32"
+        "Shadow Claw 19/24",
+        "Psycho Cut 32/32"
       ],
       "item": "miracleseed",
-      "hp": "0/69",
+      "hp": "0/55",
       "fainted": true
     },
     {
       "species": "Skiddo",
-      "level": 26,
+      "level": 20,
       "ability": "Adaptability",
       "moves": [
-        "Vine Whip 37/40",
-        "Quick Attack 45/48",
+        "Vine Whip 39/40",
+        "Quick Attack 46/48",
         "Snore 24/24",
         "Temper Flare 16/16"
       ],
       "item": "mysticwater",
-      "hp": "0/78",
+      "hp": "0/62",
       "fainted": true
     },
     {
       "species": "Omanyte",
-      "level": 26,
+      "level": 20,
       "ability": "Infiltrator",
       "moves": [
         "Ancient Power 5/8",
@@ -66,7 +65,7 @@
         "Fake Tears 32/32"
       ],
       "item": "muscleband",
-      "hp": "0/62",
+      "hp": "0/50",
       "fainted": true
     }
   ],
@@ -128,12 +127,12 @@
     {
       "segment": 0,
       "kind": "gym",
-      "label": "Brock's Gym",
+      "label": "Challenger Leader Brock",
       "tier": null,
       "opponent": "Leader Brock",
       "turns": 3,
       "winner": "p1",
-      "hpAfter": 84,
+      "hpAfter": 83,
       "casualties": []
     },
     {
@@ -163,11 +162,21 @@
       "kind": "trainer",
       "label": "Trainer battle",
       "tier": "normal",
-      "opponent": "Camper Larry",
-      "turns": 5,
+      "opponent": "Hiker Lucas",
+      "turns": 4,
       "winner": "p1",
-      "hpAfter": 69,
-      "casualties": []
+      "hpAfter": 70,
+      "casualties": [
+        {
+          "side": "p1",
+          "name": "Cedar",
+          "level": 20,
+          "species": "Pumpkaboo",
+          "bySpecies": "Numel",
+          "byMove": "Temper Flare",
+          "indirect": null
+        }
+      ]
     },
     {
       "segment": 1,
@@ -177,7 +186,7 @@
       "opponent": "Wild Lickitung",
       "turns": 5,
       "winner": "p1",
-      "hpAfter": 25,
+      "hpAfter": 38,
       "casualties": [
         {
           "side": "p1",
@@ -198,25 +207,25 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 53,
+      "hpAfter": 66,
       "casualties": []
     },
     {
       "segment": 1,
       "kind": "gym",
-      "label": "Kofu's Gym",
+      "label": "Challenger Rival Silver",
       "tier": null,
-      "opponent": "Leader Kofu",
-      "turns": 7,
-      "winner": "p1",
-      "hpAfter": 2,
+      "opponent": "Rival Silver",
+      "turns": 8,
+      "winner": "p2",
+      "hpAfter": 0,
       "casualties": [
         {
           "side": "p1",
-          "name": "Cedar",
+          "name": "Gale",
           "level": 20,
-          "species": "Pumpkaboo",
-          "bySpecies": "Mantyke",
+          "species": "Skiddo",
+          "bySpecies": "Bayleef",
           "byMove": "Breaking Swipe",
           "indirect": null
         },
@@ -225,79 +234,17 @@
           "name": "Verbena",
           "level": 20,
           "species": "Omanyte",
-          "bySpecies": "Wiglett",
-          "byMove": "Jet Punch",
+          "bySpecies": "Bayleef",
+          "byMove": "Trop Kick",
           "indirect": null
-        }
-      ]
-    },
-    {
-      "segment": 2,
-      "kind": "wild",
-      "label": "Wild encounter",
-      "tier": "normal",
-      "opponent": "Wild Litleo",
-      "turns": 4,
-      "winner": "p1",
-      "hpAfter": 165,
-      "casualties": []
-    },
-    {
-      "segment": 2,
-      "kind": "trainer",
-      "label": "Trainer battle",
-      "tier": "normal",
-      "opponent": "Swimmer♂ Berke",
-      "turns": 8,
-      "winner": "p1",
-      "hpAfter": 43,
-      "casualties": [
-        {
-          "side": "p1",
-          "name": "Verbena",
-          "level": 26,
-          "species": "Omanyte",
-          "bySpecies": "Qwilfish",
-          "byMove": "Thunderclap",
-          "indirect": null
-        }
-      ]
-    },
-    {
-      "segment": 2,
-      "kind": "wild",
-      "label": "Wild encounter",
-      "tier": "hard",
-      "opponent": "Wild Scraggy",
-      "turns": 5,
-      "winner": "p2",
-      "hpAfter": 0,
-      "casualties": [
+        },
         {
           "side": "p1",
           "name": "Cedar",
-          "level": 26,
+          "level": 20,
           "species": "Pumpkaboo",
-          "bySpecies": "Scraggy",
-          "byMove": "Rock Slide",
-          "indirect": null
-        },
-        {
-          "side": "p1",
-          "name": "Gale",
-          "level": 26,
-          "species": "Skiddo",
-          "bySpecies": "Flamigo",
-          "byMove": "Dire Claw",
-          "indirect": null
-        },
-        {
-          "side": "p1",
-          "name": "Verbena",
-          "level": 26,
-          "species": "Omanyte",
-          "bySpecies": "Scraggy",
-          "byMove": "Fell Stinger",
+          "bySpecies": "Bayleef",
+          "byMove": "Breaking Swipe",
           "indirect": null
         }
       ]
@@ -307,9 +254,9 @@
     "seed": "RESULT-1",
     "versions": {
       "runLog": "gymrun-run-23/gymrun-0.3.0",
-      "contentHash": "5b7addde47cb1d0b09270dca61f5f9ae40e5c2987f25626e5e467c6a9d32df3e",
+      "contentHash": "16dc9508fc4b5db49a4a16d0794c9381c4b0bb789683c897c63dfefe6162a6cb",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-27"
+      "randomizerVersion": "gymrun-randomizer-28"
     },
     "decisions": [
       {
@@ -597,21 +544,21 @@
       {
         "kind": "battle",
         "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
           "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
           "slot": 2
         }
       },
@@ -662,15 +609,15 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "switch",
-          "slot": 3
+          "kind": "move",
+          "slot": 1
         }
       },
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 1
+          "kind": "switch",
+          "slot": 3
         }
       },
       {
@@ -766,218 +713,7 @@
         "kind": "battle",
         "choice": {
           "kind": "switch",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
           "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "items",
-        "plan": {
-          "assignments": [],
-          "discards": [],
-          "teaches": [
-            {
-              "move": "Facade",
-              "slot": 0,
-              "replaceSlot": 0
-            }
-          ],
-          "discardTms": []
-        }
-      },
-      {
-        "kind": "locale",
-        "index": 0
-      },
-      {
-        "kind": "node",
-        "index": 0
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "acquisition",
-        "decision": {
-          "kind": "decline"
-        }
-      },
-      {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "items",
-        "plan": {
-          "assignments": [],
-          "discards": [],
-          "teaches": [],
-          "discardTms": []
-        }
-      },
-      {
-        "kind": "node",
-        "index": 0
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "items",
-        "plan": {
-          "assignments": [],
-          "discards": [],
-          "teaches": [],
-          "discardTms": []
-        }
-      },
-      {
-        "kind": "node",
-        "index": 0
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
         }
       },
       {
@@ -1004,8 +740,15 @@
       {
         "kind": "battle",
         "choice": {
+          "kind": "switch",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 3
         }
       }
     ]

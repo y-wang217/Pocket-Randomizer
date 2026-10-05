@@ -73,8 +73,10 @@ export interface LocaleSelectView {
   segment: number;
   /** The gym guarding this segment. Revealed; the other seven are not. */
   gym: GymDefinition;
-  /** The leader this seed drew for it, by name. Stage 6.0. */
+  /** The challenger this seed drew for it, by name. Stage 6.0. */
   leader: string;
+  /** The challenger's class and name, as the node's opponent reads (checkpoint 6). Falls back to the name. */
+  challenger?: string;
   /** The party as it stands, for the compact strip. */
   party: readonly PokemonState[];
 }
@@ -109,13 +111,12 @@ export function createLocaleSelect(): LocaleSelect {
    * **The rail's label is gone. M5.3.** *"This segment ends at"* was four
    * words introducing a leader name and a type chip that sit directly above
    * the region cards, which is the position R1 says carries the meaning. The
-   * gym tip on the leader's name is unchanged, so what the label was pointing
-   * at is still one press away.
+   * type chip went at checkpoint 6: a challenger has none, and the region
+   * cards' own type chips are the typed fact the choice is about.
    */
   const railLabel = el('span', 'locale__gym-label');
   const railLeader = el('span', 'locale__gym-leader');
-  const railType = el('span', 'locale__gym-type');
-  rail.append(railLabel, railLeader, railType);
+  rail.append(railLabel, railLeader);
 
   /*
    * The party strip: a name, a level, types and the archetype label per member.
@@ -144,8 +145,7 @@ export function createLocaleSelect(): LocaleSelect {
        * anything else.
        */
       heading.textContent = 'Choose a region';
-      railLeader.textContent = view.leader;
-      railType.replaceChildren(typeChip(view.gym.type));
+      railLeader.textContent = view.challenger ?? view.leader;
       strip.replaceChildren(...view.party.map(renderStripMember));
       grid.replaceChildren(
         ...view.options.map((locale, index) => renderCard(locale, () => onPick(index))),

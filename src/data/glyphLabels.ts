@@ -65,7 +65,7 @@ export const GLYPH_LABELS: Readonly<Record<string, string>> = {
   'node-wild': 'Wild',
   'node-trainer': 'Trainer',
   'node-rest': 'Rest',
-  'node-gym': 'Gym',
+  'node-gym': 'Challenger',
   'node-shop': 'Shop',
   'node-event': 'Event',
   // The field family, nine marks. Stage 4.11 Tier 2, D47. Present tense: the

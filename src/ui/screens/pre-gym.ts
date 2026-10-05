@@ -19,12 +19,13 @@
  *
  * ## Part 4, and this is the screen it matters most on
  *
- * The leader's type is on screen. The party is on screen. **Nothing connects
- * them.** No card is marked, ordered, highlighted, scored or annotated by
- * matchup, and the member cards are rendered in party order rather than in any
- * order this screen chose. Working out the relationship is the decision, and a
- * screen that did it for the player would have removed the only reason it
- * exists.
+ * The challenger's class and name are on screen. The party is on screen.
+ * **Nothing connects them.** No card is marked, ordered, highlighted, scored
+ * or annotated by matchup, and the member cards are rendered in party order
+ * rather than in any order this screen chose. Working out what the name
+ * recalls is the decision, and a screen that did it for the player would have
+ * removed the only reason it exists. Until checkpoint 6 the gym's type sat
+ * beside the name; a challenger has none (ruling 3), so the chip is gone.
  *
  * Item assignment is not here either — a link to the party screen instead. A
  * second write path for party state, on the last screen before the hardest
@@ -35,7 +36,6 @@ import type { GymDefinition } from '../../data/gyms';
 import type { Tuning } from '../../data/tuning';
 import { el } from '../scene';
 import { memberCardContents } from '../member-card';
-import { typeChip } from './starter-select';
 
 /**
  * The slot the screen confirms when the player changes nothing.
@@ -58,8 +58,10 @@ export function defaultLeadSlot(party: readonly PokemonState[]): number {
 
 export interface PreGymView {
   gym: GymDefinition;
-  /** The leader this seed drew for the gym, by name. Stage 6.0. */
+  /** The challenger this seed drew for the slot, by name. Stage 6.0. */
   leader: string;
+  /** The challenger's class and name, `Rival Blue`, as the node's opponent reads (checkpoint 6). Falls back to the name. */
+  challenger?: string;
   /** 0-based, so the header can say "gym 4 of 8". */
   segment: number;
   party: readonly PokemonState[];
@@ -101,10 +103,8 @@ export function createPreGymScreen(): PreGymScreen {
    * `display` rule, which `test/visual-inline-box.test.ts` catches and
    * `ui/overlay.ts` documents three times.
    */
-  const leaderType = el('span', 'pre-gym__type');
-  leaderType.dataset['tutorial'] = 'gym-type';
   heading.dataset['tutorial'] = 'gym-counter';
-  heading.append(title, leaderType);
+  heading.append(title);
 
 
   /*
@@ -188,13 +188,12 @@ export function createPreGymScreen(): PreGymScreen {
       /*
        * **The leader's name, and not the word after it. M5.3.**
        *
-       * Section 4: *"Pre-gym screen | 4 | Gym leader name, type chip, 'Choose
-       * lead'."* A leader's name is a proper noun and free; `'s gym` was the
-       * one word on the line the counting rule could see, on a screen that is
-       * only ever reached by walking into a gym.
+       * Section 4: *"Pre-gym screen | 4 | the challenger's class and name,
+       * 'Choose lead'."* The name is a proper noun and free, the class is the
+       * counted word (D101); `'s gym` was the one word on the line before,
+       * on a screen that is only ever reached by walking into the boss.
        */
-      title.textContent = view.leader;
-      leaderType.replaceChildren(typeChip(view.gym.type));
+      title.textContent = view.challenger ?? view.leader;
 
       manage.onclick = () => handlers.onManageParty();
 

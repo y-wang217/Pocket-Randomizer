@@ -2,8 +2,8 @@
   "seed": "SEED-B",
   "versions": {
     "runLog": "gymrun-run-23/gymrun-0.3.0",
-    "contentHash": "5b7addde47cb1d0b09270dca61f5f9ae40e5c2987f25626e5e467c6a9d32df3e",
-    "randomizer": "gymrun-randomizer-27",
+    "contentHash": "16dc9508fc4b5db49a4a16d0794c9381c4b0bb789683c897c63dfefe6162a6cb",
+    "randomizer": "gymrun-randomizer-28",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -120,7 +120,7 @@
     {
       "segment": 0,
       "kind": "gym",
-      "label": "Roark's Gym",
+      "label": "Challenger Leader Roark",
       "tier": null,
       "opponent": "Leader Roark",
       "turns": 6,
@@ -152,9 +152,9 @@
     "seed": "SEED-B",
     "versions": {
       "runLog": "gymrun-run-23/gymrun-0.3.0",
-      "contentHash": "5b7addde47cb1d0b09270dca61f5f9ae40e5c2987f25626e5e467c6a9d32df3e",
+      "contentHash": "16dc9508fc4b5db49a4a16d0794c9381c4b0bb789683c897c63dfefe6162a6cb",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-27"
+      "randomizerVersion": "gymrun-randomizer-28"
     },
     "decisions": [
       {

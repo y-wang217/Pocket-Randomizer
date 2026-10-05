@@ -75,7 +75,7 @@ export function seedLine(seed: string): string {
  */
 export function deathLine(death: DeathRecord): string {
   const who = death.level === null ? death.species : `${death.species}, Lv${death.level}`;
-  const where = death.nodeKind === 'gym' ? `at Gym ${death.segment + 1}` : `in region ${death.segment + 1}`;
+  const where = death.nodeKind === 'gym' ? `at challenger ${death.segment + 1}` : `in region ${death.segment + 1}`;
   const cause = death.byMove
     ? ` to ${death.bySpecies ?? 'something'}, ${death.byMove}`
     : death.indirect

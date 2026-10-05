@@ -98,7 +98,7 @@ describe('the map overlay itself', () => {
     const map = createMapDrawer();
     map.open(state);
 
-    expect(map.root.querySelector('.screen__title')?.textContent ?? '').toMatch(/Gym 1 of 8/);
+    expect(map.root.querySelector('.screen__title')?.textContent ?? '').toMatch(/Challenger 1 of 8/);
     expect(map.root.querySelectorAll('.step').length).toBeGreaterThan(1);
     // The gym caps the chain, so there is always one more row than steps.
     expect(map.root.querySelectorAll('.node').length).toBeGreaterThan(1);

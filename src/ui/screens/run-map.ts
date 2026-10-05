@@ -7,10 +7,9 @@
  * **The whole eight-gym rail is on screen, always.** Stage 1 had one segment and
  * a step chain was the entire map. Eight segments without a rail is a game where
  * the player cannot tell whether they are doing well — "Volta's Gym" means
- * nothing on its own, and "gym 3 of 8, five to go" means everything. The rail
- * also names each leader's type from the start, because a run is planned around
- * type matchups and hiding them would make planning guesswork rather than
- * knowledge.
+ * nothing on its own, and "challenger 3 of 8, five to go" means everything.
+ * The rail named each leader's type until checkpoint 6; a challenger has
+ * none, and the typed fact a run plans around is the area's.
  *
  * **Upcoming steps are shown.** The map reveals node *kinds* for every step, not
  * just the current one. It never reveals contents — what a wild node contains is
@@ -179,19 +178,17 @@ export function createRunMap(): RunMap {
  * treatment, it writes to the screen's root, and the overlay wants none of it.
  */
 export function renderHeading(state: RunState, segment: Segment): HTMLElement[] {
-  const gym = segment.gymDefinition;
   const team = segment.gym.encounter?.team.length ?? 1;
 
   const title = el('h2', 'screen__title');
-  title.textContent = `Gym ${state.currentSegment + 1} of ${state.segments.length} — ${segment.leader}`;
+  title.textContent = `Challenger ${state.currentSegment + 1} of ${state.segments.length} — ${segment.gym.encounter?.opponent ?? segment.leader}`;
 
   const subtitle = el('p', 'screen__blurb');
   subtitle.replaceChildren(
-    typeChip(gym.type),
-    // The gym's team size is public and the level band is not. Size changes
-    // how the fight is *approached* — a solo Pokemon against three has to
-    // budget PP — so hiding it would hide the decision rather than create one.
-    document.createTextNode(` · ${team} Pokemon · ${stepsOf(state).length} steps before the gym`),
+    // The challenger's team size is public and the level band is not. Size
+    // changes how the fight is *approached* — a solo Pokemon against three has
+    // to budget PP — so hiding it would hide the decision rather than create one.
+    document.createTextNode(`${team} Pokemon · ${stepsOf(state).length} steps before the challenger`),
   );
 
   /*
@@ -231,14 +228,14 @@ export function renderRail(state: RunState): HTMLElement[] {
     number.textContent = phase === 'done' ? '✓' : String(index + 1);
 
     const label = el('span', 'rail__label');
-    // The leader this seed drew for the segment. The map rail shows every
-    // leader, the same eight the run announces; a name is a fact the seed
-    // fixed at generation and not a hint about contents (Stage 6.0).
-    const leader = state.segments[index]?.leader ?? gym.type;
+    // The challenger this seed drew for the segment. The map rail shows every
+    // one, the same eight the run announces; a name is a fact the seed fixed
+    // at generation and not a hint about contents (Stage 6.0).
+    const leader = state.segments[index]?.leader ?? `Challenger ${gym.segment + 1}`;
     label.textContent = leader;
 
-    item.append(number, label, typeChip(gym.type));
-    item.title = `${leader} — ${gym.type}`;
+    item.append(number, label);
+    item.title = state.segments[index]?.gym.encounter?.opponent ?? leader;
     return item;
   });
 }

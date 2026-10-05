@@ -47,5 +47,5 @@ export const FEED_COPY = {
   reordered: (name: string, to: number): string => `Order · ${name} to slot ${to + 1}`,
   evolved: (from: string, to: string): string => `Evolved · ${from} into ${to}`,
   /** A group heading in the feed: the gym a segment ends at. */
-  segment: (index: number, leader: string): string => `Gym ${index + 1} · ${leader}`,
+  segment: (index: number, leader: string): string => `Challenger ${index + 1} · ${leader}`,
 } as const;

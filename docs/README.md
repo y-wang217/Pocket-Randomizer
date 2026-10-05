@@ -446,7 +446,19 @@ Champion Cup from Serebii (Leon, Hop, Marnie, Bede and the finals rematches,
 twelve records; the library is 5,639) and compacted the tables to one party
 string per record, decoded at load. `RANDOMIZER_VERSION` to `-27` for the
 records that entered the candidate windows; `contentHash` to `5b7add`.
-Record [`generation.md`](generation.md) section 104.
+Record [`generation.md`](generation.md) section 104. **Checkpoint 6
+redirected the stage on the author's two messages**, filed verbatim at
+[`spec/gymrun-stage6.0-checkpoint6-challengers.md`](spec/gymrun-stage6.0-checkpoint6-challengers.md):
+the boss of a segment is a **challenger**, a rival, a protagonist, a gym
+leader or an Elite Four member nearest the segment's cap, one record per
+name, with a mixed roster and the segment's fill, and it has no type. The
+gym's type retired from `data/gyms.ts` and from every chip that showed it
+(bible **Rev 26**, D101); the node reads `Challenger Rival Blue`; leaders
+appear on routes at `hard` and `elite`; rivals are challengers only.
+`RANDOMIZER_VERSION` to `-28`, `contentHash` to `16dc95`. The second
+message, *maps are training, no badge, a progress bar to the next
+challenger*, is **D102**, filed with options for checkpoint 7. Record
+[`generation.md`](generation.md) section 105.
 
 **In flight: no species-locked ability or move.** Branch
 `claude/species-locked-pool`, prompt
@@ -1347,6 +1359,25 @@ rule; report and screenshots in
 ## 5. Open items
 
 One line each. The analysis lives where the pointer goes, not here.
+
+0. **D102 is open: no badge, a progress bar that shrinks as the next
+   challenger approaches.** The author's design for the map as training;
+   three options and a recommendation filed 2026-10-05 in
+   [`design/bible-discrepancies.md`](design/bible-discrepancies.md). The
+   badge mark and the eight-badge rail stand until it is ruled and built as
+   Stage 6.0 checkpoint 7. `generation.md` section 105.
+
+0. **The library has no Gen 5 to 9 rival.** pokemondb's leader pages carry
+   none, so Cheren, Bianca, Hugh, Calem, Serena, Shauna, Hau's rival fights,
+   Gladion and Arven are not challengers yet; the Gen 1 to 4 rivals and the
+   titled protagonists are. A Serebii import like the Champion Cup's closes
+   it as a data patch. `generation.md` section 105.
+
+0. **The route trainers could leave the main chunk.** The library costs 178 kB
+   gzipped on the wire, above the ~150 kB line; the compact encoding did not
+   move it. Ruled 2026-10-05: a host-filled registry for the 4,839 Gen 1 to 4
+   route trainers, with `core/` throwing loudly on an unfilled one, is an
+   acceptable seam. Deferred, not built. `generation.md` section 104.
 
 00. **An evolution fork may still be out of reach, and the measurement that
     said so is stale.** A fork needs a branching species in the party at a gym

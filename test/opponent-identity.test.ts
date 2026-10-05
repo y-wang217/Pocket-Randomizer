@@ -107,6 +107,17 @@ describe('the battle header', () => {
     detach();
   });
 
+  it('reads a rival challenger the same way: the class alone under the name in the title', () => {
+    // Checkpoint 6: the boss may be a rival; the header's rule does not change.
+    const foe = [mon('Pidgeotto', 'Keen Eye')];
+    const blue: EncounterRef = { ...JOEY, id: 'rby/blue-3', name: 'Blue', class: 'Rival', sprite: 'blue-gen1', game: 'rby', place: 'Cerulean City', role: 'rival' };
+    const { root, detach } = mount(nodeFor('gym', foe, blue, 'Rival Blue'), foe);
+    expect(root.querySelector('.screen__title')?.textContent).toContain('Blue');
+    const detail = root.querySelector<HTMLElement>('.battle__detail-text')!;
+    expect(detail.textContent).toMatch(/^Rival · /);
+    detach();
+  });
+
   it('keeps the count-and-kind reading for a trainer with no record', () => {
     const foe = [mon('Golem', 'Sturdy')];
     const { root, detach } = mount(nodeFor('trainer', foe, null, "Trainer's Golem"), foe);

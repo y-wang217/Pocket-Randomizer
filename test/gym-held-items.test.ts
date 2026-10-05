@@ -183,6 +183,12 @@ describe('the gym held-item ladder', () => {
    * `gymrun-randomizer-27`: twelve Champion Cup records joined the library
    * and entered candidate windows, so the same pick draw lands on a
    * different record wherever one entered. Wild teams did not move.
+   *
+   * **Re-recorded 2026-10-05**, from `2459bb59723d1708`, with
+   * `gymrun-randomizer-28`: every window keeps one record per trainer
+   * name, rivals leave the route windows and leaders enter them at `hard`
+   * and `elite`, so the same pick lands on a different record at every
+   * trainer node. Wild teams did not move.
    */
   it('generates trainer and wild teams byte-identically to before the ladder existed', () => {
     const records: string[] = [];
@@ -203,7 +209,7 @@ describe('the gym held-item ladder', () => {
       }
     }
     const digest = createHash('sha256').update(records.join('\n')).digest('hex').slice(0, 16);
-    expect(digest).toBe('2459bb59723d1708');
+    expect(digest).toBe('021d1ac5804761f9');
   });
 
   it('spends the same two draws on a gym member as on any other opponent', () => {

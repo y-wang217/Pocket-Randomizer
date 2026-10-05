@@ -263,12 +263,11 @@ export interface Segment {
    * per locale" decision waits on.
    */
   eventRefills: number;
-  /** The gym leader this seed drew for this segment, by name. Shown wherever the gym is named. */
+  /** The challenger this seed drew for this segment, by name. Shown wherever the segment is named. */
   leader: string;
-  type: string;
-  /** The gym's own definition: its type and its segment. The leader is not in it; see `gymEncounter`. */
+  /** The slot: its segment and its number. The challenger is not in it; see `gymEncounter`. */
   gymDefinition: GymDefinition;
-  /** The leader record the gym resolved to: name, class, sprite, game, place, citation. */
+  /** The challenger record the slot resolved to: name, class, sprite, game, place, citation. */
   gymEncounter: EncounterRef;
   /**
    * The locales this segment offers, in offer order. Two or three.
@@ -571,7 +570,9 @@ export function generateSegment(
     kind: 'gym',
     locale: null,
     tier: null,
-    label: `${drawn.source.name}'s Gym`,
+    // The node reads the challenger's class and name behind the kind word
+    // (checkpoint 6, ruling 1): `Challenger Rival Blue`, `Challenger Leader Brock`.
+    label: `Challenger ${describeOpponent('gym', drawn.team, drawn.team[0]!, drawn.source)}`,
     encounter: {
       team: drawn.team,
       opponent: describeOpponent('gym', drawn.team, drawn.team[0]!, drawn.source),
@@ -590,7 +591,6 @@ export function generateSegment(
     index,
     eventRefills: 0,
     leader: drawn.source.name,
-    type: gymDef.type,
     gymDefinition: gymDef,
     gymEncounter: drawn.source,
     localeOffer,

@@ -720,6 +720,7 @@ export function mountApp(root: HTMLElement): void {
             // patch. See the header on `locale-select.ts`.
             gym: gymForSegment(state.currentSegment),
             leader: state.segments[state.currentSegment]?.leader ?? '',
+            challenger: state.segments[state.currentSegment]?.gym.encounter?.opponent ?? '',
             party: state.party,
           },
           (index) => localePick.submit(index),
@@ -1311,6 +1312,7 @@ export function mountApp(root: HTMLElement): void {
         {
           gym: pendingGym,
           leader: state.segments[state.currentSegment]?.leader ?? '',
+          challenger: state.segments[state.currentSegment]?.gym.encounter?.opponent ?? '',
           segment: state.currentSegment,
           /*
            * Both halves of the plan, for the reason `readDrawer` gives: the

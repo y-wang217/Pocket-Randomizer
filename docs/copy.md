@@ -610,7 +610,7 @@ Source: `src/data/glyphLabels.ts` · 51 strings
 | `node-wild` | Wild |  |
 | `node-trainer` | Trainer |  |
 | `node-rest` | Rest |  |
-| `node-gym` | Gym |  |
+| `node-gym` | Challenger |  |
 | `node-shop` | Shop |  |
 | `node-event` | Event |  |
 | `field-rain` | Rain |  |
@@ -986,7 +986,7 @@ Source: `src/ui/copy/screens.ts` · 9 strings
 | `sidebar · label` | Run at a glance |  |
 | `sidebar · where` | Where |  |
 | `sidebar · team` | Team |  |
-| `sidebar · where line` | Cave · Gym 1 of 8 · Garnet |  |
+| `sidebar · where line` | Cave · Challenger 1 of 8 · Garnet |  |
 
 ### 32. Run progress
 
@@ -1017,7 +1017,7 @@ Source: `src/ui/copy/feed.ts` · 22 strings
 | `released` | Released · Rattata |  |
 | `reordered` | Order · Pidgey to slot 1 |  |
 | `evolved` | Evolved · Pidgey into Pidgeotto |  |
-| `segment` | Gym 1 · Garnet |  |
+| `segment` | Challenger 1 · Garnet |  |
 
 ### 33. Settings
 
@@ -1104,7 +1104,7 @@ Source: `src/data/tutorial.ts` · 17 strings
 | `party.items` | **Held items** — A Pokemon holds one item, given and taken back here, and locked during a battle. Items nobody holds sit in the backpack, which has a capacity. |  |
 | `party.relics` | **Relics** — A relic belongs to the run, not to a Pokemon. It takes no slot and cannot be lost. |  |
 | `drawer.party` | **The party drawer** — The whole party, from any screen. It is a view: items are changed on the party screen. |  |
-| `pre-gym.gym` | **The gym** — The end of the region. The leader’s Pokemon share the type shown here. Winning begins the next region; losing ends the run. |  |
+| `pre-gym.gym` | **The challenger** — The end of the region. A named trainer waits here with their own team. Winning begins the next region; losing ends the run. |  |
 | `pre-gym.lead` | **Who leads** — The Pokemon chosen here goes out first. A gym pays a move every time, then a choice of cards. |  |
 
 ### 37. Tutorial — the controls
@@ -1152,7 +1152,7 @@ Found by grep, not by import: a string assigned straight to `textContent`, `titl
 | `src/ui/screens/party.ts` line 693 | Release |  |
 | `src/ui/screens/party.ts` line 892 | Backpack |  |
 | `src/ui/screens/acquisition.ts` line 206 | Take it |  |
-| `src/ui/screens/locale-select.ts` line 146 | Choose a region |  |
+| `src/ui/screens/locale-select.ts` line 147 | Choose a region |  |
 | `src/ui/screens/move-replace.ts` line 67 | Learning |  |
 | `src/ui/screens/pre-gym.ts` line 162 | Items |  |
 | `src/ui/screens/event.ts` line 285 | Carry on |  |

@@ -85,7 +85,6 @@ import {
   describeMove,
   describeSpecCard,
   readConsumedItems,
-  typeMultiplier,
   type BattleSession,
 } from '../src/core/battle/driver';
 import type { EventOutcome } from '../src/core/events';
@@ -116,7 +115,6 @@ import { MAX_MOVE_BAND } from '../src/data/moveOverrides';
 import { MAX_PARTY_CAPACITY, SLOT_UNLOCK_SCHEDULE } from '../src/data/partyTuning';
 import { HEALTHY_BALANCE, priceAt } from '../src/data/shop';
 import { DEFAULT_TUNING, type Tuning } from '../src/data/tuning';
-import type { GymDefinition } from '../src/data/gyms';
 
 
 /** Berry ids, as a set, for the two tallies that ask "is this a berry". */
@@ -1531,7 +1529,7 @@ function buildPolicy(
      * is the measure of whether the pre-gym screen decides anything, which is
      * why the two differ in this answer and in nothing else.
      */
-    chooseLead: async (party, gym) => (policy === 'lead-static' ? 0 : leadFor(party, gym)),
+    chooseLead: async (party) => (policy === 'lead-static' ? 0 : leadFor(party)),
 
     /*
      * The evolution branch. Random draws it from its own policy stream; every
@@ -2292,8 +2290,6 @@ async function playSample(
 
 interface GymRow {
   gym: number;
-  leader: string;
-  type: string;
   teamSize: number;
   reached: number;
   cleared: number;
@@ -2680,25 +2676,17 @@ interface Sample {
  * It consumes no RNG, which is what keeps the lead pair a controlled
  * comparison: both bots draw the same locales from the same stream positions.
  */
-function leadFor(party: readonly PokemonState[], gym: GymDefinition): number {
+function leadFor(party: readonly PokemonState[]): number {
+  // Until checkpoint 6 the bot read the gym's type and led with the best
+  // matchup. A challenger has no type and its team is hidden, so the bot
+  // leads with its highest-level standing member: the bet a player who knows
+  // nothing but the name would make.
   let best = 0;
-  let bestScore = -Infinity;
-
+  let bestLevel = -Infinity;
   for (const [index, member] of party.entries()) {
     if (member.fainted) continue;
-    const card = describeSpecCard(member.spec);
-
-    const offence = Math.max(
-      0,
-      ...card.moves
-        .filter((move) => move.category !== 'Status')
-        .map((move) => typeMultiplier(move.type, [gym.type])),
-    );
-    const defence = typeMultiplier(gym.type, card.types);
-    const score = offence - defence;
-
-    if (score > bestScore) {
-      bestScore = score;
+    if (member.spec.level > bestLevel) {
+      bestLevel = member.spec.level;
       best = index;
     }
   }
@@ -2786,9 +2774,7 @@ function summarize(
     const cleared = records.filter((record) => record.gymsCleared >= number).length;
     return {
       gym: number,
-      // The leader is drawn per seed since Stage 6.0; the row names the type, which is the gym.
-      leader: gym.type,
-      type: gym.type,
+      // The challenger is drawn per seed since Stage 6.0, so the row has no name.
       // Read from the curve rather than written as a literal, so the column
       // cannot drift out of agreement with what the gym actually fielded.
       teamSize: opponentTeamSize('gym', gym.segment, 'normal'),
@@ -3429,11 +3415,9 @@ function render(sample: Sample): string {
   out.push('', 'Clear rate per gym — of the runs that reached it');
   out.push(
     table(
-      ['gym', 'leader', 'type', 'team', 'reached', 'cleared', 'clear rate', 'drop'],
+      ['gym', 'team', 'reached', 'cleared', 'clear rate', 'drop'],
       sample.perGym.map((row) => [
         String(row.gym),
-        row.leader,
-        row.type,
         String(row.teamSize),
         String(row.reached),
         String(row.cleared),
@@ -4335,7 +4319,7 @@ function verdicts(sample: Sample): string[] {
    * sampler of it as any.
    */
   if (competent) {
-    lines.push(check(worst.dropFromPrevious <= 25, `steepest drop ${worst.dropFromPrevious.toFixed(0)}pt at gym ${worst.gym} (${worst.leader}) (target <=25pt)`));
+    lines.push(check(worst.dropFromPrevious <= 25, `steepest drop ${worst.dropFromPrevious.toFixed(0)}pt at gym ${worst.gym} (target <=25pt)`));
 
     // Stage 3's own targets, which are about the *choice* rather than the curve.
     const topKind = sample.rewards.taken[0];

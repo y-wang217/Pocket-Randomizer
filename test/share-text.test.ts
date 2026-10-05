@@ -66,7 +66,7 @@ describe('the seed is rendered in one place', () => {
 
 describe('a death line', () => {
   it('states the facts and nothing about them', () => {
-    expect(deathLine(death())).toBe('Weepinbell, Lv31, fell at Gym 5 to Arcanine, Flare Blitz.');
+    expect(deathLine(death())).toBe('Weepinbell, Lv31, fell at challenger 5 to Arcanine, Flare Blitz.');
   });
 
   it('says where it fell when it was not a gym', () => {
@@ -80,12 +80,12 @@ describe('a death line', () => {
 
   it('says nothing about a cause it does not know', () => {
     const line = deathLine(death({ byMove: null, bySpecies: null, indirect: null }));
-    expect(line).toBe('Weepinbell, Lv31, fell at Gym 5.');
+    expect(line).toBe('Weepinbell, Lv31, fell at challenger 5.');
   });
 
   it('omits a level it could not read rather than printing one', () => {
     expect(deathLine(death({ level: null }))).toBe(
-      'Weepinbell, fell at Gym 5 to Arcanine, Flare Blitz.',
+      'Weepinbell, fell at challenger 5 to Arcanine, Flare Blitz.',
     );
   });
 

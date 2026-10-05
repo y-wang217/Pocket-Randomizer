@@ -12,12 +12,17 @@
  *      member, the games' convention) is dropped is not playable at all.
  *   2. **Which records may a node draw from?** `encounterCandidates` is a
  *      function of the node's *structural* inputs only — its kind, its segment
- *      and for a gym its type — never of anything the player did, which is
- *      the discipline every key in `core/streamKeys.ts` rests on. The list is
- *      ranked by how far the record's canonical ace sits from the segment's
- *      level cap and cut to a window, so Brock's Geodude 12 is a segment 0 pick
- *      and Roxanne's fifth rematch a segment 5 pick, rather than either shifted
- *      forty levels to fit. The list order is the draw order.
+ *      and its tier — never of anything the player did, which is the
+ *      discipline every key in `core/streamKeys.ts` rests on. A boss node
+ *      draws a **challenger** (a rival, a protagonist, a gym leader or an
+ *      Elite Four member; checkpoint 6's ruling 1); a route node draws a route
+ *      trainer or a villain, and at `hard` or `elite` a gym leader too. The
+ *      list is ranked by how far the record's canonical ace sits from the
+ *      segment's level cap, keeps **one record per trainer name** (Brock's
+ *      nearest roster, not five of them), and is cut to a window, so Brock's
+ *      Geodude 12 is a segment 0 pick and Roxanne's fifth rematch a segment 5
+ *      pick, rather than either shifted forty levels to fit. The list order is
+ *      the draw order.
  *   3. **How does a record fit a slot count and a level range?** `fitParty`
  *      trims from the front keeping the ace, shifts every level by one
  *      constant so the ace lands on the cap, clamps into the range, and
@@ -39,13 +44,14 @@ import type { EncounterRecord } from './types';
 export type EncounterKind = 'trainer' | 'gym';
 
 /**
- * How many records a node draws among, nearest the segment's cap first.
+ * How many **trainer names** a node draws among, nearest the segment's cap
+ * first, one record each.
  *
- * Twelve for a gym: the thinnest type (Dragon) has fewer than twelve leader
- * rosters across every game, so twelve is "every one we have" there and a
- * level-sorted dozen everywhere else. Forty-eight for a trainer, because route
- * trainers come in hundreds per level band and a dozen would make a segment's
- * trainers feel like a roster rather than a region.
+ * Twelve for a challenger: a dozen names across rivals, leaders and the Elite
+ * Four is a cast, and the nearest dozen keeps a Gen 1 roster near the first
+ * segment and a late rematch near the last. Forty-eight for a route trainer,
+ * because route trainers come in hundreds per level band and a dozen would
+ * make a segment's trainers feel like a roster rather than a region.
  */
 export const CANDIDATE_WINDOW: Readonly<Record<EncounterKind, number>> = { gym: 12, trainer: 48 };
 
@@ -87,18 +93,30 @@ function aceLevel(record: EncounterRecord): number {
   return record.party[record.party.length - 1]?.level ?? 0;
 }
 
-function isGymCandidate(record: EncounterRecord, type: string): boolean {
-  const members = playable(record);
-  if (!members) return false;
-  // A leader of the type, with at least one playable member that carries it:
-  // the later games' leaders field an off-type member or two (Kofu's
-  // Crabominable), and `fitParty` drops those, so what is left must be
-  // somebody. An Elite Four member or a champion defends a gym only when
-  // every playable member carries the type: Phoebe's Ghosts can, Lance's
-  // Gyarados cannot.
-  if (record.role === 'gym') return record.gymType === type && members.some((member) => member.entry.types.includes(type));
-  if (record.role !== 'elite' && record.role !== 'champion') return false;
-  return members.every((member) => member.entry.types.includes(type));
+/**
+ * Rivals and protagonists who hold a title in some game, admitted to the
+ * challenger pool whatever role the record carries: Blue's Champion fight is
+ * the Red and Blue rival the ruling names, Red at Mt. Silver is the
+ * protagonist, Trace and Hau are the rival as Champion, Green is Leaf.
+ * Every other champion and every villain stays out (ruling 1).
+ */
+const TITLED_PROTAGONISTS: ReadonlySet<string> = new Set(['Red', 'Blue', 'Green', 'Leaf', 'Trace', 'Hau']);
+
+/** A boss's pool: the challenger. A rival, a gym leader, an Elite Four member, or a titled protagonist. */
+function isChallengerCandidate(record: EncounterRecord): boolean {
+  if (record.role === 'rival' || record.role === 'gym' || record.role === 'elite') return true;
+  return TITLED_PROTAGONISTS.has(record.trainer.name);
+}
+
+/**
+ * A route's pool: route trainers and villains at every tier, and gym leaders
+ * at `hard` and `elite` (ruling 4), where a mono-type roster is the tough
+ * fight the tier promises. Rivals are challengers only: Blue on Route 3 and
+ * Blue as the stage's boss in one run would be one string meaning two things.
+ */
+function isTrainerCandidate(record: EncounterRecord, tier: Tier): boolean {
+  if (record.role === 'route' || record.role === 'boss') return true;
+  return record.role === 'gym' && tier !== 'normal';
 }
 
 /**
@@ -122,34 +140,42 @@ function inTierBands(records: readonly EncounterRecord[], segment: number, tier:
   return narrowed.length >= TIER_POOL_FLOOR ? narrowed : records;
 }
 
-function isTrainerCandidate(record: EncounterRecord): boolean {
-  return record.role === 'route' || record.role === 'rival' || record.role === 'boss';
-}
-
 const candidateCache = new Map<string, readonly EncounterRecord[]>();
 
 /**
- * The records a node of this kind, at this segment (and for a gym, of this
- * type) may draw from, nearest the segment's level cap first, ties by id, cut
- * to `CANDIDATE_WINDOW`. Structural inputs only. Throws when there are none,
- * because a node with nothing to draw is a data error and not a draw.
+ * The records a node of this kind, at this segment and tier may draw from,
+ * nearest the segment's level cap first, ties by id, one record per trainer
+ * name (the nearest), cut to `CANDIDATE_WINDOW` names. A boss takes no tier
+ * (`core/randomizer.ts` says why) and passes none. Structural inputs only.
+ * Throws when there are none, because a node with nothing to draw is a data
+ * error and not a draw.
  */
-export function encounterCandidates(kind: EncounterKind, segment: number, gymType?: string, tier: Tier = 'normal'): readonly EncounterRecord[] {
-  const key = `${kind}/${segment}/${gymType ?? ''}/${tier}`;
+export function encounterCandidates(kind: EncounterKind, segment: number, tier: Tier = 'normal'): readonly EncounterRecord[] {
+  const key = `${kind}/${segment}/${tier}`;
   const cached = candidateCache.get(key);
   if (cached) return cached;
-  if (kind === 'gym' && !gymType) throw new RangeError('A gym candidate list needs the gym type');
   const target = opponentLevel(kind, segment, tier).max;
   const eligible = ENCOUNTERS.filter((record) => playable(record) !== null)
-    .filter((record) => (kind === 'gym' ? isGymCandidate(record, gymType!) : isTrainerCandidate(record)));
+    .filter((record) => (kind === 'gym' ? isChallengerCandidate(record) : isTrainerCandidate(record, tier)));
   const ranked = (kind === 'trainer' ? inTierBands(eligible, segment, tier) : eligible)
     .map((record) => ({ record, distance: Math.abs(aceLevel(record) - target) }))
     .sort((a, b) => a.distance - b.distance || (a.record.id < b.record.id ? -1 : a.record.id > b.record.id ? 1 : 0))
-    .slice(0, CANDIDATE_WINDOW[kind])
     .map((ranked) => ranked.record);
-  if (ranked.length === 0) throw new RangeError(`No ${kind} encounter candidates at segment ${segment}${gymType ? ` for ${gymType}` : ''}`);
-  candidateCache.set(key, ranked);
-  return ranked;
+  // One record per name, the nearest: a window of twelve Brocks is one
+  // leader with costumes, and the brief wants a cast (ruling 5). Gen 1 names
+  // its route trainers by class, so `Youngster` is one name there too, which
+  // is the rule applied evenly.
+  const names = new Set<string>();
+  const distinct: EncounterRecord[] = [];
+  for (const record of ranked) {
+    if (names.has(record.trainer.name)) continue;
+    names.add(record.trainer.name);
+    distinct.push(record);
+    if (distinct.length === CANDIDATE_WINDOW[kind]) break;
+  }
+  if (distinct.length === 0) throw new RangeError(`No ${kind} encounter candidates at segment ${segment} at ${tier}`);
+  candidateCache.set(key, distinct);
+  return distinct;
 }
 
 /**
@@ -170,13 +196,9 @@ export function encounterCandidates(kind: EncounterKind, segment: number, gymTyp
  *
  * The result is at most `size` long; the caller rolls the rest.
  */
-export function fitParty(record: EncounterRecord, level: { min: number; max: number }, size: number, type?: string): PlayableMember[] {
-  const playableMembers = playable(record);
-  if (!playableMembers || size < 1) return [];
-  // A gym's identity first: a member that does not carry the gym's type is
-  // not fielded, whatever the game did, so the ace is the last one that does.
-  const members = type ? playableMembers.filter((member) => member.entry.types.includes(type)) : playableMembers;
-  if (members.length === 0) return [];
+export function fitParty(record: EncounterRecord, level: { min: number; max: number }, size: number): PlayableMember[] {
+  const members = playable(record);
+  if (!members || size < 1) return [];
   const trimmed = members.slice(-size);
   const ace = trimmed[trimmed.length - 1]!;
   const shift = level.max - ace.level;

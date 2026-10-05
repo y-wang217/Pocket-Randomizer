@@ -2,8 +2,8 @@
   "seed": "SMOKE24",
   "versions": {
     "runLog": "gymrun-run-23/gymrun-0.3.0",
-    "contentHash": "5b7addde47cb1d0b09270dca61f5f9ae40e5c2987f25626e5e467c6a9d32df3e",
-    "randomizer": "gymrun-randomizer-27",
+    "contentHash": "16dc9508fc4b5db49a4a16d0794c9381c4b0bb789683c897c63dfefe6162a6cb",
+    "randomizer": "gymrun-randomizer-28",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -28,11 +28,11 @@
       "ability": "Rough Skin",
       "moves": [
         "Sand Tomb 24/24",
-        "Razor Leaf 40/40",
-        "Bulldoze 31/32",
+        "Razor Leaf 38/40",
+        "Bulldoze 30/32",
         "Mud Shot 24/24"
       ],
-      "item": "silkscarf",
+      "item": "passhoberry",
       "hp": "0/50",
       "fainted": true
     },
@@ -46,7 +46,7 @@
         "Breaking Swipe 23/24",
         "Shore Up 8/8"
       ],
-      "item": null,
+      "item": "silkscarf",
       "hp": "0/44",
       "fainted": true
     }
@@ -79,10 +79,10 @@
       "kind": "trainer",
       "label": "Trainer battle",
       "tier": "normal",
-      "opponent": "Team Aqua Grunt",
-      "turns": 1,
+      "opponent": "Pokéfan Isabel",
+      "turns": 2,
       "winner": "p1",
-      "hpAfter": 49,
+      "hpAfter": 62,
       "casualties": []
     },
     {
@@ -93,7 +93,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 49,
+      "hpAfter": 62,
       "casualties": []
     },
     {
@@ -102,7 +102,7 @@
       "label": "Wild encounter",
       "tier": "hard",
       "opponent": "Wild Oricorio",
-      "turns": 4,
+      "turns": 6,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
@@ -131,9 +131,9 @@
     "seed": "SMOKE24",
     "versions": {
       "runLog": "gymrun-run-23/gymrun-0.3.0",
-      "contentHash": "5b7addde47cb1d0b09270dca61f5f9ae40e5c2987f25626e5e467c6a9d32df3e",
+      "contentHash": "16dc9508fc4b5db49a4a16d0794c9381c4b0bb789683c897c63dfefe6162a6cb",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-27"
+      "randomizerVersion": "gymrun-randomizer-28"
     },
     "decisions": [
       {
@@ -218,6 +218,13 @@
         }
       },
       {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
         "kind": "reward",
         "index": 0
       },
@@ -249,7 +256,7 @@
         "plan": {
           "assignments": [
             {
-              "slot": 0,
+              "slot": 1,
               "item": "silkscarf"
             }
           ],
@@ -287,6 +294,20 @@
         "kind": "battle",
         "choice": {
           "kind": "switch",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
           "slot": 2
         }
       },

@@ -316,8 +316,8 @@ describe('the result screens and the share text', () => {
     };
     const text = shareText(view);
     expect(text).toContain('· Charmander, Lv40');
-    expect(text).toContain('· Weepinbell, Lv31, fell at Gym 3 to Arcanine, Flare Blitz.');
+    expect(text).toContain('· Weepinbell, Lv31, fell at challenger 3 to Arcanine, Flare Blitz.');
     expect(text).not.toContain('Bramble');
-    expect(deathLine(view.deaths[0]!)).toBe('Weepinbell, Lv31, fell at Gym 3 to Arcanine, Flare Blitz.');
+    expect(deathLine(view.deaths[0]!)).toBe('Weepinbell, Lv31, fell at challenger 3 to Arcanine, Flare Blitz.');
   });
 });

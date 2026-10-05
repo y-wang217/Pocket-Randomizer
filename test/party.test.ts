@@ -886,8 +886,24 @@ describe('a full eight-gym run, headless', () => {
     return moveChoice(weakest?.slot ?? 1);
   };
 
-  const victoryRun = (): Promise<RunResult> =>
-    playRun('WIN-MECH-0', everything(), VICTORY_TUNING, { opponent: pacifist });
+  /*
+   * Searched rather than pinned since Stage 6.0 checkpoint 6: `WIN-MECH-0`
+   * cleared seven gyms against a pacifist while the boss was a mono-type
+   * leader and stops at four now that it is a challenger with a mixed
+   * roster. The subject here is the transitions, not the seed, so the first
+   * seed in the range that goes the distance is the one, found once and
+   * replayed by name so the determinism cases below compare like with like.
+   */
+  let victorySeed: Promise<string> | null = null;
+  const victoryRun = async (): Promise<RunResult> => {
+    victorySeed ??= firstRunWhere(
+      seedRange('WIN-MECH-', 80),
+      (seed) => playRun(seed, everything(), VICTORY_TUNING, { opponent: pacifist }),
+      (run) => gymsCleared(run.state) >= SEGMENTS_PER_RUN - 1,
+      'clearing seven gyms against a pacifist',
+    ).then((found) => found.seed);
+    return playRun(await victorySeed, everything(), VICTORY_TUNING, { opponent: pacifist });
+  };
 
   it('reaches the last gym, levelling and healing all the way, acquiring and releasing', async () => {
     expect(typeof globalThis.document).toBe('undefined');

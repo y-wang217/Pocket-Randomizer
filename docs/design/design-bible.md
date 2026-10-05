@@ -1,6 +1,28 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 25, Oct 5, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 26, Oct 5, 2026.
+
+**Rev 26** carries one amendment, D101, from the author's redirect of
+2026-10-05 after Stage 6.0's fifth checkpoint
+([`../spec/gymrun-stage6.0-checkpoint6-challengers.md`](../spec/gymrun-stage6.0-checkpoint6-challengers.md)):
+*"bosses should be more like 'this is an ace trainer at this stage'"*, and
+*"the challenger is agnostic of the training"*. **D101**: the boss of a
+segment is a **challenger**, a rival, a protagonist, a gym leader or an Elite
+Four member drawn per seed, and it has no type. Every surface that showed the
+gym's type loses the chip: the pre-gym heading, the map heading, the map rail
+and the locale rail, each of which now reads the challenger's class and name
+(`Rival Blue`, `Leader Brock`), the class a counted word and the name a proper
+noun; the node's kind word is *Challenger*. Section 4's pre-gym row and
+section 5's rail and locale rows say the same; the node-kind row's hint word
+moves with `GLYPH_LABELS`. The locale card's four type chips are untouched:
+they are the area's, which is now the only typed fact a run plans around. C1
+holds: a class and a name are attributes. **D102 is filed and not built**:
+the author's second sentence, *"there's only a progress bar that shrinks as
+the 'next challenger approaches', so there doesn't need to be a badge"*,
+replaces the badge rail and the badge mark, which D46, D72 and D100 placed;
+it has options in [`bible-discrepancies.md`](bible-discrepancies.md) and
+waits on a ruling. Until then the badge mark stays as the untyped kind glyph.
+Recorded in [`playtest-log.md`](playtest-log.md) as the author's directive.
 
 **Rev 25** carries one amendment, D100, from the author's ruling of 2026-10-05
 on Stage 6.0's player-facing half
@@ -568,7 +590,7 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Field state (weather, terrain) | Field glyph at 16 on the battle screen header; the battle backdrop's wash and terrain tint behind the stage. Turns remaining are never shown (2026-09-25, D47; 2026-09-30, D60) | None: the locale's own backdrop, no glyph | Name and effect line, from `fieldCopy`; under suppression, which ability holds it off |
 | Coin amount (payout, price, wallet, coins card) | Currency glyph beside the bare number (2026-09-30, D54) | Never hidden | The word *coins*, and what the amount buys or pays |
 | Shop shelf (map node) | How many items, as a bare number, and the cheapest price as a coin amount (2026-09-30, D77) | Never hidden on the step being chosen from | The shelf line: how many are on the shelf, and from what price |
-| Node kind (map node, battle header) | Kind glyph. A gym's leader name beside it, a proper noun, is the identity and not the kind (2026-09-25, D46). On the battle header the opponent is the trainer's class and name with the trainer sprite at 16 before it, the one surface a trainer sprite marks an opponent (2026-10-05, D100) | Never hidden | The kind's hint, from `KIND_HINTS` |
+| Node kind (map node, battle header) | Kind glyph. A gym's leader name beside it, a proper noun, is the identity and not the kind (2026-09-25, D46); since D101 the boss is a challenger, read as class and name, and the kind's hint word is *Challenger* (2026-10-05). On the battle header the opponent is the trainer's class and name with the trainer sprite at 16 before it, the one surface a trainer sprite marks an opponent (2026-10-05, D100) | Never hidden | The kind's hint, from `KIND_HINTS` |
 | Archetype | Not rendered where the stat block already draws the six numbers (4.8.0.3; bars until D82) | Absent | Not on inspect either; it is a derived label and can lie under randomization |
 
 Disappears from every default view: field labels, type names, category words, accuracy at 100, priority at 0, item names, the coverage sentence, the battle log.
@@ -600,7 +622,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Locale screen | 4 | The instruction (2026-09-22, D32) |
 | Starter card | 0 plus the ability name | Species name, ability name. The moves are move chips; the stats are the detail panel's stat block (2026-10-01, D78; move cards and the block on the card under D40, 2026-09-23) |
 | Starter detail panel | 5 | The two coverage labels and the *Choose* control. The stat block is glyphs, numbers and band bars (2026-10-01, D79, D80 and D88). The panel sits over the selected card's move column (D89) |
-| Pre-gym screen | 4 | Gym leader name, type chip, "Choose lead" |
+| Pre-gym screen | 4 | The challenger's class and name, "Choose lead". The type chip left with the gym's type (2026-10-05, D101; was "Gym leader name, type chip") |
 | Confirm overlay (replace) | 6 | "Replace Tackle with Fire Punch?" |
 | Confirm overlay (decline) | 6 | "Forfeit this reward?", and the band's two controls (2026-09-21, D22) |
 | Confirm band (claim, buy) | 6 | The question, and the band's two controls. The card or cards being claimed are the content, at their own budgets (2026-09-30, D69) |
@@ -722,9 +744,9 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Scene backdrop | The game screen's painted scene inside the frame, from the asset manifest: the locale's battle backdrop, or the gym's, behind the battle stage; the locale's map backdrop behind the map. During a battle, the field state as a weather wash and a terrain tint over it, global tokens mixed into the backdrop's own. A missing file is the manifest's placeholder at the correct size (2026-09-30, D60) | The battle stage and the map, inside the frame. Never outside it: that is the World's |
 | Reward card | The item or berry sprite in a fixed slot, a relic's icon and the capability glyph it satisfies (2026-09-30, D65 and D66), the boosted type chip, the move card on a move kind, with no TM disc (D67 and D71), `+N` beside the currency glyph on coins and `+N%` beside a bar on a restore (D66), the shop's price beside the currency glyph (2026-09-22, D29 and D36), and on the gym's "pick a berry" card a fan of three berry sprites in the item slot, the first three of its table, never a resist berry (2026-10-02, D99). Three across where they fit, stacked where they do not. **The berry pick opens in the cards' place on the result screen**: one item card per berry, five across, the same component and the same claim band, with a cancel that returns to the berries and never past them (D99). **Selected only after a tap**: no card carries the selected state before the player puts it there, and the claim is the Confirm band's commit (2026-09-30, D69) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |
 | Shell nav | Five tabs, each a word and a control icon: Map, Team, Bag, Run Info, Settings. **A tab opens a screen, not an overlay** (2026-09-30, D53). Opened while a decision is pending elsewhere, the screen is a readout: it never advances run state, never submits, never consumes RNG, and closing it returns to the pending decision, which is the §12 standing rule's three properties carried from the drawer to the screen. Map from anywhere but the map is the chain without its picker, so there is still exactly one path by which a node completes. **Narrowed 2026-10-02 (D94, D95):** the readout property holds in a battle only. Outside one, Team opens the writable party screen and Bag the writable bag screen from every surface; neither submits the pending decision, and an item layout made there is applied at the next question (between nodes) or at the resolving node's boundary (while one is open), so it always reaches the next fight. Reorder and release are offered between nodes only. In a battle both are the readout, with no editing control drawn | The shell, every viewport. Replaces the drawer triggers |
-| Run Info screen | The decision feed, newest first, and the run's position: gym rail, locale, seed (2026-09-30, D53 and D55) | The Run Info tab. The desktop sidebar mounts the same feed |
+| Run Info screen | The decision feed, newest first, and the run's position: the challenger rail (eight names, no type chip since D101, 2026-10-05), locale, seed (2026-09-30, D53 and D55) | The Run Info tab. The desktop sidebar mounts the same feed |
 | Map node card | Node glyph at 24 with the leader's name on a gym, then beneath it the tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29; the glyph exists and the pips sit beneath it since 2026-09-25, D46). **On the map screen's graph, the step being chosen from carries the whole card, its detail line included** (the payout as the currency glyph and a number, the AI tier, a shop's shelf as a count and a coin amount; never the kind's hint, which is the glyph's inspect, D77). **Every other row carries the node glyph (and a gym's leader), the tier pips and the capability glyph with its chevron, and nothing else at rest**; the rest of the card is on the node glyph's long press. Where the frame is too short for even that, those rows keep the glyph alone, with the rest on the same press. **Since 2026-10-01 (D85) a later row, one not yet reached, keeps the glyph alone at every height**: the tier pips and the capability chevron join the rest of the card on the press, and only the row being chosen from and the walked rows carry them at rest. Off the chosen row the disc has no ring; the glyph sits on a soft token over the painting A node's place on the graph is its option index within its step against the scene backdrop's slot grid, never a hash or a draw (2026-09-30, D63 and D75) | The map screen and the map drawer |
-| Locale card | Locale name, four type chips, and a crop of the locale's map backdrop where the palette swatch stood. **Since 2026-10-01 (D86) the crop is the card's whole face**, and the name and the chips each sit on a semi-opaque plate over it. The segment's gym is not on the card: it is shown once, in the screen's rail, because the gym belongs to the segment and not to the locale (2026-09-22, D29; the crop and the gym, 2026-09-30, D72) | The locale screen |
+| Locale card | Locale name, four type chips, and a crop of the locale's map backdrop where the palette swatch stood. **Since 2026-10-01 (D86) the crop is the card's whole face**, and the name and the chips each sit on a semi-opaque plate over it. The segment's challenger is not on the card: it is shown once, in the screen's rail, as class and name with no type chip, because the challenger belongs to the segment and not to the locale and has no type (2026-09-22, D29; the crop and the gym, 2026-09-30, D72; the type chip off, 2026-10-05, D101) | The locale screen |
 | Confirm band | The question, an optional line, the content being traded, and exactly two controls: the one that commits and the way out (2026-09-22, D29). On a claim or a buy, the way out returns to the cards and never leaves the offer: CLAUDE.md allows no skip at the card (2026-09-30, D69) | `ui/band.ts`, mounted by the six screens that confirm: the four of Rev 1, plus the result screen and the shop (2026-09-30, D69). No screen builds its own |
 | Event choice | The label, the hint, the reward-tier pips and the Toll's price. The requirement and the band sit above the choices, as the map node card's glyph and chevron (2026-09-22, D33) | `screens/event.ts`. One surface, and the only one section 4 budgets prose on |
 | Exposure label | The first-encounter label for a glyph family | Rendered by the glyph, driven by the exposure store. Every family's marks pass through the glyph renderer, band pips, status lettering and the effectiveness edge included, so a family cannot be drawn without reporting itself (2026-09-23, D41) |
