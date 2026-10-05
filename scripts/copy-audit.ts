@@ -87,6 +87,7 @@ import {
   SHOP_COPY,
   PARTY_COPY,
   REPLACE_COPY,
+  TARGET_CHOOSE,
   TARGET_COPY,
   TARGET_EFFECT,
   BATTLE_SPEED_HEADING,
@@ -465,10 +466,10 @@ section({
   source: 'src/ui/copy/screens.ts',
   rows: [
     ...proseRows(TARGET_COPY, 'target.'),
+    { key: 'target.choose', text: TARGET_CHOOSE('Riolu').long, short: TARGET_CHOOSE('Riolu').short },
     ...proseRows(REPLACE_COPY, 'replace.'),
     { key: 'effect.known', text: TARGET_EFFECT.known('Flamethrower').long, short: TARGET_EFFECT.known('Flamethrower').short },
     { key: 'effect.free', text: TARGET_EFFECT.free('Flamethrower').long, short: TARGET_EFFECT.free('Flamethrower').short },
-    { key: 'effect.choose', text: TARGET_EFFECT.choose('Flamethrower').long, short: TARGET_EFFECT.choose('Flamethrower').short },
   ],
 });
 

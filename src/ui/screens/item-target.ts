@@ -37,7 +37,7 @@ import { memberCardContents } from '../member-card';
 import { moveCardData } from '../move-detail';
 import { el, moveCard } from '../scene';
 import { setProse, type Prose } from '../dom';
-import { TARGET_COPY, TARGET_EFFECT } from '../copy/screens';
+import { TARGET_CHOOSE, TARGET_COPY, TARGET_EFFECT } from '../copy/screens';
 
 export interface ItemTargetScreen {
   root: HTMLElement;
@@ -230,9 +230,15 @@ function renderTarget(
    * viewport, and the first card plus the pinned move already passes the fold.
    * So the moves cannot be at rest here, the fact would have gone behind a tap
    * on the screen whose only question it answers, and that is C2.
+   *
+   * **Drawn only off the default, since 2026-10-05.** The full-member line
+   * went (`docs/spec/gymrun-patch-teach-screen-text-load.md`), and C2 is kept
+   * by the other two: a known move or a free slot still says so, so no line
+   * means four moves and a replace to follow. See `TARGET_EFFECT`.
    */
-  const effect = el('span', 'target__effect');
-  setProse(effect, effectOn(reward, member));
+  const line = effectOn(reward, member);
+  const effect = line ? el('span', 'target__effect') : null;
+  if (effect && line) setProse(effect, line);
 
   const choose = document.createElement('button');
   choose.type = 'button';
@@ -244,15 +250,16 @@ function renderTarget(
    * than one that explains itself, and a second word for it here would be the
    * same fact twice on one card.
    */
-  setProse(choose, TARGET_COPY.choose);
+  setProse(choose, TARGET_CHOOSE(member.spec.species));
   choose.addEventListener('click', () => onTarget(index));
 
-  wrapper.append(card, effect, choose);
+  wrapper.append(card, ...(effect ? [effect] : []), choose);
   return wrapper;
 }
 
 /**
- * What this card would do to this member, in one line. **Facts only.**
+ * What this card would do to this member, in one line, or nothing where it
+ * would do the default: replace one of four. **Facts only.**
  *
  * Rewritten in Stage 4.5.1, and most of what came out was a verdict rather
  * than a fact. The old version compared the incoming move's base power against
@@ -268,9 +275,9 @@ function renderTarget(
  * at all. `replacementNeeded` is the same function `playRun` gates the prompt
  * on, so the line and the flow cannot disagree.
  */
-function effectOn(reward: TargetedReward, member: PokemonState): Prose {
+function effectOn(reward: TargetedReward, member: PokemonState): Prose | null {
   const need = replacementNeeded(member, reward.move);
   if (need === 'known') return TARGET_EFFECT.known(reward.move);
   if (need === 'free') return TARGET_EFFECT.free(reward.move);
-  return TARGET_EFFECT.choose(reward.move);
+  return null;
 }
