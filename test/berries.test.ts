@@ -310,7 +310,9 @@ describe('opponents holding berries', () => {
     const cost = (segment: number): number => {
       const rng = createRng('BERRY-DRAWS');
       const before = rng.randomizer.at('test').draws;
-      const team = generateTrainerTeam(segment, 'normal', rng.randomizer.at('test'));
+      // The record pick is one draw on its own key (Stage 6.0), kept off the
+      // stream being counted, as `core/encounters.ts` keeps it.
+      const team = generateTrainerTeam(segment, 'normal', rng.randomizer.at('test'), rng.randomizer.at('pick'));
       return (rng.randomizer.at('test').draws - before) / team.length;
     };
     // Segment 0 holds at 0.5 and segment 7 at 0.2; the cost per member is the

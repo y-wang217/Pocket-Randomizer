@@ -95,7 +95,13 @@ function capturePolicy(branch = 0, forks: Fork[] = []): RunPolicy {
  * not leave the file asserting nothing, and `firstRunWhere` throws with
  * "widen the search" rather than passing vacuously when the range runs out.
  */
-const FORK_SEEDS = ['S49B-1706', 'S49B-2470', ...seedRange('S49B-', 400)];
+/*
+ * **Re-pinned 2026-10-05 at `-26`**: every trainer and gym is a record from
+ * the encounter library, so the two seeds above fork no longer. Found by
+ * scanning the first thousand; `S49B-738` forks a Tyrogue three ways and the
+ * other two fork two ways, so either test's floor is met by the first seed.
+ */
+const FORK_SEEDS = ['S49B-738', 'S49B-773', 'S49B-907', ...seedRange('S49B-', 400)];
 
 /** A seed whose run reaches a fork with at least `options` branches on it. */
 async function seedWithFork(options: number): Promise<{ seed: string; forks: Fork[] }> {

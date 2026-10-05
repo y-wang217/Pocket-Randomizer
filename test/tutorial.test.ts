@@ -118,7 +118,7 @@ function mount(screen: TutorialScreen): Mounted {
       const state = chooseStarter(createRun(SEED, DEFAULT_TUNING), 0);
       const locale = createLocaleSelect();
       locale.render(
-        { options: state.segments[0]!.localeOffer, segment: 0, gym: gymForSegment(0), party: state.party },
+        { options: state.segments[0]!.localeOffer, segment: 0, gym: gymForSegment(0), leader: 'Brock', party: state.party },
         fire,
       );
       root = locale.root;
@@ -196,7 +196,7 @@ function mount(screen: TutorialScreen): Mounted {
       const state = onMap();
       const preGym = createPreGymScreen();
       preGym.render(
-        { gym: gymForSegment(0), segment: 0, party: state.party, holding: state.party.map(() => null), tuning: state.tuning },
+        { gym: gymForSegment(0), leader: 'Brock', segment: 0, party: state.party, holding: state.party.map(() => null), tuning: state.tuning },
         { onLead: fire, onManageParty: fire },
       );
       root = preGym.root;

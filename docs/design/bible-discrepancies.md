@@ -93,6 +93,7 @@ which blocks everything.
 | D75 | 5.0/4 | Node positions from a hash of the node id, against "all randomness comes from core/rng.ts" | **2026-09-30**, option 1: a slot by option index, no hash |
 | D76 | 5.0/0, 5.0/1 | 5.0 lands on top of an open Tier 7: which face M7.1 tests, and which items it redoes | **2026-09-30**, option 1: 5.0 before M7.1 |
 | D77 | 5.0/4's census, then 5.0/3 or M7.2 | The map node card's current step prints an untiered node's hint and a shop's shelf in words: 7 against a budget of 1 | **2026-09-30**, option 1: the hint to inspect, the shelf a count and a coin amount |
+| D100 | Stage 6.0's player-facing half: the opponent's name, sprite and citation | Every opponent is a named trainer from a named game, and no rule says whether the battle header, the map node card or the summary may say so; D61 refuses the sprite | **Open**, filed 2026-10-05 |
 
 ## Rulings, 2026-09-19
 
@@ -4597,3 +4598,73 @@ with no confirm. 5.0/4 runs before 5.0/3.
 D65 to D71 were ruled for 5.0/3, which merged first (the section above). D77,
 filed by this stage's census, was ruled option 1 the same day and built in
 5.0/4.
+
+---
+
+## D100. Every opponent is a named trainer from a named game, and no rule says where that shows
+
+**Filed 2026-10-05, by Stage 6.0 at its fourth checkpoint
+([`../spec/gymrun-stage6.0-encounter-library.md`](../spec/gymrun-stage6.0-encounter-library.md)).
+Open. Nothing it names is built; the data is on the node and waits.**
+
+Stage 6.0 makes every trainer and gym node a record from a library of real
+encounters: the trainer's name and class (`Youngster Joey`, `Leader Brock`),
+a Showdown trainer sprite id of the right era (`brock-gen1rb`), the game and
+the place (`Red and Blue`, `Pewter City Gym`), and the row the record was
+read from. `core/encounters.ts` carries all of it on `EncounterSpec.source`
+and `Segment.gymEncounter`. The author's brief asks for it to be shown
+(*"would be fun to actually cite which trainer is from which game"*), and the
+ruling at filing was headless first: build the library, file this, stop.
+
+What a screen shows today is unchanged in kind. A gym has always been named
+by its leader on the map heading, the rail, the pre-gym screen, the locale
+rail, the battle header and the summary; those slots now carry the drawn
+leader's name (Brock, Roxanne, Roark) where they carried a fictional one, by
+the same rule that put a proper noun there (section 4, pre-gym row: *"A
+leader's name is a proper noun and free"*). The eight blurbs retired with the
+eight fictional leaders; the slot that held them is gone, and the gym tooltip
+(`gym:`) with it. A trainer node still reads `Trainer battle` on the map and
+`Trainer (2)` in the battle header's opponent slot.
+
+Three things the library could show have no rule:
+
+- **The opponent's identity on a trainer node.** The battle header's opponent
+  slot (section 4: *"Battle screen header | 3 | Opponent, AI tier, and section
+  6's turn header"*) reads `Trainer (2)` or `Trainer's Rattata`. The record
+  says `Youngster Joey`. A class word is a word the counting rule can see; a
+  name is a proper noun and free. The map node card names a gym's leader
+  beside its mark (section 5) and names nothing on a trainer, by the rule
+  that *"naming them would reveal what a node contains before it is chosen"*
+  (`run-map.ts`). A trainer's name reveals a game's roster to a player who
+  knows it, which is the nostalgia the brief wants and is also, strictly, a
+  forecast.
+- **The trainer sprite.** D61 (option 1, 2026-09-30) keeps trainer sprites to
+  the player marker: *"the gym node wears the badge mark, never its leader's
+  sprite."* That ruling was made when no leader had a sprite. Every one of
+  5,627 records now has a verified one, drawn in its game's own style.
+- **The citation.** `Pewter City Gym, Red and Blue` is a fact about the
+  record and not about the board. Nothing in section 4 budgets it anywhere.
+  It is the line the brief asks for by name.
+
+**Options.**
+
+1. **Identity on the battle header only, after the fight starts.** The
+   opponent slot reads `Youngster Joey` or `Leader Brock`, class and name,
+   in place of `Trainer (2)`; the map node card stays a kind. The sprite
+   rides the header beside the name at 16, which is the size the node glyph
+   already renders at there (D46), and D61 is amended to say the header may
+   wear it. The citation is the summary's: each visit row gains the game and
+   the place under the opponent, where the run is already over and nothing
+   is a forecast. C1 holds, since a name and a game are attributes.
+2. **Identity on the battle header and the map node card, sprite nowhere.**
+   As 1 for the header; the map node card's walked state names the trainer
+   it was, under the long press that already shows the opponent. D61 stands.
+3. **Nothing new.** The gym's leader name is the whole of it, which is what
+   the ruling at filing built. The library is a generator and a log, and the
+   summary cites nothing.
+
+**Recommendation: 1.** It is the smallest reading of the brief that shows
+the citation at all, it puts the name where the header already budgets an
+opponent, and it keeps every pre-selection surface a kind. The playtest row
+for it is the author's directive, not a disconfirmer, and the bible's section
+10 process applies to the D61 amendment the sprite needs.

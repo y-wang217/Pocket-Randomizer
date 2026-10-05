@@ -421,6 +421,27 @@ condition an item exists for cannot measure that item**, which is why M4.1 and
 M4.2 both moved the number by zero and said so rather than claiming a reduction.
 
 
+**In flight: Stage 6.0, the encounter library.** Branch
+`claude/dazzling-noether-vb19k9`, prompt
+[`spec/gymrun-stage6.0-encounter-library.md`](spec/gymrun-stage6.0-encounter-library.md),
+research [`research/encounter-sources.md`](research/encounter-sources.md),
+record [`generation.md`](generation.md) section 103, measurement
+[`balance.md`](balance.md) section 0. Every trainer and gym node is now a
+record from a library of 5,627 real encounters: nineteen games, Gen 1 to 4
+read from the pret decompilations at pinned revisions, Gen 5 to 9 from
+pokemondb's roster pages on a pinned date, each with the trainer's name,
+class, a verified Showdown sprite id, the place, the party at its canonical
+levels and set moves, and a citation. A node spends one draw on its own key
+to pick among the records nearest its segment's cap (a gym among leaders of
+its type), fits the record to the curve and the slot count, and rolls the
+rest exactly as before. The eight fictional gym leaders retire; the Rock gym
+is Brock, Roxanne or Roark this seed. `RANDOMIZER_VERSION` to `-26`,
+`contentHash` to `995fae`; `RUN_LOG_VERSION` and `AI_VERSION` hold. **Headless
+by ruling**: the opponent's name, sprite and citation reach the screens only
+once the bible rules on D100, filed in
+[`design/bible-discrepancies.md`](design/bible-discrepancies.md); the gym's
+name already shows wherever the fictional one did.
+
 **In flight: no species-locked ability or move.** Branch
 `claude/species-locked-pool`, prompt
 [`spec/gymrun-patch-species-locked-pool.md`](spec/gymrun-patch-species-locked-pool.md),

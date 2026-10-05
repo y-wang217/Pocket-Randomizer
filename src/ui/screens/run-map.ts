@@ -51,7 +51,7 @@ import { resolveCapability, type CapabilityContext } from '../../core/capabiliti
 // The two label tables the event screen prints too, from one file (4.8.0.2).
 import { BAND_LABELS, CAPABILITY_LABELS, RARITY_LABELS } from '../../data/eventCopy';
 import { nodePayout } from '../../core/economy';
-import { GYMS, gymForSegment } from '../../data/gyms';
+import { GYMS } from '../../data/gyms';
 import { GLYPH_LABELS } from '../../data/glyphLabels';
 import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
 import { applyBackdrop } from '../assets/manifest';
@@ -77,7 +77,6 @@ const kindWord = (kind: NodeSpec['kind']): string => GLYPH_LABELS[`node-${kind}`
  * double render. The name comes from the gym table, not from trimming the
  * string.
  */
-const gymLeaderName = (segment: number): string => gymForSegment(segment).leader;
 
 export interface RunMap {
   root: HTMLElement;
@@ -184,12 +183,7 @@ export function renderHeading(state: RunState, segment: Segment): HTMLElement[] 
   const team = segment.gym.encounter?.team.length ?? 1;
 
   const title = el('h2', 'screen__title');
-  title.textContent = `Gym ${state.currentSegment + 1} of ${state.segments.length} — ${gym.leader}`;
-  // The leader's blurb, on tap. Pocket hides the flavour line under the
-  // heading and the title says it instead (`ui/tooltips.ts`, `gym:`).
-  title.dataset['tip'] = `gym:${state.currentSegment}`;
-  title.tabIndex = 0;
-  title.setAttribute('role', 'button');
+  title.textContent = `Gym ${state.currentSegment + 1} of ${state.segments.length} — ${segment.leader}`;
 
   const subtitle = el('p', 'screen__blurb');
   subtitle.replaceChildren(
@@ -199,9 +193,6 @@ export function renderHeading(state: RunState, segment: Segment): HTMLElement[] 
     // budget PP — so hiding it would hide the decision rather than create one.
     document.createTextNode(` · ${team} Pokemon · ${stepsOf(state).length} steps before the gym`),
   );
-
-  const blurb = el('p', 'map__blurb');
-  blurb.textContent = gym.blurb;
 
   /*
    * The region the segment is being walked through, above the step chain.
@@ -222,7 +213,7 @@ export function renderHeading(state: RunState, segment: Segment): HTMLElement[] 
     region.replaceChildren(label, ...definition.types.map(typeChip));
   }
 
-  return [title, subtitle, blurb, region];
+  return [title, subtitle, region];
 }
 
 /**
@@ -240,10 +231,14 @@ export function renderRail(state: RunState): HTMLElement[] {
     number.textContent = phase === 'done' ? '✓' : String(index + 1);
 
     const label = el('span', 'rail__label');
-    label.textContent = gym.leader;
+    // The leader this seed drew for the segment. The map rail shows every
+    // leader, the same eight the run announces; a name is a fact the seed
+    // fixed at generation and not a hint about contents (Stage 6.0).
+    const leader = state.segments[index]?.leader ?? gym.type;
+    label.textContent = leader;
 
     item.append(number, label, typeChip(gym.type));
-    item.title = `${gym.leader} — ${gym.type}. ${gym.blurb}`;
+    item.title = `${leader} — ${gym.type}`;
     return item;
   });
 }
@@ -612,7 +607,7 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
   if (node.kind === 'gym') {
     const size = node.encounter?.team.length ?? 0;
     const name = el('span', 'node__name');
-    name.textContent = `${gymLeaderName(segment)}${size > 1 ? ` · ${size} Pokemon` : ''}`;
+    name.textContent = `${node.encounter?.source?.name ?? ''}${size > 1 ? ` · ${size} Pokemon` : ''}`;
     element.append(name);
   }
 

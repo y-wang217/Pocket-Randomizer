@@ -166,8 +166,9 @@ describe('the version axes this patch moved', () => {
      * the draw, and a floor of battle-only steps.
      */
     // And `-24` the berry pick the gym pool deals, resolved with no draw;
-    // `-25` the species-locked abilities and moves out of the pools.
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-25');
+    // `-25` the species-locked abilities and moves out of the pools;
+    // `-26` every trainer and gym a record from the encounter library.
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-26');
   });
 });
 

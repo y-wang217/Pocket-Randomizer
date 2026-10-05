@@ -13061,3 +13061,154 @@ chips on the locale and starter screens at 2 to 4.5:1. It fails identically on
 101 had no reading of that file in its container, and this is the first. It
 comes from the palette, and nothing in the pools can reach it. Left open for
 whoever owns the stage.
+
+## 103. Every trainer and gym is a record from the encounter library
+
+**2026-10-05**, Stage 6.0 checkpoint 4, on `claude/dazzling-noether-vb19k9`.
+Prompt [`spec/gymrun-stage6.0-encounter-library.md`](spec/gymrun-stage6.0-encounter-library.md),
+research [`research/encounter-sources.md`](research/encounter-sources.md).
+Moves `RANDOMIZER_VERSION` to `-26` and `contentHash` from `933311` to
+`995fae`; `RUN_LOG_VERSION` and `AI_VERSION` hold.
+
+The brief asked for defenders that are coherent teams rather than rolls, with
+the trainer, the game and the place cited. Checkpoints 1 to 3 built the
+library: 5,627 records across nineteen games under `data/encounters/`, nine
+of them read from the pret decompilations at pinned revisions (every trainer
+in Red through HeartGold), ten from pokemondb's roster pages on a pinned date
+(the bosses of Black through Violet), each with a name, a class, a Showdown
+sprite id checked against the CDN's listing, a place, the party at its
+canonical levels with the set moves and items the game gave it, and the row
+it was read from. This checkpoint makes every trainer and gym node draw one.
+
+### What is drawn, where
+
+- **One draw per node on a new key**, `encounterKey(id)` on `randomizer`:
+  `pick.nextInt(candidates.length)`. Its own key, by the `nicknameKey`
+  precedent, so a library edit that changes which record a node resolves to
+  moves that node's canonical members and nothing beside them. The member
+  draws stay on `nodeKey(id)`.
+- **The candidates are a function of the node's structural inputs only**:
+  kind, segment, a gym's type, a trainer's tier. Nothing the player did
+  reaches the list. `data/encounters/library.ts`, `encounterCandidates`.
+  - A gym draws among records of role `gym` whose stated type is the gym's
+    and that have at least one playable member of it, plus Elite Four and
+    champion records whose every playable member carries the type (Phoebe's
+    Ghosts qualify; Lance's Gyarados disqualifies Lance).
+  - A trainer draws among `route`, `rival` and `boss` records. A `hard` or
+    `elite` trainer draws among those whose ace sits in the species bands the
+    tier draws (`speciesBandsFor`), falling back to every record when a
+    band holds fewer than eight. That is what a tier means for a library
+    trainer: a Youngster's Rattata is a normal pick and an Ace Trainer's
+    Raticate a hard one, which is the translation of `TIER_MODIFIERS.speciesBand`
+    that keeps the tier ordering monotonic (`test/tiers.test.ts`).
+  - The list is ranked by the distance between the record's canonical ace
+    level and `opponentLevel(kind, segment, tier).max`, ties by id, and cut
+    to the nearest twelve for a gym and forty-eight for a trainer. Brock's
+    Pewter roster is a segment 0 pick and not a segment 7 one.
+- **A record is fitted, never forced.** `fitParty`: a gym drops any member
+  that does not carry its type (Kofu's Crabominable), so the identity the
+  player plans against holds; trim from the front to the slot count, keeping
+  the ace; shift every level by `cap − ace`, so the ace lands on the cap and
+  the canonical spread is kept, then clamp into the range; devolve any member
+  whose evolution level is above its fitted level down the `prevo` chain
+  (Morty's Haunter at segment 0 is a Gastly), which is the rule `levelFor`
+  enforces by throwing, applied as a projection; one of each species, keeping
+  the occurrence nearest the ace.
+- **A canonical slot spends every draw a rolled one does, then overrides.**
+  `rollSpec` draws species, level, ability, moveset, gender and held item
+  exactly as before (2, 1, 1, 14, 1, 2) and, where the slot has a fitted
+  member, keeps the record's species and level, the record's set moves that
+  the node's own band window admits (a damaging move inside the window, a
+  status move the pool carries; the band ladder is the curve and a record
+  does not climb it) with the rolled moveset filling the rest, the record's
+  held item where `heldItemPoolFor` lists it, and the rolled ability and
+  gender. Slots beyond the fitted party roll as before, with `seen` already
+  holding the canonical species. The count on `nodeKey` is a function of the
+  slot count alone, as it was.
+- **Identity.** `EncounterSpec.source` and `Segment.gymEncounter` carry the
+  `EncounterRef` (id, name, class, sprite, game, place, role, citation).
+  `Segment.leader` is the drawn leader's name; `data/gyms.ts` is a type and a
+  segment and nothing else, the eight fictional leaders and their blurbs
+  retired per the ruling at filing. The gym's name shows wherever the
+  fictional one did (map heading and rail, pre-gym, locale rail, battle
+  header, sidebar, feed, summary); the blurb slot and the `gym:` tooltip are
+  gone with the blurbs. A trainer node's `opponent` string is unchanged
+  (`Trainer (2)`): the name, the sprite and the citation are D100, filed in
+  [`design/bible-discrepancies.md`](design/bible-discrepancies.md) and not
+  built, per the ruling.
+
+### What held
+
+The invariants, each asserted: determinism (same seed, same eight leaders,
+same teams), stream isolation (`stream-keys`), the mono-type gym rule across
+many seeds, the slot count from the curve, no member above the cap or below
+the range and the team mean inside the 0.91 band (`gym-level-spread`), the
+constant draw count per member whichever record a node drew
+(`encounter-library`, `banding`, `berries`, `gym-held-items`), the tier
+ordering normal < hard < elite at every segment for trainers (`tiers`), and
+the held-item ladder (`gym-held-items`). Wild nodes are untouched.
+
+### What re-recorded
+
+The trainer-and-wild team digest in `test/gym-held-items.test.ts`
+(`aa380896c804ea42` to `702a7887c22c2a2f`; the harness spends the pick on the
+same stream, a run keys it separately), `test/fixtures/sim-report.json`,
+`docs/visual/baseline/` and the `contentHash` pin. Two seed-pinned tests were
+touched without a re-pin: `test/lead-selection.test.ts` compares the lead by
+nickname, which an evolution keeps, because `LEAD-RUN-10`'s lead now evolves
+on the gym it clears; the draw-count tests in `banding` and `berries` hand
+the pick its own stream, as `core/encounters.ts` does. `docs/copy.md` is
+regenerated without section 5's eight blurbs.
+
+### Deviations from the prompt and the plan
+
+- **Bulbapedia to pokemondb** for Gen 5 to 9 (checkpoint 3): Bulbapedia
+  answers this container with a browser challenge on every endpoint.
+- **A candidate window rather than a blanket shift** (ruling 3): the shift
+  happens, but among the records nearest the segment's cap, so a Gen 1
+  roster is not carried forty levels.
+- **A gym drops off-type canonical members** rather than admitting the later
+  games' mixed rosters, because the mono-type rule is the gym's identity.
+- **Set moves are admitted only inside the node's band window**, so a Gen 2
+  Clair's Hyper Beam does not reach segment 2.
+
+### What it measured
+
+- **The benchmark**, 400 seeds on `RETUNE` with the table AI, in
+  [`balance.md`](balance.md) section 0: **1.87 mean gyms** against 1.72 on
+  the `-25` row, completion 0.8% to 2.3%. Gym 1 is harder (80.9% cleared of
+  324 reached, against 86.8%): a canonical first gym is Brock, Roxanne or
+  Roark, with an Onix, a Nosepass or a Cranidos on the cap. Every gym from the
+  fourth on is cleared more often. The simulator's own species-concentration
+  check flags Onix in 56.5% of greedy runs; the Rock gym's twelve nearest
+  records share three aces, and the window is the lever. Recorded, not
+  chased.
+- **The bundle.** The nineteen tables are 1.8 MB of source and `core/`
+  imports them, so they ship: `dist/assets/index-*.js` goes from 3,800 kB
+  minified and 835 kB gzipped (a build of `a57b512` in a clean worktree, same
+  `node_modules`) to 5,309 kB and 1,024 kB, **+189 kB gzipped**. That is above
+  the ~150 kB the plan set as the line, so the follow-up is named here and
+  not built: a compact party encoding (one string per record, `geodude:12|onix:14`,
+  decoded at module load) that the measurement suggests would roughly halve
+  the cost; or, further, the route trainers of Gen 1 to 4 (4,839 of the
+  5,627 records) loaded on first use, which `core/` cannot do synchronously
+  and so needs a design. Vite's chunk warning (`chunkSizeWarningLimit`
+  3,500 kB) was already tripping at 3,800 kB and still is.
+
+### The gate, as run
+
+In this container, on 2026-10-05, in this order: `npm run gen:encounters`
+twice (second run a no-op diff); `npm run types` clean; `npm run lint` clean;
+`npm run hedge` clean; the generation property suites
+(`encounter-library`, `randomizer`, `gym-level-spread`, `gym-held-items`,
+`generation`, `tiers`, `banding`, `berries`, `data-tables`, `stream-keys`)
+green after the fixes section 103 records; the re-mints; `npm run test:unit`
+**2,063 of 2,065** and `npm run test:trim` the same, the two failures both
+`test/evolution-run.test.ts`'s fork search finding no fork in its pinned pair
+or the four hundred seeds behind them, which is the open item
+[`README.md`](README.md) section 5 already carries (a fork is rare); re-pinned
+to `S49B-738`, `S49B-773` and `S49B-907`, found by scanning the first
+thousand, and green; `npm run build` (one chunk, the warning it has always
+tripped); `npm run smoke` passed; `npm run measure` and the benchmark as
+above. The Chromium and WebKit legs and the census were not run here, as
+every section since 99 has said of this container; CI runs them.

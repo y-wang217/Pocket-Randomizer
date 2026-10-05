@@ -218,12 +218,12 @@ describe('the curve can be drawn from', () => {
       const available = SPECIES_POOL.filter(
         (entry) => bands.has(entry.band) && entry.types.includes(gym.type),
       );
-      expect(available.length, `${gym.leader} (${gym.type}) at segment ${gym.segment}`).toBeGreaterThan(3);
+      expect(available.length, `${gym.id} (${gym.type}) at segment ${gym.segment}`).toBeGreaterThan(3);
     }
   });
 
   it('names a type the dex recognises for every gym', () => {
     const known = new Set(dex.types.all().map((type) => type.name));
-    for (const gym of GYMS) expect(known.has(gym.type), `${gym.leader}: ${gym.type}`).toBe(true);
+    for (const gym of GYMS) expect(known.has(gym.type), `${gym.id}: ${gym.type}`).toBe(true);
   });
 });

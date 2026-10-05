@@ -58,6 +58,8 @@ export function defaultLeadSlot(party: readonly PokemonState[]): number {
 
 export interface PreGymView {
   gym: GymDefinition;
+  /** The leader this seed drew for the gym, by name. Stage 6.0. */
+  leader: string;
   /** 0-based, so the header can say "gym 4 of 8". */
   segment: number;
   party: readonly PokemonState[];
@@ -104,7 +106,6 @@ export function createPreGymScreen(): PreGymScreen {
   heading.dataset['tutorial'] = 'gym-counter';
   heading.append(title, leaderType);
 
-  const blurb = el('p', 'screen__blurb');
 
   /*
    * **The `gym-lead` coach mark moved to the members, and it had to.**
@@ -178,7 +179,7 @@ export function createPreGymScreen(): PreGymScreen {
    * words against a ceiling of four, and the deviation is recorded in
    * `docs/generation.md` §68 rather than the record edited.
    */
-  root.append(heading, blurb, members, actions);
+  root.append(heading, members, actions);
 
   return {
     root,
@@ -192,15 +193,8 @@ export function createPreGymScreen(): PreGymScreen {
        * one word on the line the counting rule could see, on a screen that is
        * only ever reached by walking into a gym.
        */
-      title.textContent = view.gym.leader;
-      // The leader's blurb, on tap, for Pocket. Same tip the map's title carries.
-      title.dataset['tip'] = `gym:${view.segment}`;
-      title.tabIndex = 0;
-      title.setAttribute('role', 'button');
+      title.textContent = view.leader;
       leaderType.replaceChildren(typeChip(view.gym.type));
-      // The leader's own blurb, from `data/gyms.ts`. Flavour that says how the
-      // leader plays, written where every other gym string is written.
-      blurb.textContent = view.gym.blurb;
 
       manage.onclick = () => handlers.onManageParty();
 

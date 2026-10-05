@@ -2,8 +2,8 @@
   "seed": "RESULT-0",
   "versions": {
     "runLog": "gymrun-run-23/gymrun-0.3.0",
-    "contentHash": "933311cefc3ddc29d88b26085d76ead4c99c51ae519ba6511ce0cd3e2029783f",
-    "randomizer": "gymrun-randomizer-25",
+    "contentHash": "995fae7cc3c3f68bd50569ef0a0a1babd916aefeac840643f9c2c727b5958b25",
+    "randomizer": "gymrun-randomizer-26",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -11,11 +11,11 @@
   "gymsCleared": 0,
   "causeOfDeath": {
     "segment": 0,
-    "leader": "Garnet",
+    "leader": "Roxanne",
     "kind": "trainer",
     "species": "Jasper",
-    "bySpecies": "Pidove",
-    "byMove": "Acrobatics",
+    "bySpecies": "Growlithe",
+    "byMove": "Fire Punch",
     "indirect": null
   },
   "currency": 0,
@@ -28,8 +28,8 @@
       "ability": "Power Spot",
       "moves": [
         "Fury Cutter 32/32",
-        "Ice Shard 46/48",
-        "Pay Day 32/32",
+        "Ice Shard 47/48",
+        "Pay Day 31/32",
         "Amnesia 32/32"
       ],
       "item": null,
@@ -43,7 +43,7 @@
       "kind": "trainer",
       "label": "Trainer battle",
       "tier": "normal",
-      "opponent": "Trainer's Pidove",
+      "opponent": "Trainer's Growlithe",
       "turns": 2,
       "winner": "p2",
       "hpAfter": 0,
@@ -53,8 +53,8 @@
           "name": "Jasper",
           "level": 15,
           "species": "Shelmet",
-          "bySpecies": "Pidove",
-          "byMove": "Acrobatics",
+          "bySpecies": "Growlithe",
+          "byMove": "Fire Punch",
           "indirect": null
         }
       ]
@@ -64,9 +64,9 @@
     "seed": "RESULT-0",
     "versions": {
       "runLog": "gymrun-run-23/gymrun-0.3.0",
-      "contentHash": "933311cefc3ddc29d88b26085d76ead4c99c51ae519ba6511ce0cd3e2029783f",
+      "contentHash": "995fae7cc3c3f68bd50569ef0a0a1babd916aefeac840643f9c2c727b5958b25",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-25"
+      "randomizerVersion": "gymrun-randomizer-26"
     },
     "decisions": [
       {
@@ -85,7 +85,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
+          "slot": 3
         }
       },
       {

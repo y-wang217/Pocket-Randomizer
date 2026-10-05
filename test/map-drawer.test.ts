@@ -254,7 +254,7 @@ describe('every decision surface', () => {
         const screen = createPreGymScreen();
         const party = partyOf(state);
         screen.render(
-          { gym: gymForSegment(0), segment: 0, party, holding: party.map(() => null), tuning: state.tuning },
+          { gym: gymForSegment(0), leader: 'Brock', segment: 0, party, holding: party.map(() => null), tuning: state.tuning },
           {
             onLead: () => {
               submitted++;

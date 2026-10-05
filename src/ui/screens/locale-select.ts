@@ -73,6 +73,8 @@ export interface LocaleSelectView {
   segment: number;
   /** The gym guarding this segment. Revealed; the other seven are not. */
   gym: GymDefinition;
+  /** The leader this seed drew for it, by name. Stage 6.0. */
+  leader: string;
   /** The party as it stands, for the compact strip. */
   party: readonly PokemonState[];
 }
@@ -142,7 +144,7 @@ export function createLocaleSelect(): LocaleSelect {
        * anything else.
        */
       heading.textContent = 'Choose a region';
-      railLeader.textContent = view.gym.leader;
+      railLeader.textContent = view.leader;
       railType.replaceChildren(typeChip(view.gym.type));
       strip.replaceChildren(...view.party.map(renderStripMember));
       grid.replaceChildren(

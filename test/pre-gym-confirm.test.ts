@@ -45,7 +45,7 @@ function mount(party: readonly PokemonState[]) {
   const screen = createPreGymScreen();
   const submitted: number[] = [];
   screen.render(
-    { gym: gymForSegment(0), segment: 0, party, holding: party.map(() => null), tuning: DEFAULT_TUNING },
+    { gym: gymForSegment(0), leader: 'Brock', segment: 0, party, holding: party.map(() => null), tuning: DEFAULT_TUNING },
     { onLead: (slot) => submitted.push(slot), onManageParty: () => undefined },
   );
   document.body.replaceChildren(screen.root);

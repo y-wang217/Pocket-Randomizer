@@ -2786,7 +2786,8 @@ function summarize(
     const cleared = records.filter((record) => record.gymsCleared >= number).length;
     return {
       gym: number,
-      leader: gym.leader,
+      // The leader is drawn per seed since Stage 6.0; the row names the type, which is the gym.
+      leader: gym.type,
       type: gym.type,
       // Read from the curve rather than written as a literal, so the column
       // cannot drift out of agreement with what the gym actually fielded.

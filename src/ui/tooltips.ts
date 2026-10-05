@@ -47,7 +47,6 @@
 import { abilityInfo, describeMove, typeChart } from '../core/battle/driver';
 import { abilityText } from '../data/abilityOverrides';
 import { BAND_LABELS, CAPABILITY_LABELS, OUTCOME_TIER_INFO } from '../data/eventCopy';
-import { gymForSegment } from '../data/gyms';
 import { relicById } from '../data/relics';
 import { DEFAULT_TUNING } from '../data/tuning';
 import { DEFAULT_DISPLAY_TUNING, type DisplayTuning } from '../data/displayTuning';
@@ -155,12 +154,6 @@ type TipKind =
    * a badge tap is the one tap the board already stops. Keyed by move id.
    */
   | 'move'
-  /**
-   * A gym leader's blurb, from the map's and the pre-gym screen's title.
-   * Density modes patch: Pocket hides the flavour line and the title says it.
-   * Keyed by segment index; the words are `data/gyms.ts`'s.
-   */
-  | 'gym'
   /**
    * How many members a listed threat type reaches. Density modes patch: Pocket
    * hides the count beside the chip and the chip says it. The sentence rides
@@ -296,7 +289,6 @@ const KINDS = [
   'archetype',
   'stats',
   'move',
-  'gym',
   'threat',
   'relic',
   'stages',
@@ -835,8 +827,6 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
       return renderMonStats(id, trigger?.dataset['detail'], trigger?.dataset['level']);
     case 'move':
       return renderMoveRows(id);
-    case 'gym':
-      return renderGym(id);
     case 'threat':
       return renderThreat(id, trigger?.dataset['detail']);
     case 'relic':
@@ -1186,16 +1176,6 @@ function renderMoveRows(id: string): HTMLElement | null {
     list.append(line);
   }
   body.append(list);
-  return body;
-}
-
-/** The leader's blurb, from `data/gyms.ts`, keyed by segment. */
-function renderGym(id: string): HTMLElement | null {
-  const segment = Number(id);
-  if (!Number.isInteger(segment) || segment < 0) return null;
-  const gym = gymForSegment(segment);
-  const body = panel(gym.leader);
-  body.append(line(gym.blurb, 'tip__text'));
   return body;
 }
 

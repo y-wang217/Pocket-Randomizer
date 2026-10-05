@@ -66,14 +66,14 @@ export function createSidebar(): Sidebar {
       if (!state) {
         where.replaceChildren();
         team.replaceChildren();
-        progress.replaceChildren(title(FEED_COPY.heading), renderFeed([]));
+        progress.replaceChildren(title(FEED_COPY.heading), renderFeed([], () => ''));
         return;
       }
       const segment = state.currentSegment;
       const gym = gymForSegment(segment);
       const locale = localeOf(state);
       const line = el('p', 'sidebar__line');
-      line.textContent = SIDEBAR_COPY.where(locale ? localeById(locale).name : null, segment, GYMS.length, gym.leader);
+      line.textContent = SIDEBAR_COPY.where(locale ? localeById(locale).name : null, segment, GYMS.length, state.segments[segment]?.leader ?? gym.type);
       const pips = el('ol', 'sidebar__pips');
       const cleared = gymsCleared(state);
       GYMS.forEach((_, index) => {
@@ -94,7 +94,7 @@ export function createSidebar(): Sidebar {
           partyCapacity(state),
         ),
       );
-      progress.replaceChildren(title(FEED_COPY.heading), renderFeed(entries, FEED_LINES));
+      progress.replaceChildren(title(FEED_COPY.heading), renderFeed(entries, (index) => state.segments[index]?.leader ?? '', FEED_LINES));
     },
   };
 }

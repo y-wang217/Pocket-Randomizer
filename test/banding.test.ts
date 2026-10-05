@@ -371,7 +371,9 @@ describe('generated movesets under banding', () => {
     const cost = (segment: number): number => {
       const rng = createRng('BAND-COST');
       const before = rng.randomizer.at('test').draws;
-      generateTrainerTeam(segment, 'normal', rng.randomizer.at('test'));
+      // The record pick is one draw on its own key (Stage 6.0), kept off the
+      // stream being counted, as `core/encounters.ts` keeps it.
+      generateTrainerTeam(segment, 'normal', rng.randomizer.at('test'), rng.randomizer.at('pick'));
       return rng.randomizer.at('test').draws - before;
     };
     // Segment 0 draws one band; segment 6 draws from two. Team sizes differ by

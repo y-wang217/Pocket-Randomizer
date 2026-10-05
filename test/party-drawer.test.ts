@@ -278,7 +278,7 @@ describe('every decision surface', () => {
           {
             options: ['cave', 'marsh'],
             segment: 0,
-            gym: gymForSegment(0),
+            gym: gymForSegment(0), leader: 'Brock',
             party: partyOf(state),
           },
           () => {
@@ -296,7 +296,7 @@ describe('every decision surface', () => {
         const party = partyOf(state);
         screen.render(
           {
-            gym: gymForSegment(0),
+            gym: gymForSegment(0), leader: 'Brock',
             segment: 0,
             party,
             holding: party.map(() => null),

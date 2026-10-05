@@ -719,6 +719,7 @@ export function mountApp(root: HTMLElement): void {
             // and probably interesting game, and a bigger change than this
             // patch. See the header on `locale-select.ts`.
             gym: gymForSegment(state.currentSegment),
+            leader: state.segments[state.currentSegment]?.leader ?? '',
             party: state.party,
           },
           (index) => localePick.submit(index),
@@ -1309,6 +1310,7 @@ export function mountApp(root: HTMLElement): void {
       preGymScreen.render(
         {
           gym: pendingGym,
+          leader: state.segments[state.currentSegment]?.leader ?? '',
           segment: state.currentSegment,
           /*
            * Both halves of the plan, for the reason `readDrawer` gives: the

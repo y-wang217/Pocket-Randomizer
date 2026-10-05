@@ -298,7 +298,7 @@ describe('5. gym identity', () => {
         for (const member of team) {
           const entry = speciesByName.get(member.species);
           expect(entry, `${member.species} is not in the pool`).toBeDefined();
-          expect(entry?.types, `${gym.leader} fielded ${member.species}`).toContain(gym.type);
+          expect(entry?.types, `${gym.id} fielded ${member.species}`).toContain(gym.type);
         }
       }
     }
@@ -323,10 +323,10 @@ describe('5. gym identity', () => {
      */
     for (const gym of GYMS) {
       const expected = opponentTeamSize('gym', gym.segment, 'normal');
-      expect(expected, `${gym.leader}`).toBeGreaterThanOrEqual(expectedPartySize(gym.segment));
+      expect(expected, `${gym.id}`).toBeGreaterThanOrEqual(expectedPartySize(gym.segment));
       for (let seed = 0; seed < 5; seed++) {
         const team = generateGymTeam(gym, gym.segment, createRng(`SIZE-${gym.id}-${seed}`).randomizer.at('test'));
-        expect(team, `${gym.leader}`).toHaveLength(expected);
+        expect(team, `${gym.id}`).toHaveLength(expected);
       }
     }
 

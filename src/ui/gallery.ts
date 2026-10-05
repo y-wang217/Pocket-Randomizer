@@ -211,7 +211,7 @@ async function main(): Promise<void> {
       const state = openingState(seed);
       const segment = state.segments[0];
       if (!segment) throw new Error('no segment');
-      localeScreen.render({ options: segment.localeOffer, segment: 0, gym: gymForSegment(0), party: state.party }, noop);
+      localeScreen.render({ options: segment.localeOffer, segment: 0, gym: gymForSegment(0), leader: segment.leader, party: state.party }, noop);
       applyLocale(null);
       stamp(null);
       show('locale');
@@ -371,6 +371,7 @@ async function main(): Promise<void> {
       preGymScreen.render(
         {
           gym: gymForSegment(state.currentSegment),
+          leader: state.segments[state.currentSegment]?.leader ?? '',
           segment: state.currentSegment,
           party: state.party,
           holding: itemLayoutOf(state.party, null),

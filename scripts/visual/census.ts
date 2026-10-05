@@ -84,7 +84,7 @@ import { build } from 'vite';
 import { PHONE, launch, serve } from './browser.mjs';
 import { GALLERY_SURFACES, type GallerySurface } from '../../src/ui/gallery-surfaces';
 import { ABILITY_POOL } from '../../src/data/abilities';
-import { GYMS } from '../../src/data/gyms';
+import { ENCOUNTERS } from '../../src/data/encounters';
 import { BERRIES, CHOICE_ITEMS, MODEST_ITEMS, STAPLE_ITEMS, TYPE_ITEMS } from '../../src/data/items';
 import { LOCALES } from '../../src/data/locales';
 import { DAMAGING_MOVES, STATUS_MOVES } from '../../src/data/movePools';
@@ -344,7 +344,8 @@ export function properNouns(): Set<string> {
     ...[...STAPLE_ITEMS, ...CHOICE_ITEMS, ...MODEST_ITEMS, ...TYPE_ITEMS, ...BERRIES].map((entry) => entry.name),
     ...RELICS.map((entry) => entry.name),
     ...LOCALES.map((entry) => entry.name),
-    ...GYMS.map((entry) => entry.leader),
+    // Every trainer the library can name: a leader's name on the map is a proper noun (Stage 6.0).
+    ...ENCOUNTERS.map((entry) => entry.trainer.name),
     ...NICKNAMES,
   ];
   const out = new Set<string>();

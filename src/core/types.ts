@@ -75,6 +75,31 @@ export interface PokemonSpec {
 
 export type TeamSpec = PokemonSpec[];
 
+/**
+ * Who a generated team is, as the library records it. **Stage 6.0.**
+ *
+ * The identity a trainer or gym node drew: enough for a screen to name the
+ * opponent, wear the sprite and cite the game once the bible rules on how,
+ * and for the log to say which record a seed resolved to. The party itself is
+ * the `TeamSpec` beside it; this is never read by the battle.
+ */
+export interface EncounterRef {
+  /** The library record id, `rby/brock-1`. */
+  id: string;
+  /** The trainer's name as the game shows it. */
+  name: string;
+  /** The trainer class as the game shows it. */
+  class: string;
+  /** A Showdown trainer sprite id, or null. */
+  sprite: string | null;
+  /** The game slug, `rby`, `hgss`, `sv`. */
+  game: string;
+  place: string;
+  role: string;
+  /** The row's label inside its game's source. */
+  cite: string;
+}
+
 // ---------------------------------------------------------------------------
 // Choices
 // ---------------------------------------------------------------------------

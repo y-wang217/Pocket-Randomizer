@@ -61,9 +61,9 @@
  * play. Keying does not touch that argument; it is about *when*, not *where*.
  */
 import {
-  generateGymTeam,
+  generateGymEncounter,
   generateStarters,
-  generateTrainerTeam,
+  generateTrainerEncounter,
   generateWildTeam,
 } from './randomizer';
 import { generateEncounterAcquisition, generateEventAcquisition, type AcquisitionOffer } from './acquisition';
@@ -73,6 +73,7 @@ import { named } from './nicknames';
 import { generateGymRewardOffer, generateRewardOffer, type RewardOffer } from './rewards';
 import type { Rng, RngStream, SimSeed } from './rng';
 import {
+  encounterKey,
   gymRewardKey,
   localeOfferKey,
   nicknameKey,
@@ -81,7 +82,7 @@ import {
   routeKey,
   STARTERS_KEY,
 } from './streamKeys';
-import type { PokemonSpec, TeamSpec, Tier } from './types';
+import type { EncounterRef, PokemonSpec, TeamSpec, Tier } from './types';
 import { gymForSegment, type GymDefinition } from '../data/gyms';
 import {
   localeOfferWeight,
@@ -107,6 +108,13 @@ export interface EncounterSpec {
   team: TeamSpec;
   /** Shown once the encounter starts, not on the map. */
   opponent: string;
+  /**
+   * Who the team is, from the library: the trainer, the game, the place and
+   * the record. **Stage 6.0.** Null on a wild encounter, which is nobody's.
+   * Carried for the log and for the screens, once the bible rules on which;
+   * `opponent` above is still the one string a screen shows today.
+   */
+  source: EncounterRef | null;
   /**
    * The sim PRNG seed for this battle.
    *
@@ -146,7 +154,7 @@ export interface NodeSpec {
    * "no tier" as absent rather than as a value makes that a type error at the
    * call site instead of a bug on the reward screen.
    *
-   * A gym is null for the second reason `generateGymTeam` takes no tier: a gym
+   * A gym is null for the second reason `generateGymEncounter` takes no tier: a gym
    * is the segment's difficulty statement, and a second dial on the same number
    * is a dial the balance report cannot attribute.
    */
@@ -255,11 +263,13 @@ export interface Segment {
    * per locale" decision waits on.
    */
   eventRefills: number;
-  /** The gym that caps this segment, for display. */
+  /** The gym leader this seed drew for this segment, by name. Shown wherever the gym is named. */
   leader: string;
   type: string;
-  /** The full leader record, so a screen can show the blurb without a lookup. */
+  /** The gym's own definition: its type and its segment. The leader is not in it; see `gymEncounter`. */
   gymDefinition: GymDefinition;
+  /** The leader record the gym resolved to: name, class, sprite, game, place, citation. */
+  gymEncounter: EncounterRef;
   /**
    * The locales this segment offers, in offer order. Two or three.
    *
@@ -552,15 +562,20 @@ export function generateSegment(
   // --- passes 1 and 2: one route per offered locale ------------------------
   const routes: LocaleRoute[] = localeOffer.map((locale) => buildRoute(index, locale, rng, tuning));
 
+  // The leader is a record from the library, one draw on its own key; the
+  // members are rolled on the node's key as before. Stage 6.0.
+  const gymId = `s${index}-gym`;
+  const drawn = generateGymEncounter(gymDef, index, rng.randomizer.at(nodeKey(gymId)), rng.randomizer.at(encounterKey(gymId)));
   const gym: NodeSpec = {
-    id: `s${index}-gym`,
+    id: gymId,
     kind: 'gym',
     locale: null,
     tier: null,
-    label: `${gymDef.leader}'s Gym`,
+    label: `${drawn.source.name}'s Gym`,
     encounter: {
-      team: generateGymTeam(gymDef, index, rng.randomizer.at(nodeKey(`s${index}-gym`))),
-      opponent: `${gymDef.leader} (${gymDef.type})`,
+      team: drawn.team,
+      opponent: `${drawn.source.name} (${gymDef.type})`,
+      source: drawn.source,
       // Filled by pass 3.
       simSeed: PLACEHOLDER_SEED,
     },
@@ -574,9 +589,10 @@ export function generateSegment(
   const segment: Segment = {
     index,
     eventRefills: 0,
-    leader: gymDef.leader,
+    leader: drawn.source.name,
     type: gymDef.type,
     gymDefinition: gymDef,
+    gymEncounter: drawn.source,
     localeOffer,
     routes,
     gym,
@@ -1131,10 +1147,11 @@ function buildNode(
    * and a second dial on difficulty is a dial the balance report cannot
    * attribute.
    */
-  const team =
+  const drawn =
     kind === 'wild'
-      ? generateWildTeam(segment, tier, stream, locale)
-      : generateTrainerTeam(segment, tier, stream);
+      ? { team: generateWildTeam(segment, tier, stream, locale), source: null }
+      : generateTrainerEncounter(segment, tier, stream, rng.randomizer.at(encounterKey(id)));
+  const team = drawn.team;
   const lead = team[0];
   if (!lead) throw new Error(`Generated an empty ${kind} team at segment ${segment}`);
 
@@ -1147,6 +1164,7 @@ function buildNode(
     encounter: {
       team,
       opponent: describeOpponent(kind, team, lead),
+      source: drawn.source,
       simSeed: PLACEHOLDER_SEED,
     },
     // Filled by pass 4.

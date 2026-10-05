@@ -22,7 +22,6 @@ import type { Choice } from '../../core/types';
 import { abilityEffects } from '../../data/abilityEffects';
 import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
 import { GLYPH_LABELS } from '../../data/glyphLabels';
-import { gymForSegment } from '../../data/gyms';
 import { nodeKindGlyph } from '../chip';
 import { createBattleLog, type BattleLogView } from '../battle-log';
 import { createSpeciesIndex } from '../species-index';
@@ -182,7 +181,7 @@ export function createBattleScreen(): BattleScreen {
       // The leader's name from the gym table, not the node's `"<Leader>'s Gym"`
       // label, which `core/` keeps for the log and which would double the mark.
       if (node.kind === 'gym') {
-        title.append(document.createTextNode(segment === undefined ? node.label : gymForSegment(segment).leader));
+        title.append(document.createTextNode(node.encounter?.source?.name ?? node.label));
       }
       /*
        * **The team size came off this header**, and it had to.

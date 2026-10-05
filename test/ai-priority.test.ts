@@ -465,14 +465,18 @@ describe('the version axes', () => {
      * 3: the record type and nineteen generated tables under
      * `data/encounters/` (nine Gen 1 to 4 games from the pret decompilations
      * at `39088c`, ten Gen 5 to 9 games from pokemondb's roster pages at
-     * `933311`), hashed because they are data. **No randomizer axis moves
-     * beside it**, for once: nothing under `core/` reads the tables yet, so
-     * every seed still draws what it drew. The hash moving ahead of the
-     * draws is the honest order; a seed string minted now already names the
-     * library its next release will draw from.
-     * `docs/spec/gymrun-stage6.0-encounter-library.md`.
+     * `933311`), hashed because they are data. No randomizer axis moved beside
+     * those two checkpoints, because nothing under `core/` read the tables
+     * yet; the hash moving ahead of the draws was the honest order, since a
+     * seed string minted then already named the library its next release
+     * would draw from.
+     *
+     * And at checkpoint 4, from `933311`: `data/gyms.ts` loses its eight
+     * names and `data/encounters/library.ts` arrives, and this time
+     * `gymrun-randomizer-26` moves beside it, because every trainer and gym
+     * node now resolves to a record. `docs/generation.md` section 103.
      */
-    expect(CONTENT_HASH).toBe('933311cefc3ddc29d88b26085d76ead4c99c51ae519ba6511ce0cd3e2029783f');
+    expect(CONTENT_HASH).toBe('995fae7cc3c3f68bd50569ef0a0a1babd916aefeac840643f9c2c727b5958b25');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {
