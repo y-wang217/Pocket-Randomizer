@@ -1470,7 +1470,12 @@ body {
    row not expanded hides its body — every row of a kind together. */
 .collapse__toggle { display: inline-flex; }
 [data-collapsible]:not([data-expanded="true"]) > .collapse__body { display: none; }
-.party__member-toggle { margin-left: auto; }
+/* The member card's fold is a full-width bar under the stat block, between
+   the head and the body it opens (`member-card.ts`; the teach screen
+   text-load patch, 2026-10-05). The meta line it used to end holds only the
+   hidden HP text on a healthy member with no status now, and draws nothing. */
+.party__member-toggle { width: 100%; justify-content: center; margin-top: var(--space-1); }
+.party__member .panel__meta:has(> .panel__hp-text:not([data-fainted]):only-child) { display: none; }
 
 /* The party screen's two hotbars in Pocket: each is the collection beside it
    at a second size — slot, species, item — and the cards and rows below carry
@@ -1655,7 +1660,7 @@ body {
 /* Backpack tiles: the slot, then the item as one tap target (R13, D81). */
 .backpack__item { gap: var(--space-1); align-items: flex-start; flex-wrap: nowrap; }
 .backpack__item[data-picked="true"] { flex-wrap: wrap; }
-.collapse__toggle.party__member-toggle { padding: 0 var(--space-1h); }
+.collapse__toggle.party__member-toggle { display: flex; padding: 0 var(--space-1h); }
 
 /* Relics in Pocket: the list folds behind the title, which carries the count
    (`party.ts`, `renderRelics`); opened, the rows flow as name chips and the
@@ -7321,6 +7326,13 @@ button,
 .sidebar__pip[data-phase='done'] { background: var(--border-heavy); }
 .sidebar__pip[data-phase='current'] { background: var(--selected); }
 .sidebar__progress { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+/* Run Progress folds behind its heading, shut by default (`sidebar.ts`; the
+   teach screen text-load patch, 2026-10-05). Folded, the panel is its heading
+   and gives the column's height back. */
+.sidebar__progress[data-expanded='false'] { flex: 0 0 auto; }
+.sidebar__progress[data-expanded='false'] > .sidebar__title { margin-bottom: 0; }
+.sidebar__progress[data-expanded='false'] > :not(.sidebar__title) { display: none; }
+.sidebar__toggle { width: 100%; padding: 0; background: none; border: 0; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; text-align: left; cursor: pointer; }
 
 /* The decision feed, on the Run Info screen and in the sidebar. */
 .feed { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-h); font-size: var(--fs-md); }
