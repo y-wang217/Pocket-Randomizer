@@ -495,6 +495,8 @@ move buttons ending at 704 against the 740 usable line, on a screen whose
   Nothing else in any file moved.
 - **2026-10-04, Defender Mode v0 step 4.** The same, for `9ad1d9`, the badge
   numbers in `data/defender.ts`. Runs and battles byte identical otherwise.
+- **2026-10-05, Defender Mode v0 step 5.** The same, for `564eda`: the
+  consumables table, the trade numbers and the Stranger's Pass.
 
 ## The data digest is `contentHash`
 

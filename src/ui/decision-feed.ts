@@ -121,6 +121,7 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
       case 'gymType':
       case 'draft':
       case 'door':
+      case 'recruit':
         return '';
       case 'starter':
         return FEED_COPY.starter(starters[decision.index]?.species ?? '');
@@ -164,6 +165,8 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
       case 'party': {
         const edit = decision.edit;
         if (edit.kind === 'items') return describePlan(edit.plan);
+        // Defender Mode v0: its feed lines are step 7's, like the decisions'.
+        if (edit.kind === 'consume') return '';
         if (edit.kind === 'release') {
           const name = party[edit.slot] ?? '';
           party = party.filter((_, slot) => slot !== edit.slot);

@@ -102,3 +102,34 @@ export const DEFENDER_BADGE = {
   fifthMove: { canEvolve: 'Peck', finalStage: 'Pluck' },
   fifthMovePp: 1,
 } as const;
+
+/**
+ * Trade cards. **Defender Mode v0, step 5.** At most one per offer: each door
+ * node draws whether its offer carries one, at `rate`, and a carried trade
+ * takes the offer's last card. The offered mon is drawn at `tier`, one step
+ * above the rank's `normal` norm. Every number here is a balance number.
+ */
+export const DEFENDER_TRADE = { rate: 0.25, tier: 'hard' } as const;
+
+/**
+ * The reward entry a defender door offer adds to the tier's own pool, so a
+ * card can be a consumable. Berries are unchanged: they stay in the item
+ * entries they were already in.
+ */
+export const DEFENDER_CONSUMABLE_ENTRY = {
+  kind: 'consumable',
+  weight: 3,
+  ids: ['potion', 'superpotion', 'hyperpotion'],
+} as const;
+
+/**
+ * The off-type slot relic's id. **Defender Mode v0, step 5.** In the boss
+ * relic pool only, and offered at most once per run. Holding it grants
+ * `DEFENDER_OFF_TYPE_SLOTS` party slots exempt from the type lock.
+ */
+export const DEFENDER_OFF_TYPE_RELIC = 'strangers-pass';
+
+export const DEFENDER_OFF_TYPE_SLOTS = 1;
+
+/** The boss page's relic list: the defender list plus the off-type relic. */
+export const DEFENDER_BOSS_RELIC_IDS: readonly RelicId[] = [...DEFENDER_RELIC_IDS, DEFENDER_OFF_TYPE_RELIC];

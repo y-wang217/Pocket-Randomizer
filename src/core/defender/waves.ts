@@ -30,7 +30,12 @@
  * moment. Nothing here reads player state: the whole map is drawn at creation,
  * every door's both sides included.
  */
-import { DEFENDER_RELIC_IDS, DEFENDER_WAVE_LENGTH } from '../../data/defender';
+import {
+  DEFENDER_BOSS_RELIC_IDS,
+  DEFENDER_CONSUMABLE_ENTRY,
+  DEFENDER_RELIC_IDS,
+  DEFENDER_WAVE_LENGTH,
+} from '../../data/defender';
 import { defenderOpponentIvs } from '../../data/scaling';
 import type { Tuning } from '../../data/tuning';
 import { generateShopStock } from '../economy';
@@ -41,6 +46,7 @@ import type { Rng, SimSeed } from '../rng';
 import { defenderBossRewardKey, defenderDoorKey, defenderNodeKey, defenderNodeRewardKey } from '../streamKeys';
 import type { Tier } from '../types';
 import { drawDoorClasses } from './classes';
+import { drawTrade } from './trade';
 
 /** Overwritten in pass 3; never reaches a battle. */
 const PLACEHOLDER_SEED: SimSeed = `sodium,${'0'.repeat(64)}`;
@@ -128,21 +134,27 @@ export function generateRank(rank: number, rng: Rng, tuning: Tuning): Segment {
   // --- pass 4: what each node pays -------------------------------------------
   for (const node of steps.flatMap((step) => step.options)) {
     if (node.tier) {
-      node.reward = generateRewardOffer(
+      const offer = generateRewardOffer(
         node.id,
         node.tier,
         rank,
         rng.rewards.at(defenderNodeRewardKey(node.id, 'offer')),
         tuning,
         DEFENDER_RELIC_IDS,
+        [DEFENDER_CONSUMABLE_ENTRY],
       );
+      // At most one trade per offer, and it takes the last card. Drawn on its
+      // own key whether or not it is carried (`drawTrade`).
+      const trade = drawTrade(node.id, rank, rng);
+      node.reward = trade ? { ...offer, options: [...offer.options.slice(0, -1), trade] } : offer;
     } else if (node.kind === 'shop') {
       node.shop = generateShopStock(node.id, rank, rng.rewards.at(defenderNodeRewardKey(node.id, 'shop')), tuning);
     }
   }
 
   // --- pass 5: the boss payout, both pages ----------------------------------
-  const pays = generateGymRewardOffer(boss.id, rank, rng.rewards.at(defenderBossRewardKey(rank)), tuning, DEFENDER_RELIC_IDS);
+  // The boss page's relics include the Stranger's Pass; a door's never do.
+  const pays = generateGymRewardOffer(boss.id, rank, rng.rewards.at(defenderBossRewardKey(rank)), tuning, DEFENDER_BOSS_RELIC_IDS);
   boss.reward = pays.offer;
   boss.gymMoveOffer = pays.moveOffer;
 

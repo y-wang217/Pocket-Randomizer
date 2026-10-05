@@ -163,6 +163,7 @@ function isRunDecision(value: unknown): boolean {
     case 'gymType':
     case 'draft':
     case 'door':
+    case 'recruit':
     case 'locale':
     case 'lead':
     case 'evolve':
@@ -221,6 +222,7 @@ function isRunDecision(value: unknown): boolean {
         const plan = (edit as { plan?: { assignments?: unknown; discards?: unknown } }).plan;
         return Array.isArray(plan?.assignments) && Array.isArray(plan?.discards);
       }
+      if (edit?.kind === 'consume') return typeof (edit as { id?: unknown }).id === 'string' && typeof edit.slot === 'number';
       return edit?.kind === 'release' && typeof edit.slot === 'number';
     }
     default:

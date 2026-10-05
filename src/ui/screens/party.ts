@@ -853,12 +853,13 @@ function renderRelics(root: HTMLElement, held: readonly RelicId[]): void {
     name.tabIndex = 0;
     name.setAttribute('role', 'button');
 
-    const grants = neutralChip(CAPABILITY_LABELS[relic.grants], 'capability');
+    // A relic that grants no capability (Defender Mode v0's) shows no chip.
+    const grants = relic.grants ? neutralChip(CAPABILITY_LABELS[relic.grants], 'capability') : null;
 
     const body = el('p', 'relics__text');
     body.textContent = relicCopy(relic.id);
 
-    row.append(name, grants, body);
+    row.append(...(grants ? [name, grants, body] : [name, body]));
     list.append(row);
   }
 

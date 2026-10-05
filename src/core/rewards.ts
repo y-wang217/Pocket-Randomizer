@@ -39,9 +39,11 @@ import { stow } from './items';
 import { recoverParty } from './party';
 import type { RngStream } from './rng';
 import type { RunState } from './run';
-import type { Tier } from './types';
+import type { PokemonSpec, Tier } from './types';
+import { applyTrade } from './defender/trade';
 import { RELIC_IDS, relicById, type RelicId } from '../data/relics';
 import { itemById } from '../data/items';
+import { consumableById } from '../data/consumables';
 import { GYM_MOVE_ENTRY, gymRewardEntriesFor, rewardEntriesFor, type RewardEntry } from '../data/rewardPools';
 import { currencyScaleFor } from '../data/shop';
 import { rewardMoveBands } from '../data/scaling';
@@ -89,6 +91,26 @@ export type Reward =
    * states apart without a second type.
    */
   | { kind: 'relic'; relic: RelicId; alternates: readonly RelicId[]; fallback: Reward }
+  /** **Defender Mode v0.** One out-of-battle healing item, by id. */
+  | { kind: 'consumable'; id: string }
+  /**
+   * **Defender Mode v0.** A trade: the requester's mon for one of the party's.
+   *
+   * Drawn abstract, like a relic card, because what it offers and whom it
+   * wants both depend on play. `offers` holds one mon per gym type, all drawn
+   * at generation, and `selector` is one value drawn there too. Resolved when
+   * the offer is shown (`core/defender/trade.ts` `resolveTrade`): `offered` is
+   * the gym type's mon and `requested` the acquisition index of the member the
+   * selector lands on. A card with both set is resolved; `applyReward` takes
+   * only a resolved one.
+   */
+  | {
+      kind: 'trade';
+      offers: Readonly<Record<string, PokemonSpec>>;
+      selector: number;
+      offered?: PokemonSpec;
+      requested?: number;
+    }
 
 /*
  * **A sixth kind, `species`, was here until Stage 4.6b.**
@@ -283,9 +305,14 @@ export function generateRewardOffer(
    * and shuffles `RELIC_IDS` exactly as before.
    */
   relics: readonly RelicId[] = RELIC_IDS,
+  /**
+   * Entries added to the tier's own pool. **Defender Mode v0**, whose door
+   * offers can carry a consumable; every attacker caller passes nothing.
+   */
+  extra: readonly RewardEntry[] = [],
 ): RewardOffer {
   void tuning;
-  const pool = rewardEntriesFor(tier, segment);
+  const pool = extra.length > 0 ? [...rewardEntriesFor(tier, segment), ...extra] : rewardEntriesFor(tier, segment);
 
   const options: Reward[] = [];
   const taken = newOfferDraw();
@@ -610,6 +637,15 @@ export function resolveRewardEntry(
     }
     case 'heal':
       return { kind: 'heal', fraction: entry.fraction };
+    case 'consumable': {
+      // Distinct within an offer, on the item set: a consumable id never
+      // collides with a held item's.
+      const available = entry.ids.filter((id) => !taken.items.has(id));
+      if (available.length === 0) return null;
+      const id = stream.pick(available);
+      taken.items.add(id);
+      return { kind: 'consumable', id };
+    }
   }
 }
 
@@ -799,6 +835,14 @@ export function applyReward(state: RunState, choice: Reward): RunState {
 
     case 'relic':
       return grantRelic(state, choice.relic);
+
+    // Defender Mode v0. Into its own list, beside the TMs, under the same
+    // shared capacity; used between battles by a party edit.
+    case 'consumable':
+      return { ...state, consumables: [...(state.consumables ?? []), choice.id] };
+
+    case 'trade':
+      return applyTrade(state, choice);
   }
 }
 
@@ -881,5 +925,9 @@ export function describeReward(reward: Reward): string {
       return `Technique: ${reward.move}`;
     case 'heal':
       return reward.fraction >= 1 ? 'Full restore' : `Restore ${Math.round(reward.fraction * 100)}%`;
+    case 'consumable':
+      return consumableById(reward.id)?.name ?? reward.id;
+    case 'trade':
+      return reward.offered ? `Trade for ${reward.offered.species}` : 'Trade';
   }
 }

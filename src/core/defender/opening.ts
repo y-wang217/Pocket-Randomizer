@@ -25,10 +25,34 @@ export interface DefenderRunState {
   gymType: DefenderGymType | null;
   /** One option index per pick answered, in pick order. */
   draftPicks: number[];
+  /**
+   * The recruit draft for each rank whose boss unlocks a slot, per gym type,
+   * drawn at generation; null for a rank whose boss unlocks none. Step 5.
+   */
+  recruits: readonly (DefenderRecruits | null)[];
+  /** The next acquisition index to stamp (`PokemonState.acquired`). Step 5. */
+  acquisitions: number;
+  /** Whether a resolved offer has already shown the off-type relic. Step 5. */
+  offTypeOffered: boolean;
 }
 
+/** One rank's recruit draft for one gym type: three typed mons, one off-type. */
+export interface RecruitOffer {
+  typed: readonly PokemonSpec[];
+  offType: PokemonSpec;
+}
+
+export type DefenderRecruits = Readonly<Record<DefenderGymType, RecruitOffer>>;
+
 export function createDefenderState(rng: Rng): DefenderRunState {
-  return { draft: generateDefenderDraft(rng), gymType: null, draftPicks: [] };
+  return {
+    draft: generateDefenderDraft(rng),
+    gymType: null,
+    draftPicks: [],
+    recruits: [],
+    acquisitions: 0,
+    offTypeOffered: false,
+  };
 }
 
 /** The gym types offered, in offer order. */
@@ -67,10 +91,12 @@ export function chooseDraftPick(state: RunState, index: number): RunState {
   if (offered.length === 0) throw new Error('No draft pick is open');
   const spec = offered[index];
   if (!spec) throw new RangeError(`Draft pick ${index} out of range (${offered.length} offered)`);
+  const [member] = createParty([spec]);
+  if (!member) throw new Error('A draft pick built no party member');
   return {
     ...state,
-    party: [...state.party, ...createParty([spec])],
-    defender: { ...defender, draftPicks: [...defender.draftPicks, index] },
+    party: [...state.party, { ...member, acquired: defender.acquisitions }],
+    defender: { ...defender, draftPicks: [...defender.draftPicks, index], acquisitions: defender.acquisitions + 1 },
   };
 }
 

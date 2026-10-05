@@ -1174,14 +1174,42 @@ export function generateTypedMons(
   count: number,
   stream: RngStream,
   seen: Set<string>,
+  /** The species band's tier. `hard` is a trade's "one quality step up". */
+  tier: Tier = 'normal',
+): PokemonSpec[] {
+  return defenderMons((entry) => speciesCarries(entry, type), `a ${type} defender mon`, segment, level, damaging, count, stream, seen, tier);
+}
+
+/**
+ * As `generateTypedMons`, but from the species that do **not** carry `type`:
+ * a recruit draft's off-type candidate, offered only to a run whose
+ * Stranger's Pass slot is free. Drawn whether or not it is offered.
+ */
+export function generateOffTypeMons(
+  type: string,
+  segment: number,
+  level: number,
+  damaging: BandedMovePool,
+  count: number,
+  stream: RngStream,
+  seen: Set<string>,
+): PokemonSpec[] {
+  return defenderMons((entry) => !speciesCarries(entry, type), `an off-${type} defender mon`, segment, level, damaging, count, stream, seen, 'normal');
+}
+
+function defenderMons(
+  admit: (entry: SpeciesEntry) => boolean,
+  what: string,
+  segment: number,
+  level: number,
+  damaging: BandedMovePool,
+  count: number,
+  stream: RngStream,
+  seen: Set<string>,
+  tier: Tier,
 ): PokemonSpec[] {
   const range = { min: level, max: level };
-  const pool = bandedSpeciesPool(
-    speciesBandWeightsFor(segment, 'normal'),
-    range,
-    (entry) => speciesCarries(entry, type),
-    `a ${type} defender draft at segment ${segment}`,
-  );
+  const pool = bandedSpeciesPool(speciesBandWeightsFor(segment, tier), range, admit, `${what} at segment ${segment}`);
   return Array.from({ length: count }, () => rollSpec(pool, damaging, range, stream, undefined, seen));
 }
 

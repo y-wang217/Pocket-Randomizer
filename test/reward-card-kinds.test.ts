@@ -48,7 +48,12 @@ import { PREMIUM_ITEMS } from '../src/data/items';
  * union makes this table fail to compile, which is the only mechanism that
  * would have caught the original defect at the moment it was introduced.
  */
-const ONE_OF_EACH: Record<Reward['kind'], Reward> = {
+/*
+ * Defender Mode v0's two kinds, `consumable` and `trade`, are left out until its
+ * step 7 writes their faces under the bible; no defender run reaches a screen
+ * before then. `docs/generation.md` section 101.
+ */
+const ONE_OF_EACH: Record<Exclude<Reward['kind'], 'consumable' | 'trade'>, Reward> = {
   item: { kind: 'item', item: PREMIUM_ITEMS[0]!.id },
   currency: { kind: 'currency', amount: 159 },
   heal: { kind: 'heal', fraction: 1 },

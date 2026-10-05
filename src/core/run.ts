@@ -72,6 +72,10 @@ import {
 import { DEFENDER_RANKS } from '../data/defender';
 import { generateRank } from './defender/waves';
 import { battleBadgeFor } from './defender/badge';
+import { chooseRecruit, generateRecruits, recruitOptions } from './defender/recruit';
+import { resolveTrade } from './defender/trade';
+import { useConsumable } from './defender/consumables';
+import { DEFENDER_OFF_TYPE_RELIC } from '../data/defender';
 import type { RelicId } from '../data/relics';
 import { applyRelicPassives } from './relics';
 import { RANDOMIZER_VERSION } from './randomizer';
@@ -676,6 +680,12 @@ export interface RunState {
    */
   tms: string[];
   /**
+   * Out-of-battle healing items, by id, in the order they arrived.
+   * **Defender Mode v0.** Absent on an attacker state. Shares backpack capacity
+   * with held items and TMs (`items.inventoryLoad`).
+   */
+  consumables?: string[];
+  /**
    * The relics this run holds, in the order they were taken.
    *
    * Run-scoped and permanent: nothing removes an id from this list. It is not
@@ -776,6 +786,7 @@ function createDefenderRun(seed: string, tuning: Tuning): RunState {
   // attacker draws its starters before its map, and for the same reason.
   const defender = createDefenderState(rng);
   const segments = Array.from({ length: DEFENDER_RANKS }, (_, rank) => generateRank(rank, rng, tuning));
+  defender.recruits = generateRecruits(rng);
   return {
     seed,
     tuning,
@@ -1018,6 +1029,9 @@ export function partyEditRefusal(party: readonly PokemonState[], edit: PartyEdit
   // An item layout is checked where it is applied, by `applyItemPlan`, which
   // needs the bag and the capacity this function is not given.
   if (edit.kind === 'items') return null;
+  // A consumable is checked where it is applied, against the bag and the
+  // battle state this function is not given (`defender/consumables.ts`).
+  if (edit.kind === 'consume') return null;
   if (edit.kind === 'reorder') {
     return inRange(edit.from) && inRange(edit.to) ? null : `reorder ${edit.from} to ${edit.to} outside a party of ${party.length}`;
   }
@@ -1576,6 +1590,8 @@ export interface RunPolicy {
   chooseDraftPick?: (options: readonly PokemonSpec[], state: RunState) => Promise<number>;
   /** **Defender Mode v0.** Which challenger at a door, as an index into `options`. */
   chooseDoor?: (options: NodeSpec[], state: RunState) => Promise<number>;
+  /** **Defender Mode v0.** Which recruit joins when a slot unlocks. */
+  chooseRecruit?: (options: readonly PokemonSpec[], state: RunState) => Promise<number>;
   /**
    * Handed the run's party editor once, before the first question. **The
    * opening playtest QA, QA-001.**
@@ -1918,9 +1934,25 @@ export async function playRun(
    * reconciled against the reordered party, as it was when the UI made the
    * edit itself. Refused rather than clamped, like every decision here.
    */
+  /*
+   * True while a battle is being fought. **Defender Mode v0**: a consumable is
+   * used between battles only, and a use offered mid-battle is refused here,
+   * loudly, before it can reach the log.
+   */
+  let battling = false;
+
   const editParty = (edit: PartyEdit): void => {
     const refusal = partyEditRefusal(state.party, edit);
     if (refusal) throw new RangeError(`Party edit refused: ${refusal}`);
+    if (edit.kind === 'consume') {
+      if (battling) throw new RangeError('Party edit refused: a consumable cannot be used in battle');
+      const used = useConsumable(state, edit.id, edit.slot);
+      record({ kind: 'party', edit: { ...edit } });
+      state.party = used.party;
+      state.consumables = used.consumables ?? [];
+      options.onState?.(state);
+      return;
+    }
     if (edit.kind === 'items') {
       /*
        * **Applied in place and before it is recorded. Bible Rev 23, D94.** The
@@ -2036,7 +2068,13 @@ export async function playRun(
       node = nextNode(state, choice);
     }
 
-    const result = await playNode(state, node, policy, record, opponentFor, options);
+    battling = node.encounter !== null;
+    let result: NodeResult;
+    try {
+      result = await playNode(state, node, policy, record, opponentFor, options);
+    } finally {
+      battling = false;
+    }
 
     /*
      * **The fight is over, so say so.** First of the three projection points.
@@ -2200,7 +2238,31 @@ export async function playRun(
      * returned unchanged.
      */
     const drawn = won ? (result.node.reward ?? null) : null;
-    const offer = drawn ? resolveOffer(drawn, state.relics) : null;
+    /*
+     * **Defender Mode v0 resolves two more things here, in the same one
+     * place.** A trade card is resolved against the party in acquisition order
+     * (`resolveTrade`), and the Stranger's Pass, once any offer has shown it,
+     * is treated as held so no later offer shows it again: the prompt's "at
+     * most once per run". Resolution draws nothing; the flag is state a replay
+     * rebuilds at the same point.
+     */
+    const defenderState = state.defender;
+    const shownPass = defenderState?.offTypeOffered ? [DEFENDER_OFF_TYPE_RELIC] : [];
+    const resolved = drawn ? resolveOffer(drawn, [...state.relics, ...shownPass]) : null;
+    const offer =
+      resolved && defenderState
+        ? {
+            ...resolved,
+            options: resolved.options.map((option) => (option.kind === 'trade' ? resolveTrade(option, state) : option)),
+          }
+        : resolved;
+    if (
+      defenderState &&
+      !defenderState.offTypeOffered &&
+      offer?.options.some((option) => option.kind === 'relic' && option.relic === DEFENDER_OFF_TYPE_RELIC)
+    ) {
+      state = { ...state, defender: { ...defenderState, offTypeOffered: true } };
+    }
     let reviewedIndex: number | null = null;
 
     /*
@@ -2448,6 +2510,23 @@ export async function playRun(
     const beforeNode = state;
     state = resolveNode(state, result);
     options?.onNodeResolved?.(beforeNode, state, result);
+
+    /*
+     * **Defender Mode v0: the recruit draft, when a boss's win opened a slot.**
+     * Asked after the clear is applied, so the recruit joins at the new rank's
+     * level, and before the item plan, so it can be handed an item. A party
+     * already at its capacity is not asked; nothing else grows a party.
+     */
+    if (mode === 'defender' && !state.outcome && result.node.kind === 'gym') {
+      const offered = recruitOptions(state, gymsCleared(state));
+      if (offered.length > 0 && state.party.length < partyCapacity(state)) {
+        if (!policy.chooseRecruit) throw new Error('A defender run needs a policy that answers chooseRecruit');
+        const index = await policy.chooseRecruit(offered, state);
+        record({ kind: 'recruit', index });
+        state = chooseRecruit(state, offered, index);
+        options.onState?.(state);
+      }
+    }
 
     /*
      * The item plan, asked after the node has resolved and not before.
@@ -2941,6 +3020,7 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
     chooseGymType: async () => 0,
     chooseDraftPick: async () => 0,
     chooseDoor: async () => 0,
+    chooseRecruit: async () => 0,
     /*
      * The first locale offered, like every other scripted answer here.
      *
@@ -3180,6 +3260,11 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy, mode: RunMode = '
       const decision = next('draft');
       if (!decision) return live?.chooseDraftPick ? live.chooseDraftPick(options, state) : exhausted('draft');
       return decision.kind === 'draft' ? decision.index : exhausted('draft');
+    },
+    chooseRecruit: async (options, state) => {
+      const decision = next('recruit');
+      if (!decision) return live?.chooseRecruit ? live.chooseRecruit(options, state) : exhausted('recruit');
+      return decision.kind === 'recruit' ? decision.index : exhausted('recruit');
     },
     chooseDoor: async (options, state) => {
       const decision = next('door');

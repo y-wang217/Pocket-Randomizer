@@ -113,6 +113,8 @@ export type RewardEntry =
   | { kind: 'technique'; weight: number; impacts?: readonly MoveImpact[] }
   /** Restore this fraction of max HP and PP. */
   | { kind: 'heal'; weight: number; fraction: number }
+  /** Defender Mode v0: one of `ids` from `data/consumables.ts`. */
+  | { kind: 'consumable'; weight: number; ids: readonly string[] }
   /**
    * A relic: a permanent capability grant. Elite and gym pools only.
    *

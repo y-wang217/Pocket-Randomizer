@@ -28,7 +28,7 @@ import {
   type RunState,
 } from '../src/core/run';
 import type { Reward } from '../src/core/rewards';
-import { DEFENDER_RANKS, DEFENDER_RELIC_IDS, DEFENDER_WAVE_LENGTH } from '../src/data/defender';
+import { DEFENDER_BOSS_RELIC_IDS, DEFENDER_RANKS, DEFENDER_RELIC_IDS, DEFENDER_WAVE_LENGTH } from '../src/data/defender';
 import { defenderOpponentIvs, opponentTeamSize } from '../src/data/scaling';
 import { classesAtRank } from '../src/data/trainerClasses';
 import { DEFAULT_TUNING } from '../src/data/tuning';
@@ -92,17 +92,18 @@ describe('the ranks, as generated', () => {
     }
   });
 
-  it('offers relics only from the defender list (ruling R2)', () => {
-    const allowed = new Set<string>(DEFENDER_RELIC_IDS);
+  it('offers relics only from the defender lists: the boss page adds the Stranger\'s Pass (rulings R2, step 5)', () => {
+    const doorAllowed = new Set<string>(DEFENDER_RELIC_IDS);
+    const bossAllowed = new Set<string>(DEFENDER_BOSS_RELIC_IDS);
     let seen = 0;
     for (const seed of SEEDS) {
       for (const rank of createRun(seed, DEFAULT_TUNING, 'defender').segments) {
-        const offers = [rank.gym.reward, ...rank.routes[0]!.steps.flatMap((step) => step.options.map((node) => node.reward))];
-        for (const offer of offers) {
-          for (const relic of relicsOn(offer?.options ?? [])) {
-            seen++;
-            expect(allowed.has(relic), relic).toBe(true);
-          }
+        for (const relic of relicsOn(rank.gym.reward?.options ?? [])) {
+          seen++;
+          expect(bossAllowed.has(relic), relic).toBe(true);
+        }
+        for (const node of rank.routes[0]!.steps.flatMap((step) => step.options)) {
+          for (const relic of relicsOn(node.reward?.options ?? [])) expect(doorAllowed.has(relic), relic).toBe(true);
         }
       }
     }

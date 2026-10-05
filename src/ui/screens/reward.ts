@@ -227,7 +227,7 @@ export function renderRewardCard(
       icon.setAttribute('role', 'img');
       icon.setAttribute('aria-label', entry?.name ?? reward.relic);
       card.append(icon);
-      if (entry) card.append(capabilityGlyph(entry.grants, CAPABILITY_LABELS[entry.grants]));
+      if (entry?.grants) card.append(capabilityGlyph(entry.grants, CAPABILITY_LABELS[entry.grants]));
       break;
     }
 

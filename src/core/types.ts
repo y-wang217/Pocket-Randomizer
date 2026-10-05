@@ -675,6 +675,13 @@ export interface PokemonState extends BattleMemberState {
    */
   joinedSegment: number;
   /**
+   * The order this member joined a Defender Mode v0 party in: 0, 1, 2 for the
+   * draft, then one more for every recruit and trade. Absent in attacker mode.
+   * **Never a slot**: party order is a decision (lead, reorder), and a trade's
+   * requested member is resolved in acquisition order (report ruling R8).
+   */
+  acquired?: number;
+  /**
    * What this member has done, cumulatively, across the whole run.
    *
    * **Derived state, and it never enters a `RunLog`.** A replay rebuilds it
@@ -809,7 +816,9 @@ export interface TmTeach {
 export type PartyEdit =
   | { kind: 'reorder'; from: number; to: number }
   | { kind: 'release'; slot: number }
-  | { kind: 'items'; plan: ItemPlan };
+  | { kind: 'items'; plan: ItemPlan }
+  /** Defender Mode v0: spend one consumable on one member, between battles. */
+  | { kind: 'consume'; id: string; slot: number };
 
 export type RunDecision =
   /*
@@ -977,7 +986,9 @@ export type RunDecision =
   | { kind: 'gymType'; index: number }
   | { kind: 'draft'; index: number }
   /* Defender Mode v0: which of a door's two challengers, by index. */
-  | { kind: 'door'; index: number };
+  | { kind: 'door'; index: number }
+  /* Defender Mode v0: which of a slot unlock's recruit draft joins, by index. */
+  | { kind: 'recruit'; index: number };
 
 /**
  * Which game a run is. **Defender Mode v0.**

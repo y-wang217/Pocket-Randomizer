@@ -1197,7 +1197,7 @@ function renderRelic(id: string): HTMLElement | null {
   if (!relic) return null;
   const body = panel(relic.name);
   body.append(line(relicCopy(relic.id), 'tip__text'));
-  body.append(line(CAPABILITY_LABELS[relic.grants], 'tip__note'));
+  if (relic.grants) body.append(line(CAPABILITY_LABELS[relic.grants], 'tip__note'));
   return body;
 }
 

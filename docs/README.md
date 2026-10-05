@@ -76,13 +76,15 @@ pre-code report and rulings
 record [`generation.md`](generation.md) section 101. A second run mode chosen
 at run creation: the player is the gym leader, drafts a Fire, Psychic or
 Flying roster locked to that type, and defends eight ranks of waves and bosses.
-Thrown away if it is not fun by hand. **Steps 2 to 4 of 7 are built; step 4,
-the three badges through the sim, is stopped for review**: the mode on the log and its guard, gym select, the
+Thrown away if it is not fun by hand. **Steps 2 to 5 of 7 are built; step 5,
+consumables, trades, the recruit draft and the off-type relic, is stopped for
+review**: the mode on the log and its guard, gym select, the
 draft for all three types, the type lock, the opponent IV table and trainer
 classes; then eight ranks of doors, an intermission and an untyped boss, with a
 headless `playRun` to completion; then the Fire streak, the Psychic reveal and
-Flying's Speed and fifth move as format-level handlers. `RANDOMIZER_VERSION` → `-24`, `RUN_LOG_VERSION` → `-23`,
-`contentHash` → `9ad1d9`, `AI_VERSION` held. Attacker generation is frozen by
+Flying's Speed and fifth move as format-level handlers; then Potions,
+trade cards, recruit drafts and the Stranger's Pass. `RANDOMIZER_VERSION` → `-24`, `RUN_LOG_VERSION` → `-23`,
+`contentHash` → `564eda`, `AI_VERSION` held. Attacker generation is frozen by
 `test/attacker-generation-golden.test.ts`, and the sim fixture and visual
 baseline moved in their version stamps only.
 

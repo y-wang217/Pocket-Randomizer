@@ -179,7 +179,7 @@ export function defenderNodeKey(nodeId: string): string {
 }
 
 /** What a defender node pays, on `rewards`, as `nodeRewardKey`. */
-export function defenderNodeRewardKey(nodeId: string, purpose: 'offer' | 'shop'): string {
+export function defenderNodeRewardKey(nodeId: string, purpose: 'offer' | 'shop' | 'trade'): string {
   return `defender/node/${nodeId}/${purpose}`;
 }
 
@@ -191,4 +191,9 @@ export function defenderDoorKey(rank: number, door: number): string {
 /** A rank's boss payout, both pages, on `rewards`. */
 export function defenderBossRewardKey(rank: number): string {
   return `defender/r${rank}/boss-reward`;
+}
+
+/** One rank's recruit draft for one gym type, on `randomizer`. */
+export function defenderRecruitKey(rank: number, gymType: string): string {
+  return `defender/r${rank}/recruit/${gymType}`;
 }

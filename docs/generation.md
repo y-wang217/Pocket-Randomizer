@@ -13045,3 +13045,63 @@ mean bosses beaten Fire 2.08, Psychic 1.80, Flying 2.33 (step 3: 2.03, 1.80,
 2.08). Psychic is unchanged to the run, which is the reveal changing nothing the
 opponent does and a bot that does not read it. The bot holds no Fire streak
 and never presses the fifth move, so both rows understate their badge.
+
+### 101.7 Step 5: consumables, trades, the recruit draft, the off-type relic
+
+**2026-10-05.**
+
+- **Consumables** are `data/consumables.ts`: Potion 20, Super Potion 60, Hyper
+  Potion 120, Gen 9's amounts, flat HP, never a revive. A list of their own,
+  `RunState.consumables`, beside `tms` and on the same capacity
+  (`items.inventoryLoad` counts all three lists). Not `ItemEntry`s: that table
+  is what a Pokemon may hold, its `consumable` flag already means a berry, and
+  the sim knows no Potion. A defender door offer adds
+  `DEFENDER_CONSUMABLE_ENTRY` to its tier's pool, through a new optional last
+  argument to `generateRewardOffer` that attacker callers leave empty.
+  **Using one is a party edit**, `{ kind: 'consume', id, slot }`: logged where
+  it is made, replayed at the same point, and refused with a throw while a
+  battle is being fought (`run.ts` `battling`). It is spent on use.
+- **Trades** are a reward kind drawn abstract, like a relic card. Each door
+  node draws, on its own key and whether or not the card is carried: the roll
+  against `DEFENDER_TRADE.rate` (0.25), one offered mon **per gym type** at the
+  `hard` tier's species bands (the "one quality step above the rank's norm"),
+  and one `selector`. A carried trade takes the offer's last card, so an offer
+  still holds exactly three. When the offer is shown, `resolveTrade` picks the
+  gym type's mon and the member the selector lands on in **acquisition order**
+  (`PokemonState.acquired`, stamped 0, 1, 2 by the draft and once more by every
+  recruit and trade, ruling R8). Taking the card swaps mon for mon in the same
+  slot; the leaving member's held item goes to the backpack; the party size
+  never changes.
+- **Recruit drafts** are drawn at generation for every rank whose boss opens a
+  slot (bosses 2, 4 and 6 on the schedule read one row ahead), all three gym
+  types, three typed mons and one off-type candidate each, at the next rank's
+  level and bands. Asked after the boss's clear and before the item plan, as a
+  `recruit` decision, only while the party is under capacity.
+- **The Stranger's Pass** is in the boss relic pool only
+  (`DEFENDER_BOSS_RELIC_IDS`) and grants one party slot exempt from the type
+  lock. It lives in `data/relics.ts` `DEFENDER_ONLY_RELICS`, **outside
+  `RELICS`**, so `RELIC_IDS` and every attacker relic shuffle are what they were;
+  `relicById` finds it. `Relic.grants` became `Capability | null` for it, with
+  `RELICS` typed `CapabilityRelic[]` so every attacker relic still grants one.
+  "At most once per run" is enforced at resolution: once any resolved offer has
+  shown it, `DefenderRunState.offTypeOffered` treats it as held, so it never
+  shows again, taken or not.
+
+### 101.8 Deviations from the prompt at step 5
+
+- **Where an off-type mon comes from is not in the prompt.** Every draft,
+  recruit and trade obeys the type lock, so the exempt slot had no source. The
+  default taken: **while a Stranger's Pass slot is free, a recruit draft's third
+  option is the rank's off-type candidate**, drawn at generation for every type
+  whether or not it is ever offered. Flagged for review in the step 5 report.
+- **"Trade accept" is the reward decision**, not a decision of its own: taking
+  the trade card is accepting, as the prompt says, and the `reward` index
+  records it.
+- **The off-type relic grants no capability**, so its reward-card face, party
+  row and tooltip show no capability chip. Those faces, and the faces for the
+  two new reward kinds, are step 7's; `test/reward-card-kinds.test.ts` leaves
+  the two kinds out until then.
+- **Measured, not a gate.** Over 20 seeds (`S5-`), 1,120 door offers held 288
+  trade cards (25.7%) and 514 consumable cards. Twenty scripted runs (`S5R-`,
+  first door, first card, so never a trade) beat 2.0 bosses on mean, with one
+  run reaching six; the recruit drafts are what lets a run pass rank 3.

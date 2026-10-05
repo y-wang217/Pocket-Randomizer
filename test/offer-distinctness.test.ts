@@ -60,6 +60,10 @@ function decisionOf(reward: Reward): string {
       return `item:${reward.item}`;
     case 'relic':
       return `relic:${reward.relic}`;
+    case 'consumable':
+      return `consumable:${reward.id}`;
+    case 'trade':
+      return 'trade';
     default:
       return `${reward.kind}:${reward.move}`;
   }
