@@ -31,3 +31,14 @@ function memberBadge(spec: PokemonSpec, gymType: string): BadgeMember | null {
 export function battleBadgeFor(team: TeamSpec, gymType: string): BattleBadge {
   return { gymType, members: team.map((spec) => memberBadge(spec, gymType)) };
 }
+
+/**
+ * The slot the Fire badge highlights on `spec` under `gymType`, or null when
+ * no flame is drawn: another gym type, or a member that does not carry Fire.
+ * The one reading the screens share with `memberBadge`, so a card cannot show
+ * a flame the battle would not honour.
+ */
+export function flameSlotFor(spec: PokemonSpec, gymType: string | null): number | null {
+  if (gymType !== 'Fire' || !carriesGymType(spec, gymType)) return null;
+  return spec.highlightSlot ?? null;
+}

@@ -34,6 +34,7 @@ const DRAW: Readonly<Record<GlyphFamily, () => HTMLElement>> = {
   node: () => glyphNode('node-wild') as HTMLElement,
   field: () => glyphNode('field-rain') as HTMLElement,
   currency: () => glyphNode('currency-coin') as HTMLElement,
+  badge: () => glyphNode('badge-flame') as HTMLElement,
 };
 
 function screenWith(family: GlyphFamily): HTMLElement {

@@ -698,6 +698,7 @@ function toActiveFacts(pokemon: SimPokemon, own: boolean): ActiveFacts {
     stats,
     baseStats: { hp: base.hp, atk: base.atk, def: base.def, spa: base.spa, spd: base.spd, spe: base.spe },
     ...ivField(pokemon),
+    ...speedField(pokemon),
     boosts: readStatStages(pokemon),
     volatiles: Object.keys(pokemon.volatiles),
     ability: ability?.exists ? { id: ability.id, name: ability.name } : null,
@@ -1202,12 +1203,19 @@ export function createBattle(options: BattleOptions): BattleSession {
        * would put a second lookup path in front of the same table.
        */
       explanation: describeMove(move.id),
+      // Defender Mode v0's two readouts, carried through to the battle screen.
+      ...(move.critChance === undefined ? {} : { critChance: move.critChance }),
+      ...(move.badgeMove ? { badgeMove: true as const } : {}),
     }));
 
     const forceSwitch =
       awaiting && !!request && 'forceSwitch' in request && Boolean(request.forceSwitch?.[0]);
+    // The Psychic badge's reveal, on the same condition the policy's view uses.
+    const shownIntent =
+      side === 'p1' && intent && awaiting && !forceSwitch && carriesBadge(activeOf(battle, 'p1')) ? intent : null;
 
     return {
+      ...(shownIntent ? { foeIntent: shownIntent } : {}),
       turn: battle.turn,
       ended: battle.ended,
       player: toActiveFacts(me, true),
@@ -1318,7 +1326,9 @@ export function createBattle(options: BattleOptions): BattleSession {
       const view = buildView('p2');
       if (choice.kind === 'move') {
         const move = view.moves[choice.slot - 1];
-        intent = move ? { kind: 'move', move: move.name } : null;
+        intent = move
+          ? { kind: 'move', move: move.name, id: move.id, type: move.type, category: move.category, basePower: move.basePower }
+          : null;
       } else {
         const target = view.switches[choice.slot - 1];
         intent = target ? { kind: 'switch', species: target.species, name: target.name } : null;

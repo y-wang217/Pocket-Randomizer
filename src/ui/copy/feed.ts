@@ -45,5 +45,6 @@ export const FEED_COPY = {
   reordered: (name: string, to: number): string => `Order · ${name} to slot ${to + 1}`,
   evolved: (from: string, to: string): string => `Evolved · ${from} into ${to}`,
   /** A group heading in the feed: the gym a segment ends at. */
-  segment: (index: number, leader: string): string => `Gym ${index + 1} · ${leader}`,
+  // A defender rank's boss has no leader (ruling R6), so its heading is the number alone.
+  segment: (index: number, leader: string): string => `Gym ${index + 1}${leader ? ` · ${leader}` : ''}`,
 } as const;

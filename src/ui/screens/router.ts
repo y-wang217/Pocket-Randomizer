@@ -16,6 +16,8 @@
  */
 export type ScreenName =
   | 'starter'
+  /** A defender run's gym type, its first decision. Defender Mode v0, D100. */
+  | 'gym-select'
   /** Which region the segment is walked through. Stage 4.6a, a pre-step. */
   | 'locale'
   | 'map'

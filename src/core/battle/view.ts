@@ -80,6 +80,7 @@ export {
   type RevealPolicy,
 } from './effectiveness';
 import type {
+  FoeIntent,
   Gender,
   MoveExplanation,
   StatName,
@@ -157,6 +158,8 @@ export interface ActiveFacts {
   baseStats: StatsTable;
   /** The flat IV when it is not 31. **Defender Mode v0.** See `ActiveView.ivs`. */
   ivs?: number;
+  /** The Flying badge's Speed numerator. **Defender Mode v0.** See `ActiveView.speedModifier`. */
+  speedModifier?: number;
   boosts: StatStages;
   /** Volatile condition ids currently on this Pokemon: `confusion`, `substitute`, ... */
   volatiles: string[];
@@ -177,6 +180,10 @@ export interface ActiveFacts {
 
 /** A move offered this turn, before effectiveness is computed against a defender. */
 export interface MoveFacts {
+  /** Defender Mode v0: the Fire badge's next-use crit chance, on the highlighted slot only. */
+  critChance?: number;
+  /** Defender Mode v0: the Flying badge's once-per-battle fifth move. */
+  badgeMove?: true;
   slot: number;
   id: string;
   name: string;
@@ -353,6 +360,8 @@ export interface FieldUiView {
 }
 
 export interface BattleFacts {
+  /** Defender Mode v0: the opponent's committed action, under the Psychic badge. */
+  foeIntent?: FoeIntent;
   turn: number;
   ended: boolean;
   player: ActiveFacts;
@@ -431,6 +440,11 @@ export interface RevealedView {
 }
 
 export interface ActiveUiView {
+  /**
+   * True when this Pokemon carries the Flying badge, so its Speed cell shows
+   * the engine's number with the wing (bible Rev 24, D99). Defender Mode v0.
+   */
+  badgeSpeed?: true;
   species: string;
   name: string;
   types: string[];
@@ -496,6 +510,10 @@ export interface AccuracyStagesView {
 }
 
 export interface MoveUiView {
+  /** Defender Mode v0, D99: the flame and the next use's crit chance, 0..1. */
+  critChance?: number;
+  /** Defender Mode v0, D99 and D102: the fifth button, with the wing. */
+  badgeMove?: true;
   slot: number;
   id: string;
   name: string;
@@ -600,6 +618,8 @@ export interface MoveUiView {
 }
 
 export interface BattleUiView {
+  /** Defender Mode v0, D99: the opponent's committed action, beside the eye. */
+  foeIntent?: FoeIntent;
   turn: number;
   ended: boolean;
   player: ActiveUiView;
@@ -742,6 +762,7 @@ export function buildBattleUiView(
   const opponent = toActiveUiView(facts.opponent, reveal);
 
   return {
+    ...(facts.foeIntent ? { foeIntent: facts.foeIntent } : {}),
     turn: facts.turn,
     ended: facts.ended,
     player,
@@ -819,6 +840,7 @@ function toFieldUiView(field: FieldFacts): FieldUiView {
 function toActiveUiView(facts: ActiveFacts, reveal: RevealPolicy): ActiveUiView {
   const max = facts.maxHp || 1;
   return {
+    ...(facts.speedModifier === undefined ? {} : { badgeSpeed: true as const }),
     species: facts.species,
     name: facts.name,
     types: facts.types,
@@ -895,6 +917,8 @@ function toMoveUiView(
   field: FieldFacts,
 ): MoveUiView {
   const base = {
+    ...(move.critChance === undefined ? {} : { critChance: move.critChance }),
+    ...(move.badgeMove ? { badgeMove: true as const } : {}),
     slot: move.slot,
     id: move.id,
     name: move.name,

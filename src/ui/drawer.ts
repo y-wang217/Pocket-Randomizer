@@ -58,6 +58,9 @@ import { itemById } from '../data/items';
 import { itemIcon, renderSlots, slotNumber } from './slots';
 import { itemCopy } from '../data/itemCopy';
 import { memberCardContents } from './member-card';
+import { consumableById } from '../data/consumables';
+import { CONSUMABLE_COPY } from '../data/defenderCopy';
+import { NATIVE, placeholderIcon } from './assets/manifest';
 
 export interface DrawerView {
   party: readonly PokemonState[];
@@ -70,7 +73,13 @@ export interface DrawerView {
    * readout. **Stage 5.0/1.** Read-only here like everything else: the party
    * screen is still the one place an item moves.
    */
-  bag?: { loose: readonly ItemId[]; capacity: number; tms: readonly string[] };
+  bag?: {
+    loose: readonly ItemId[];
+    capacity: number;
+    tms: readonly string[];
+    /** A defender run's consumables, listed at rest (bible Rev 24, D101). Never used here. */
+    consumables?: readonly string[];
+  };
   tuning: Tuning;
   /**
    * Whether this is the in-battle drawer.
@@ -279,6 +288,26 @@ export function createDrawer(): Drawer {
             const effect = el('span', 'drawer__item-effect');
             // The berry's lifetime with it, as the party screen's row says it.
             effect.textContent = entry ? `${itemCopy(entry.id)}${entry.consumable ? ' Used up when it fires.' : ''}` : '';
+            row.append(icon, name, effect);
+            list.append(row);
+          }
+          bag.append(list);
+        }
+        const consumables = view.bag.consumables ?? [];
+        if (consumables.length > 0) {
+          const list = el('ul', 'drawer__items drawer__consumables');
+          for (const id of consumables) {
+            const row = el('li', 'drawer__item');
+            const icon = el('span', 'drawer__item-icon');
+            icon.append(placeholderIcon(consumableById(id)?.name ?? id, NATIVE.relic));
+            icon.setAttribute('aria-hidden', 'true');
+            const name = el('span', 'drawer__item-name');
+            name.textContent = consumableById(id)?.name ?? id;
+            name.dataset['tip'] = `consumable:${id}`;
+            name.tabIndex = 0;
+            name.setAttribute('role', 'button');
+            const effect = el('span', 'drawer__item-effect');
+            effect.textContent = CONSUMABLE_COPY[id] ?? '';
             row.append(icon, name, effect);
             list.append(row);
           }

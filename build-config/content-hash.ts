@@ -157,6 +157,10 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
     why: "the effect line for every held item, berry and relic; read by ui/screens/reward.ts, shop.ts, party.ts and ui/tooltips.ts only, and a reworded effect line must not refuse every seed recorded before it (M5.1, D12)",
   },
   {
+    path: 'src/data/defenderCopy.ts',
+    why: "Defender Mode v0's badge and consumable inspect lines (bible Rev 24, D99 and D101); read by ui/ only, and a reworded line must not refuse every defender seed recorded before it (D12)",
+  },
+  {
     path: 'src/data/trainerClassCopy.ts',
     why: "Defender Mode v0's trainer class names as the door shows them; read by ui/ and tests only, and a renamed class must not refuse every defender seed recorded before it (D12)",
   },

@@ -82,6 +82,7 @@ import type { CapabilityBand } from '../core/capabilities';
 import type { Tier } from '../core/types';
 import { typeChip } from './chip';
 import { el } from './scene';
+import { renderBadgeTip, renderConsumableTip, renderTradeAskTip, renderTradeOfferTip } from './defender-tips';
 
 /** What a `data-tip` attribute can name. */
 type TipKind =
@@ -254,7 +255,12 @@ type TipKind =
    * `Reward: T0 to T2`. The id is the span — `T2` or `T0-T2` — and the panel
    * carries a line per tier inside it, from `data/eventCopy.ts`.
    */
-  | 'reward-tier';
+  | 'reward-tier'
+  /** Defender Mode v0 (bible Rev 24, D99 and D101): a badge mark, a consumable, a trade's two Pokemon. */
+  | 'badge'
+  | 'consumable'
+  | 'trade-offer'
+  | 'trade-ask';
 
 const KINDS = [
   'type',
@@ -301,6 +307,10 @@ const KINDS = [
   'capability-band',
   'tier',
   'reward-tier',
+  'badge',
+  'consumable',
+  'trade-offer',
+  'trade-ask',
 ] as const satisfies readonly TipKind[];
 
 /**
@@ -861,6 +871,14 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
       return renderCapabilityBand(id);
     case 'reward-tier':
       return renderRewardTier(id);
+    case 'badge':
+      return renderBadgeTip(id);
+    case 'consumable':
+      return renderConsumableTip(id);
+    case 'trade-offer':
+      return renderTradeOfferTip(id);
+    case 'trade-ask':
+      return renderTradeAskTip(id);
   }
 }
 

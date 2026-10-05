@@ -40,12 +40,16 @@ import type { ShopStock } from '../core/economy';
 import type { EventInstance } from '../core/events';
 import type { EvolutionQuestion } from '../core/evolution';
 import { describeReward, type RewardOffer } from '../core/rewards';
-import type { RunPolicy, RunState } from '../core/run';
-import type { BattleView, ItemPlan, PokemonState, RunDecision, RunLog } from '../core/types';
+import { runMode, type RunPolicy, type RunState } from '../core/run';
+import { gymForSegment } from '../data/gyms';
+import type { BattleView, ItemPlan, PokemonSpec, PokemonState, RunDecision, RunLog } from '../core/types';
+import { consumableById } from '../data/consumables';
+import { TRAINER_CLASS_NAMES } from '../data/trainerClassCopy';
 import { eventLabel } from '../data/eventCopy';
 import { itemName } from '../data/items';
 import { localeById, type LocaleId } from '../data/locales';
 import { FEED_COPY } from './copy/feed';
+import { DEFENDER_FEED_COPY } from './copy/defender';
 
 export interface FeedEntry {
   /** The decision's index in the log. */
@@ -53,6 +57,8 @@ export interface FeedEntry {
   kind: RunDecision['kind'];
   /** The segment the decision was made in, from the latest state a question carried. */
   segment: number;
+  /** That segment's leader, empty in a defender run, whose bosses have none. */
+  leader: string;
   text: string;
 }
 
@@ -81,6 +87,7 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
    * and logs its answer before it asks the next one of the same kind.
    */
   let segment = 0;
+  let defender = false;
   let party: Names = [];
   let starters: readonly { species: string }[] = [];
   let locales: readonly LocaleId[] = [];
@@ -92,10 +99,15 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
   let evolution: EvolutionQuestion | null = null;
   let view: BattleView | null = null;
   let leadParty: Names = [];
+  let gymTypes: readonly string[] = [];
+  let drafted: readonly { species: string }[] = [];
+  let doors: readonly NodeSpec[] = [];
+  let recruits: readonly { species: string }[] = [];
 
   const seen = (state: RunState | undefined): void => {
     if (!state) return;
     segment = state.currentSegment;
+    defender = runMode(state) === 'defender';
     party = namesOf(state.party);
   };
 
@@ -116,13 +128,17 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
 
   const line = (decision: RunDecision): string => {
     switch (decision.kind) {
-      // Defender Mode v0. No defender run reaches a screen before the
-      // prompt's step 7, which writes these lines; until then they say nothing.
+      // Defender Mode v0's decisions, each read off the question that asked it.
       case 'gymType':
+        return DEFENDER_FEED_COPY.gymType(gymTypes[decision.index] ?? '');
       case 'draft':
-      case 'door':
+        return DEFENDER_FEED_COPY.draft(drafted[decision.index]?.species ?? '');
+      case 'door': {
+        const id = doors[decision.index]?.trainerClass;
+        return DEFENDER_FEED_COPY.door(id ? (TRAINER_CLASS_NAMES[id] ?? id) : '');
+      }
       case 'recruit':
-        return '';
+        return DEFENDER_FEED_COPY.recruit(recruits[decision.index]?.species ?? '');
       case 'starter':
         return FEED_COPY.starter(starters[decision.index]?.species ?? '');
       case 'locale': {
@@ -165,8 +181,9 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
       case 'party': {
         const edit = decision.edit;
         if (edit.kind === 'items') return describePlan(edit.plan);
-        // Defender Mode v0: its feed lines are step 7's, like the decisions'.
-        if (edit.kind === 'consume') return '';
+        if (edit.kind === 'consume') {
+          return DEFENDER_FEED_COPY.consume(consumableById(edit.id)?.name ?? edit.id, party[edit.slot] ?? '');
+        }
         if (edit.kind === 'release') {
           const name = party[edit.slot] ?? '';
           party = party.filter((_, slot) => slot !== edit.slot);
@@ -187,12 +204,41 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
     }
   };
 
+  const { chooseGymType: askGymType, chooseDraftPick: askDraft, chooseDoor: askDoor, chooseRecruit: askRecruit } = inner;
   const policy: RunPolicy = {
     ...inner,
     chooseStarter: (options) => {
       starters = options;
       return inner.chooseStarter(options);
     },
+    ...(askGymType && {
+      chooseGymType: (options: readonly string[], state: RunState) => {
+        seen(state);
+        gymTypes = options;
+        return askGymType(options, state);
+      },
+    }),
+    ...(askDraft && {
+      chooseDraftPick: (options: readonly PokemonSpec[], state: RunState) => {
+        seen(state);
+        drafted = options;
+        return askDraft(options, state);
+      },
+    }),
+    ...(askDoor && {
+      chooseDoor: (options: NodeSpec[], state: RunState) => {
+        seen(state);
+        doors = options;
+        return askDoor(options, state);
+      },
+    }),
+    ...(askRecruit && {
+      chooseRecruit: (options: readonly PokemonSpec[], state: RunState) => {
+        seen(state);
+        recruits = options;
+        return askRecruit(options, state);
+      },
+    }),
     chooseLocale: (options, state) => {
       seen(state);
       locales = options;
@@ -260,7 +306,7 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
     record(log) {
       for (let index = entries.length; index < log.decisions.length; index++) {
         const decision = log.decisions[index] as RunDecision;
-        entries.push({ index, kind: decision.kind, segment, text: line(decision) });
+        entries.push({ index, kind: decision.kind, segment, leader: defender ? '' : gymForSegment(segment).leader, text: line(decision) });
       }
       for (const listener of listeners) listener(entries);
     },

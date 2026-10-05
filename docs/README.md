@@ -76,9 +76,13 @@ pre-code report and rulings
 record [`generation.md`](generation.md) section 101. A second run mode chosen
 at run creation: the player is the gym leader, drafts a Fire, Psychic or
 Flying roster locked to that type, and defends eight ranks of waves and bosses.
-Thrown away if it is not fun by hand. **Steps 2 to 6 of 7 are built. Step 7,
-the UI, is stopped before code** on four proposed bible amendments, D99 to D102
-([`reports/defender-mode-v0-step7-bible.md`](reports/defender-mode-v0-step7-bible.md)): the mode on the log and its guard, gym select, the
+Thrown away if it is not fun by hand. **All seven steps are built, and the mode
+is playable in the app**: choose *Defend* in the seed bar and start a run. Step
+7, the UI, was stopped before code on four bible amendments
+([`reports/defender-mode-v0-step7-bible.md`](reports/defender-mode-v0-step7-bible.md)),
+ruled as recommended into the design bible's Rev 24 (D99 to D102, the Badge
+glyph family the fourteenth), then built to it (`generation.md` 101.10, with
+`scripts/smoke-defender.mjs` playing it by clicking). In order: the mode on the log and its guard, gym select, the
 draft for all three types, the type lock, the opponent IV table and trainer
 classes; then eight ranks of doors, an intermission and an untyped boss, with a
 headless `playRun` to completion; then the Fire streak, the Psychic reveal and

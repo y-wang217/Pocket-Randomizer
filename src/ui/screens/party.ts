@@ -67,6 +67,11 @@ import { PARTY_COPY, PARTY_LABELS } from '../copy/screens';
 import { itemIcon, renderSlots, slotNumber } from '../slots';
 
 import { createThreatReadout } from './threats';
+import { consumableRefusal } from '../../core/defender/consumables';
+import { consumableById } from '../../data/consumables';
+import { CONSUMABLE_COPY } from '../../data/defenderCopy';
+import { DEFENDER_SCREEN_COPY } from '../copy/defender';
+import { NATIVE, placeholderIcon } from '../assets/manifest';
 
 export interface PartyScreen {
   root: HTMLElement;
@@ -101,6 +106,12 @@ export interface PartyScreen {
        * null when the player backs out.
        */
       onTeach: (move: string, done: (teach: TmTeach | null) => void) => void;
+      /**
+       * Use a consumable on a member. **Defender Mode v0, bible Rev 24, D101.**
+       * Handed up to the run's party editor, which logs it and refuses what
+       * this screen dims. Absent where the run has none to use.
+       */
+      onConsume?: (id: string, slot: number) => void;
       onDone: () => void;
     },
   ): void;
@@ -171,6 +182,17 @@ export interface PartyView {
    * changed slot would fold the fight onto the wrong member. Defaults to true.
    */
   canEditParty?: boolean;
+  /**
+   * The run's consumables, in acquisition order. **Defender Mode v0, D101.**
+   * Listed on the Bag at rest, each with its name and effect line (R13).
+   */
+  consumables?: readonly string[];
+  /**
+   * Whether a consumable may be used here: false while a battle node is in
+   * progress, its result screen included, where the run refuses one. The
+   * rows still show; the pick is dimmed. Defaults to false.
+   */
+  canConsume?: boolean;
 }
 
 export type PartyFocus = 'team' | 'bag';
@@ -217,7 +239,8 @@ export function createPartyScreen(): PartyScreen {
   const bag = el('section', 'backpack');
   const tmPanel = el('section', 'tms');
   const relics = el('section', 'relics');
-  bagHalf.append(heldList, bag, tmPanel, relics);
+  const consumablePanel = el('section', 'consumables');
+  bagHalf.append(heldList, bag, consumablePanel, tmPanel, relics);
 
   const done = document.createElement('button');
   done.type = 'button';
@@ -234,7 +257,9 @@ export function createPartyScreen(): PartyScreen {
   let sortBy: string | null = null;
   // The item picked for a two-tap move on the Bag (D97): a held one by slot,
   // or a loose one by its index in the backpack.
-  let picked: { from: 'held'; slot: number } | { from: 'bag'; index: number } | null = null;
+  // Or a consumable, by its index in the run's list, whose second tap is a
+  // member to use it on (D101).
+  let picked: Picked = null;
 
   let onDone: () => void = () => undefined;
   done.addEventListener('click', () => onDone());
@@ -364,7 +389,24 @@ export function createPartyScreen(): PartyScreen {
         } else {
           viewHost.replaceChildren(coverageWheel(shown));
         }
+        const consumables = view.consumables ?? [];
+        const usable = view.canConsume ?? false;
+        renderConsumables(consumablePanel, consumables, usable, picked?.from === 'consumable' ? picked.index : null, (index) => {
+          picked = picked?.from === 'consumable' && picked.index === index ? null : { from: 'consumable', index };
+          draw();
+        });
+        // While a consumable is picked, each member says whether it can take it.
+        const pickedConsumable = picked?.from === 'consumable' ? consumables[picked.index] : undefined;
+        const refusals = pickedConsumable
+          ? view.party.map((_, slot) => consumableRefusal({ party: [...view.party], consumables: [...consumables] }, pickedConsumable, slot))
+          : null;
         renderHeld(heldList, shown, held, picked, {
+          refusals,
+          onUse: (slot) => {
+            picked = null;
+            if (!pickedConsumable || refusals?.[slot]) return draw();
+            handlers.onConsume?.(pickedConsumable, slot);
+          },
           onPick: (slot) => {
             picked = picked?.from === 'held' && picked.slot === slot ? null : { from: 'held', slot };
             draw();
@@ -761,12 +803,17 @@ function movesGrid(party: readonly PokemonState[]): HTMLElement {
  * that is the player's own act shown back to them, not a suggestion: no
  * member is ever marked as the place an item should go.
  */
+type Picked = { from: 'held'; slot: number } | { from: 'bag'; index: number } | { from: 'consumable'; index: number } | null;
+
 function renderHeld(
   host: HTMLElement,
   party: readonly PokemonState[],
   held: readonly (ItemId | null)[],
-  picked: { from: 'held'; slot: number } | { from: 'bag'; index: number } | null,
+  picked: Picked,
   handlers: {
+    /** Per member, why the picked consumable cannot be used on it; null when none is picked. */
+    refusals: readonly (string | null)[] | null;
+    onUse: (slot: number) => void;
     onPick: (slot: number) => void;
     onDrop: (slot: number) => void;
     onUnequip: (slot: number) => void;
@@ -801,7 +848,21 @@ function renderHeld(
     effect.textContent = entry ? (entry.consumable ? `${itemCopy(entry.id)} Used up when it fires.` : itemCopy(entry.id)) : '';
     pick.append(slotNumber(slot), name, icon, what, effect);
     pick.setAttribute('aria-pressed', String(isPicked));
+    /*
+     * With a consumable picked, a member is who it is used on (D101), and a
+     * member the run would refuse is dimmed and says why: the refusal is loud
+     * here as it is in `core/run.ts`, never a tap that silently does nothing.
+     */
+    const refusal = handlers.refusals?.[slot] ?? null;
+    if (refusal) {
+      pick.disabled = true;
+      row.dataset['refused'] = 'true';
+      const why = el('span', 'held__refusal');
+      why.textContent = DEFENDER_SCREEN_COPY.useRefused(refusal);
+      pick.append(why);
+    }
     pick.addEventListener('click', () => {
+      if (handlers.refusals) return handlers.onUse(slot);
       // With something picked, a member is where it goes; with nothing
       // picked, a member holding something is what gets picked up.
       if (picked && !isPicked) handlers.onDrop(slot);
@@ -820,6 +881,55 @@ function renderHeld(
     rows.append(row);
   });
   host.replaceChildren(heading, rows);
+}
+
+/**
+ * The run's consumables. **Defender Mode v0, bible Rev 24, D101.** A carried
+ * item under R13: each row is the item's sprite, name and effect line at rest.
+ * A tap picks it up, and the held list above is where it goes. Where the run
+ * refuses a use (a battle in progress), the pick is dimmed and the rows stay.
+ * Nothing renders when the run has none, so an attacker Bag is unchanged.
+ */
+function renderConsumables(
+  host: HTMLElement,
+  consumables: readonly string[],
+  usable: boolean,
+  pickedIndex: number | null,
+  onPick: (index: number) => void,
+): void {
+  if (consumables.length === 0) {
+    host.replaceChildren();
+    host.hidden = true;
+    return;
+  }
+  host.hidden = false;
+  const rows = el('ul', 'consumables__list');
+  rows.replaceChildren(
+    ...consumables.map((id, index) => {
+      const entry = consumableById(id);
+      const row = el('li', 'backpack__item consumables__item');
+      const pick = document.createElement('button');
+      pick.type = 'button';
+      pick.className = 'backpack__pick';
+      pick.disabled = !usable;
+      const icon = el('span', 'backpack__icon');
+      icon.setAttribute('aria-hidden', 'true');
+      icon.append(placeholderIcon(entry?.name ?? id, NATIVE.relic));
+      const name = el('span', 'backpack__name');
+      name.textContent = entry?.name ?? id;
+      name.dataset['tip'] = `consumable:${id}`;
+      const effect = el('span', 'backpack__effect');
+      effect.textContent = CONSUMABLE_COPY[id] ?? '';
+      pick.append(icon, name, effect);
+      const isPicked = pickedIndex === index;
+      if (isPicked) row.dataset['picked'] = 'true';
+      pick.setAttribute('aria-pressed', String(isPicked));
+      pick.addEventListener('click', () => onPick(index));
+      row.append(pick);
+      return row;
+    }),
+  );
+  host.replaceChildren(rows);
 }
 
 function renderRelics(root: HTMLElement, held: readonly RelicId[]): void {

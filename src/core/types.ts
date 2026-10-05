@@ -349,7 +349,17 @@ export interface BattleBadge {
  * it before the player chooses. **Defender Mode v0.** The move by name, or the
  * bench member it is switching to.
  */
-export type FoeIntent = { kind: 'move'; move: string } | { kind: 'switch'; species: string; name: string };
+export type FoeIntent =
+  | {
+      kind: 'move';
+      move: string;
+      /** What the move chip draws (bible Rev 24, D99): id, type, category, power. */
+      id: string;
+      type: string;
+      category: 'Physical' | 'Special' | 'Status';
+      basePower: number;
+    }
+  | { kind: 'switch'; species: string; name: string };
 
 export interface SpeedView {
   me: number;

@@ -62,6 +62,7 @@ import { spriteFigure, spriteImg, spriteUrl } from './sprites';
 import { itemIcon, pokeballSprite } from './slots';
 import { SCENES } from './theme/scenes';
 import { glyphNode } from './theme/glyph';
+import { GLYPH_LABELS } from '../data/glyphLabels';
 import { applyBackdrop } from './assets/manifest';
 import { statBlock } from './stat-block';
 import type { MoveTag } from '../data/moveTags';
@@ -156,6 +157,12 @@ interface SidePanel {
    * the count can live.
    */
   roster: HTMLElement;
+  /**
+   * The opponent's committed action, beside the eye. **Defender Mode v0, bible
+   * Rev 24, D99.** On the foe panel only, empty unless the Psychic badge
+   * reveals something this turn.
+   */
+  intent: HTMLElement;
   /**
    * The turn-order chevron, beside the level. **M3.1, discrepancy D6.**
    *
@@ -573,6 +580,7 @@ export function createScene(): Scene {
       };
       // The opposing side's count, on the opposing panel and nowhere else.
       renderRoster(foe.roster, view.opponentLeft);
+      renderIntent(foe.intent, view.foeIntent);
       root.dataset['faster'] = view.fasterSide;
       // Any choice closes the bench: the next decision opens on the moves.
       const choose = (choice: Choice): void => {
@@ -861,6 +869,7 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
    * `panel--me` costs no line for it.
    */
   const roster = el('div', 'panel__roster');
+  const intent = el('div', 'panel__intent');
 
   /*
    * One row for everything a turn can have done to this Pokemon: its stat
@@ -928,8 +937,8 @@ function createSidePanel(kind: 'me' | 'foe'): SidePanel {
   const stats = el('div', 'panel__stats');
   stats.hidden = kind === 'foe';
 
-  root.append(roster, header, hp.root, meta, chips, stats);
-  return { root, name, level, stats, roster, priority, types, hp, hpText, status, volatiles, traits, item, itemGhost, stages };
+  root.append(roster, header, hp.root, meta, chips, stats, intent);
+  return { root, name, level, stats, roster, intent, priority, types, hp, hpText, status, volatiles, traits, item, itemGhost, stages };
 }
 
 /**
@@ -1118,7 +1127,10 @@ function updateSidePanel(
       const { stage, effective } = active.stats[stat];
       if (stage !== 0) stages[stat] = { stage, effective, multiplier: formatStageMultiplier(stage) };
     }
-    panel.stats.replaceChildren(statBlock(values, { layout: 'row', level: active.level, stages }));
+    // Defender Mode v0, D99: under the Flying badge the Speed cell is the
+    // engine's number, the wing beneath it where no stage count is.
+    const badgeSpeed = active.badgeSpeed ? { badgeSpeed: active.stats.spe.effective } : {};
+    panel.stats.replaceChildren(statBlock(values, { layout: 'row', level: active.level, stages, ...badgeSpeed }));
     panel.stats.dataset['key'] = `${detail}|${staged}`;
   }
   panel.root.dataset['detail'] = detail;
@@ -1772,6 +1784,9 @@ function renderMoves(
   container.replaceChildren(
     ...view.moves.map((move) => renderMove(move, view.awaitingChoice, cause, onChoose)),
   );
+  // Defender Mode v0, D102: the fifth button is the same call site, in its own
+  // fixed slot outside the 2x2 grid; the stylesheet gives it a row of its own.
+  container.dataset['fifth'] = view.moves.some((move) => move.badgeMove) ? 'true' : 'false';
   markSuper(container, view.moves);
 }
 
@@ -1975,6 +1990,11 @@ function renderMove(
   // Section 2's chevron, beside the name, on the button as on the card.
   const priority = movePriority(move.facts);
   if (priority) name.append(priority);
+  // Defender Mode v0, D99: the flame and the next use's crit chance, or the
+  // wing on the fifth move. Absent on every attacker button.
+  const badge = moveBadge(move);
+  if (badge) name.append(badge);
+  if (move.badgeMove) button.dataset['badgeMove'] = 'true';
 
   const meta = el('span', 'move__meta');
   const type = typeChip(move.type, { tip: `type:${move.type}` });
@@ -2713,6 +2733,12 @@ export function moveChip(move: {
   band?: number | null;
   /** False on a readout, where there is nothing to pick. Defaults to true. */
   pickable?: boolean;
+  /**
+   * The Fire badge's highlighted slot, on a member carrying Fire in a defender
+   * run. **Bible Rev 24, D99.** The flame alone: the next-use crit chance is
+   * the battle button's only.
+   */
+  flame?: boolean;
 }): HTMLElement {
   const pickable = move.pickable ?? true;
   const chip = pickable ? document.createElement('button') : el('span', '');
@@ -2739,6 +2765,16 @@ export function moveChip(move: {
     meta.append(band);
   }
   if (move.ppCounter) meta.append(movePp(move.ppCounter.max, move.ppCounter.remaining));
+  if (move.flame) {
+    const mark = glyphNode('badge-flame', { label: GLYPH_LABELS['badge-flame'] ?? '' });
+    if (mark) {
+      const holder = el('span', 'move__badge move__badge--flame');
+      mark.dataset['tip'] = 'badge:Fire';
+      holder.append(mark);
+      meta.append(holder);
+    }
+    chip.dataset['badgeSlot'] = 'true';
+  }
 
   chip.append(name, meta);
   // The same inspect trigger the card carries, for the same reason: a compact
@@ -3080,4 +3116,60 @@ export function createWorldScene(follow: HTMLElement | null = document.documentE
   };
   scene.setLocale(readAttribute());
   return scene;
+}
+
+/**
+ * The badge mark on a battle button. **Defender Mode v0, bible Rev 24, D99.**
+ * The flame and the next use's crit chance as a bare percentage on the Fire
+ * badge's highlighted slot; the wing on Flying's fifth move; nothing else.
+ */
+function moveBadge(move: Pick<MoveUiView, 'critChance' | 'badgeMove'>): HTMLElement | null {
+  if (move.critChance !== undefined) {
+    const holder = el('span', 'move__badge move__badge--flame');
+    const mark = glyphNode('badge-flame', { label: GLYPH_LABELS['badge-flame'] ?? '' });
+    if (mark) {
+      mark.dataset['tip'] = 'badge:Fire';
+      holder.append(mark);
+    }
+    const chance = el('span', 'move__crit');
+    // Floored, as the bible's D99 row writes them (12, 50, 100): a chance is
+    // never shown higher than it is.
+    chance.textContent = String(Math.floor(move.critChance * 100));
+    holder.append(chance);
+    return holder;
+  }
+  if (move.badgeMove) {
+    const holder = el('span', 'move__badge move__badge--wing');
+    const mark = glyphNode('badge-wing', { label: GLYPH_LABELS['badge-wing'] ?? '' });
+    if (mark) {
+      mark.dataset['tip'] = 'badge:Flying';
+      holder.append(mark);
+    }
+    return holder;
+  }
+  return null;
+}
+
+/**
+ * The opponent's committed action beside the eye. **Defender Mode v0, bible
+ * Rev 24, D99.** A move chip for a move; the incoming species' name for a
+ * switch. Empty, and drawing nothing, on every other turn (R4).
+ */
+function renderIntent(slot: HTMLElement, intent: BattleUiView['foeIntent']): void {
+  if (!intent) {
+    slot.replaceChildren();
+    delete slot.dataset['kind'];
+    return;
+  }
+  const eye = glyphNode('badge-eye', { label: GLYPH_LABELS['badge-eye'] ?? '' });
+  if (eye) eye.dataset['tip'] = 'badge:Psychic';
+  let what: HTMLElement;
+  if (intent.kind === 'move') {
+    what = moveChip({ id: intent.id, name: intent.move, type: intent.type, category: intent.category, basePower: intent.basePower, pickable: false });
+  } else {
+    what = el('span', 'panel__intent-switch');
+    what.textContent = intent.species;
+  }
+  slot.replaceChildren(...(eye ? [eye] : []), what);
+  slot.dataset['kind'] = intent.kind;
 }

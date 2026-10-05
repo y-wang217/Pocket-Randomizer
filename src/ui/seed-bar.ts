@@ -37,6 +37,8 @@
 import { CONTENT_HASH } from '../core/contentHash';
 import { formatSeedString, parseSeedString, type ParsedSeed } from '../core/seedString';
 import { foreignSeedMessage, SEED_COPY } from '../data/seedCopy';
+import type { RunMode } from '../core/types';
+import { MODE_COPY } from './copy/defender';
 import { el } from './scene';
 
 export interface SeedBar {
@@ -66,6 +68,13 @@ export interface SeedBar {
    * `docs/spec/gymrun-patch-carry-on-softlock.md`.
    */
   warn(message: string): void;
+  /**
+   * The run mode the next Start, New seed or replay plays. **Defender Mode v0,
+   * bible Rev 24, D100**: two controls, one word each, pressed state on the
+   * one in force. A resume plays the saved log's own mode, never this.
+   */
+  mode(): RunMode;
+  setMode(mode: RunMode): void;
 }
 
 export function createSeedBar(): SeedBar {
@@ -118,11 +127,32 @@ export function createSeedBar(): SeedBar {
   resume.hidden = true;
 
   /** The refusal, hidden until a foreign seed is submitted or arrives. */
+  // The mode choice: two controls, one word each (D100's budget of 2).
+  const modes = el('div', 'seedbar__modes');
+  modes.setAttribute('role', 'group');
+  modes.setAttribute('aria-label', MODE_COPY.label);
+  let current: RunMode = 'attacker';
+  const modeButtons = (['attacker', 'defender'] as const).map((mode) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'button button--small seedbar__mode';
+    button.dataset['mode'] = mode;
+    button.textContent = MODE_COPY[mode];
+    button.addEventListener('click', () => setMode(mode));
+    modes.append(button);
+    return button;
+  });
+  const setMode = (mode: RunMode): void => {
+    current = mode;
+    for (const button of modeButtons) button.setAttribute('aria-pressed', String(button.dataset['mode'] === mode));
+  };
+  setMode('attacker');
+
   const notice = el('p', 'seedbar__notice');
   notice.setAttribute('role', 'alert');
   notice.hidden = true;
 
-  root.append(label, input, apply, copy, reroll, resume, notice);
+  root.append(label, input, modes, apply, copy, reroll, resume, notice);
 
   const clearNotice = (): void => {
     notice.textContent = '';
@@ -189,6 +219,8 @@ export function createSeedBar(): SeedBar {
     onReroll: (handler) => reroll.addEventListener('click', () => handler()),
     onResume: (handler) => resume.addEventListener('click', () => handler()),
     refuse,
+    mode: () => current,
+    setMode,
     warn: (message) => {
       notice.textContent = message;
       notice.hidden = false;

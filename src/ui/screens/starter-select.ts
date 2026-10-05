@@ -34,6 +34,7 @@
  * file never sees the sim.
  */
 import { describeSpecCard, type SpecCard } from '../../core/battle/driver';
+import { flameSlotFor } from '../../core/defender/badge';
 import { moveCoverage, typeVulnerabilities } from '../../core/coverage';
 import type { PokemonSpec } from '../../core/types';
 import { LOCALES, type LocaleId } from '../../data/locales';
@@ -47,7 +48,18 @@ import { statBlock } from '../stat-block';
 
 export interface StarterSelect {
   root: HTMLElement;
-  render(options: readonly PokemonSpec[], onPick: (index: number) => void): void;
+  render(options: readonly PokemonSpec[], onPick: (index: number) => void, defender?: DefenderPick): void;
+}
+
+/**
+ * A defender draft or recruit pick on this screen. **Defender Mode v0, bible
+ * Rev 24, D99**: the same card, with the heading the pick names and the Fire
+ * badge's flame on each card's highlighted slot when the gym is Fire. The
+ * starter blurb is the attacker's and is hidden.
+ */
+export interface DefenderPick {
+  title: string;
+  gymType: string;
 }
 
 export function createStarterSelect(): StarterSelect {
@@ -67,12 +79,16 @@ export function createStarterSelect(): StarterSelect {
 
   return {
     root,
-    render(options, onPick) {
+    render(options, onPick, defender) {
       const cards = options.map((spec) => describeSpecCard(spec));
       let selected: number | null = null;
       let committed = false;
+      heading.textContent = defender ? defender.title : 'Choose your starter';
+      blurb.hidden = defender !== undefined;
 
-      const built = cards.map((card, index) => renderCard(card, index, () => tap(index)));
+      const built = cards.map((card, index) =>
+        renderCard(card, index, () => tap(index), defender ? flameSlotFor(options[index]!, defender.gymType) : null),
+      );
       const buttons = built.map((entry) => entry.card);
       grid.replaceChildren(...buttons);
       choose.hidden = true;
@@ -123,6 +139,19 @@ export function createStarterSelect(): StarterSelect {
  * its primary type. Every one of the eighteen types is in some region's four,
  * and this is a table read in a fixed order, so nothing is drawn.
  */
+/**
+ * A starter card, opened to its detail, for the inspect layer. **Defender Mode
+ * v0, bible Rev 24, D101**: a trade's offered mon opens this card on its press,
+ * the one component that shows a Pokemon not yet in the party. Not a control:
+ * the card's own tap does nothing here.
+ */
+export function starterInspectCard(spec: PokemonSpec, gymType: string | null): HTMLElement {
+  const built = renderCard(describeSpecCard(spec), 0, () => undefined, flameSlotFor(spec, gymType));
+  built.show('detail');
+  built.card.setAttribute('tabindex', '-1');
+  return built.card;
+}
+
 function backdropFor(types: readonly string[]): LocaleId | null {
   const primary = types[0];
   const locale = LOCALES.find((entry) => primary !== undefined && entry.types.includes(primary));
@@ -137,7 +166,7 @@ interface BuiltCard {
   clear(): void;
 }
 
-function renderCard(detail: SpecCard, index: number, onTap: () => void): BuiltCard {
+function renderCard(detail: SpecCard, index: number, onTap: () => void, flameSlot: number | null = null): BuiltCard {
   const card = document.createElement('button');
   card.type = 'button';
   card.className = 'starter';
@@ -167,7 +196,7 @@ function renderCard(detail: SpecCard, index: number, onTap: () => void): BuiltCa
   meta.append(abilityChip(detail.ability, detail.abilityId));
   const moves = el('div', 'starter__moves');
   moves.replaceChildren(
-    ...detail.moves.map((move) =>
+    ...detail.moves.map((move, slot) =>
       moveChip({
         id: move.id,
         name: move.name,
@@ -175,6 +204,7 @@ function renderCard(detail: SpecCard, index: number, onTap: () => void): BuiltCa
         category: move.category,
         basePower: move.basePower,
         pickable: false,
+        flame: slot === flameSlot,
       }),
     ),
   );

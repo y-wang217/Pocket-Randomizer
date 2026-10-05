@@ -35,7 +35,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { renderRewardCard } from '../src/ui/screens/reward';
-import { createRun } from '../src/core/run';
+import { createRun, type RunState } from '../src/core/run';
+import { chooseDraftPick, chooseGymType, draftOptions } from '../src/core/defender/opening';
 import type { Reward } from '../src/core/rewards';
 import { RELICS } from '../src/data/relics';
 import { relicCopy } from '../src/data/itemCopy';
@@ -49,11 +50,17 @@ import { PREMIUM_ITEMS } from '../src/data/items';
  * would have caught the original defect at the moment it was introduced.
  */
 /*
- * Defender Mode v0's two kinds, `consumable` and `trade`, are left out until its
- * step 7 writes their faces under the bible; no defender run reaches a screen
- * before then. `docs/generation.md` section 101.
+ * Defender Mode v0's two kinds are in the table since its step 7 wrote their
+ * faces (bible Rev 24, D101). A trade names a member of the party it is shown
+ * to, so its card is drawn against a defender run's party (`stateFor`).
  */
-const ONE_OF_EACH: Record<Exclude<Reward['kind'], 'consumable' | 'trade'>, Reward> = {
+const DEFENDER = ((): RunState => {
+  let state = chooseGymType(createRun('REWARD-CARD-DEFENDER', undefined, 'defender'), 0);
+  while (draftOptions(state).length > 0) state = chooseDraftPick(state, 0);
+  return state;
+})();
+
+const ONE_OF_EACH: Record<Reward['kind'], Reward> = {
   item: { kind: 'item', item: PREMIUM_ITEMS[0]!.id },
   currency: { kind: 'currency', amount: 159 },
   heal: { kind: 'heal', fraction: 1 },
@@ -66,13 +73,24 @@ const ONE_OF_EACH: Record<Exclude<Reward['kind'], 'consumable' | 'trade'>, Rewar
     alternates: [],
     fallback: { kind: 'currency', amount: 1 },
   },
+  consumable: { kind: 'consumable', id: 'potion' },
+  trade: {
+    kind: 'trade',
+    offers: {},
+    selector: 0,
+    offered: draftOptions(chooseGymType(createRun('REWARD-CARD-OFFER', undefined, 'defender'), 0))[0]!,
+    requested: DEFENDER.party[0]!.acquired!,
+  },
 };
+
+/** The run a kind's card is drawn against: a trade needs the party it names. */
+const stateFor = (kind: string, fallback: RunState): RunState => (kind === 'trade' ? DEFENDER : fallback);
 
 describe('the reward card', () => {
   it('renders a face for every kind in the union', () => {
     const state = createRun('REWARD-CARD-KINDS');
     for (const [kind, reward] of Object.entries(ONE_OF_EACH)) {
-      const card = renderRewardCard(reward, state, () => undefined);
+      const card = renderRewardCard(reward, stateFor(kind, state), () => undefined);
       expect(card.children.length, `${kind} renders an empty card`).toBeGreaterThan(0);
     }
   });

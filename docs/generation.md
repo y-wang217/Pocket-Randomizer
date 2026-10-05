@@ -13122,3 +13122,69 @@ any living member under half HP, smallest item first. It takes the first card
 that is not a trade, so it takes the same first card the attacker baseline
 does unless that card is the trade, which a carried trade never is (it takes
 the last slot). No number was tuned against these rows.
+
+### 101.10 Step 7: the UI, built to bible Rev 24
+
+**2026-10-05.** Built to D99 to D102 as ruled
+(`spec/gymrun-defender-mode-v0-rulings-d99-d102.md`), on the existing screens.
+Nothing under `core/` changed except one read for the screens,
+`core/defender/badge.ts` `flameSlotFor`, which is `memberBadge`'s own rule for
+when a flame is drawn, so a card cannot show a flame the battle would not honour.
+
+- **Mode choice.** Two controls in the seed bar, `Attack` and `Defend`
+  (`ui/seed-bar.ts`). Start, New seed and a linked seed play the bar's mode; a
+  resume plays the saved log's own and moves the bar to say so (`ui/app.ts`
+  `start`).
+- **Gym type select.** `ui/screens/gym-select.ts`, a router screen of its own
+  and a gallery surface (`gym-select`), the locale card's grammar: a type chip
+  and the badge mark per card, the instruction as the only words.
+- **Draft and recruit.** The starter screen, with the pick's heading in the
+  title's slot, the attacker blurb hidden, and the flame on the highlighted
+  move chip under Fire (`moveChip`'s `flame`).
+- **The door.** The map's node card names the class beside the trainer mark
+  on every row, and its types are type chips on the step being chosen from.
+- **Battle.** The flame and the next use's crit chance on the highlighted
+  button, the wing on the fifth button in its own row, the eye and the
+  revealed move chip (or incoming species) on the opposing panel, the wing in
+  the Speed cell with the engine's number.
+- **Reward cards.** A consumable is its sprite, with the name and effect line
+  on the `consumable:` press. A trade is two sprites and two species names, the
+  offered mon's press opening its starter card (`trade-offer:`) and the
+  member's opening its party row (`trade-ask:`).
+- **Bag.** Consumables listed at rest with name and effect line, used by two
+  taps, the item then a member, through the run's party editor. A member the
+  run would refuse is dimmed and says why; inside a battle node the pick is
+  dimmed. The in-battle readout lists them too.
+- **Feed.** One line per defender decision (`ui/copy/defender.ts`
+  `DEFENDER_FEED_COPY`), registered in `docs/copy.md`.
+- **Smoke.** `scripts/smoke-defender.mjs` plays a defender run in the built
+  bundle by clicking, from the mode choice to the summary.
+
+#### Deviations recorded at step 7
+
+- **The consumable sprite is a placeholder, not a Showdown cell.** D101 says
+  the Showdown sheet carries a Potion, Super Potion and Hyper Potion. Neither
+  `@pkmn/img`'s index nor Showdown's client item data (`data/items.js`) carries
+  any of the three, so no cell can be named. The face draws the lettered
+  placeholder every icon falls back to (`ui/assets/manifest.ts`
+  `placeholderIcon`), at a relic icon's size, and stays outside `MANIFEST` so
+  the attacker's "no placeholder remains" holds. The prompt ships the mode on
+  placeholders, so this is the prompt's own fallback; the encoding (an item
+  sprite in a fixed slot, name and effect on the press) is unchanged.
+- **The Stranger's Pass draws the same placeholder.** It is the one relic with
+  no manifest entry, and `assetIcon` throws on a missing key, so its card would
+  have thrown on the first boss page that offered it (`relicIcon`).
+- **The crit chance is floored, not rounded.** Gen 9's stage 1 is 12.5%; D99
+  writes the three values as 12, 50 and 100, so the button floors, and a
+  chance is never shown higher than it is.
+- **A defender boss has no leader anywhere, not only on the pre-gym screen.**
+  D100 rules the pre-gym variant. The same absence reaches every surface that
+  printed the attacker's leader for a segment: the map's heading (no leader, no
+  type chip, no `gym:` tip, no blurb), the eight-step rail (the numbers alone),
+  the boss node (its team size, bare), the battle header (the gym mark alone),
+  the sidebar's line, the feed's segment heading, and the summary's route and
+  death lines. Each would otherwise have named an attacker gym leader the
+  defender never meets. No word is added; each drops one.
+- **The boss's level on the pre-gym screen is the team's highest.** A boss
+  team is drawn at one level, so it is that level; the highest is read so an
+  empty team reads 0 rather than throwing.

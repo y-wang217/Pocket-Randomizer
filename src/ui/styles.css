@@ -7844,3 +7844,70 @@ button,
   height: 28px;
 }
 
+
+/* Defender Mode v0: the mode choice in the seed bar (bible Rev 24, D100). */
+.seedbar__modes { display: inline-flex; gap: var(--space-1); }
+.seedbar__mode[aria-pressed='true'] { outline: 2px solid currentColor; outline-offset: -2px; }
+
+/*
+ * Defender Mode v0, bible Rev 24, D99 and D102. The fifth button is the battle
+ * button in its own row under the 2x2 grid; the badge marks sit beside a name;
+ * the opponent's revealed action sits on its panel beside the eye.
+ */
+.moves .move[data-badge-move='true'] { grid-column: 1 / -1; }
+.move__badge { display: inline-flex; align-items: center; gap: var(--space-h); margin-left: var(--space-1); }
+.move__crit { font-variant-numeric: tabular-nums; font-size: var(--fs-sm); }
+.panel__intent { display: flex; align-items: center; gap: var(--space-1); }
+.panel__intent:empty { display: none; }
+.stat__stage--badge { display: inline-flex; align-items: center; }
+
+/* ---------- gym type select (Defender Mode v0, bible Rev 24, D100) ---------- */
+
+/* The locale card's grammar, with a type chip and the badge's mark for a face. */
+.screen--gym-select { align-items: flex-start; }
+
+.gym-types {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: calc(var(--space-3) * var(--chrome-gap));
+  width: 100%;
+}
+
+.gym-type {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 88px;
+  padding: calc(var(--space-4) * var(--chrome-pad)) calc(var(--space-3h) * var(--chrome-pad));
+  background: var(--bg-raised);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-card);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* No transition of its own: the duration count is a gate, and the locale
+   card's is grandfathered (`test/visual-tokens.test.ts`). */
+.gym-type:hover { border-color: var(--emphasis); }
+.gym-type:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
+.gym-type__chips { display: flex; align-items: center; gap: var(--space-2); }
+.gym-type__badge { display: inline-flex; color: var(--text); }
+
+/* ---------- defender reward faces (bible Rev 24, D101) ---------- */
+
+/* A trade: two sprites in fixed slots, offered on the left, asked on the right. */
+.reward--trade { flex-direction: row; justify-content: space-around; align-items: flex-end; }
+.reward__trade-side { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); min-width: 0; }
+.reward__trade-side .sprite { width: 64px; height: 64px; image-rendering: pixelated; }
+.reward__trade-name { font-size: var(--fs-md); font-weight: 600; }
+.reward__trade-side:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
+
+/* ---------- Bag consumables (bible Rev 24, D101) ---------- */
+.consumables__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.consumables .backpack__pick:disabled { opacity: 0.55; cursor: not-allowed; }
+.held__item[data-refused='true'] .held__pick { opacity: 0.55; cursor: not-allowed; }
+.held__refusal { grid-column: 1 / -1; color: var(--text-dim); font-size: var(--fs-sm); }
+
+/* The defender boss's pre-gym title: the gym mark, its team size, then the level (D100). */
+.pre-gym__size { margin-left: var(--space-1); font-variant-numeric: tabular-nums; }
