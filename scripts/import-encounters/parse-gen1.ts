@@ -71,7 +71,7 @@ export function parseGen1(repo: 'pokered' | 'pokeyellow', game: GameId): RawEnco
       name: nameFor(current.label, current.className),
       place,
       party,
-      cite: `pret/${repo} ${partiesFile} ${current.label}Data`,
+      cite: `${current.label}Data`,
     });
   }
   return out;

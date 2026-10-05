@@ -72,6 +72,22 @@ export interface EncounterRecord {
   party: readonly PartyMember[];
   /** True when the game fought this as a double battle. A fact, not a filter. */
   double?: boolean;
-  /** Where this row came from: repository, revision, file and label, or a page URL. */
+  /**
+   * The label this row was read from inside its game's source: a data label
+   * (`BrockData`), a trainer constant (`TRAINER_ROXANNE_1`), a file name
+   * (`leader_roark.json`), an array index (`trainers[12]`), or for a curated
+   * game a page URL. The repository, path and revision are the game file's
+   * `EncounterSource`, once per file rather than once per row.
+   */
   cite: string;
+}
+
+/** Where one game's table was read from. The revision is pinned, so the citation is exact. */
+export interface EncounterSource {
+  /** `pret/pokered`, or for a curated game the site the rows cite. */
+  repo: string;
+  /** The commit the files were read at, or the date the pages were read. */
+  sha: string;
+  /** The files inside the repository that the rows cite, repository-relative. */
+  files: readonly string[];
 }

@@ -1,10 +1,16 @@
 /**
  * Turn parsed rows into `EncounterRecord`s and write one table per game.
+ *
+ * The citation is split in two on purpose: the row carries only the label it
+ * was read from, and the file carries the repository, paths and revision once
+ * as `<GAME>_SOURCE`. Five thousand rows each repeating the same eighty bytes
+ * of provenance would be the largest thing in the bundle.
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { EncounterRecord, GameId } from '../../src/data/encounters/types';
+import type { EncounterRecord, EncounterSource, GameId } from '../../src/data/encounters/types';
+import type { SourcePin } from './fetch';
 import type { RawEncounter } from './model';
 import { GAME_GEN, GAME_LABEL } from './model';
 import { slug } from './names';
@@ -14,7 +20,7 @@ import { spriteFor } from './sprites';
 const OUT = new URL('../../src/data/encounters/', import.meta.url).pathname;
 
 /** Assign ids, roles, places and sprites. Ids number repeats of one name within one game in source order. */
-export function toRecords(rows: RawEncounter[], sha: string): EncounterRecord[] {
+export function toRecords(rows: RawEncounter[]): EncounterRecord[] {
   const counters = new Map<string, number>();
   return rows.map((row) => {
     const role = roleOf(row);
@@ -29,7 +35,7 @@ export function toRecords(rows: RawEncounter[], sha: string): EncounterRecord[] 
       role,
       place: placeOf(row, role),
       party: row.party,
-      cite: `${row.cite} @ ${sha.slice(0, 7)}`,
+      cite: row.cite,
     };
     const gymType = gymTypeOf(row, role);
     if (gymType) record.gymType = gymType;
@@ -63,19 +69,27 @@ function literal(record: EncounterRecord): string {
   return `  { ${fields.join(', ')} },`;
 }
 
-export function emitGame(game: GameId, records: EncounterRecord[], repo: string, sha: string): void {
+export function emitGame(game: GameId, records: EncounterRecord[], repo: string, pin: SourcePin): void {
   const constName = game.toUpperCase();
+  const source: EncounterSource = { repo: `pret/${repo}`, sha: pin.sha, files: pin.paths };
   const body = records.map(literal).join('\n');
   const text = `/**
  * GENERATED FILE — do not hand-edit. Produced by \`npm run gen:encounters\`
- * from pret/${repo} at ${sha}. Fix the importer or the pin, then regenerate.
+ * from ${source.repo} at ${source.sha}. Fix the importer or the pin, then regenerate.
  *
- * ${GAME_LABEL[game]}: ${records.length} encounters.
+ * ${GAME_LABEL[game]}: ${records.length} encounters. A row's \`cite\` is its label
+ * inside the files named below.
  *
  * Regenerating is a draw-composition change for every node that draws from
  * this table: bump RANDOMIZER_VERSION in src/core/randomizer.ts.
  */
-import type { EncounterRecord } from './types';
+import type { EncounterRecord, EncounterSource } from './types';
+
+export const ${constName}_SOURCE: EncounterSource = {
+  repo: '${source.repo}',
+  sha: '${source.sha}',
+  files: [${source.files.map((file) => `'${file}'`).join(', ')}],
+};
 
 export const ${constName}_ENCOUNTERS: readonly EncounterRecord[] = [
 ${body}

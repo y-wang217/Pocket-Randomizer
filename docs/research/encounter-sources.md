@@ -225,9 +225,15 @@ One `EncounterRecord` per fight
 ([`../../src/data/encounters/types.ts`](../../src/data/encounters/types.ts)):
 id, game, generation, trainer (name, class, verified sprite id), role, place,
 gym type where it is a gym, the party in canonical order with the ace last,
-and a citation naming the repository, file, label and revision. One generated
-table per game, so a curation fix moves one file and `contentHash` moves
-honestly. A query layer filters on structural inputs only (segment, node
+and a citation: the row carries the label it was read from, and the game's
+file carries the repository, paths and pinned revision once as its
+`EncounterSource`. One generated table per game
+([`../../src/data/encounters/`](../../src/data/encounters/), checkpoint 2),
+so a curation fix moves one file and `contentHash` moves honestly;
+[`index.ts`](../../src/data/encounters/index.ts) is the sum in id order.
+The nine tables are 1.7 MB of source; what that costs the bundle is measured
+when `core/` first imports them, with a compact party encoding as the
+fallback. A query layer filters on structural inputs only (segment, node
 kind, gym type), never on anything the player did, and a node spends exactly
 one draw under its own new key (`encounterKey(nodeId)`) to pick from the
 candidate list. The design is in the stage plan and will be recorded in

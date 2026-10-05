@@ -7966,7 +7966,7 @@ instruction in its header.
 
 The practical harm was nil: `contentHash` moved, so no recorded seed replayed
 silently, and the guard fired on the other axis. It is recorded rather than
-retro-bumped. The wording in `types.ts` is what misled and is worth reconciling
+retro-bumped. The wording in `core/types.ts` is what misled and is worth reconciling
 to `CLAUDE.md`'s — the axis is *did which value a draw resolves to change*, and
 "code" is where that usually happens rather than what it means.
 

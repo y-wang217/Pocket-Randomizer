@@ -161,11 +161,10 @@ async function main(): Promise<void> {
   for (const entry of IMPORTS) {
     const pin = sources[entry.repo];
     if (!pin) throw new Error(`${entry.repo} is not pinned in sources.json`);
-    const sha = pin.sha;
-    const records = toRecords(entry.parse(), sha);
+    const records = toRecords(entry.parse());
     all.push(stats(entry.game, records));
     everything.push(...records);
-    if (!args.has('--report')) emitGame(entry.game, records, entry.repo, sha);
+    if (!args.has('--report')) emitGame(entry.game, records, entry.repo, pin);
   }
   const ids = new Set<string>();
   for (const r of everything) {

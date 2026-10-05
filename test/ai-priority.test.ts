@@ -460,8 +460,16 @@ describe('the version axes', () => {
      * And from `bd20d7` for the species-locked pool patch: twenty-four rows
      * out of `data/abilities.ts` and three out of `data/movePools.ts`, with
      * `gymrun-randomizer-25` beside it. `docs/generation.md` section 102.
+     *
+     * And from `1ba856` for Stage 6.0's encounter library, checkpoints 1 and
+     * 2: the record type and nine generated tables under `data/encounters/`,
+     * hashed because they are data. **No randomizer axis moves beside it**,
+     * for once: nothing under `core/` reads the tables yet, so every seed
+     * still draws what it drew. The hash moving ahead of the draws is the
+     * honest order; a seed string minted now already names the library its
+     * next release will draw from. `docs/spec/gymrun-stage6.0-encounter-library.md`.
      */
-    expect(CONTENT_HASH).toBe('1ba85628b9d9f0be536aa8f964d0ae18a198b7dc5955ae4812ec856383c1112d');
+    expect(CONTENT_HASH).toBe('39088c78d7d38d547ed5e9633f2ee8cb627be2a44d27d3bed0f20b30cc65fe8a');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

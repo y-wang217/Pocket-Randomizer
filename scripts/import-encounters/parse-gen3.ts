@@ -119,7 +119,7 @@ export function parseGen3(repo: keyof typeof FILES, game: GameId): RawEncounter[
       party: party.map((member) => ({ ...member })),
       double: double || undefined,
       female: female || undefined,
-      cite: `pret/${repo} ${files.trainers} ${trainerId}`,
+      cite: trainerId,
     });
   }
   return out;

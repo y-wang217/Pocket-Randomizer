@@ -66,7 +66,7 @@ export function parsePlatinum(): RawEncounter[] {
       party: json.party.map(member),
       double: json.double_battle ? true : undefined,
       female: /_FEMALE$/.test(classKey) || undefined,
-      cite: `pret/pokeplatinum res/trainers/data/${file}`,
+      cite: file,
     });
   }
   return out;
@@ -118,7 +118,7 @@ export function parseHgss(): RawEncounter[] {
       party: trainer.party.map(member),
       double: trainer.double ? true : undefined,
       female: /_F$/.test(classKey) || undefined,
-      cite: `pret/pokeheartgold ${file} trainers[${index}]`,
+      cite: `trainers[${index}]`,
     });
   });
   return out;

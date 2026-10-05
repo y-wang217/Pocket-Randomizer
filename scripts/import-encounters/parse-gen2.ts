@@ -49,7 +49,7 @@ export function parseGen2(repo: 'pokegold' | 'pokecrystal', game: GameId): RawEn
           classKey: group.label.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase(),
           name: nameFor(group.label, trainer.name, group.className),
           party,
-          cite: `pret/${repo} ${partiesFile} ${group.label}Group "${trainer.name}"`,
+          cite: `${group.label}Group "${trainer.name}"`,
         });
       }
       trainer = null;
