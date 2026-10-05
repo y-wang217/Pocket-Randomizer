@@ -4339,6 +4339,15 @@ body {
 }
 
 .summary__node-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The record's place and game under the opponent (D100): muted, one line, clipped before it wraps. */
+.summary__node-cite {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
 
 /* Which segment a node belonged to. A forty-node list without this reads as
    one undifferentiated run rather than eight. */
@@ -7852,6 +7861,18 @@ button,
 }
 /* A trainer sprite that did not load keeps its box as a placeholder. */
 .map-graph__player .sprite--trainer[data-missing] { visibility: hidden; }
+/* The opponent's trainer sprite on the battle header (D100): 16 on the text
+   line, the node glyph's size; a missing file collapses rather than gapping. */
+.battle__detail-text .sprite--opponent {
+  width: 16px;
+  height: 16px;
+  margin-right: var(--space-1);
+  vertical-align: text-bottom;
+  object-fit: cover;
+  object-position: 50% 0;
+  image-rendering: pixelated;
+}
+.battle__detail-text .sprite--opponent[data-missing] { display: none; }
 .map-graph__player:has(.sprite--trainer[data-missing]) {
   border-radius: 50%;
   background: var(--selected);

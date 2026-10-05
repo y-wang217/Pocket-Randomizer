@@ -32,27 +32,7 @@ export interface RawEncounter {
   cite: string;
 }
 
-export const GAME_LABEL: Record<GameId, string> = {
-  rby: 'Red and Blue',
-  yellow: 'Yellow',
-  gs: 'Gold and Silver',
-  crystal: 'Crystal',
-  rs: 'Ruby and Sapphire',
-  emerald: 'Emerald',
-  frlg: 'FireRed and LeafGreen',
-  platinum: 'Platinum',
-  hgss: 'HeartGold and SoulSilver',
-  bw: 'Black and White',
-  b2w2: 'Black 2 and White 2',
-  xy: 'X and Y',
-  oras: 'Omega Ruby and Alpha Sapphire',
-  sm: 'Sun and Moon',
-  usum: 'Ultra Sun and Ultra Moon',
-  lgpe: "Let's Go, Pikachu! and Let's Go, Eevee!",
-  swsh: 'Sword and Shield',
-  bdsp: 'Brilliant Diamond and Shining Pearl',
-  sv: 'Scarlet and Violet',
-};
+export { GAME_LABEL } from '../../src/data/encounters/types';
 
 export const GAME_GEN: Record<GameId, 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9> = {
   rby: 1,

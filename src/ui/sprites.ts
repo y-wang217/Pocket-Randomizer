@@ -114,6 +114,32 @@ export function spriteFigure(species: string, options: FigureOptions = {}): HTML
  */
 export const PLAYER_TRAINER = 'lucas';
 
+/**
+ * The opponent's trainer sprite on the battle header. **Stage 6.0, D100.**
+ *
+ * The one surface besides the player marker that wears a trainer sprite,
+ * amended into D61 by D100: the id is the library record's, verified against
+ * the CDN listing at import, in the game's own era (`brock-gen1rb`). Same
+ * host and path as the marker, through `getAvatar`; 16 pixels, the size the
+ * node glyph renders at in the same row (D46). Decorative, since the words
+ * beside it name the opponent. A missing file collapses to nothing rather
+ * than keeping a box: the header is a text row and a blank would read as a
+ * gap in it.
+ */
+export function opponentImg(spriteId: string): HTMLImageElement {
+  const img = el('img', 'sprite sprite--opponent');
+  img.src = (sprites as unknown as { getAvatar(avatar: string): string }).getAvatar(spriteId);
+  img.alt = '';
+  img.setAttribute('aria-hidden', 'true');
+  img.width = 16;
+  img.height = 16;
+  img.decoding = 'async';
+  img.addEventListener('error', () => {
+    img.dataset['missing'] = 'true';
+  });
+  return img;
+}
+
 export function trainerImg(avatar: string = PLAYER_TRAINER): HTMLImageElement {
   const img = el('img', 'sprite sprite--trainer');
   /*

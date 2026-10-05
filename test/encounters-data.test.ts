@@ -14,7 +14,7 @@ import { Dex } from '@pkmn/sim';
 import { describe, expect, it } from 'vitest';
 
 import { BLACKLISTED_SPECIES } from '../src/data/blacklists';
-import { ENCOUNTERS, ENCOUNTER_TABLES, encounterById } from '../src/data/encounters';
+import { ENCOUNTERS, ENCOUNTER_TABLES, decodeParty, encodeParty, encounterById } from '../src/data/encounters';
 import type { GameId } from '../src/data/encounters/types';
 import { GYMS } from '../src/data/gyms';
 import { SPECIES_POOL } from '../src/data/speciesPools';
@@ -25,6 +25,7 @@ const root = new URL('..', import.meta.url).pathname;
 const pins = JSON.parse(readFileSync(`${root}scripts/import-encounters/sources.json`, 'utf8')) as {
   repos: Record<string, { sha: string; paths: string[] }>;
   pokemondb: { fetchedAt: string; pages: Record<string, string> };
+  serebii: { fetchedAt: string; pages: Record<string, string> };
 };
 const spriteList = new Set(
   (JSON.parse(readFileSync(`${root}scripts/import-encounters/sprites.json`, 'utf8')) as { ids: string[] }).ids,
@@ -53,7 +54,7 @@ const EXPECTED_COUNTS: Record<string, number> = {
   sm: 23,
   usum: 31,
   lgpe: 31,
-  swsh: 20,
+  swsh: 32,
   bdsp: 38,
   sv: 36,
 };
@@ -93,9 +94,19 @@ describe('the encounter library', () => {
 
   it('cites a pinned revision or date per game, and a label per row', () => {
     for (const [game, table] of Object.entries(ENCOUNTER_TABLES)) {
-      if (table.source.repo === 'pokemondb.net') {
+      if (table.source.repo.startsWith('pokemondb.net')) {
+        // One page from pokemondb, and for Sword and Shield the Champion Cup
+        // page from Serebii after it, both fetched on the pinned date.
         expect(table.source.sha, `${game} fetch date`).toBe(pins.pokemondb.fetchedAt);
-        expect([...table.source.files]).toEqual([pins.pokemondb.pages[game]]);
+        const serebii = pins.serebii.pages[game];
+        if (serebii) {
+          expect(pins.serebii.fetchedAt, `${game} serebii fetch date`).toBe(table.source.sha);
+          expect(table.source.repo).toBe('pokemondb.net, serebii.net');
+          expect([...table.source.files]).toEqual([pins.pokemondb.pages[game], serebii]);
+        } else {
+          expect(table.source.repo).toBe('pokemondb.net');
+          expect([...table.source.files]).toEqual([pins.pokemondb.pages[game]]);
+        }
       } else {
         const repo = table.source.repo.replace(/^pret\//, '');
         const pin = pins.repos[repo];
@@ -105,6 +116,32 @@ describe('the encounter library', () => {
       }
       for (const record of table.records) expect(record.cite.length, record.id).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('the party encoding', () => {
+  it('decodes every row the files carry, and reads Brock as the game shipped him', () => {
+    // `index.ts` already decoded every row at load, so reaching here is the
+    // proof the grammar is total over the files; the round trip is the rest.
+    for (const record of ENCOUNTERS) {
+      expect(decodeParty(encodeParty(record.party), record.id)).toEqual(record.party.map((m) => ({ ...m })));
+    }
+    expect(encounterById('rby/brock-1')!.party).toEqual([
+      { species: 'geodude', level: 12 },
+      { species: 'onix', level: 14 },
+    ]);
+    const withMoves = ENCOUNTERS.find((r) => r.party.some((m) => m.moves && m.item));
+    expect(withMoves, 'a record with set moves and an item').toBeDefined();
+    const member = withMoves!.party.find((m) => m.moves && m.item)!;
+    expect(encodeParty([member])).toBe(`${member.species}:${member.level}@${member.item}>${member.moves!.join(',')}`);
+  });
+
+  it('refuses a cell outside the grammar', () => {
+    expect(() => decodeParty('')).toThrow(/empty party/);
+    expect(() => decodeParty('geodude', 'x')).toThrow(/malformed/);
+    expect(() => decodeParty('geodude:12|', 'x')).toThrow(/malformed/);
+    expect(() => decodeParty('Geodude:12', 'x')).toThrow(/malformed/);
+    expect(decodeParty('onix:14#M')).toEqual([{ species: 'onix', level: 14, gender: 'M' }]);
   });
 });
 

@@ -50,6 +50,8 @@ import { moveCardData } from '../move-detail';
 import type { Tuning } from '../../data/tuning';
 import { itemIcon, slotNumber } from '../slots';
 import { spriteFigure } from '../sprites';
+import { GAME_LABEL } from '../../data/encounters/types';
+import type { GameId } from '../../data/encounters/types';
 import { archetypeChip } from '../archetype-chip';
 
 export interface Summary {
@@ -506,6 +508,19 @@ function renderVisit(visit: RunState['history'][number], state: RunState): HTMLE
 
   const label = el('span', 'summary__node-label');
   label.textContent = visit.node.encounter?.opponent ?? visit.node.label;
+  /*
+   * Where the opponent came from. **Stage 6.0, D100.** The place and the
+   * game the record was read from, under the opponent, on a trainer or gym
+   * visit; the one place the library is cited to the player, and the run is
+   * over, so nothing here is a forecast. A wild visit has no record and no
+   * line.
+   */
+  const source = visit.node.encounter?.source ?? null;
+  if (source) {
+    const cite = el('span', 'summary__node-cite');
+    cite.textContent = `${source.place} · ${GAME_LABEL[source.game as GameId] ?? source.game}`;
+    label.append(cite);
+  }
 
   const outcome = el('span', 'summary__node-outcome');
   if (visit.result) {

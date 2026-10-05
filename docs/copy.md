@@ -1156,16 +1156,16 @@ Found by grep, not by import: a string assigned straight to `textContent`, `titl
 | `src/ui/screens/move-replace.ts` line 67 | Learning |  |
 | `src/ui/screens/pre-gym.ts` line 162 | Items |  |
 | `src/ui/screens/event.ts` line 285 | Carry on |  |
-| `src/ui/screens/summary.ts` line 87 | Rematch this seed |  |
-| `src/ui/screens/summary.ts` line 91 | Copy seed |  |
-| `src/ui/screens/summary.ts` line 95 | Copy result |  |
-| `src/ui/screens/summary.ts` line 99 | New seed |  |
-| `src/ui/screens/summary.ts` line 116 | Score |  |
-| `src/ui/screens/summary.ts` line 139 | Fell in battle |  |
-| `src/ui/screens/summary.ts` line 143 | Final party |  |
-| `src/ui/screens/summary.ts` line 146 | Coverage |  |
-| `src/ui/screens/summary.ts` line 149 | The run |  |
-| `src/ui/screens/summary.ts` line 188 | Copy seed |  |
-| `src/ui/screens/summary.ts` line 219 | Copy result |  |
+| `src/ui/screens/summary.ts` line 89 | Rematch this seed |  |
+| `src/ui/screens/summary.ts` line 93 | Copy seed |  |
+| `src/ui/screens/summary.ts` line 97 | Copy result |  |
+| `src/ui/screens/summary.ts` line 101 | New seed |  |
+| `src/ui/screens/summary.ts` line 118 | Score |  |
+| `src/ui/screens/summary.ts` line 141 | Fell in battle |  |
+| `src/ui/screens/summary.ts` line 145 | Final party |  |
+| `src/ui/screens/summary.ts` line 148 | Coverage |  |
+| `src/ui/screens/summary.ts` line 151 | The run |  |
+| `src/ui/screens/summary.ts` line 190 | Copy seed |  |
+| `src/ui/screens/summary.ts` line 221 | Copy result |  |
 | `src/ui/screens/starter-select.ts` line 56 | Choose your starter |  |
 

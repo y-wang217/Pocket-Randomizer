@@ -475,8 +475,14 @@ describe('the version axes', () => {
      * names and `data/encounters/library.ts` arrives, and this time
      * `gymrun-randomizer-26` moves beside it, because every trainer and gym
      * node now resolves to a record. `docs/generation.md` section 103.
+     *
+     * And at checkpoint 5, from `995fae`: the tables carry each party as one
+     * string, the Champion Cup joins Sword and Shield, the captains and
+     * Bede gain their places, and `GAME_LABEL` moves under `data/`.
+     * `gymrun-randomizer-27` moves beside it for the twelve records that
+     * entered the candidate windows. `docs/generation.md` section 104.
      */
-    expect(CONTENT_HASH).toBe('995fae7cc3c3f68bd50569ef0a0a1babd916aefeac840643f9c2c727b5958b25');
+    expect(CONTENT_HASH).toBe('5b7addde47cb1d0b09270dca61f5f9ae40e5c2987f25626e5e467c6a9d32df3e');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

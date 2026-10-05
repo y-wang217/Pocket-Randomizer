@@ -96,9 +96,11 @@ describe('the run log version', () => {
      * page 2 again and moved `RUN_LOG_VERSION` beside it for the pick's
      * answer: two axes, each for its own reason, which is still the separation.
      * `-25` is the species-locked entries leaving the pools, not this file;
-     * `-26` is every trainer and gym drawn from the encounter library.
+     * `-26` is every trainer and gym drawn from the encounter library, and
+     * `-27` the library gaining the Champion Cup, which is the regenerate
+     * rule the generated tables state.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-26');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-27');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

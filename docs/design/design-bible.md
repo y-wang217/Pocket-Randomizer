@@ -1,6 +1,25 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 24, Oct 2, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 25, Oct 5, 2026.
+
+**Rev 25** carries one amendment, D100, from the author's ruling of 2026-10-05
+on Stage 6.0's player-facing half
+([`../spec/gymrun-stage6.0-encounter-library.md`](../spec/gymrun-stage6.0-encounter-library.md)),
+option 1 as recommended. **D100**: every opponent is a named trainer from a
+named game, and the battle header is where that shows. The header's opponent
+slot reads the trainer's class and name (`Leader Brock`, `Youngster Joey`): the
+class is a word the counting rule sees inside the header's budget of 3, the
+name a proper noun and free. The trainer sprite rides beside it at 16, the
+size the node glyph already renders at there (D46), which amends D61 for the
+battle header alone: trainer sprites remain the player marker everywhere
+else, and the gym node still wears the badge mark. The citation is the
+summary's: each visit's opponent carries the game and the place its record
+came from, where the run is over and nothing is a forecast. The map node card
+stays a kind. Section 3's node kind row, section 4's header and summary rows
+and section 5's header row say the same, and section 5 gains a *Summary
+visit* row. C1 holds: a name, a class, a game and a place are attributes of
+the opponent, and none of them ranks anything. Recorded in
+[`playtest-log.md`](playtest-log.md) as the author's directive.
 
 **Rev 24** carries one amendment, D99, from the author's ruling of 2026-10-02
 on the berry gym reward brief
@@ -176,7 +195,7 @@ is on the mark's long press. Only the step being chosen from is a decision,
 which is the reading that keeps C2 whole. Section 9 carries the bet.
 **D72**: section 5's *Locale card* row trades the palette swatch for a crop of
 the locale's map backdrop; the gym stays in the rail, once. **D61, D64,
-D75**: no change. Class C art for the node and capability families enters
+D75**: no change (D61 amended for the battle header alone by D100, Rev 25). Class C art for the node and capability families enters
 through `glyphNode`, so section 5's *Exposure label* row holds; the capability
 chevron keeps its three states; a node's place on the graph is its option
 index against the backdrop's slot grid, with no hash, so CLAUDE.md's
@@ -549,7 +568,7 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Field state (weather, terrain) | Field glyph at 16 on the battle screen header; the battle backdrop's wash and terrain tint behind the stage. Turns remaining are never shown (2026-09-25, D47; 2026-09-30, D60) | None: the locale's own backdrop, no glyph | Name and effect line, from `fieldCopy`; under suppression, which ability holds it off |
 | Coin amount (payout, price, wallet, coins card) | Currency glyph beside the bare number (2026-09-30, D54) | Never hidden | The word *coins*, and what the amount buys or pays |
 | Shop shelf (map node) | How many items, as a bare number, and the cheapest price as a coin amount (2026-09-30, D77) | Never hidden on the step being chosen from | The shelf line: how many are on the shelf, and from what price |
-| Node kind (map node, battle header) | Kind glyph. A gym's leader name beside it, a proper noun, is the identity and not the kind (2026-09-25, D46) | Never hidden | The kind's hint, from `KIND_HINTS` |
+| Node kind (map node, battle header) | Kind glyph. A gym's leader name beside it, a proper noun, is the identity and not the kind (2026-09-25, D46). On the battle header the opponent is the trainer's class and name with the trainer sprite at 16 before it, the one surface a trainer sprite marks an opponent (2026-10-05, D100) | Never hidden | The kind's hint, from `KIND_HINTS` |
 | Archetype | Not rendered where the stat block already draws the six numbers (4.8.0.3; bars until D82) | Absent | Not on inspect either; it is a derived label and can lie under randomization |
 
 Disappears from every default view: field labels, type names, category words, accuracy at 100, priority at 0, item names, the coverage sentence, the battle log.
@@ -572,7 +591,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Party row and party drawer | 0 plus the ability name | Species name, nickname, ability name (2026-09-21, D19) |
 | Pokemon battle panel | 0 plus the ability name | Name, nickname, ability name (2026-09-21, D19). The player's side carries the stat block, glyphs and numbers (2026-10-01, D83) |
 | Flag strip (battle) | 1 flag per hit, plus 1 non-hit kind per side | The one flag R9 allows, and the second channel (2026-09-21, D23 and D24) |
-| Battle screen header | 3 | Opponent, AI tier, and section 6's turn header, `Turn` and its number (2026-09-30, D58); the kind is the node glyph (2026-09-25, D46; was 4 under D28, 2026-09-21). The field glyph is a glyph and costs nothing (2026-09-25, D47) |
+| Battle screen header | 3 | Opponent, AI tier, and section 6's turn header, `Turn` and its number (2026-09-30, D58); the kind is the node glyph (2026-09-25, D46; was 4 under D28, 2026-09-21). The field glyph is a glyph and costs nothing (2026-09-25, D47). The opponent is the trainer's class and name, `Leader Brock`, `Youngster Joey`: the class is the counted word, the name a proper noun; a gym's header carries the name once, in the title, so its detail line reads the class alone. The trainer sprite is a sprite and costs nothing (2026-10-05, D100) |
 | Backdrop behind the stage | 0 | None. The field state is a wash and a tint, never a word (2026-09-25, D47; the backdrop, not the world, 2026-09-30, D60) |
 | Result screen | 6 | Outcome word, "+N", continue |
 | Capture card | 0 | Follows the recipient card |
@@ -589,7 +608,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Shop stock card | 8 | **None** — one component with the reward card since M5.1, plus a bare price number (2026-09-22, D29 and D36) |
 | Shell nav | 5 | Map, Team, Bag, Run Info, Settings. One word per tab; the icons are controls, not glyphs (2026-09-30, D54) |
 | Run Info screen and desktop sidebar | Unbudgeted | Read-only readouts, like the archive: the decision feed (R11's carve-out) and the run's position. Never a decision surface (2026-09-30, D53 and D55) |
-| Summary and graveyard | Unbudgeted | Archive surfaces; complete outcome in the first screenful |
+| Summary and graveyard | Unbudgeted | Archive surfaces; complete outcome in the first screenful. Each visit's opponent carries the game and the place its record came from, the one place the library is cited to the player (2026-10-05, D100) |
 
 The event screen is the only decision surface where prose is load-bearing. Everything else reaches zero sentences.
 
@@ -697,7 +716,8 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Type chip | Glyph in colour | Everywhere a type appears |
 | Inspect layer | The full explanation of whatever was long-pressed | One mechanism, mounted at the shell |
 | Flag strip | One flag per hit by R9's precedence, plus one non-hit kind per side (2026-09-21, D23) | Battle |
-| Battle screen header | Node glyph at 16, opponent, AI tier, field glyph at 16 in a fixed slot after the tier, and the turn header at the row's end (2026-09-25, D46 and D47; the kind was a word under D28, 2026-09-21; the turn, 2026-09-30, D58) | Battle |
+| Battle screen header | Node glyph at 16, opponent, AI tier, field glyph at 16 in a fixed slot after the tier, and the turn header at the row's end (2026-09-25, D46 and D47; the kind was a word under D28, 2026-09-21; the turn, 2026-09-30, D58). The opponent is the trainer's class and name, with the trainer sprite at 16 before it from the Showdown trainer sheet in the record's own era, and nothing where the record has none (2026-10-05, D100) | Battle |
+| Summary visit | The node's label and outcome as before, and under a trainer or gym visit's opponent one muted line, the place and the game the record came from, `Pewter City Gym · Red and Blue`. A wild visit carries no line (2026-10-05, D100) | Summary |
 | World | The locale's three layers and drift, behind the game frame (2026-09-25, D47; the field state moved to the scene backdrop, 2026-09-30, D60). Before the first region, on the starter screen and the region picker, the opening painting from the asset manifest in their place, and nothing else (2026-10-01, D87) | Every screen, mounted once by `app.ts`, outside the frame |
 | Scene backdrop | The game screen's painted scene inside the frame, from the asset manifest: the locale's battle backdrop, or the gym's, behind the battle stage; the locale's map backdrop behind the map. During a battle, the field state as a weather wash and a terrain tint over it, global tokens mixed into the backdrop's own. A missing file is the manifest's placeholder at the correct size (2026-09-30, D60) | The battle stage and the map, inside the frame. Never outside it: that is the World's |
 | Reward card | The item or berry sprite in a fixed slot, a relic's icon and the capability glyph it satisfies (2026-09-30, D65 and D66), the boosted type chip, the move card on a move kind, with no TM disc (D67 and D71), `+N` beside the currency glyph on coins and `+N%` beside a bar on a restore (D66), the shop's price beside the currency glyph (2026-09-22, D29 and D36), and on the gym's "pick a berry" card a fan of three berry sprites in the item slot, the first three of its table, never a resist berry (2026-10-02, D99). Three across where they fit, stacked where they do not. **The berry pick opens in the cards' place on the result screen**: one item card per berry, five across, the same component and the same claim band, with a cancel that returns to the berries and never past them (D99). **Selected only after a tap**: no card carries the selected state before the player puts it there, and the claim is the Confirm band's commit (2026-09-30, D69) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |

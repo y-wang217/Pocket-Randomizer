@@ -34,6 +34,7 @@ import { applyField } from '../theme/field';
 import { currentLocale } from '../theme/locale';
 import { applyBackdrop } from '../assets/manifest';
 import { LOCALE_IDS, type LocaleId } from '../../data/locales';
+import { opponentImg } from '../sprites';
 
 /**
  * The one lookup the flag reader cannot have, supplied by the adapter.
@@ -203,12 +204,21 @@ export function createBattleScreen(): BattleScreen {
        * it does not rate the fight.
        */
       const tier = segment === undefined || !node.encounter ? null : aiTierFor(node.kind, node.tier, segment);
-      detailText.textContent = [
-        node.encounter?.opponent ?? '',
-        ...(tier ? [AI_TIER_LABEL[tier]] : []),
-      ]
+      /*
+       * Who the opponent is. **Stage 6.0, D100.** The record's class and
+       * name (`Youngster Joey`), which `core/` already wrote into `opponent`.
+       * A gym's title carries the name beside the badge, so its detail line
+       * reads the class alone (`Leader · Ace`): one fact, one channel (R3).
+       * The trainer sprite sits before the words at 16, where the record has
+       * one; nothing where it does not.
+       */
+      const source = node.encounter?.source ?? null;
+      const opponent =
+        node.kind === 'gym' && source ? source.class : (node.encounter?.opponent ?? '');
+      const words = [opponent, ...(tier ? [AI_TIER_LABEL[tier]] : [])]
         .filter((part) => part.length > 0)
         .join(' · ');
+      detailText.replaceChildren(...(source?.sprite ? [opponentImg(source.sprite)] : []), document.createTextNode(words));
       field.replaceChildren();
       /*
        * The scene backdrop. **Stage 5.0/2, D60.** The gym's at a gym, the

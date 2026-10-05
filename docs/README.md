@@ -436,11 +436,17 @@ to pick among the records nearest its segment's cap (a gym among leaders of
 its type), fits the record to the curve and the slot count, and rolls the
 rest exactly as before. The eight fictional gym leaders retire; the Rock gym
 is Brock, Roxanne or Roark this seed. `RANDOMIZER_VERSION` to `-26`,
-`contentHash` to `995fae`; `RUN_LOG_VERSION` and `AI_VERSION` hold. **Headless
-by ruling**: the opponent's name, sprite and citation reach the screens only
-once the bible rules on D100, filed in
-[`design/bible-discrepancies.md`](design/bible-discrepancies.md); the gym's
-name already shows wherever the fictional one did.
+`contentHash` to `995fae`; `RUN_LOG_VERSION` and `AI_VERSION` hold. **Checkpoint
+5 built the player-facing half** on the author's ruling of D100 (option 1,
+bible **Rev 25**): the battle header reads the opponent's class and name
+(`Leader Brock`, `Youngster Joey`) with the record's trainer sprite at 16
+beside it, the summary cites the place and the game under every trainer and
+gym visit, and the map node card stays a kind. The same checkpoint read the
+Champion Cup from Serebii (Leon, Hop, Marnie, Bede and the finals rematches,
+twelve records; the library is 5,639) and compacted the tables to one party
+string per record, decoded at load. `RANDOMIZER_VERSION` to `-27` for the
+records that entered the candidate windows; `contentHash` to `5b7add`.
+Record [`generation.md`](generation.md) section 104.
 
 **In flight: no species-locked ability or move.** Branch
 `claude/species-locked-pool`, prompt

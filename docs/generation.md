@@ -13212,3 +13212,164 @@ thousand, and green; `npm run build` (one chunk, the warning it has always
 tripped); `npm run smoke` passed; `npm run measure` and the benchmark as
 above. The Chromium and WebKit legs and the census were not run here, as
 every section since 99 has said of this container; CI runs them.
+
+## 104. The opponent is named, the Champion Cup joins, the tables compact
+
+**2026-10-05**, Stage 6.0 checkpoint 5, on `claude/dazzling-noether-vb19k9`.
+Prompt [`spec/gymrun-stage6.0-encounter-library.md`](spec/gymrun-stage6.0-encounter-library.md),
+its *Rulings taken at checkpoint 5*; bible **Rev 25**, D100 ruled option 1
+in [`design/bible-discrepancies.md`](design/bible-discrepancies.md). Moves
+`RANDOMIZER_VERSION` to `-27` and `contentHash` from `995fae` to `5b7add`;
+`RUN_LOG_VERSION` and `AI_VERSION` hold.
+
+Section 103 stopped headless by ruling. The author answered the three
+questions it left the same day: show the opponent on the battle header and
+cite the record on the summary (D100, option 1 as recommended), build the
+compact party encoding section 103 named as the follow-up, and close the
+Champion Cup gap from Serebii. This section records all three.
+
+### The bible rules it touched (Rev 25)
+
+- **Section 3, *Node kind*; section 4, *Battle screen header*; section 5,
+  *Battle screen header*.** The header's opponent slot reads the record's
+  class and name, `Leader Brock`, `Youngster Joey`. The class is a word the
+  counting rule sees, inside the header's budget of 3; the name is a proper
+  noun. A gym's title already carries the name beside the badge (D46), so a
+  gym's detail line reads the class alone, `Leader · Ace`: one fact, one
+  channel (R3). The trainer sprite sits before the words at 16, the size the
+  node glyph renders at in the same row, and is nothing where the record has
+  none. **D61 is amended for the battle header alone**: trainer sprites stay
+  the player marker everywhere else, and the gym node still wears the badge
+  mark.
+- **Section 4, *Summary and graveyard*; section 5, a new *Summary visit*
+  row.** Under a trainer or gym visit's opponent, one muted line: the place
+  and the game the record came from, `Pewter City Gym · Red and Blue`. A wild
+  visit carries no line. The run is over, so nothing here is a forecast.
+- **The map node card is untouched.** It stays a kind, which is the ruling:
+  naming a trainer before the node is chosen would be a forecast to a player
+  who knows the roster.
+
+C1 holds throughout: a name, a class, a game and a place are attributes of
+the opponent, and none of them ranks anything. No copy string was added; the
+class, the name and the place are data, and the game's label is
+`GAME_LABEL` in `data/encounters/types.ts`, which moved there from the
+importer so the summary and the importer read one table.
+
+### What is written where
+
+- `core/encounters.ts` `describeOpponent` writes `opponent` as the record's
+  class and name for every trainer and gym node, once where a Game Boy
+  route trainer's name *is* its class (`Youngster`, `Bug Catcher`), and the
+  lead for a wild node as before. The count-and-kind reading (`Trainer
+  (2)`) survives only for a trainer with no record, which generation never
+  produces and the fixtures sometimes do. A gym's `opponent` was
+  `Brock (Rock)` and is `Leader Brock`; the type is the badge's.
+- `ui/screens/battle.ts` reads `source` off the node for the sprite and, on
+  a gym, the class alone. `ui/sprites.ts` gains `opponentImg(spriteId)`
+  beside `trainerImg`, the same CDN path through `getAvatar`, 16 by 16,
+  decorative, collapsing on a missing file rather than keeping a box. Only
+  `ui/sprites.ts` creates an `img`, as `test/sprites.test.ts` holds.
+- `ui/screens/summary.ts` `renderVisit` appends `summary__node-cite` under
+  the label when the visit's node carries a source.
+- **A Game Boy boss's class reads as the role word.** Red and Blue give each
+  boss a class that is the boss (`BROCK`, `LORELEI`), call the three rival
+  fights `RIVAL1` to `RIVAL3` with the Champion fight the third, and Ruby's
+  class table has no entry for its rival constant. `scripts/import-encounters/roles.ts`
+  `classOf` reads those as `Leader`, `Elite Four`, `Champion`, `Rival` and
+  `Pokemon Trainer`, the words the later games print, so `Leader Brock` is
+  one rule across nineteen games. Every other class is the game's own.
+- `test/opponent-identity.test.ts` (jsdom): the header's detail line for a
+  built trainer node reads `Youngster Joey · …` with the sprite first at 16
+  and the CDN id in its `src`; no sprite where the record has none; a gym's
+  detail reads `Leader · …` under a title carrying `Brock`; a trainer with
+  no record keeps `Trainer's Golem`; every trainer and gym node `createRun`
+  builds carries class and name, never the same word twice; a played run's
+  summary cites every sourced visit and no wild one.
+
+### The Champion Cup
+
+pokemondb's Sword and Shield page stops at the gym leaders, so Leon, Hop and
+Marnie were the library's one named gap. Serebii's Champion Cup page
+(`swordshield/championcup.shtml`, fetched 2026-10-05, pinned in
+`sources.json` under `serebii`) carries every Cup opponent as a `Battle:`
+heading followed by one `table.trainer` per starter variant, with a dex link
+and a `Level N` cell per member. `scripts/import-encounters/parse-serebii-cup.ts`
+reads it: a table runs to the next trainer table or the next heading, never
+to the first `</table>`, because the level cells sit after a nested items
+table; a regional form is in the image file name (`078-g.png` is Galarian
+Rapidash) rather than the alt text; `mr.rime` keeps its dot and `sirfetch'd`
+its apostrophe in the slug; Bea and Allister share one heading and are told
+apart by the type most of the table's members carry. Twelve records: Marnie,
+Hop's three (Inteleon, Rillaboom, Cinderace), Bede, Nessa, Bea, Allister and
+Raihan's finals rosters, and Leon's three (Seismitoad and Cinderace, Mr. Rime
+and Inteleon, Rhyperior and Rillaboom, each behind Aegislash, Dragapult,
+Haxorus and Charizard). Roles: Leon `champion`, Hop, Marnie and Bede
+`rival`, the four leaders `gym` with their types. Place `Wyndon Stadium`,
+cite `championcup.shtml <Name> #n`. The Sword and Shield table cites both
+pages (`repo: 'pokemondb.net, serebii.net'`, both files), and the data
+test's source check reads the second page from the pin.
+
+Two place fixes rode the same regenerate, because the summary now prints
+the place: a pokemondb head whose note is the bare type phrase (`Fairy type
+Pokémon`, Bede's) read as a place and now reads as none, so the region
+stands in; and the Alolan trial captains, whose headings carry no place,
+read their trial sites from a seven-row table in `parse-pokemondb.ts`
+(`Verdant Cavern`, `Brooklet Hill`, and so on).
+
+**The library is 5,639.** `RANDOMIZER_VERSION` moves to `-27` for it: a
+record that enters a candidate window shifts every record behind it, so the
+same draw on `encounterKey` picks a different record wherever one entered,
+which is the regenerate rule the generated tables state in their headers
+and `test/gym-held-items.test.ts`'s digest exists to demand. Same count on
+every key.
+
+### The compact encoding
+
+The generated files carry each party as one string, `EncounterRow`
+(`data/encounters/types.ts`): one member is `species:level`, then `@item` where the game set
+one, `>move,move,…` where it set moves, `#M` or `#F` where it set a gender;
+members join on `|`, ace last. `data/encounters/index.ts` decodes every row once at load
+through `decodeRow`, so nothing downstream sees a row and no draw moves.
+`emit.ts` round-trips every record through `encodeParty` and `decodeParty`
+before it writes and throws on a mismatch; the data test decodes every row
+again and pins Brock's Geodude 12, Onix 14, and refuses a cell outside the
+grammar. The nineteen files went from 1.76 MB to 1.39 MB of source.
+
+### What it measured
+
+- **The bundle.** `dist/assets/index-*.js` goes from 5,309 kB minified and
+  1,024 kB gzipped (section 103) to **5,020 kB and 1,013 kB**: 289 kB off
+  the minified file and **11 kB off the gzipped one**. The encoding does
+  what it says to the source and the minified text, and almost nothing to
+  the wire, because gzip was already folding `{ species: '`, `', level: `
+  into a few bits each; what is left on the wire is the species names, the
+  numbers and the trainer strings, which the encoding does not touch. The
+  library's gzipped cost against the `-25` baseline is therefore **+178 kB**
+  rather than +189, still above the ~150 kB line, and the follow-up section
+  103 named second stands as the one that would move it: the route trainers
+  of Gen 1 to 4 (4,839 of 5,639 records) loaded on first use, which `core/`
+  cannot do synchronously and so needs a design. Recorded, not chased.
+- **The benchmark**, 400 seeds on `RETUNE` with the table AI, in
+  [`balance.md`](balance.md) section 0: **1.86 mean gyms** against 1.87 on
+  the `-26` row, completion 2.3% to 1.5%. Gyms 1 to 6 are reached and
+  cleared by the same counts to the run (324 and 262 at gym 1, 51 and 34 at
+  gym 6): the twelve Champion Cup records sit at levels 47 to 65 and enter
+  only the windows of the last two segments, where gym 7 clears 14 of 28
+  against 17 and gym 8 clears 6 of 12 against 9 of 15. Fifteen runs' worth
+  of difference, inside the noise of a rare-event tail. The species check
+  reads Onix in 37.0% of greedy runs against 56.5%, with gym 1 unchanged;
+  the figure moved with the summary's own counting, not the Rock gym, and
+  is still over the 25% target. Recorded, not chased.
+- **The gate**, in this container on 2026-10-05, in this order: `npm run
+  gen:encounters` twice (second run a no-op diff); `npm run types` clean;
+  `npm run lint` clean; `npm run hedge` clean; the re-mints (`contentHash`
+  pin, `RANDOMIZER_VERSION` pins, the held-item digest from
+  `702a7887c22c2a2f` to `2459bb59723d1708`, `test/fixtures/sim-report.json`,
+  `docs/visual/baseline/`); `npm run test:unit` and `npm run test:trim`
+  **2,072 of 2,073** each, the one failure `test/boundaries.test.ts` asking
+  three bare file names in this section to be qualified, then green;
+  `npm run build` (one chunk, the warning it has always tripped);
+  `npm run smoke` passed; `npm run measure` and the benchmark as above;
+  `npm run copy-audit` regenerated `docs/copy.md` with only line numbers
+  moving, since no string was added. The Chromium and WebKit legs and the
+  census were not run here; CI runs them.

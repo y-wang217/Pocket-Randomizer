@@ -145,6 +145,25 @@ export function roleOf(row: RawEncounter): TrainerRole {
   return 'route';
 }
 
+/**
+ * The class a player reads beside the name (D100: `Leader Brock`, `Rival
+ * Blue`). The Game Boy games give each boss a class that *is* the boss
+ * (`BROCK`, `LORELEI`), Red and Blue call the three rival fights `RIVAL1` to
+ * `RIVAL3` and the Champion fight is the third, and Ruby's class table has
+ * no entry for its rival constant; those read as the role word the later
+ * games print. Every other class is the game's own.
+ */
+export function classOf(row: RawEncounter, role: TrainerRole): string {
+  const own = row.className === row.name;
+  if (role === 'gym' && own) return 'Leader';
+  if (role === 'elite' && own) return 'Elite Four';
+  if (role === 'champion' && (own || /^Rival\d$/.test(row.className))) return 'Champion';
+  if (role === 'rival' && /^Rival\d$/.test(row.className)) return 'Rival';
+  if (role === 'rival' && row.className === 'Pokemon Trainer 3') return 'Pokemon Trainer';
+  if (role === 'boss' && own && row.name === 'Giovanni') return 'Boss';
+  return row.className;
+}
+
 export function gymTypeOf(row: RawEncounter, role: TrainerRole): TypeName | undefined {
   if (role !== 'gym') return undefined;
   if (row.gymType) return row.gymType as TypeName;

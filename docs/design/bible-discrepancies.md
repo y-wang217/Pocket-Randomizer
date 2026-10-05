@@ -93,7 +93,7 @@ which blocks everything.
 | D75 | 5.0/4 | Node positions from a hash of the node id, against "all randomness comes from core/rng.ts" | **2026-09-30**, option 1: a slot by option index, no hash |
 | D76 | 5.0/0, 5.0/1 | 5.0 lands on top of an open Tier 7: which face M7.1 tests, and which items it redoes | **2026-09-30**, option 1: 5.0 before M7.1 |
 | D77 | 5.0/4's census, then 5.0/3 or M7.2 | The map node card's current step prints an untiered node's hint and a shop's shelf in words: 7 against a budget of 1 | **2026-09-30**, option 1: the hint to inspect, the shelf a count and a coin amount |
-| D100 | Stage 6.0's player-facing half: the opponent's name, sprite and citation | Every opponent is a named trainer from a named game, and no rule says whether the battle header, the map node card or the summary may say so; D61 refuses the sprite | **Open**, filed 2026-10-05 |
+| D100 | Stage 6.0's player-facing half: the opponent's name, sprite and citation | Every opponent is a named trainer from a named game, and no rule says whether the battle header, the map node card or the summary may say so; D61 refuses the sprite | **2026-10-05**, option 1: class and name on the battle header with the sprite at 16, the citation on the summary, the map node card a kind |
 
 ## Rulings, 2026-09-19
 
@@ -4601,11 +4601,30 @@ filed by this stage's census, was ruled option 1 the same day and built in
 
 ---
 
+## Rulings, 2026-10-05, closing Stage 6.0
+
+Stage 6.0 shipped its headless half at checkpoint 4 and put three questions
+to the author before the player-facing half, recorded in
+[`../spec/gymrun-stage6.0-encounter-library.md`](../spec/gymrun-stage6.0-encounter-library.md)
+under *Rulings taken at checkpoint 5*. The bible goes to Rev 25.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D100 | **Option 1.** The battle header's opponent slot reads the trainer's class and name with the trainer sprite at 16 beside it; the summary cites the game and the place under each visit's opponent; the map node card stays a kind. D61 is amended for the battle header alone. | Bible section 3, *Node kind*; section 4, *Battle screen header* and *Summary and graveyard*; section 5, *Battle screen header* and a new *Summary visit* row. `../generation.md` §104 |
+
+Two more items were ruled in the same answer and have no row: the compact
+party encoding is built to claw back the bundle the library added, and the
+Champion Cup is read from Serebii to close the library's Leon, Hop and Marnie
+gap.
+
+---
+
 ## D100. Every opponent is a named trainer from a named game, and no rule says where that shows
 
 **Filed 2026-10-05, by Stage 6.0 at its fourth checkpoint
 ([`../spec/gymrun-stage6.0-encounter-library.md`](../spec/gymrun-stage6.0-encounter-library.md)).
-Open. Nothing it names is built; the data is on the node and waits.**
+Ruled 2026-10-05, option 1, by the author, and built at the fifth checkpoint
+the same day. Bible Rev 25.**
 
 Stage 6.0 makes every trainer and gym node a record from a library of real
 encounters: the trainer's name and class (`Youngster Joey`, `Leader Brock`),

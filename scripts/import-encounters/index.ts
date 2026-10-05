@@ -14,7 +14,7 @@ import { DAMAGING_MOVES, STATUS_MOVES } from '../../src/data/movePools';
 import { SPECIES_POOL } from '../../src/data/speciesPools';
 import type { EncounterRecord, EncounterSource, GameId } from '../../src/data/encounters/types';
 import { emitGame, toRecords } from './emit';
-import { fetchAll, fetchPokemondb, loadPokemondb, loadSources } from './fetch';
+import { fetchAll, fetchPokemondb, fetchSerebii, loadPokemondb, loadSerebii, loadSources } from './fetch';
 import type { RawEncounter } from './model';
 import { GAME_LABEL } from './model';
 import { unresolvedItems } from './names';
@@ -23,6 +23,7 @@ import { parseGen2 } from './parse-gen2';
 import { parseGen3 } from './parse-gen3';
 import { parseHgss, parsePlatinum } from './parse-gen4';
 import { parsePokemondb, unplacedNames } from './parse-pokemondb';
+import { parseSerebiiCup } from './parse-serebii-cup';
 import { refreshSpriteList } from './sprites';
 
 const POKEMONDB_GAMES: GameId[] = ['bw', 'b2w2', 'xy', 'oras', 'sm', 'usum', 'lgpe', 'swsh', 'bdsp', 'sv'];
@@ -37,7 +38,8 @@ const IMPORTS: { game: GameId; repo: string; parse: () => RawEncounter[] }[] = [
   { game: 'frlg', repo: 'pokefirered', parse: () => parseGen3('pokefirered', 'frlg') },
   { game: 'platinum', repo: 'pokeplatinum', parse: parsePlatinum },
   { game: 'hgss', repo: 'pokeheartgold', parse: parseHgss },
-  ...POKEMONDB_GAMES.map((game) => ({ game, repo: 'pokemondb', parse: () => parsePokemondb(game) })),
+  // Sword and Shield's roster page has no Champion Cup; Serebii's page supplies it, appended under the same game.
+  ...POKEMONDB_GAMES.map((game) => ({ game, repo: 'pokemondb', parse: () => (game === 'swsh' ? [...parsePokemondb(game), ...parseSerebiiCup()] : parsePokemondb(game)) })),
 ];
 
 const poolSpecies = new Set(SPECIES_POOL.map((s) => s.id).filter((id) => !BLACKLISTED_SPECIES.includes(id)));
@@ -163,9 +165,11 @@ async function main(): Promise<void> {
   if (args.has('--fetch')) {
     fetchAll();
     await fetchPokemondb();
+    await fetchSerebii();
   }
   const sources = loadSources();
   const pokemondb = loadPokemondb();
+  const serebii = loadSerebii();
   const all: Stats[] = [];
   const everything: EncounterRecord[] = [];
   for (const entry of IMPORTS) {
@@ -173,7 +177,10 @@ async function main(): Promise<void> {
     if (entry.repo === 'pokemondb') {
       const page = pokemondb.pages[entry.game];
       if (!page) throw new Error(`${entry.game} has no pokemondb page in sources.json`);
-      source = { repo: 'pokemondb.net', sha: pokemondb.fetchedAt, files: [page] };
+      const extra = serebii.pages[entry.game];
+      source = extra
+        ? { repo: 'pokemondb.net, serebii.net', sha: pokemondb.fetchedAt, files: [page, extra] }
+        : { repo: 'pokemondb.net', sha: pokemondb.fetchedAt, files: [page] };
     } else {
       const pin = sources[entry.repo];
       if (!pin) throw new Error(`${entry.repo} is not pinned in sources.json`);

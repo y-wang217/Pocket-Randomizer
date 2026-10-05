@@ -574,7 +574,7 @@ export function generateSegment(
     label: `${drawn.source.name}'s Gym`,
     encounter: {
       team: drawn.team,
-      opponent: `${drawn.source.name} (${gymDef.type})`,
+      opponent: describeOpponent('gym', drawn.team, drawn.team[0]!, drawn.source),
       source: drawn.source,
       // Filled by pass 3.
       simSeed: PLACEHOLDER_SEED,
@@ -1163,7 +1163,7 @@ function buildNode(
     label: kind === 'wild' ? 'Wild encounter' : 'Trainer battle',
     encounter: {
       team,
-      opponent: describeOpponent(kind, team, lead),
+      opponent: describeOpponent(kind, team, lead, drawn.source),
       source: drawn.source,
       simSeed: PLACEHOLDER_SEED,
     },
@@ -1183,8 +1183,17 @@ const NON_BATTLE_LABELS: Record<'rest' | 'shop' | 'event', string> = {
   event: 'Something happens',
 };
 
-/** What the log and the summary call this opponent. */
-function describeOpponent(kind: ChoosableKind, team: TeamSpec, lead: PokemonSpec): string {
+/**
+ * What the log, the summary and the battle header call this opponent.
+ * **Stage 6.0, D100.** A library trainer is its class and its name, `Leader
+ * Brock`, `Youngster Joey`; a wild node is its lead. The count-and-kind
+ * reading (`Trainer (2)`) remains only for a trainer with no record, which
+ * generation never produces and the fixtures sometimes do.
+ */
+function describeOpponent(kind: ChoosableKind | 'gym', team: TeamSpec, lead: PokemonSpec, source: EncounterRef | null): string {
   if (kind === 'wild') return `Wild ${lead.species}`;
+  // Gen 1 names a route trainer by class alone (`Youngster`, `Bug Catcher`),
+  // which the record carries as both; it reads once.
+  if (source) return source.name === source.class ? source.class : `${source.class} ${source.name}`;
   return team.length === 1 ? `Trainer's ${lead.species}` : `Trainer (${team.length})`;
 }

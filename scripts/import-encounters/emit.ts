@@ -10,10 +10,11 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { EncounterRecord, EncounterSource, GameId } from '../../src/data/encounters/types';
+import { decodeParty, encodeParty } from '../../src/data/encounters/types';
 import type { RawEncounter } from './model';
 import { GAME_GEN, GAME_LABEL } from './model';
 import { slug } from './names';
-import { gymTypeOf, placeOf, roleOf } from './roles';
+import { classOf, gymTypeOf, placeOf, roleOf } from './roles';
 import { spriteFor } from './sprites';
 
 const OUT = new URL('../../src/data/encounters/', import.meta.url).pathname;
@@ -30,7 +31,7 @@ export function toRecords(rows: RawEncounter[]): EncounterRecord[] {
       id: `${stem}-${n}`,
       game: row.game,
       gen: GAME_GEN[row.game],
-      trainer: { name: row.name, class: row.className, sprite: spriteFor(row, role) },
+      trainer: { name: row.name, class: classOf(row, role), sprite: spriteFor(row, role) },
       role,
       place: placeOf(row, role),
       party: row.party,
@@ -43,16 +44,18 @@ export function toRecords(rows: RawEncounter[]): EncounterRecord[] {
   });
 }
 
+/** The row's party string, proven to decode back to the record before it is written. */
+function encodedParty(record: EncounterRecord): string {
+  const encoded = encodeParty(record.party);
+  const back = decodeParty(encoded, record.id);
+  const canon = (party: readonly EncounterRecord['party'][number][]) =>
+    JSON.stringify(party.map((m) => [m.species, m.level, m.item ?? null, m.moves && m.moves.length > 0 ? [...m.moves] : null, m.gender ?? null]));
+  if (canon(back) !== canon(record.party)) throw new Error(`Encounter ${record.id}: party does not round-trip through its encoding`);
+  return encoded;
+}
+
 function literal(record: EncounterRecord): string {
-  const party = record.party
-    .map((m) => {
-      const parts = [`species: '${m.species}'`, `level: ${m.level}`];
-      if (m.moves) parts.push(`moves: [${m.moves.map((x) => `'${x}'`).join(', ')}]`);
-      if (m.item) parts.push(`item: '${m.item}'`);
-      if (m.gender) parts.push(`gender: '${m.gender}'`);
-      return `{ ${parts.join(', ')} }`;
-    })
-    .join(', ');
+  const party = JSON.stringify(encodedParty(record));
   const fields = [
     `id: '${record.id}'`,
     `game: '${record.game}'`,
@@ -62,7 +65,7 @@ function literal(record: EncounterRecord): string {
     `place: ${JSON.stringify(record.place)}`,
   ];
   if (record.gymType) fields.push(`gymType: '${record.gymType}'`);
-  fields.push(`party: [${party}]`);
+  fields.push(`party: ${party}`);
   if (record.double) fields.push('double: true');
   fields.push(`cite: ${JSON.stringify(record.cite)}`);
   return `  { ${fields.join(', ')} },`;
@@ -76,12 +79,14 @@ export function emitGame(game: GameId, records: EncounterRecord[], source: Encou
  * from ${source.repo} at ${source.sha}. Fix the importer or the pin, then regenerate.
  *
  * ${GAME_LABEL[game]}: ${records.length} encounters. A row's \`cite\` is its label
- * inside the files named below.
+ * inside the files named below. A row's \`party\` is one string per the grammar
+ * in \`types.ts\` (\`species:level[@item][>moves][#gender]\`, members on \`|\`),
+ * decoded once at load by \`index.ts\`.
  *
  * Regenerating is a draw-composition change for every node that draws from
  * this table: bump RANDOMIZER_VERSION in src/core/randomizer.ts.
  */
-import type { EncounterRecord, EncounterSource } from './types';
+import type { EncounterRow, EncounterSource } from './types';
 
 export const ${constName}_SOURCE: EncounterSource = {
   repo: '${source.repo}',
@@ -89,7 +94,7 @@ export const ${constName}_SOURCE: EncounterSource = {
   files: [${source.files.map((file) => `'${file}'`).join(', ')}],
 };
 
-export const ${constName}_ENCOUNTERS: readonly EncounterRecord[] = [
+export const ${constName}_ROWS: readonly EncounterRow[] = [
 ${body}
 ];
 `;

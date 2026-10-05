@@ -81,5 +81,12 @@
       "bdsp": "brilliant-diamond-shining-pearl/gymleaders-elitefour",
       "sv": "scarlet-violet/gymleaders-elitefour"
     }
+  },
+  "serebii": {
+    "$comment": "Sword and Shield's Champion Cup, which pokemondb's roster page does not carry, read from Serebii on the date below.",
+    "fetchedAt": "2026-10-05",
+    "pages": {
+      "swsh": "swordshield/championcup.shtml"
+    }
   }
 }

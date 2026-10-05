@@ -36,6 +36,29 @@ export type GameId =
   | 'bdsp'
   | 'sv';
 
+/** The games as a player reads them, for the summary's citation line (D100). */
+export const GAME_LABEL: Readonly<Record<GameId, string>> = {
+  rby: 'Red and Blue',
+  yellow: 'Yellow',
+  gs: 'Gold and Silver',
+  crystal: 'Crystal',
+  rs: 'Ruby and Sapphire',
+  emerald: 'Emerald',
+  frlg: 'FireRed and LeafGreen',
+  platinum: 'Platinum',
+  hgss: 'HeartGold and SoulSilver',
+  bw: 'Black and White',
+  b2w2: 'Black 2 and White 2',
+  xy: 'X and Y',
+  oras: 'Omega Ruby and Alpha Sapphire',
+  sm: 'Sun and Moon',
+  usum: 'Ultra Sun and Ultra Moon',
+  lgpe: "Let's Go, Pikachu! and Let's Go, Eevee!",
+  swsh: 'Sword and Shield',
+  bdsp: 'Brilliant Diamond and Shining Pearl',
+  sv: 'Scarlet and Violet',
+};
+
 /** What kind of fight this was in its game. */
 export type TrainerRole = 'gym' | 'elite' | 'champion' | 'rival' | 'boss' | 'route';
 
@@ -58,7 +81,7 @@ export interface EncounterRecord {
   trainer: {
     /** The name the game shows. A rival placeholder is normalised to the canonical name. */
     name: string;
-    /** The trainer class as the game shows it. */
+    /** The trainer class as the game shows it, read beside the name (`Leader Brock`). Where a Game Boy game's class *is* the boss, the role word the later games print. */
     class: string;
     /** A Showdown trainer sprite id under `sprites/trainers/`, checked against the CDN listing, or null. */
     sprite: string | null;
@@ -80,6 +103,55 @@ export interface EncounterRecord {
    * `EncounterSource`, once per file rather than once per row.
    */
   cite: string;
+}
+
+/**
+ * A record as the generated files carry it: the party as one string rather
+ * than an array of objects. **Checkpoint 5.** Five thousand parties of
+ * `{ species: 'geodude', level: 12 }` were the largest thing the library put
+ * in the bundle; `geodude:12` is the same fact. `index.ts` decodes every row
+ * once at load, so nothing downstream sees a row and no draw moves.
+ *
+ * One member is `species:level`, then `@item` where the game set one, then
+ * `>move,move,...` where it set moves, then `#M` or `#F` where it set a
+ * gender; members join on `|`, ace last.
+ */
+export interface EncounterRow extends Omit<EncounterRecord, 'party'> {
+  party: string;
+}
+
+const MEMBER = /^([a-z0-9]+):(\d{1,3})(?:@([a-z0-9]+))?(?:>([a-z0-9,]+))?(?:#([MF]))?$/;
+
+/** The party of one row, in canonical order. Throws on a cell the grammar above does not describe. */
+export function decodeParty(encoded: string, id = '?'): PartyMember[] {
+  if (encoded.length === 0) throw new Error(`Encounter ${id}: empty party`);
+  return encoded.split('|').map((cell) => {
+    const match = MEMBER.exec(cell);
+    if (!match) throw new Error(`Encounter ${id}: malformed party cell "${cell}"`);
+    const member: PartyMember = { species: match[1]!, level: Number(match[2]) };
+    if (match[4]) member.moves = match[4].split(',');
+    if (match[3]) member.item = match[3];
+    if (match[5]) member.gender = match[5] as 'M' | 'F';
+    return member;
+  });
+}
+
+/** The inverse of `decodeParty`, for the importer. Field order is the grammar's, so the round trip is exact. */
+export function encodeParty(party: readonly PartyMember[]): string {
+  return party
+    .map((member) => {
+      let cell = `${member.species}:${member.level}`;
+      if (member.item) cell += `@${member.item}`;
+      if (member.moves && member.moves.length > 0) cell += `>${member.moves.join(',')}`;
+      if (member.gender) cell += `#${member.gender}`;
+      return cell;
+    })
+    .join('|');
+}
+
+/** The row's record. */
+export function decodeRow(row: EncounterRow): EncounterRecord {
+  return { ...row, party: decodeParty(row.party, row.id) };
 }
 
 /** Where one game's table was read from. The revision is pinned, so the citation is exact. */

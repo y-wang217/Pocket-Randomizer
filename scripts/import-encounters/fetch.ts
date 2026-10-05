@@ -28,6 +28,7 @@ export interface PokemondbPin {
 interface Manifest {
   repos: Record<string, SourcePin>;
   pokemondb: PokemondbPin;
+  serebii: PokemondbPin;
 }
 
 function manifest(): Manifest {
@@ -40,6 +41,10 @@ export function loadSources(): Record<string, SourcePin> {
 
 export function loadPokemondb(): PokemondbPin {
   return manifest().pokemondb;
+}
+
+export function loadSerebii(): PokemondbPin {
+  return manifest().serebii;
 }
 
 export function sourcePath(repo: string, ...parts: string[]): string {
@@ -87,6 +92,21 @@ export async function fetchPokemondb(): Promise<void> {
     writeFileSync(join(dir, `${game}.html`), await response.text());
     console.log(`pokemondb: ${game} from ${page}`);
     await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+}
+
+/** Serebii's Champion Cup page, the one page pokemondb does not carry. */
+export async function fetchSerebii(): Promise<void> {
+  const pin = loadSerebii();
+  const dir = sourcePath('serebii');
+  mkdirSync(dir, { recursive: true });
+  for (const [game, page] of Object.entries(pin.pages)) {
+    const response = await fetch(`https://www.serebii.net/${page}`, {
+      headers: { 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) GYMRUN encounter importer' },
+    });
+    if (!response.ok) throw new Error(`serebii ${page}: HTTP ${response.status}`);
+    writeFileSync(join(dir, `${game}-championcup.html`), await response.text());
+    console.log(`serebii: ${game} from ${page}`);
   }
 }
 

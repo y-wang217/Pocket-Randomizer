@@ -296,8 +296,16 @@ that a one-line edit reverses.
   253 encounters, bringing the library to **5,627**. Kahunas and trial
   captains are read as gym leaders of their stated type, since a grand trial
   is Alola's gym. The Sword and Shield page has no Champion Cup, so Leon,
-  Hop and Marnie are not in it; that is a gap to curate later, not a parse
-  miss. Twenty species on these rosters fall outside the pool: the regional
+  Hop and Marnie are not in it; **closed at checkpoint 5** from Serebii's
+  Champion Cup page (`swordshield/championcup.shtml`, fetched 2026-10-05,
+  which this container can read): Marnie, Hop's three starter variants,
+  Bede, the finals rematches of Nessa, Bea, Allister and Raihan, and Leon's
+  three rosters, twelve records with levels and no set moves, appended to
+  the Sword and Shield table, which now cites both pages. A regional form
+  on that page is in the image file name (`078-g.png` is Galarian Rapidash)
+  rather than the alt text; Bea and Allister share one heading and are told
+  apart by the type most of the table's members carry. The library is
+  **5,639**. Twenty species on these rosters fall outside the pool: the regional
   formes the pool excludes (Alolan Ninetales, Galarian Weezing, Lycanroc
   Midnight and the like) and Zekrom and Reshiram on N's team; the fit rule
   drops them, and the data test pins the set. Every named trainer resolves

@@ -419,7 +419,21 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * holds: no decision was added.
  * `docs/spec/gymrun-stage6.0-encounter-library.md`, `docs/generation.md` section 103.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-26';
+/*
+ * ## `-27`: the Champion Cup joins the library
+ *
+ * Stage 6.0, checkpoint 5. Twelve Sword and Shield records (Leon's three
+ * rosters, Hop's three, Marnie, Bede and the four finals rematches) enter the
+ * tables, and a Game Boy boss's class reads as the role word. A record that
+ * enters a candidate window shifts every record behind it, so the same draw
+ * on `encounterKey` picks a different record wherever one entered: the
+ * regenerate rule the generated files state. Same count on every key. The
+ * party encoding compacted in the same checkpoint moves nothing: `index.ts`
+ * decodes it into the records the library held before. `contentHash` moves
+ * beside it for the tables. `RUN_LOG_VERSION` holds.
+ * `docs/spec/gymrun-stage6.0-encounter-library.md`, `docs/generation.md` section 104.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-27';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

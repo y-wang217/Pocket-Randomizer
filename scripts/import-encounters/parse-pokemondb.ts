@@ -110,6 +110,17 @@ const SECTION_ROLE: Record<string, { role: 'gym' | 'elite' | 'champion' | 'boss'
   teamstar: { role: 'boss', className: 'Team Star', classKey: 'TEAM_STAR_BOSS' },
 };
 
+/** Where each Alolan trial captain is fought; the page's captain headings carry no place. */
+const TRIAL_SITE: Record<string, string> = {
+  Ilima: 'Verdant Cavern',
+  Lana: 'Brooklet Hill',
+  Kiawe: 'Wela Volcano Park',
+  Mallow: 'Lush Jungle',
+  Sophocles: 'Hokulani Observatory',
+  Acerola: 'Thrifty Megamart',
+  Mina: "Seafolk Village",
+};
+
 export const unplacedNames = new Map<string, string>();
 
 export function parsePokemondb(game: GameId): RawEncounter[] {
@@ -128,7 +139,9 @@ export function parsePokemondb(game: GameId): RawEncounter[] {
       const teamPrefix = /^(Team \w+|Pokémon Trainer|Pokemon Trainer) (.+)$/.exec(baseName);
       const name = displayName(teamPrefix ? must(teamPrefix[2], 'name') : baseName);
       const typeMatch = /(\w+) type Pokémon/.exec(head.note);
-      const location = /^(.*?)(?: Mixed types| \w+ type Pokémon)?$/.exec(head.note.replace(/^\([^)]*\)\s*/, ''))?.[1]?.replace(/\b\w+ Badge\b/, '').trim();
+      // The note is "<location> <Type> type Pokémon", or just the type phrase
+      // when the page names no location, which leaves the region as the place.
+      const location = /^(.*?)\s*(?:Mixed types|\w+ type Pokémon)?$/.exec(head.note.replace(/^\([^)]*\)\s*/, ''))?.[1]?.replace(/\b\w+ Badge\b/, '').trim();
       const section = SECTION_ROLE[kind];
       let role: RawEncounter['role'];
       let className: string;
@@ -155,6 +168,7 @@ export function parsePokemondb(game: GameId): RawEncounter[] {
       const place =
         kind === 'gym' && city ? `${city} Gym`
         : kind === 'kahuna' && city ? city
+        : kind === 'captain' && TRIAL_SITE[name] ? TRIAL_SITE[name]
         : kind === 'elite4' || kind === 'champion' ? (game === 'lgpe' ? 'Indigo Plateau' : 'Pokemon League')
         : kind === 'teamstar' ? 'Team Star Base'
         : location && location.length > 0 && !/^Mixed types$/.test(location) ? location

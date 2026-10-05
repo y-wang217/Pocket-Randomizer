@@ -2,8 +2,8 @@
   "seed": "GYMRUN01",
   "versions": {
     "runLog": "gymrun-run-23/gymrun-0.3.0",
-    "contentHash": "995fae7cc3c3f68bd50569ef0a0a1babd916aefeac840643f9c2c727b5958b25",
-    "randomizer": "gymrun-randomizer-26",
+    "contentHash": "5b7addde47cb1d0b09270dca61f5f9ae40e5c2987f25626e5e467c6a9d32df3e",
+    "randomizer": "gymrun-randomizer-27",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -70,7 +70,7 @@
       "kind": "trainer",
       "label": "Trainer battle",
       "tier": "normal",
-      "opponent": "Trainer's Voltorb",
+      "opponent": "Guitarist Joseph",
       "turns": 3,
       "winner": "p1",
       "hpAfter": 47,
@@ -114,7 +114,7 @@
       "kind": "gym",
       "label": "Brock's Gym",
       "tier": null,
-      "opponent": "Brock (Rock)",
+      "opponent": "Leader Brock",
       "turns": 5,
       "winner": "p1",
       "hpAfter": 55,
@@ -125,7 +125,7 @@
       "kind": "trainer",
       "label": "Trainer battle",
       "tier": "hard",
-      "opponent": "Trainer (2)",
+      "opponent": "Gentleman Virgil",
       "turns": 11,
       "winner": "p2",
       "hpAfter": 0,
@@ -155,9 +155,9 @@
     "seed": "GYMRUN01",
     "versions": {
       "runLog": "gymrun-run-23/gymrun-0.3.0",
-      "contentHash": "995fae7cc3c3f68bd50569ef0a0a1babd916aefeac840643f9c2c727b5958b25",
+      "contentHash": "5b7addde47cb1d0b09270dca61f5f9ae40e5c2987f25626e5e467c6a9d32df3e",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-26"
+      "randomizerVersion": "gymrun-randomizer-27"
     },
     "decisions": [
       {
