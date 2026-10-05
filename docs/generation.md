@@ -13218,3 +13218,102 @@ D86 rules the locale card *"the crop of its map backdrop, full-bleed, the name
 and the type chips each on a semi-opaque plate over it"*. The screenshot the
 suite wrote shows exactly that. The chips are rendered as the bible specifies,
 and the 2:1 readings were never about them.
+
+## 105. An edge for the one painting the fill cannot stand on
+
+**2026-10-05**, on `claude/sleepy-mccarthy-crfmqt`. Prompt
+[`spec/gymrun-patch-hp-panel-edge.md`](spec/gymrun-patch-hp-panel-edge.md),
+filed before the code. `src/ui/` only: no `src/data/**`, so `contentHash` holds
+at `1ba856`; no version axis moves; no baseline re-recorded.
+
+The other half of `main`'s red. `test/visual-backdrop-contrast.test.ts` is Stage
+5.0/5's third bullet — *"Check HP box and text contrast against every battle
+backdrop"* — and it asserts the HP box **reads as a panel on a painting**: WCAG
+2 1.4.11's 3:1, the dominant colour in a 6px ring of art outside the box against
+the box's border and fill, **whichever is better**. One backdrop failed:
+`cave`, both panels, `max(border 1.34, fill 2.88)`.
+
+### 105.1 Two guesses the probe killed before it answered anything
+
+The test reports only failures, so cave's were the only numbers on record. Two
+explanations were built on them and both were wrong, which is why the probe that
+dumps all eighteen readings came before the token change rather than after.
+
+**"The fill is locale-derived, so it co-varies with the art."** It is not.
+`--panel-scrim` → `--bg-raised` → `--base-surface`, and `locales.css` overrides
+`--locale-*` and never `--base-surface`; both panel colours are global
+constants. This one reached a PR body before it was caught.
+
+**"Cave is the lightest art, so a light border must clear the darkest."** Cave
+is the **darkest** of the nine, at luminance 0.127 against summit's 0.701. And
+the binding rule is not a floor on one colour: the test takes `max` per
+backdrop, so a border only has to carry the backdrops the fill cannot.
+
+Both are the same error as sections 47, 57 and 104 — reasoning about a
+measurement instead of taking it — and the fix that followed from either would
+have been wrong.
+
+### 105.2 What the eighteen readings say
+
+| backdrop | around | lum | fill |
+|---|---|---:|---:|
+| **cave** | rgb(92,100,116) | **0.127** | **2.88** |
+| marsh me | rgb(132,116,84) | 0.180 | 3.75 |
+| badlands foe | rgb(196,100,68) | 0.213 | 4.28 |
+| … | | | |
+| shore | rgb(244,212,156) | 0.687 | 12.01 |
+| summit | rgb(204,220,236) | 0.701 | 12.24 |
+
+The fill is dark, so it separates from eight light paintings and collapses
+against the one dark one. **No darker fill answers that**: against cave's stone
+`--base-deep` reads 3.22 and **pure black reads 3.53** — half a point of margin
+on a floor of three, and a panel that reads as a hole rather than a window.
+
+The border is the other half of the `max` and was carrying nothing anywhere,
+1.03 to 3.18 across all eighteen. A **light** border fails in the opposite
+direction to the fill, so between the two there is no painting where both are
+weak — which is a property of the pair, not of either colour.
+
+### 105.3 The value, and what it costs
+
+`--panel-edge: #d2d8e2`, its own token because `--border-heavy` is read by eight
+other rules and this is a question about one component standing on art.
+
+Chosen as the **darkest** value with real margin, because all nine backdrops pay
+for this edge visually and only cave is rescued by it:
+
+| border | vs cave |
+|---|---|
+| `#737880`, today | 1.34 |
+| `#b4bac4` | 3.05, a bare pass |
+| **`#d2d8e2`** | **4.15** |
+| `--cream #efe6d2` | 4.79 |
+
+Cool rather than warm, so it sits with the panel's own `#151c27`.
+
+**Before and after, all eighteen:**
+
+| | cave | every other backdrop |
+|---|---|---|
+| before | **2.88**, failing | 3.75 to 12.24 |
+| after | **4.15** | **3.75 to 12.24, unchanged to the hundredth** |
+
+Cave is carried by the border now; the other sixteen are carried by the fill
+exactly as before. A fix that cleared cave by pushing another backdrop toward
+the floor would not have been one, and this moves no other number at all.
+
+### 105.4 The bible
+
+Rows touched: **D60**, which makes the *Scene backdrop* the painted art inside
+the frame and a sibling of *World*, and section 5's Pokemon panel row. The
+governing intent is Stage 5.0/1's note in `styles.css` — *"a solid window, the
+plan's GBA HP box"*, superseding V5.3's *"a scrim, not a card"* — and a GBA HP
+box is a defined edge around a field.
+
+**No amendment filed.** This adds no visual device; it gives an edge the rule
+already puts there a value that does its job. A *second* edge colour would have
+been a new device, and CLAUDE.md's "stops and files an amendment before
+building" would have applied.
+
+`NON_TEXT_FLOOR` is untouched. Moving a floor to clear a miss is what the gates
+section forbids, and the floor was never the thing that was wrong.

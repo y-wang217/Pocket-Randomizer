@@ -367,6 +367,28 @@
      else. It is `--bg` rather than a new colour on purpose: the fallback must
      be the panel at full opacity, not a different panel. */
   --panel-scrim-solid: var(--bg);
+  /* The floating panel's edge, and the only thing holding it apart from the
+     `cave` painting. **Stage 5.0/5's backdrop pass.**
+
+     `visual-backdrop-contrast` reads the art in a ring outside each HP box
+     against the box's border and fill, whichever is better, at WCAG 1.4.11's
+     3:1. The fill is a constant `--base-surface`, so it separates from the
+     eight light paintings at 3.75 to 12.24 and collapses on the one dark one:
+     cave is the darkest of the nine at luminance 0.127, and the fill reads
+     2.88 there.
+
+     **No darker fill fixes that.** Pure black is 3.53 against cave's stone, a
+     margin of half a point on a floor of three, and a panel that reads as a
+     hole rather than a window. The border is the other half of the `max`, and
+     a light one fails in the opposite direction to the fill, so between them
+     no painting is left where both are weak.
+
+     `#d2d8e2` is the **darkest** value with real margin — 4.15, against 3.05
+     for `#b4bac4` and 4.79 for `--cream` — because all nine backdrops pay for
+     this edge visually and only cave is rescued by it. Cool rather than warm so
+     it sits with the panel's own `#151c27`. Its own token rather than
+     `--border-heavy`, which eight other rules read. */
+  --panel-edge: #d2d8e2;
 
   /* ---------- the chrome scale ----------
      Three unitless multipliers the stylesheet applies to the chrome: card
