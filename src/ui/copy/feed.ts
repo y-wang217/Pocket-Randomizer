@@ -29,6 +29,8 @@ export const FEED_COPY = {
   move: (name: string): string => `Move · ${name}`,
   switchTo: (name: string): string => `Switch · ${name}`,
   reward: (name: string): string => `Reward · ${name}`,
+  /** The berry a "pick a berry" card was answered with. The berry gym reward patch. */
+  berry: (name: string): string => `Berry · ${name}`,
   shop: (bought: readonly string[]): string => (bought.length ? `Bought · ${join(bought)}` : 'Shop · left empty-handed'),
   event: (label: string): string => `Event · ${label}`,
   caught: (species: string): string => `Caught · ${species}`,

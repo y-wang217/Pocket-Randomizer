@@ -508,7 +508,7 @@ function renderVisit(visit: RunState['history'][number], state: RunState): HTMLE
   segment.title = leader ? `${leader}'s segment` : `Gym ${visit.segment + 1}`;
 
   const label = el('span', 'summary__node-label');
-  // A defender door's challenger is named by its class (D100); a boss by its node.
+  // A defender door's challenger is named by its class (D101); a boss by its node.
   const trainerClass = visit.node.trainerClass;
   label.textContent = trainerClass
     ? (TRAINER_CLASS_NAMES[trainerClass] ?? trainerClass)

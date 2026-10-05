@@ -35,6 +35,7 @@
  * `core/acquisition.ts`.
  */
 import { damagingInBands, statusByImpact } from './randomizer';
+import { BERRY_PICK_COPY } from './hpCopy';
 import { stow } from './items';
 import { recoverParty } from './party';
 import type { RngStream } from './rng';
@@ -111,6 +112,22 @@ export type Reward =
       offered?: PokemonSpec;
       requested?: number;
     }
+  /**
+   * A berry of the player's choosing, and the answer once it is given.
+   *
+   * `berries` is the table the pick is made from, fixed at map generation
+   * from `data/rewardPools.ts`. `picked` is null on the card as dealt and
+   * holds the chosen id once `playRun` has asked `chooseBerry`; the pick is a
+   * logged decision (`{ kind: 'berry', index }`, an index into `berries`) and
+   * consumes no RNG, so a card dealt and a card answered differ in this one
+   * field and nothing else. Same discipline as a relic's empty `alternates`:
+   * the two states are told apart without a second type.
+   *
+   * `applyReward` refuses an unanswered pick rather than defaulting to the
+   * first berry. A default would be the run choosing for the player, silently,
+   * on the one card whose whole value is that the player chooses.
+   */
+  | { kind: 'berryPick'; berries: readonly string[]; picked: string | null }
 
 /*
  * **A sixth kind, `species`, was here until Stage 4.6b.**
@@ -195,7 +212,12 @@ export interface RewardOffer {
  * fallback — and three copies of the answer is three places for the next
  * fungible kind to be forgotten.
  */
-const FUNGIBLE_KINDS: ReadonlySet<Reward['kind']> = new Set(['currency', 'heal']);
+const FUNGIBLE_KINDS: ReadonlySet<Reward['kind']> = new Set(['currency', 'heal', 'berryPick']);
+/*
+ * `berryPick` joined the set with the berry gym reward patch, for the same
+ * reason as the two before it: two "pick a berry" cards on one page are one
+ * card printed twice, since both open the same fifteen-berry choice.
+ */
 
 /**
  * What an offer has already handed out, threaded through every draw in it.
@@ -646,6 +668,17 @@ export function resolveRewardEntry(
       taken.items.add(id);
       return { kind: 'consumable', id };
     }
+    case 'berryPick': {
+      /*
+       * No draw. The card is the whole table and the player is the resolver,
+       * so there is nothing for the stream to decide here. Filtered through
+       * `itemById` as an `item` entry is, so a table edit cannot deal a pick
+       * holding an id the build cannot stow.
+       */
+      const berries = entry.berries.filter((id) => itemById(id));
+      if (berries.length === 0) return null;
+      return { kind: 'berryPick', berries, picked: null };
+    }
   }
 }
 
@@ -779,6 +812,9 @@ export type MoveReward = Extract<
  */
 export type TargetedReward = MoveReward;
 
+/** The card that opens a berry choice, as `chooseBerry` is handed it. */
+export type BerryPick = Extract<Reward, { kind: 'berryPick' }>;
+
 /**
  * Fold a chosen reward into the run. **The only path by which a reward changes
  * anything.**
@@ -843,6 +879,20 @@ export function applyReward(state: RunState, choice: Reward): RunState {
 
     case 'trade':
       return applyTrade(state, choice);
+    case 'berryPick': {
+      /*
+       * The chosen berry, into the backpack as an item card's berry would go.
+       * An unanswered pick is a programming error upstream (`playRun` asks
+       * `chooseBerry` before it hands the card here), and it is refused
+       * loudly rather than resolved to berry 0: the card's only value is that
+       * the player chose, and a default would be the run choosing for them.
+       */
+      if (choice.picked === null) throw new Error('A berry pick reached applyReward unanswered');
+      if (!choice.berries.includes(choice.picked)) {
+        throw new RangeError(`Berry pick ${choice.picked} is not one of the berries offered`);
+      }
+      return { ...state, backpack: stow(state.backpack, choice.picked) };
+    }
   }
 }
 
@@ -929,5 +979,10 @@ export function describeReward(reward: Reward): string {
       return consumableById(reward.id)?.name ?? reward.id;
     case 'trade':
       return reward.offered ? `Trade for ${reward.offered.species}` : 'Trade';
+    case 'berryPick':
+      // The card's own label until it is answered, then the berry's name: the
+      // decision feed prints the card at the `reward` entry and the berry at
+      // the `berry` entry, so each line says what was decided at it.
+      return reward.picked === null ? BERRY_PICK_COPY.name : (itemById(reward.picked)?.name ?? reward.picked);
   }
 }

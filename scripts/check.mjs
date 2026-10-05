@@ -29,8 +29,8 @@
  *
  * ERRORED is a leg whose **tests all passed and whose runner then fell over on
  * the way to saying so** — today that is exactly one thing, vitest's reporter
- * RPC timing out, and `everyTestPassedAnyway` below is where the shape of it
- * is argued. It is its own word rather than PASS because the two are not the
+ * RPC timing out, and `everyTestPassedAnyway` in `check-tally.mjs` is where the
+ * shape of it is argued. It is its own word rather than PASS because the two are not the
  * same fact and the table is the place that difference is legible: a reader
  * scanning for "is the tree green" gets a yes, and a reader asking "why did
  * that leg take four minutes and print an unhandled error" gets a word to
@@ -66,6 +66,9 @@ import { spawn } from 'node:child_process';
 import { availableParallelism } from 'node:os';
 
 import { browserTests, nodeTests } from './browser-tests.mjs';
+// Moved out so `test/check-gate.test.ts` can reach them; unchanged otherwise.
+// Why a module and not an entry guard: the header of `check-tally.mjs`.
+import { everyTestPassedAnyway, tally } from './check-tally.mjs';
 
 const CI = Boolean(process.env.CI);
 const NPX = process.platform === 'win32' ? 'npx.cmd' : 'npx';
@@ -196,67 +199,6 @@ const LEGS = [
  * cannot start for want of a system library is just as absent as one that is
  * not installed, and the remedy is the same `--with-deps` install.
  */
-/**
- * Vitest's reporter channel giving up while every test passed.
- *
- * `[vitest-worker]: Timeout calling "onTaskUpdate"` is vitest's own RPC
- * reporting channel timing out under load. It is **not** a test, not the app,
- * and not a defect in the tree — but vitest counts it as an unhandled error and
- * exits non-zero, so it turns a green suite red. This repo has met it
- * repeatedly: `docs/generation.md` section 15 records it against two full suite
- * runs, and the branch reports carry it as the reason a 136-file run with every
- * test passing exited 1.
- *
- * The first CI run of this workflow failed the Node leg on exactly this, with
- * `112 passed (112)` and `1604 passed (1604)` in the same output. A gate that
- * reports a fully passing suite as a failure is the cry-wolf problem
- * `test/boundaries.test.ts` already warns about, so the runner reads the tally
- * rather than trusting the exit code.
- *
- * **Deliberately narrow, because the failure mode of getting this wrong is a
- * masked defect.** All three must hold: the specific `onTaskUpdate` string, a
- * files tally that says passed, and **no** failure tally anywhere in the
- * output. Any real failure prints `N failed` and is reported as FAILED with the
- * exit code, whatever else went wrong alongside it.
- */
-const REPORTER_RPC_TIMEOUT = /Timeout calling "onTaskUpdate"/;
-const ALL_FILES_PASSED = /Test Files\s+\d+ passed \(\d+\)/;
-const ANY_FAILED = /\d+ failed/;
-
-/**
- * The output with its colour taken off, which is what the three patterns above
- * are read against.
- *
- * **Without this the guard never fired in the one place it was written for.**
- * The legs are spawned onto pipes, and vitest colours a pipe anyway when `CI`
- * is set — tinyrainbow treats the variable as consent, the same way it treats
- * `FORCE_COLOR`. So in Actions the summary arrives as
- * `\x1b[2m Test Files \x1b[22m \x1b[1m\x1b[32m120 passed\x1b[39m\x1b[22m…`,
- * `ALL_FILES_PASSED` finds no `\s+` between the label and the count, and a
- * fully green leg was reported FAILED. Locally, with no `CI`, vitest emits
- * plain text and the same guard matched — which is exactly how a bug of this
- * shape survives being tested.
- *
- * Stripped rather than the patterns being loosened to tolerate escapes: a
- * pattern that steps over arbitrary control sequences is a pattern nobody can
- * read, and `ANY_FAILED` must keep meaning what it says.
- */
-// eslint-disable-next-line no-control-regex -- stripping CSI sequences is the point
-const ANSI = /\x1b\[[0-9;]*m/g;
-const plain = (output) => output.replace(ANSI, '');
-
-function everyTestPassedAnyway(output) {
-  const text = plain(output);
-  return REPORTER_RPC_TIMEOUT.test(text) && ALL_FILES_PASSED.test(text) && !ANY_FAILED.test(text);
-}
-
-/** The tallies, for the note on a leg whose suite was green under a runner error. */
-function tally(output) {
-  const text = plain(output);
-  const files = /Test Files\s+(\d+) passed/.exec(text)?.[1];
-  const tests = /Tests\s+(\d+) passed/.exec(text)?.[1];
-  return files && tests ? `${files} files, ${tests} tests` : 'every test';
-}
 
 /** A leg that did not fail: PASS, or a green suite under a runner error. */
 const isGreen = (status) => status === 'PASS' || status === 'ERRORED';

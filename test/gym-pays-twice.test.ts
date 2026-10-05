@@ -94,7 +94,14 @@ describe('the run log version', () => {
      * And to `-24` by Defender Mode v0, whose draws are all new keys, with
      * `RUN_LOG_VERSION` moving beside it for the mode's own decisions.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-24');
+    /*
+     * And to `-24` by the berry pick the gym pool deals, which is this file's
+     * page 2 again and moved `RUN_LOG_VERSION` beside it for the pick's
+     * answer: two axes, each for its own reason, which is still the separation.
+     * `-25` is the species-locked entries leaving the pools, not this file,
+     * and `-26` Defender Mode v0's draws merged onto it.
+     */
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-26');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

@@ -158,7 +158,7 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
   },
   {
     path: 'src/data/defenderCopy.ts',
-    why: "Defender Mode v0's badge and consumable inspect lines (bible Rev 24, D99 and D101); read by ui/ only, and a reworded line must not refuse every defender seed recorded before it (D12)",
+    why: "Defender Mode v0's badge and consumable inspect lines (bible Rev 25, D100 and D102); read by ui/ only, and a reworded line must not refuse every defender seed recorded before it (D12)",
   },
   {
     path: 'src/data/trainerClassCopy.ts',

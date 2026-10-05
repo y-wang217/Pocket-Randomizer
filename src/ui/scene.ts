@@ -159,7 +159,7 @@ interface SidePanel {
   roster: HTMLElement;
   /**
    * The opponent's committed action, beside the eye. **Defender Mode v0, bible
-   * Rev 24, D99.** On the foe panel only, empty unless the Psychic badge
+   * Rev 25, D100.** On the foe panel only, empty unless the Psychic badge
    * reveals something this turn.
    */
   intent: HTMLElement;
@@ -1127,7 +1127,7 @@ function updateSidePanel(
       const { stage, effective } = active.stats[stat];
       if (stage !== 0) stages[stat] = { stage, effective, multiplier: formatStageMultiplier(stage) };
     }
-    // Defender Mode v0, D99: under the Flying badge the Speed cell is the
+    // Defender Mode v0, D100: under the Flying badge the Speed cell is the
     // engine's number, the wing beneath it where no stage count is.
     const badgeSpeed = active.badgeSpeed ? { badgeSpeed: active.stats.spe.effective } : {};
     panel.stats.replaceChildren(statBlock(values, { layout: 'row', level: active.level, stages, ...badgeSpeed }));
@@ -1784,7 +1784,7 @@ function renderMoves(
   container.replaceChildren(
     ...view.moves.map((move) => renderMove(move, view.awaitingChoice, cause, onChoose)),
   );
-  // Defender Mode v0, D102: the fifth button is the same call site, in its own
+  // Defender Mode v0, D103: the fifth button is the same call site, in its own
   // fixed slot outside the 2x2 grid; the stylesheet gives it a row of its own.
   container.dataset['fifth'] = view.moves.some((move) => move.badgeMove) ? 'true' : 'false';
   markSuper(container, view.moves);
@@ -1990,7 +1990,7 @@ function renderMove(
   // Section 2's chevron, beside the name, on the button as on the card.
   const priority = movePriority(move.facts);
   if (priority) name.append(priority);
-  // Defender Mode v0, D99: the flame and the next use's crit chance, or the
+  // Defender Mode v0, D100: the flame and the next use's crit chance, or the
   // wing on the fifth move. Absent on every attacker button.
   const badge = moveBadge(move);
   if (badge) name.append(badge);
@@ -2735,7 +2735,7 @@ export function moveChip(move: {
   pickable?: boolean;
   /**
    * The Fire badge's highlighted slot, on a member carrying Fire in a defender
-   * run. **Bible Rev 24, D99.** The flame alone: the next-use crit chance is
+   * run. **Bible Rev 25, D100.** The flame alone: the next-use crit chance is
    * the battle button's only.
    */
   flame?: boolean;
@@ -3119,7 +3119,7 @@ export function createWorldScene(follow: HTMLElement | null = document.documentE
 }
 
 /**
- * The badge mark on a battle button. **Defender Mode v0, bible Rev 24, D99.**
+ * The badge mark on a battle button. **Defender Mode v0, bible Rev 25, D100.**
  * The flame and the next use's crit chance as a bare percentage on the Fire
  * badge's highlighted slot; the wing on Flying's fifth move; nothing else.
  */
@@ -3132,7 +3132,7 @@ function moveBadge(move: Pick<MoveUiView, 'critChance' | 'badgeMove'>): HTMLElem
       holder.append(mark);
     }
     const chance = el('span', 'move__crit');
-    // Floored, as the bible's D99 row writes them (12, 50, 100): a chance is
+    // Floored, as the bible's D100 row writes them (12, 50, 100): a chance is
     // never shown higher than it is.
     chance.textContent = String(Math.floor(move.critChance * 100));
     holder.append(chance);
@@ -3152,7 +3152,7 @@ function moveBadge(move: Pick<MoveUiView, 'critChance' | 'badgeMove'>): HTMLElem
 
 /**
  * The opponent's committed action beside the eye. **Defender Mode v0, bible
- * Rev 24, D99.** A move chip for a move; the incoming species' name for a
+ * Rev 25, D100.** A move chip for a move; the incoming species' name for a
  * switch. Empty, and drawing nothing, on every other turn (R4).
  */
 function renderIntent(slot: HTMLElement, intent: BattleUiView['foeIntent']): void {

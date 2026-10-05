@@ -94,7 +94,7 @@ import { applyMotion } from './theme/motion';
 
 /**
  * A defender rank's boss as the pre-gym screen shows it: its team size and its
- * level (bible Rev 24, D100). A boss team is drawn at one level
+ * level (bible Rev 25, D101). A boss team is drawn at one level
  * (`generateBossTeam` pins the range to the column's maximum); the highest is
  * read rather than the first so an empty team reads 0 instead of throwing.
  */
@@ -633,6 +633,7 @@ export function mountApp(root: HTMLElement): void {
     const eventPick = createPending<EventArchetype>();
     const leadPick = createPending<number>();
     const evolvePick = createPending<number>();
+    const berryPick = createPending<number>();
     let detachBattle: (() => void) | null = null;
     /*
      * The fight in progress, and the party it was sent with.
@@ -679,6 +680,7 @@ export function mountApp(root: HTMLElement): void {
       eventPick.cancel();
       leadPick.cancel();
       evolvePick.cancel();
+      berryPick.cancel();
       releaseBattle();
     };
 
@@ -734,9 +736,9 @@ export function mountApp(root: HTMLElement): void {
         return starterPick.wait();
       },
       /*
-       * **Defender Mode v0's four questions, bible Rev 24.** The gym type on
-       * its own screen (D100); the draft and the recruit on the starter
-       * screen, unchanged but for the heading and the Fire flame (D99); a door
+       * **Defender Mode v0's four questions, bible Rev 25.** The gym type on
+       * its own screen (D101); the draft and the recruit on the starter
+       * screen, unchanged but for the heading and the Fire flame (D100); a door
        * on the map screen, which `onState` has already drawn with the rank's
        * doors, exactly as `chooseNode` does.
        */
@@ -903,6 +905,22 @@ export function mountApp(root: HTMLElement): void {
         });
         showScreen('result');
         return evolvePick.wait();
+      },
+      /*
+       * The berry pick, on the same screen, in the cards' place. The berry
+       * gym reward patch. `playRun` asks it right after the `berryPick` card
+       * is claimed, so the result the card came from is still `lastReview`,
+       * and the fifteen berries render where the three cards were. Choosing
+       * one is the continue, as taking a card is.
+       */
+      chooseBerry: (pick, state) => {
+        resultScreen.render(lastReview, null, state, () => undefined, null, null, {
+          pick,
+          badge: lastReview?.offer?.badge ?? 'gym',
+          onChoose: (index) => berryPick.submit(index),
+        });
+        showScreen('result');
+        return berryPick.wait();
       },
       /*
        * Required by `RunPolicy` and unreachable from `playRun` while
@@ -1453,7 +1471,7 @@ export function mountApp(root: HTMLElement): void {
           party: betweenNodes ? state.party : (decidedParty ?? state.party),
           focus,
           canEditParty: betweenNodes,
-          // Defender Mode v0 (D101): usable wherever the run is not inside a
+          // Defender Mode v0 (D102): usable wherever the run is not inside a
           // battle node, which is between nodes and the intermission's shop.
           consumables: state.consumables ?? [],
           canConsume: betweenNodes || returnTo === 'shop',
@@ -1876,6 +1894,7 @@ export function mountApp(root: HTMLElement): void {
   } else void start(newSeed());
   if (saved && fromUrl?.kind !== 'foreign') {
     console.warn('GYMRUN: the saved run cannot be replayed on this build', describeVersionMismatch(versionMismatch(saved)!));
-    seedBar.warn(SEED_COPY.saveOutdated);
+    // Reported, not acted on: the new run has started, so the bar stays shut.
+    seedBar.warn(SEED_COPY.saveOutdated, { open: false });
   }
 }

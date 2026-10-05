@@ -1,69 +1,53 @@
 {
   "seed": "SMOKE24",
   "versions": {
-    "runLog": "gymrun-run-23/gymrun-0.3.0",
-    "contentHash": "564eda0ee3fac33d9df0f3e1710788bf2450ad5bd2226da8c01ca3b54a1eab5b",
-    "randomizer": "gymrun-randomizer-24",
+    "runLog": "gymrun-run-24/gymrun-0.3.0",
+    "contentHash": "b85ac93912caa3e508f0d1451b13d0ec9d3c92cdf6bc6be007cf654f3fbf2cc6",
+    "randomizer": "gymrun-randomizer-26",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
   "outcome": "defeat",
-  "gymsCleared": 1,
+  "gymsCleared": 0,
   "causeOfDeath": {
-    "segment": 1,
-    "leader": "Marina",
-    "kind": "trainer",
-    "species": "Loam",
-    "bySpecies": "Skarmory",
-    "byMove": "Wing Attack",
+    "segment": 0,
+    "leader": "Garnet",
+    "kind": "wild",
+    "species": "Mire",
+    "bySpecies": "Oricorio",
+    "byMove": "Terrain Pulse",
     "indirect": null
   },
-  "currency": 136,
+  "currency": 22,
   "backpack": [],
-  "relics": [
-    "abyssal-lens"
-  ],
+  "relics": [],
   "party": [
     {
       "species": "Hippopotas",
-      "level": 20,
-      "ability": "Rocky Payload",
+      "level": 15,
+      "ability": "Rough Skin",
       "moves": [
-        "Drain Punch 15/16",
-        "Accelerock 29/32",
-        "Bulldoze 32/32",
-        "Temper Flare 12/16"
+        "Sand Tomb 24/24",
+        "Razor Leaf 39/40",
+        "Bulldoze 28/32",
+        "Mud Shot 24/24"
       ],
       "item": "passhoberry",
-      "hp": "0/63",
+      "hp": "0/50",
       "fainted": true
     },
     {
       "species": "Karrablast",
-      "level": 20,
+      "level": 15,
       "ability": "Suction Cups",
       "moves": [
         "Fell Stinger 40/40",
-        "Skitter Smack 14/16",
-        "Breaking Swipe 22/24",
+        "Skitter Smack 16/16",
+        "Breaking Swipe 23/24",
         "Shore Up 8/8"
       ],
       "item": "silkscarf",
-      "hp": "0/56",
-      "fainted": true
-    },
-    {
-      "species": "Sentret",
-      "level": 20,
-      "ability": "Lingering Aroma",
-      "moves": [
-        "Horn Attack 40/40",
-        "Aurora Beam 30/32",
-        "Rapid Spin 64/64",
-        "Coil 32/32"
-      ],
-      "item": null,
-      "hp": "0/50",
+      "hp": "0/44",
       "fainted": true
     }
   ],
@@ -118,109 +102,26 @@
       "label": "Wild encounter",
       "tier": "hard",
       "opponent": "Wild Oricorio",
-      "turns": 4,
-      "winner": "p1",
-      "hpAfter": 15,
-      "casualties": []
-    },
-    {
-      "segment": 0,
-      "kind": "gym",
-      "label": "Garnet's Gym",
-      "tier": null,
-      "opponent": "Garnet (Rock)",
-      "turns": 3,
-      "winner": "p1",
-      "hpAfter": 5,
-      "casualties": []
-    },
-    {
-      "segment": 1,
-      "kind": "wild",
-      "label": "Wild encounter",
-      "tier": "normal",
-      "opponent": "Wild Sentret",
-      "turns": 2,
-      "winner": "p1",
-      "hpAfter": 119,
-      "casualties": []
-    },
-    {
-      "segment": 1,
-      "kind": "trainer",
-      "label": "Trainer battle",
-      "tier": "normal",
-      "opponent": "Trainer (2)",
-      "turns": 4,
-      "winner": "p1",
-      "hpAfter": 94,
-      "casualties": []
-    },
-    {
-      "segment": 1,
-      "kind": "trainer",
-      "label": "Trainer battle",
-      "tier": "normal",
-      "opponent": "Trainer (2)",
       "turns": 5,
-      "winner": "p1",
-      "hpAfter": 40,
-      "casualties": [
-        {
-          "side": "p1",
-          "name": "Mire",
-          "level": 20,
-          "species": "Hippopotas",
-          "bySpecies": "Frigibax",
-          "byMove": "Ice Fang",
-          "indirect": null
-        },
-        {
-          "side": "p1",
-          "name": "Loam",
-          "level": 20,
-          "species": "Karrablast",
-          "bySpecies": "Oddish",
-          "byMove": "Ember",
-          "indirect": null
-        }
-      ]
-    },
-    {
-      "segment": 1,
-      "kind": "trainer",
-      "label": "Trainer battle",
-      "tier": "hard",
-      "opponent": "Trainer (2)",
-      "turns": 7,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
         {
           "side": "p1",
-          "name": "Mire",
-          "level": 20,
-          "species": "Hippopotas",
-          "bySpecies": "Skarmory",
-          "byMove": "Wing Attack",
-          "indirect": null
-        },
-        {
-          "side": "p1",
-          "name": "Jasper",
-          "level": 20,
-          "species": "Sentret",
-          "bySpecies": "Skarmory",
-          "byMove": "Wing Attack",
-          "indirect": null
-        },
-        {
-          "side": "p1",
           "name": "Loam",
-          "level": 20,
+          "level": 15,
           "species": "Karrablast",
-          "bySpecies": "Skarmory",
-          "byMove": "Wing Attack",
+          "bySpecies": "Oricorio",
+          "byMove": "Peck",
+          "indirect": null
+        },
+        {
+          "side": "p1",
+          "name": "Mire",
+          "level": 15,
+          "species": "Hippopotas",
+          "bySpecies": "Oricorio",
+          "byMove": "Terrain Pulse",
           "indirect": null
         }
       ]
@@ -230,10 +131,10 @@
     "seed": "SMOKE24",
     "mode": "attacker",
     "versions": {
-      "runLog": "gymrun-run-23/gymrun-0.3.0",
-      "contentHash": "564eda0ee3fac33d9df0f3e1710788bf2450ad5bd2226da8c01ca3b54a1eab5b",
+      "runLog": "gymrun-run-24/gymrun-0.3.0",
+      "contentHash": "b85ac93912caa3e508f0d1451b13d0ec9d3c92cdf6bc6be007cf654f3fbf2cc6",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-24"
+      "randomizerVersion": "gymrun-randomizer-26"
     },
     "decisions": [
       {
@@ -407,151 +308,6 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "acquisition",
-        "decision": {
-          "kind": "decline"
-        }
-      },
-      {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "items",
-        "plan": {
-          "assignments": [],
-          "discards": [],
-          "teaches": [
-            {
-              "move": "Drain Punch",
-              "slot": 0,
-              "replaceSlot": 0
-            }
-          ],
-          "discardTms": []
-        }
-      },
-      {
-        "kind": "lead",
-        "index": 0
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "items",
-        "plan": {
-          "assignments": [],
-          "discards": [],
-          "teaches": [
-            {
-              "move": "Temper Flare",
-              "slot": 0,
-              "replaceSlot": 3
-            }
-          ],
-          "discardTms": []
-        }
-      },
-      {
-        "kind": "locale",
-        "index": 0
-      },
-      {
-        "kind": "node",
-        "index": 0
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 4
-        }
-      },
-      {
-        "kind": "acquisition",
-        "decision": {
-          "kind": "accept"
-        }
-      },
-      {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "items",
-        "plan": {
-          "assignments": [],
-          "discards": [],
-          "teaches": [
-            {
-              "move": "Charge Beam",
-              "slot": 0,
-              "replaceSlot": 1
-            }
-          ],
-          "discardTms": []
-        }
-      },
-      {
-        "kind": "node",
-        "index": 0
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
           "kind": "switch",
           "slot": 2
         }
@@ -564,155 +320,10 @@
         }
       },
       {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "items",
-        "plan": {
-          "assignments": [],
-          "discards": [],
-          "teaches": [],
-          "discardTms": []
-        }
-      },
-      {
-        "kind": "node",
-        "index": 0
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
         "kind": "battle",
         "choice": {
           "kind": "move",
           "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "items",
-        "plan": {
-          "assignments": [],
-          "discards": [],
-          "teaches": [
-            {
-              "move": "Accelerock",
-              "slot": 0,
-              "replaceSlot": 1
-            }
-          ],
-          "discardTms": []
-        }
-      },
-      {
-        "kind": "node",
-        "index": 0
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 4
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
         }
       }
     ]

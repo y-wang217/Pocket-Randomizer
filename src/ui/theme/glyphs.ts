@@ -327,7 +327,7 @@ export const GLYPHS: readonly Glyph[] = [
   { id: 'currency-coin', family: 'currency', label: labelOf('currency-coin'), art: path('M4 6.5a8 3.5 0 1 0 16 0 8 3.5 0 1 0-16 0zM4 9.2v2.8c0 1.9 3.6 3.5 8 3.5s8-1.6 8-3.5V9.2c-1.3 1.6-4.4 2.7-8 2.7s-6.7-1.1-8-2.7zm0 5.5v2.8c0 1.9 3.6 3.5 8 3.5s8-1.6 8-3.5v-2.8c-1.3 1.6-4.4 2.7-8 2.7s-6.7-1.1-8-2.7z') },
 
   /*
-   * The badge family. **D99, Defender Mode v0.** Three marks, one per gym
+   * The badge family. **D100, Defender Mode v0.** Three marks, one per gym
    * type. A flame with an inner tongue, an almond eye with a pupil, a single
    * swept wing of three feathers. The eye is filled where `field-psychic`'s is
    * an outline over a bar, so the two do not read as one mark on one surface.

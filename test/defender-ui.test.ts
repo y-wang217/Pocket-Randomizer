@@ -1,5 +1,5 @@
 /**
- * Defender Mode v0's surfaces, built to bible Rev 24 (D99 to D102). **Step 7.**
+ * Defender Mode v0's surfaces, built to bible Rev 25 (D100 to D103). **Step 7.**
  *
  * Each block asserts one surface against its encoding row and its budget:
  * what is at rest, what is one press away, and that the attacker's version of
@@ -51,7 +51,7 @@ function highlighted(seed: string, type: string): PokemonSpec {
   return spec;
 }
 
-describe('the gym type select screen (D100)', () => {
+describe('the gym type select screen (D101)', () => {
   it('draws one card per gym type, in table order, as a type chip and the badge mark', () => {
     const screen = createGymSelect();
     const picks: number[] = [];
@@ -84,7 +84,7 @@ describe('the gym type select screen (D100)', () => {
   });
 });
 
-describe('the draft and recruit picks (D99)', () => {
+describe('the draft and recruit picks (D100)', () => {
   it('reuses the starter card with the pick\'s heading and no blurb', () => {
     const state = chooseGymType(createRun('UI-DRAFT', undefined, 'defender'), 0);
     const screen = createStarterSelect();
@@ -117,7 +117,7 @@ describe('the draft and recruit picks (D99)', () => {
   });
 });
 
-describe('the door on the map (D100)', () => {
+describe('the door on the map (D101)', () => {
   it('names each challenger by class and shows its types on the step being chosen from', () => {
     const state = drafted('UI-DOOR', 'Fire');
     const map = createRunMap();
@@ -148,7 +148,7 @@ describe('the door on the map (D100)', () => {
   });
 });
 
-describe('the pre-gym screen for a defender boss (D100)', () => {
+describe('the pre-gym screen for a defender boss (D101)', () => {
   it('shows the team size beside the gym mark and the level, with no leader and no type chip', () => {
     const state = drafted('UI-BOSS', 'Psychic');
     const segment = state.segments[0]!;
@@ -173,7 +173,7 @@ describe('the pre-gym screen for a defender boss (D100)', () => {
   });
 });
 
-describe('the reward card faces (D101)', () => {
+describe('the reward card faces (D102)', () => {
   it('draws a consumable as its sprite, with the name and effect on the press', () => {
     const state = drafted('UI-REWARD', 'Fire');
     const card = renderRewardCard({ kind: 'consumable', id: 'superpotion' }, state, () => undefined);
@@ -210,7 +210,7 @@ describe('the reward card faces (D101)', () => {
   });
 });
 
-describe('the Bag\'s consumables (D101)', () => {
+describe('the Bag\'s consumables (D102)', () => {
   function bag(state: RunState, canConsume: boolean, consumed: [string, number][] = []): HTMLElement {
     const screen = createPartyScreen();
     screen.render(
@@ -313,7 +313,7 @@ describe('the decision feed (R11)', () => {
   });
 });
 
-describe('the battle surfaces (D99, D102)', () => {
+describe('the battle surfaces (D100, D103)', () => {
   const REVEAL = { ability: true, item: true, teamSize: true };
   const FOE: TeamSpec = [{ species: 'Rattata', ability: 'Run Away', moves: ['Tackle', 'Quick Attack'], level: 20 }];
 
@@ -333,7 +333,7 @@ describe('the battle surfaces (D99, D102)', () => {
     const flamed = buttons.filter((button) => button.querySelector('.move__badge--flame'));
     // The name's own text: the badge sits beside it, as the priority chevron does.
     expect(flamed.map((button) => button.querySelector('.move__name')?.firstChild?.textContent)).toEqual(['Ember']);
-    // Stage 1 on the first use: Gen 9's 1/8, floored, as D99 writes it.
+    // Stage 1 on the first use: Gen 9's 1/8, floored, as D100 writes it.
     expect(flamed[0]!.querySelector('.move__crit')?.textContent).toBe('12');
     expect(flamed[0]!.querySelector('[data-tip="badge:Fire"]')).not.toBeNull();
   });
@@ -346,7 +346,7 @@ describe('the battle surfaces (D99, D102)', () => {
     const fifth = buttons.find((button) => button.dataset['badgeMove'] === 'true');
     expect(fifth?.querySelector('.move__name')?.firstChild?.textContent).toBe('Peck');
     expect(fifth?.querySelector('[data-tip="badge:Flying"]')).not.toBeNull();
-    // The Speed cell carries the engine's number and the wing (D98, D99).
+    // The Speed cell carries the engine's number and the wing (D98, D100).
     expect(root.querySelector('[data-tip="badge:Flying"]:not(.move *)')).not.toBeNull();
   });
 
@@ -364,7 +364,7 @@ describe('the battle surfaces (D99, D102)', () => {
   });
 });
 
-describe('the mode choice (D100)', () => {
+describe('the mode choice (D101)', () => {
   it('is two controls, one word each, attacker by default', () => {
     const bar = createSeedBar();
     const modes = [...bar.root.querySelectorAll<HTMLButtonElement>('.seedbar__mode')];

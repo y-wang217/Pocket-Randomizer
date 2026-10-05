@@ -329,10 +329,12 @@ describe('the version axes', () => {
      * `-22` is the writable tabs patch: an item layout is a party edit.
      * `docs/generation.md` section 98.
      *
-     * `-23` is Defender Mode v0: the log records its mode, and the mode brings
-     * its own decisions. `docs/generation.md` section 101.
+     * `-23` is the berry gym reward patch: a berry pick is a logged decision.
+     * `docs/generation.md` section 101.
+     * `-24` is Defender Mode v0 merged onto it: the log records its mode, and
+     * the mode brings its own decisions. `docs/generation.md` section 106.
      */
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-23/gymrun-0.3.0');
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-24/gymrun-0.3.0');
     /*
      * Pinned literally, as the Branch 1 value was: a hash nobody can read off
      * the tree by eye is exactly the kind that moves without anyone noticing.
@@ -453,15 +455,23 @@ describe('the version axes', () => {
      * allowed list and the battle-step floor converts steps the old table left
      * alone. `docs/generation.md` section 100.
      *
-     * And for Defender Mode v0: three new hashed tables (`defender.ts`,
-     * `trainerClasses.ts`, and the IV rows in `scaling.ts`) and one excluded
-     * copy file, then step 3's defender relic list, step 4's badge numbers and
-     * step 5's consumables, trade numbers and the Stranger's Pass.
-     * No attacker number moved;
+     * And again for the berry gym reward patch, from `d4af80`, for one entry
+     * added to both gym bands of `data/rewardPools.ts`; `gymrun-randomizer-24`
+     * and `gymrun-run-23` arrive beside it. `docs/generation.md` section 101.
+     *
+     * And from `bd20d7` for the species-locked pool patch: twenty-four rows
+     * out of `data/abilities.ts` and three out of `data/movePools.ts`, with
+     * `gymrun-randomizer-25` beside it. `docs/generation.md` section 102.
+     *
+     * And for Defender Mode v0, merged onto that: three new hashed tables
+     * (`defender.ts`, `trainerClasses.ts`, and the IV rows in `scaling.ts`),
+     * the defender relic list, the badge numbers, the consumables, the trade
+     * numbers and the Stranger's Pass, with `gymrun-randomizer-26` and
+     * `gymrun-run-24` beside it. No attacker number moved;
      * `test/attacker-generation-golden.test.ts` is the proof.
-     * `docs/generation.md` section 101.
+     * `docs/generation.md` section 106.
      */
-    expect(CONTENT_HASH).toBe('564eda0ee3fac33d9df0f3e1710788bf2450ad5bd2226da8c01ca3b54a1eab5b');
+    expect(CONTENT_HASH).toBe('b85ac93912caa3e508f0d1451b13d0ec9d3c92cdf6bc6be007cf654f3fbf2cc6');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

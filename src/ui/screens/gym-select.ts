@@ -1,9 +1,9 @@
 /**
  * Gym type select: Fire, Psychic or Flying, one pick, the defender run's first
- * decision. **Defender Mode v0, bible Rev 24, D99 and D100.**
+ * decision. **Defender Mode v0, bible Rev 25, D100 and D101.**
  *
  * The locale screen's grammar: the instruction, then one card per option. A
- * card is the type chip and the badge's mark, zero words (D100's budget). What
+ * card is the type chip and the badge's mark, zero words (D101's budget). What
  * the badge does changes the pick, so it is the mark's press (C2, R5), from
  * `data/defenderCopy.ts` through the `badge:` tip kind, never a line at rest.
  *

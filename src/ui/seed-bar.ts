@@ -66,11 +66,17 @@ export interface SeedBar {
    * died on still shows whatever it was asking — so it is where the player is
    * told, and the Start beside it is the way out. See
    * `docs/spec/gymrun-patch-carry-on-softlock.md`.
+   *
+   * Opens the bar unless `open` is false. A notice with something to do about
+   * it (Start is the way out of a failed run, or begins a linked seed) opens
+   * it; one that only reports, like the outdated save, sits in the collapsed
+   * bar for the Seed toggle to show, because the author found the bar open on
+   * load and asked for it shut (`docs/spec/gymrun-patch-teach-screen-text-load.md`).
    */
-  warn(message: string): void;
+  warn(message: string, options?: { open?: boolean }): void;
   /**
    * The run mode the next Start, New seed or replay plays. **Defender Mode v0,
-   * bible Rev 24, D100**: two controls, one word each, pressed state on the
+   * bible Rev 25, D101**: two controls, one word each, pressed state on the
    * one in force. A resume plays the saved log's own mode, never this.
    */
   mode(): RunMode;
@@ -127,7 +133,7 @@ export function createSeedBar(): SeedBar {
   resume.hidden = true;
 
   /** The refusal, hidden until a foreign seed is submitted or arrives. */
-  // The mode choice: two controls, one word each (D100's budget of 2).
+  // The mode choice: two controls, one word each (D101's budget of 2).
   const modes = el('div', 'seedbar__modes');
   modes.setAttribute('role', 'group');
   modes.setAttribute('aria-label', MODE_COPY.label);
@@ -221,12 +227,12 @@ export function createSeedBar(): SeedBar {
     refuse,
     mode: () => current,
     setMode,
-    warn: (message) => {
+    warn: (message, options = {}) => {
       notice.textContent = message;
       notice.hidden = false;
       // A notice in a collapsed bar is hidden on a phone mid-run, which is
       // where the resume notices are raised. The opening playtest QA.
-      setCollapsed(false);
+      if (options.open !== false) setCollapsed(false);
     },
   };
 }

@@ -1,5 +1,5 @@
 /**
- * Defender Mode v0's screen words. **Bible Rev 24, D100.**
+ * Defender Mode v0's screen words. **Bible Rev 25, D101.**
  *
  * The budgets these sit under: the mode choice is 2 (one word per control),
  * the gym type select screen is 4 (the instruction), the pre-gym screen keeps

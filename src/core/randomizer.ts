@@ -377,21 +377,43 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * still picked by index. `docs/generation.md` section 100.
  */
 /*
- * ## `-24`: Defender Mode v0's draws
+ * ## `-24`: the gym pool deals a berry pick
  *
- * A second run mode, and a set of draws that did not exist: the defender
- * draft for all three gym types, the Fire badge's highlighted slot, class
- * teams, and (in later steps of the same branch) the waves, doors, recruit
- * drafts and trades. **No attacker draw moved**: every defender key starts
- * `defender/`, the attacker functions above are untouched, and
- * `test/attacker-generation-golden.test.ts` holds 200 whole attacker maps
- * byte-identical to their pre-branch mint. The axis moves because the prompt
- * asks for it and because a defender log recorded against `-23` would be a log
- * from a build that could not have generated it.
+ * One entry added to both bands of `GYM` in `data/rewardPools.ts`, so the
+ * weighted pick over the gym's page-2 table lands differently for the same
+ * float, and the entry it lands on resolves with **no draw at all**: a berry
+ * pick is the whole table and the player resolves it. An `item` entry spends
+ * one `pick`; this spends none, so the gym's `rewards` stream is consumed a
+ * different number of times on pages that deal it and every later draw on
+ * that stream shifts. That is composition and count both, which is this axis
+ * twice over. `RUN_LOG_VERSION` moves beside it to `-23` for the answer the
+ * card asks for, and `contentHash` for the table.
+ * `docs/spec/gymrun-patch-berry-gym-reward.md`, `docs/generation.md` section 101.
+ *
+ * ## `-25`: no species-locked ability or move
+ *
+ * Twenty-four abilities and three moves leave the generated pools: the ones
+ * whose engine handler only fires for a named species or type (Zen Mode, Stance
+ * Change, Aura Wheel, Double Shock) or turns any holder into a fixed species
+ * (Zero to Hero, Tera Shift). Rolled off-species they were blanks. Shorter
+ * lists, so the same float picks a different entry: composition, this axis.
+ * `contentHash` moves beside it for the tables.
+ * `docs/spec/gymrun-patch-species-locked-pool.md`, `docs/generation.md` section 102.
+ *
+ * ## `-26`: Defender Mode v0's draws, merged onto `-25`
+ *
+ * Defender Mode v0 was built on `-23` and took `-24` for its own draws while
+ * main took `-24` and `-25` for the two changes above, so the two `-24`s are
+ * different builds and the merge is a composition neither was. The mode adds
+ * a set of draws that did not exist: the defender draft for all three gym
+ * types, the Fire badge's highlighted slot, class teams, the waves, doors,
+ * recruit drafts and trades. **No attacker draw moved**: every defender key
+ * starts `defender/`, and `test/attacker-generation-golden.test.ts` holds 200
+ * whole attacker maps byte-identical to `-25`'s, minted on main.
  * `docs/spec/gymrun-defender-mode-v0-fun-test.md`, `docs/generation.md`
- * section 101.
+ * section 106.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-24';
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-26';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

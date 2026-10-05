@@ -77,7 +77,7 @@ export const GLYPH_FAMILIES = [
    */
   'currency',
   /**
-   * **The fourteenth, added 2026-10-05 under D99.** Defender Mode v0's three
+   * **The fourteenth, added 2026-10-05 under D100.** Defender Mode v0's three
    * gym badges: a flame (Fire's highlighted slot), an eye (Psychic's revealed
    * action), a wing (Flying's fifth move and Speed). Drawn only for a party
    * member carrying a defender run's gym type, so an attacker run never paints

@@ -157,7 +157,8 @@ describe('the version axes this patch moved', () => {
      * duplicate-card fix, which narrows a pool's candidates before every
      * weighted pick; `-21` is the gym level spread, where the same float off
      * the same key lands a gym member somewhere in a range instead of on one
-     * number.
+     * number; `-22` the wild and early-gym levels; `-23` the berry pick the
+     * gym pool deals, which resolves with no draw where an item spends one.
      */
     /*
      * `-22` is the wild and early-gym level columns, and `-23` the region
@@ -165,7 +166,10 @@ describe('the version axes this patch moved', () => {
      * the draw, and a floor of battle-only steps. `-24` is Defender Mode v0's
      * draws, all under `defender/` keys; no attacker draw moved.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-24');
+    // And `-24` the berry pick the gym pool deals, resolved with no draw;
+    // `-25` the species-locked abilities and moves out of the pools.
+    // `-26` Defender Mode v0's draws, merged onto `-25`.
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-26');
   });
 });
 

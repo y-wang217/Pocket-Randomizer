@@ -67,7 +67,7 @@ export interface PreGymView {
   tuning: Tuning;
   /**
    * A defender rank's boss, which has no leader and no type (ruling R6).
-   * **Bible Rev 24, D100**: the team size, bare, beside the gym mark, and the
+   * **Bible Rev 25, D101**: the team size, bare, beside the gym mark, and the
    * level as the party row writes one, in place of the leader name and the
    * type chip. Absent in an attacker run.
    */
@@ -202,7 +202,7 @@ export function createPreGymScreen(): PreGymScreen {
        * only ever reached by walking into a gym.
        */
       if (view.boss) {
-        // D100: the gym mark and the team size, then the level. No tip: a
+        // D101: the gym mark and the team size, then the level. No tip: a
         // boss has no blurb to open.
         const size = el('span', 'pre-gym__size');
         size.textContent = String(view.boss.size);

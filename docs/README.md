@@ -73,15 +73,15 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 [`spec/gymrun-defender-mode-v0-fun-test.md`](spec/gymrun-defender-mode-v0-fun-test.md),
 pre-code report and rulings
 [`reports/defender-mode-v0-report.md`](reports/defender-mode-v0-report.md),
-record [`generation.md`](generation.md) section 101. A second run mode chosen
+record [`generation.md`](generation.md) section 106. A second run mode chosen
 at run creation: the player is the gym leader, drafts a Fire, Psychic or
 Flying roster locked to that type, and defends eight ranks of waves and bosses.
 Thrown away if it is not fun by hand. **All seven steps are built, and the mode
 is playable in the app**: choose *Defend* in the seed bar and start a run. Step
 7, the UI, was stopped before code on four bible amendments
 ([`reports/defender-mode-v0-step7-bible.md`](reports/defender-mode-v0-step7-bible.md)),
-ruled as recommended into the design bible's Rev 24 (D99 to D102, the Badge
-glyph family the fourteenth), then built to it (`generation.md` 101.10, with
+ruled as recommended into the design bible's Rev 25 (D100 to D103, the Badge
+glyph family the fourteenth), then built to it (`generation.md` 106.10, with
 `scripts/smoke-defender.mjs` playing it by clicking). In order: the mode on the log and its guard, gym select, the
 draft for all three types, the type lock, the opponent IV table and trainer
 classes; then eight ranks of doors, an intermission and an untyped boss, with a
@@ -89,10 +89,12 @@ headless `playRun` to completion; then the Fire streak, the Psychic reveal and
 Flying's Speed and fifth move as format-level handlers; then Potions,
 trade cards, recruit drafts and the Stranger's Pass; then one benchmark row per
 gym type, mean bosses beaten Fire 2.55, Psychic 2.35, Flying 3.305 (200 seeds,
-`DEFENDER`, `balance.md` section 0). `RANDOMIZER_VERSION` → `-24`, `RUN_LOG_VERSION` → `-23`,
-`contentHash` → `564eda`, `AI_VERSION` held. Attacker generation is frozen by
-`test/attacker-generation-golden.test.ts`, and the sim fixture and visual
-baseline moved in their version stamps only.
+`DEFENDER`, `balance.md` section 0). Built as `RANDOMIZER_VERSION` `-24`,
+`RUN_LOG_VERSION` `-23` and `contentHash` `564eda` on the branch; **merged onto
+main's berry pick and species-locked pools** as `-26`, `-24` and `b85ac9`,
+with `AI_VERSION` held (`generation.md` 106.11). Attacker generation is frozen
+by `test/attacker-generation-golden.test.ts`, re-minted on main's `-25`, and the
+sim fixture and visual baseline moved in their version stamps only.
 
 **Also in flight, reapplied onto this tree on 2026-10-02: the Toll price gate,
 and a ceiling on a region with a floor under its fights.** Branch
@@ -446,6 +448,30 @@ attached the screen with no segment — and **a fixture that cannot produce the
 condition an item exists for cannot measure that item**, which is why M4.1 and
 M4.2 both moved the number by zero and said so rather than claiming a reduction.
 
+
+**In flight: no species-locked ability or move.** Branch
+`claude/species-locked-pool`, prompt
+[`spec/gymrun-patch-species-locked-pool.md`](spec/gymrun-patch-species-locked-pool.md),
+record [`generation.md`](generation.md) section 102, measurement
+[`balance.md`](balance.md) section 0. Twenty-four abilities (Zen Mode, Stance
+Change, Zero to Hero and the rest) and three moves (Aura Wheel, Hyperspace
+Fury, Double Shock) that only work for their owner leave the generated pools.
+`RANDOMIZER_VERSION` to `-25`, `contentHash` to `1ba856`; `RUN_LOG_VERSION` and
+`AI_VERSION` hold.
+
+**In flight: the gym deals a "pick a berry" card.** Branch
+`claude/berry-gym-rewards-gz15ms`, prompt
+[`spec/gymrun-patch-berry-gym-reward.md`](spec/gymrun-patch-berry-gym-reward.md),
+record [`generation.md`](generation.md) section 101, measurement
+[`balance.md`](balance.md) section 0. The author's message of 2026-09-25 said
+resist berries are not good gym reward items and a gym reward could instead
+be "pick a berry"; the brief recorded that no gym page could deal a berry, and
+the author ruled 2026-10-02 to build the card that opens a pick. A `berryPick`
+entry in both gym bands, a `berryPick` reward kind resolved with no draw, a
+`berry` decision and `chooseBerry` on the policy, the pick drawn on the result
+screen as fifteen item cards five across. `RANDOMIZER_VERSION` to `-24` and
+`RUN_LOG_VERSION` to `-23`, `contentHash` to `bd20d7`; `AI_VERSION` holds.
+Bible Rev 24, D99.
 
 **In flight: wild encounters below the curve, and gyms 1 to 3 one level
 lower.** Branch `claude/wild-pokemon-gym-balance-gpykz5`, prompt

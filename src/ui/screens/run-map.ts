@@ -186,7 +186,7 @@ export function renderHeading(state: RunState, segment: Segment): HTMLElement[] 
   const team = segment.gym.encounter?.team.length ?? 1;
   /*
    * **A defender rank's boss has no leader, no type and no blurb** (report
-   * ruling R6), so the heading drops all three, as D100's pre-gym variant
+   * ruling R6), so the heading drops all three, as D101's pre-gym variant
    * does, and keeps the number, the team size and the distance.
    */
   const defender = runMode(state) === 'defender';
@@ -643,14 +643,14 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
     const size = node.encounter?.team.length ?? 0;
     const name = el('span', 'node__name');
     // A defender boss has no leader: its team size, bare, as on the pre-gym
-    // screen (D100).
+    // screen (D101).
     name.textContent = options.defender ? String(size) : `${gymLeaderName(segment)}${size > 1 ? ` · ${size} Pokemon` : ''}`;
     element.append(name);
   }
 
   /*
    * **A defender door's challenger: the class name beside the trainer mark.
-   * Bible Rev 24, D100.** Identity, as a gym's leader name is (D46), and on
+   * Bible Rev 25, D101.** Identity, as a gym's leader name is (D46), and on
    * every row, since a walked door is named by who was behind it. Its types
    * are type chips on the step being chosen from only; an untyped class shows
    * none.

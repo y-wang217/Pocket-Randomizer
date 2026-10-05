@@ -52,9 +52,12 @@ const TIERS: readonly Tier[] = ['normal', 'hard', 'elite'];
  * because a Leftovers against a Charcoal is a real choice.
  */
 function decisionOf(reward: Reward): string {
+  // Fungible by kind: two coins, two heals, or two berry picks (one table, one
+  // choice) on a page are one card printed twice.
   switch (reward.kind) {
     case 'currency':
     case 'heal':
+    case 'berryPick':
       return reward.kind;
     case 'item':
       return `item:${reward.item}`;

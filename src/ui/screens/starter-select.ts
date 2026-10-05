@@ -53,7 +53,7 @@ export interface StarterSelect {
 
 /**
  * A defender draft or recruit pick on this screen. **Defender Mode v0, bible
- * Rev 24, D99**: the same card, with the heading the pick names and the Fire
+ * Rev 25, D100**: the same card, with the heading the pick names and the Fire
  * badge's flame on each card's highlighted slot when the gym is Fire. The
  * starter blurb is the attacker's and is hidden.
  */
@@ -141,7 +141,7 @@ export function createStarterSelect(): StarterSelect {
  */
 /**
  * A starter card, opened to its detail, for the inspect layer. **Defender Mode
- * v0, bible Rev 24, D101**: a trade's offered mon opens this card on its press,
+ * v0, bible Rev 25, D102**: a trade's offered mon opens this card on its press,
  * the one component that shows a Pokemon not yet in the party. Not a control:
  * the card's own tap does nothing here.
  */

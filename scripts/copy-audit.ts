@@ -87,12 +87,16 @@ import {
   SHOP_COPY,
   PARTY_COPY,
   REPLACE_COPY,
+  TARGET_CHOOSE,
   TARGET_COPY,
   TARGET_EFFECT,
   BATTLE_SPEED_HEADING,
   BATTLE_SPEED_COPY,
   DRAWER_COPY,
   REWARD_COPY,
+  CLAIM_COPY,
+  BUY_COPY,
+  BERRY_PICK_CLAIM_COPY,
   CAPTURE_SOURCE,
   KIND_HINTS,
   CAPTURE_FULL,
@@ -114,6 +118,7 @@ import { BADGE_COPY, BADGE_SCOPE, CONSUMABLE_COPY, CONSUMABLE_RULE } from '../sr
 import { TRAINER_CLASS_NAMES } from '../src/data/trainerClassCopy';
 import { OUTCOME_WORDS, TIER_ROWS } from '../src/ui/copy/summary';
 import * as hpCopy from '../src/core/hpCopy';
+import { BERRY_PICK_COPY } from '../src/core/hpCopy';
 import { THREAT_TITLE, THREAT_EXPLAINER, NO_THREATS } from '../src/core/typeMatchup';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -436,6 +441,17 @@ section({
 });
 
 section({
+  title: 'Confirm band (claim, buy, berry pick)',
+  where: 'The band that commits a reward card, a shop basket, or the berry a pick card opened.',
+  source: 'src/ui/copy/screens.ts',
+  rows: [
+    ...Object.entries(CLAIM_COPY).map(([key, value]) => ({ key: `claim.${key}`, text: value })),
+    ...Object.entries(BUY_COPY).map(([key, value]) => ({ key: `buy.${key}`, text: value })),
+    ...Object.entries(BERRY_PICK_CLAIM_COPY).map(([key, value]) => ({ key: `berryPick.${key}`, text: value })),
+  ],
+});
+
+section({
   title: 'Captures',
   where: 'The capture block after a wild win, and the release control on it.',
   source: 'src/ui/copy/screens.ts',
@@ -453,10 +469,10 @@ section({
   source: 'src/ui/copy/screens.ts',
   rows: [
     ...proseRows(TARGET_COPY, 'target.'),
+    { key: 'target.choose', text: TARGET_CHOOSE('Riolu').long, short: TARGET_CHOOSE('Riolu').short },
     ...proseRows(REPLACE_COPY, 'replace.'),
     { key: 'effect.known', text: TARGET_EFFECT.known('Flamethrower').long, short: TARGET_EFFECT.known('Flamethrower').short },
     { key: 'effect.free', text: TARGET_EFFECT.free('Flamethrower').long, short: TARGET_EFFECT.free('Flamethrower').short },
-    { key: 'effect.choose', text: TARGET_EFFECT.choose('Flamethrower').long, short: TARGET_EFFECT.choose('Flamethrower').short },
   ],
 });
 
@@ -498,10 +514,17 @@ section({
   where: 'The reward card, the shop shelf, and the item slot on the party screen.',
   source: 'src/data/items.ts',
   note: 'An item\u2019s name is the dex\u2019s and the engine keys on it, so only the effect line is rewritable. Both are listed; the name is here to read the line against. The lines moved to src/data/itemCopy.ts at M5.1 so rewriting one no longer moves contentHash.',
-  rows: ITEMS.flatMap((item) => [
-    { key: `${item.id} · name (fixed)`, text: item.name },
-    { key: `${item.id} · blurb`, text: itemCopy(item.id) },
-  ]),
+  rows: [
+    ...ITEMS.flatMap((item) => [
+      { key: `${item.id} · name (fixed)`, text: item.name },
+      { key: `${item.id} · blurb`, text: itemCopy(item.id) },
+    ]),
+    // The gym's "pick a berry" card: a choice, not an item, so its two lines
+    // are its own (`core/hpCopy.ts`) and not a dex entry's. The berry gym
+    // reward patch.
+    { key: 'berryPick · name', text: BERRY_PICK_COPY.name },
+    { key: 'berryPick · blurb', text: BERRY_PICK_COPY.line },
+  ],
 });
 
 section({
@@ -551,6 +574,7 @@ section({
     { key: 'move', text: FEED_COPY.move('Tackle') },
     { key: 'switch', text: FEED_COPY.switchTo('Pidgey') },
     { key: 'reward', text: FEED_COPY.reward('TM: Surf') },
+    { key: 'berry', text: FEED_COPY.berry('Chople Berry') },
     { key: 'shop', text: FEED_COPY.shop(['Sitrus Berry']) },
     { key: 'shop · nothing', text: FEED_COPY.shop([]) },
     { key: 'event', text: FEED_COPY.event('Take what is loose') },
@@ -569,7 +593,7 @@ section({
 
 section({
   title: 'Defender Mode v0',
-  where: 'The mode choice in the seed bar, the gym type select screen, the draft and recruit headings, the trade card\'s accessible name, the Bag\'s refused use, and the decision feed\'s lines for the mode\'s decisions. Bible Rev 24, D99 to D102. Shown with sample names.',
+  where: 'The mode choice in the seed bar, the gym type select screen, the draft and recruit headings, the trade card\'s accessible name, the Bag\'s refused use, and the decision feed\'s lines for the mode\'s decisions. Bible Rev 25, D100 to D103. Shown with sample names.',
   source: 'src/ui/copy/defender.ts',
   rows: [
     ...Object.entries(MODE_COPY).map(([key, text]) => ({ key: `mode · ${key}`, text })),
@@ -589,7 +613,7 @@ section({
 
 section({
   title: 'Defender Mode v0, inspect and names',
-  where: 'What each gym badge does, on any badge mark\'s press; each consumable\'s effect line, at rest in the Bag and on its press; and the trainer class names at the door. Bible Rev 24, D99 to D101.',
+  where: 'What each gym badge does, on any badge mark\'s press; each consumable\'s effect line, at rest in the Bag and on its press; and the trainer class names at the door. Bible Rev 25, D100 to D102.',
   source: 'src/data/defenderCopy.ts, src/data/trainerClassCopy.ts',
   rows: [
     ...Object.entries(BADGE_COPY).flatMap(([type, copy]) => [

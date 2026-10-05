@@ -1,8 +1,8 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 24, Oct 5, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 25, Oct 5, 2026.
 
-**Rev 24** carries four amendments, D99 to D102, for Defender Mode v0, a
+**Rev 25** carries four amendments, D100 to D103, for Defender Mode v0, a
 second run mode built as a fun test
 ([`../spec/gymrun-defender-mode-v0-fun-test.md`](../spec/gymrun-defender-mode-v0-fun-test.md)).
 The mode's step 7 read this document before any UI and stopped on section
@@ -13,7 +13,7 @@ and the author took every recommendation (*"Go with recommendations. Amend
 bible for glyphs. Then step 7"*,
 [`../spec/gymrun-defender-mode-v0-rulings-d99-d102.md`](../spec/gymrun-defender-mode-v0-rulings-d99-d102.md)),
 recorded in [`playtest-log.md`](playtest-log.md) as the author's directive, not
-a registered disconfirmer. **D99**: a fourteenth glyph family, *Badge*, three
+a registered disconfirmer. **D100**: a fourteenth glyph family, *Badge*, three
 marks, drawn only for a party member carrying a defender run's gym type. The
 **flame** sits on the Fire badge's highlighted move slot on every move card and
 move chip that shows that member's moves, and on the battle button the next
@@ -22,17 +22,37 @@ opposing battle panel beside the opponent's committed action for this turn, a
 move chip for a move or the incoming species' name for a switch, never on a
 forced replacement. The **wing** sits on Flying's fifth button and in the
 player's Speed cell, which under the badge carries the number the engine reads
-(the stored stat, the stage, then the badge's 1.1x), extending D98. **D100**:
+(the stored stat, the stage, then the badge's 1.1x), extending D98. **D101**:
 four budget rows, for the mode choice, the gym type select screen, a defender
 door's node card (the class name beside the trainer glyph as identity, as a
 gym's leader name is, and its types as type chips) and a defender boss's
 pre-gym screen (team size and level in the slots of the leader and the type
-chip). **D101**: two reward card faces, a consumable's sprite and a trade's
+chip). **D102**: two reward card faces, a consumable's sprite and a trade's
 two sprites with their species names, and consumables in the Bag as carried
-items under R13, used by D97's two taps. **D102**: Flying's fifth button mounts
+items under R13, used by D97's two taps. **D103**: Flying's fifth button mounts
 `renderMove` exactly as the four do, in its own fixed slot outside the 2x2
 grid: one call site rendered five times, not a third. Nothing here applies to an
 attacker run, which draws no badge, no door and no consumable.
+Rev 25's four amendments were proposed and ruled as D99 to D102 on the
+mode's branch, while main took Rev 24 and D99 for the berry pick; they were
+renumbered D100 to D103 when the branch merged, and the proposal and the
+ruling keep their own numbers as the record of what was asked
+([`../generation.md`](../generation.md) 106.11).
+
+**Rev 24** carries one amendment, D99, from the author's ruling of 2026-10-02
+on the berry gym reward brief
+([`../spec/gymrun-patch-berry-gym-reward.md`](../spec/gymrun-patch-berry-gym-reward.md)):
+*"build the card that opens a pick."* **D99**: a gym's reward page can deal a
+"pick a berry" card, and the card is a choice rather than an object. Section
+5's Reward card row names its face, a fan of three berry sprites in the item
+slot, the first three of the card's own table so the fan cannot read as a
+hint, with the name and the one effect line on the press as on every item
+card; and names the pick it opens, drawn on the result screen in the cards'
+place as one item card per berry in the same component, five across, selected
+only after a tap and claimed by the band's commit. Section 4's item row and
+section 3's Berry row say the same. C1 is untouched: the berries render in
+table order, none selected, none marked. Recorded in
+[`playtest-log.md`](playtest-log.md) as the author's directive.
 
 **Rev 23** carries five amendments, D94 to D98, from the author's message of
 2026-10-02 against production R22 on an iPhone
@@ -476,7 +496,7 @@ Amended 2026-09-30 (D50). This rule read: *"Simple and Detailed stay for one val
 
 **R7. The first exposure carries the label, the tenth does not.** The first time a glyph family appears for this player, a small label renders beside it for that screen. The label returns once more on the third exposure, then never. Exposure count persists across runs in the settings store, beside the tutorial flags.
 Forbids: permanent labels on glyphs; shipping a glyph family that never gets a label.
-Enforce: ten glyph families are tracked (type, category, band, PP, accuracy, priority, effectiveness, status, stat, capability). A test asserts each family's label renders on exposure 1 and 3 and not on exposure 4. The badge family (2026-10-05, D99) is tracked like every other: `data/glyphFamilies.ts` is the list the store and the test read, and the count in this sentence is the Rev 1 roster. The tenth was added 2026-09-22 (D37); this line and the count below still read nine until M5.6 found them, which is why R7's own forbid — *"shipping a glyph family that never gets a label"* — is the reason they are corrected rather than left.
+Enforce: ten glyph families are tracked (type, category, band, PP, accuracy, priority, effectiveness, status, stat, capability). A test asserts each family's label renders on exposure 1 and 3 and not on exposure 4. The badge family (2026-10-05, D100) is tracked like every other: `data/glyphFamilies.ts` is the list the store and the test read, and the count in this sentence is the Rev 1 roster. The tenth was added 2026-09-22 (D37); this line and the count below still read nine until M5.6 found them, which is why R7's own forbid — *"shipping a glyph family that never gets a label"* — is the reason they are corrected rather than left.
 
 **R8. Forecast on the button, feedback on the target, same vocabulary, never the same place.** Pre-selection effectiveness sits on the move button (the C1 exception), and on each benched member's moves in the switch pane, against the Pokemon on the field (2026-10-01, D92). Post-resolution outcomes appear on the Pokemon that was hit, in resolution order.
 Forbids: rendering post-resolution flags on move buttons; rendering the forecast on the opponent panel; deriving one from the other.
@@ -511,7 +531,7 @@ Enforce: the vital list is this rule's text and nothing else; adding a fact to i
 
 ## 2. Canonical vocabulary
 
-Fourteen glyph families (2026-10-05, D99; thirteen under D54, 2026-09-30; twelve under D47, 2026-09-25; eleven under D46 the same day, ten under D37, 2026-09-22). Adding a fifteenth is an amendment.
+Fourteen glyph families (2026-10-05, D100; thirteen under D54, 2026-09-30; twelve under D47, 2026-09-25; eleven under D46 the same day, ten under D37, 2026-09-22). Adding a fifteenth is an amendment.
 
 **A control's icon is not a glyph** (2026-09-30, D54). The shell nav's five tab icons sit beside their words, are `aria-hidden`, and name a place to go rather than an attribute, so they are outside this roster and carry no exposure label.
 
@@ -530,7 +550,7 @@ Fourteen glyph families (2026-10-05, D99; thirteen under D54, 2026-09-30; twelve
 | Node | One glyph per node kind: a head (trainer), a bush (wild), a tent (rest), a badge (gym), a bag (shop), a question mark (event). On the map node card at 24, on the battle screen header at 16 (2026-09-25, D46) | Neutral |
 | Field | Nine glyphs for the state of the board: rain, sun, sand, snow, strong winds, and the four terrains. Heavy rain and Extreme sun wear the rain and sun marks and differ on inspect. At 16 in a fixed slot on the battle screen header, dimmed while an ability suppresses the weather. The battle backdrop behind the stage carries the same state as a wash and a terrain tint, colour secondary to the glyph (2026-09-25, D47; on the backdrop, not the world, 2026-09-30, D60) | Neutral glyph; the wash and tint are global tokens mixed into the backdrop's own |
 | Currency | One mark, beside a bare number wherever a coin amount appears: the map node's payout, the shop price, the wallet, a coins card (2026-09-30, D54 and D66) | Neutral |
-| Badge | Three marks, one per defender gym type, drawn only for a party member carrying that type in a defender run: a flame (Fire's highlighted move slot), an eye (Psychic's revealed action), a wing (Flying's fifth move and Speed). On the gym type select card, the type's mark beside its type chip (2026-10-05, D99) | Neutral |
+| Badge | Three marks, one per defender gym type, drawn only for a party member carrying that type in a defender run: a flame (Fire's highlighted move slot), an eye (Psychic's revealed action), a wing (Flying's fifth move and Speed). On the gym type select card, the type's mark beside its type chip (2026-10-05, D100) | Neutral |
 
 Font: Pixelify Sans, blanket, per the 4.7.1 decision. If the numeral font jitters on HP and PP counters, `--font-numeral` falls back to the mono stack, one line, and this table is annotated.
 
@@ -558,7 +578,7 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Six stats | Glyph, number and band bar, at rest on every surface that carries them (R13). Always all six. Party order. The bar is empty at the band's floor and full at its ceiling: the lowest and highest value the stat takes at this Pokemon's level across the species the randomizer may field there. One neutral colour, never a colour by fraction (2026-10-01, D88; glyph and number under D81 and D82; glyph, bar against a flat ceiling, number from Rev 1 to Rev 19) | Never hidden | Stat definition, and the band at this level |
 | Stat change (capture card, on a swap) | On each member card, beside each of the six numbers, the signed difference the incoming Pokemon would make in that slot, green when it rises, red when it falls. All six, every member, party order (2026-10-01, D84) | Zero renders nothing; no swap (room in the party) renders no row | The stat's definition, and both numbers |
 | Held item | Item sprite in a fixed slot. In the bag's list, the sprite, the name and the effect line, at rest (R13, 2026-10-01, D81) | Empty slot renders nothing | Name, one effect line |
-| Berry | Berry sprite, same slot | Empty slot renders nothing | Name, trigger condition (the one place a sentence survives) |
+| Berry | Berry sprite, same slot. On the gym's "pick a berry" card, three berry sprites fanned in that slot, the first three of the card's table; the chosen berry alone once the pick is answered (2026-10-02, D99) | Empty slot renders nothing | Name, trigger condition (the one place a sentence survives). On the pick card, its name and one effect line |
 | Relic | Relic icon, from the asset manifest, in the relic row and on the relic card. On the card, the capability glyph it satisfies sits beside it, the map node's glyph without its chevron (2026-09-30, D65 and D66) | None | Name, capability it satisfies, effect |
 | Coverage (starter detail) | Two rows of type chips after their labels: the types the selected starter's damaging moves hit for 2x or more, and the types that hit its typing for more than 1x. Type chart only, type wheel order, never sorted by anything else (2026-10-01, D80) | An empty row renders nothing | The type chip's own inspect: its matchups |
 | Coverage change (capture card) | Two rows of type chips, plus row and minus row, signs only. The signs are permanent, not an exposure label: coverage is not a glyph family (2026-09-19, D5) | Empty row renders nothing | The full before and after sets |
@@ -569,14 +589,14 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Shop shelf (map node) | How many items, as a bare number, and the cheapest price as a coin amount (2026-09-30, D77) | Never hidden on the step being chosen from | The shelf line: how many are on the shelf, and from what price |
 | Node kind (map node, battle header) | Kind glyph. A gym's leader name beside it, a proper noun, is the identity and not the kind (2026-09-25, D46) | Never hidden | The kind's hint, from `KIND_HINTS` |
 | Archetype | Not rendered where the stat block already draws the six numbers (4.8.0.3; bars until D82) | Absent | Not on inspect either; it is a derived label and can lie under randomization |
-| Gym badge (defender gym type select) | The type chip and the badge's mark (2026-10-05, D99) | Never hidden | What the badge does, from `badgeCopy` |
-| Fire highlight (defender) | The flame on the highlighted slot, on every move card and move chip of a Fire-carrying member: draft and recruit cards, the party row, the battle button (D99) | Absent: an attacker run, a non-Fire member, or a member with no damaging move | The streak rule: +1, +2, +3 crit stages on consecutive uses, reset by any other move, a switch or a faint |
-| Fire next-use crit chance (defender) | On the battle button only, a bare percentage beside the flame: 12, 50, 100 (D99) | Absent where the flame is | The stage the next use carries |
-| Foe intent (defender, Psychic) | The eye on the opposing battle panel, beside a move chip (the opponent's committed move) or the incoming species' name (a committed switch), before the player chooses (D99) | Absent: a forced replacement, an off-type active member, an attacker run | What the badge reveals, and that a forced replacement is never revealed |
-| Fifth move (defender, Flying) | The battle button, its own fixed slot outside the 2x2 grid, the wing beside the name. Once per battle is the PP glyph's own 1, max dimmed (D99, D102) | Absent | The once-per-battle rule, Peck before the final stage and Pluck at it |
-| Badge Speed (defender, Flying) | In the player's Speed cell, the number the engine reads, with the wing beneath it in place of a stage count when there is no stage (D99, extending D98) | Absent: no badge, the plain stored stat | The stored stat, the stage, and the 1.1x |
-| Consumable (defender) | The item sprite in the reward card's sprite slot; in the Bag's list, the sprite, the name and the effect line at rest (R13) (2026-10-05, D101) | Absent | Name, effect line from `consumableCopy` |
-| Trade (defender) | Two sprites in fixed slots, the offered mon on the left and the member asked for on the right, each with its species name (D101) | Absent | The offered mon's starter card; the member's party row |
+| Gym badge (defender gym type select) | The type chip and the badge's mark (2026-10-05, D100) | Never hidden | What the badge does, from `badgeCopy` |
+| Fire highlight (defender) | The flame on the highlighted slot, on every move card and move chip of a Fire-carrying member: draft and recruit cards, the party row, the battle button (D100) | Absent: an attacker run, a non-Fire member, or a member with no damaging move | The streak rule: +1, +2, +3 crit stages on consecutive uses, reset by any other move, a switch or a faint |
+| Fire next-use crit chance (defender) | On the battle button only, a bare percentage beside the flame: 12, 50, 100 (D100) | Absent where the flame is | The stage the next use carries |
+| Foe intent (defender, Psychic) | The eye on the opposing battle panel, beside a move chip (the opponent's committed move) or the incoming species' name (a committed switch), before the player chooses (D100) | Absent: a forced replacement, an off-type active member, an attacker run | What the badge reveals, and that a forced replacement is never revealed |
+| Fifth move (defender, Flying) | The battle button, its own fixed slot outside the 2x2 grid, the wing beside the name. Once per battle is the PP glyph's own 1, max dimmed (D100, D103) | Absent | The once-per-battle rule, Peck before the final stage and Pluck at it |
+| Badge Speed (defender, Flying) | In the player's Speed cell, the number the engine reads, with the wing beneath it in place of a stage count when there is no stage (D100, extending D98) | Absent: no badge, the plain stored stat | The stored stat, the stage, and the 1.1x |
+| Consumable (defender) | The item sprite in the reward card's sprite slot; in the Bag's list, the sprite, the name and the effect line at rest (R13) (2026-10-05, D102) | Absent | Name, effect line from `consumableCopy` |
+| Trade (defender) | Two sprites in fixed slots, the offered mon on the left and the member asked for on the right, each with its species name (D102) | Absent | The offered mon's starter card; the member's party row |
 
 Disappears from every default view: field labels, type names, category words, accuracy at 100, priority at 0, item names, the coverage sentence, the battle log.
 
@@ -591,7 +611,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Battle move button | 0 | Name |
 | Move card (reward, TM shelf, recipient, replacement, confirm) | 0 | Name |
 | Move chip (compact list form) | 0 | Name |
-| Item, berry or relic reward card | 8 | **None** — the face is the sprite, or the relic's icon and capability glyph; name and effect line are inspect facts (2026-09-22, D36; the relic's name joined them 2026-09-30, D66) |
+| Item, berry or relic reward card | 8 | **None** — the face is the sprite, or the relic's icon and capability glyph; name and effect line are inspect facts (2026-09-22, D36; the relic's name joined them 2026-09-30, D66). The berry pick card is a fan of three berry sprites, and the fifteen cards it opens are item cards (2026-10-02, D99) |
 | Coins reward card | 0 | **None** — `+N` beside the currency glyph. The word *coins* and what they buy are inspect facts (2026-09-30, D66) |
 | Restore reward card | 0 | **None** — `+N%` beside a bar filled to N. What it restores (HP, PP, status, the whole party) is an inspect fact (2026-09-30, D66) |
 | Recipient / teach target card | 0 | Species name |
@@ -608,14 +628,14 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Starter card | 0 plus the ability name | Species name, ability name. The moves are move chips; the stats are the detail panel's stat block (2026-10-01, D78; move cards and the block on the card under D40, 2026-09-23) |
 | Starter detail panel | 5 | The two coverage labels and the *Choose* control. The stat block is glyphs, numbers and band bars (2026-10-01, D79, D80 and D88). The panel sits over the selected card's move column (D89) |
 | Pre-gym screen | 4 | Gym leader name, type chip, "Choose lead" |
-| Pre-gym screen, defender boss | 4 | "Choose lead". The team size as a bare number beside the gym glyph and the level as the party row writes it, in the slots of the leader name and the type chip (2026-10-05, D100) |
-| Mode choice (run creation) | 2 | The two mode words, one per control (2026-10-05, D100) |
-| Gym type select screen | 4 | The instruction, the locale screen's figure. Each card is a type chip and the badge's mark, zero words; what the badge does is the card's inspect (2026-10-05, D100) |
-| Consumable or trade reward card | 0 | **None** — a consumable is its sprite, a trade its two sprites and two species names, proper nouns (2026-10-05, D101) |
+| Pre-gym screen, defender boss | 4 | "Choose lead". The team size as a bare number beside the gym glyph and the level as the party row writes it, in the slots of the leader name and the type chip (2026-10-05, D101) |
+| Mode choice (run creation) | 2 | The two mode words, one per control (2026-10-05, D101) |
+| Gym type select screen | 4 | The instruction, the locale screen's figure. Each card is a type chip and the badge's mark, zero words; what the badge does is the card's inspect (2026-10-05, D101) |
+| Consumable or trade reward card | 0 | **None** — a consumable is its sprite, a trade its two sprites and two species names, proper nouns (2026-10-05, D102) |
 | Confirm overlay (replace) | 6 | "Replace Tackle with Fire Punch?" |
 | Confirm overlay (decline) | 6 | "Forfeit this reward?", and the band's two controls (2026-09-21, D22) |
 | Confirm band (claim, buy) | 6 | The question, and the band's two controls. The card or cards being claimed are the content, at their own budgets (2026-09-30, D69) |
-| Map node card | 1 | AI tier. The payout's unit is the currency glyph (2026-09-30, D54; was 2 under D46, 2026-09-25; 3 under D37, 2026-09-22); the kind is the node glyph. On a defender door, the class name beside the trainer glyph is identity, as a gym's leader name is, and is not counted; the class's types are type chips, on the step being chosen from (2026-10-05, D100) |
+| Map node card | 1 | AI tier. The payout's unit is the currency glyph (2026-09-30, D54; was 2 under D46, 2026-09-25; 3 under D37, 2026-09-22); the kind is the node glyph. On a defender door, the class name beside the trainer glyph is identity, as a gym's leader name is, and is not counted; the class's types are type chips, on the step being chosen from (2026-10-05, D101) |
 | Shop stock card | 8 | **None** — one component with the reward card since M5.1, plus a bare price number (2026-09-22, D29 and D36) |
 | Shell nav | 5 | Map, Team, Bag, Run Info, Settings. One word per tab; the icons are controls, not glyphs (2026-09-30, D54) |
 | Run Info screen and desktop sidebar | Unbudgeted | Read-only readouts, like the archive: the decision feed (R11's carve-out) and the run's position. Never a decision surface (2026-09-30, D53 and D55) |
@@ -719,10 +739,10 @@ One component per attribute cluster. A screen mounts components; it never draws 
 
 | Component | Owns | Call sites today |
 |---|---|---|
-| Move card | Name, type chip, category glyph, BP, PP, band pips, accuracy, priority, describeMove icon strip; in a defender run, the badge's flame on a highlighted slot (2026-10-05, D99) | `moveFacts` (seven card surfaces; starter select added 2026-09-23, D40) and `renderMove` (battle button). Two call sites is the accepted shape; a third is an amendment. **Flying's fifth button is `renderMove`**, rendered once more in its own fixed slot outside the 2x2 grid with the wing beside its name: one call site rendered five times, not a third (2026-10-05, D102) |
-| Move chip | Name, type chip, category glyph, BP; in a defender run, the flame on a highlighted slot (D99) | Replacement and teach lists, the starter card (2026-10-01, D78), the Team screen's *Moves* view, where each chip carries its PP beside it (2026-10-02, D96), and the opposing battle panel's revealed move under the eye (2026-10-05, D99) |
-| Stat block | Six cells of glyph, number and band bar, at rest (2026-10-01, D88; no bar under D82; glyph, bar against a flat ceiling, number until then). The band is the Pokemon's level's, read off the species pool and the stat formula, never drawn. On a swap, each cell carries the stat change beside its number (D84). In battle on the player's panel, a cell with a stage carries the stage instead: its number as the stage makes it, the stage count beneath, coloured by sign (2026-10-02, D98). Under a defender run's Flying badge the Speed cell carries the number the engine reads, the wing beneath it where no stage count is (2026-10-05, D99) | Party row (out of the fold, D83), recipient, capture (the offered card, and every member card on a swap, D84), pre-gym, the starter detail panel (D79), the battle panel on the player's side (D83), and the Team screen's *Stats* view as one row per member (2026-10-02, D96) |
-| Pokemon panel | Name, level, gender, HP bar and number, status chips, volatile chips, ability name, stat stage ladder (the foe's, and accuracy and evasion on the player's; the player's five ride the stat block from 2026-10-02, D98), item sprite, priority chevron (2026-09-19, D6; volatiles and ability 2026-09-21, D19), and on the player's side the stat block (2026-10-01, D83). On the opposing side in a defender run under the Psychic badge, the eye and the opponent's committed action, a move chip or the incoming species' name (2026-10-05, D99) | Battle |
+| Move card | Name, type chip, category glyph, BP, PP, band pips, accuracy, priority, describeMove icon strip; in a defender run, the badge's flame on a highlighted slot (2026-10-05, D100) | `moveFacts` (seven card surfaces; starter select added 2026-09-23, D40) and `renderMove` (battle button). Two call sites is the accepted shape; a third is an amendment. **Flying's fifth button is `renderMove`**, rendered once more in its own fixed slot outside the 2x2 grid with the wing beside its name: one call site rendered five times, not a third (2026-10-05, D103) |
+| Move chip | Name, type chip, category glyph, BP; in a defender run, the flame on a highlighted slot (D100) | Replacement and teach lists, the starter card (2026-10-01, D78), the Team screen's *Moves* view, where each chip carries its PP beside it (2026-10-02, D96), and the opposing battle panel's revealed move under the eye (2026-10-05, D100) |
+| Stat block | Six cells of glyph, number and band bar, at rest (2026-10-01, D88; no bar under D82; glyph, bar against a flat ceiling, number until then). The band is the Pokemon's level's, read off the species pool and the stat formula, never drawn. On a swap, each cell carries the stat change beside its number (D84). In battle on the player's panel, a cell with a stage carries the stage instead: its number as the stage makes it, the stage count beneath, coloured by sign (2026-10-02, D98). Under a defender run's Flying badge the Speed cell carries the number the engine reads, the wing beneath it where no stage count is (2026-10-05, D100) | Party row (out of the fold, D83), recipient, capture (the offered card, and every member card on a swap, D84), pre-gym, the starter detail panel (D79), the battle panel on the player's side (D83), and the Team screen's *Stats* view as one row per member (2026-10-02, D96) |
+| Pokemon panel | Name, level, gender, HP bar and number, status chips, volatile chips, ability name, stat stage ladder (the foe's, and accuracy and evasion on the player's; the player's five ride the stat block from 2026-10-02, D98), item sprite, priority chevron (2026-09-19, D6; volatiles and ability 2026-09-21, D19), and on the player's side the stat block (2026-10-01, D83). On the opposing side in a defender run under the Psychic badge, the eye and the opponent's committed action, a move chip or the incoming species' name (2026-10-05, D100) | Battle |
 | Party row | Species, level, gender, HP bar and number, status chips, ability name, item sprite, the stat block at rest (2026-10-01, D83), four move cards, which fold | Drawer, party screen, pre-gym, teach target, **capture card** (call sites corrected 2026-09-21; ability, gender and the block, D19 and M3.2; **cards not chips**, D21a re-ruled 2026-09-21; capture added 2026-09-22, D29, and M5.4 is the item that makes it true; the map rail call site removed with the map's party HUD, 2026-09-30) |
 | Type chip | Glyph in colour | Everywhere a type appears |
 | Inspect layer | The full explanation of whatever was long-pressed | One mechanism, mounted at the shell |
@@ -730,7 +750,7 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Battle screen header | Node glyph at 16, opponent, AI tier, field glyph at 16 in a fixed slot after the tier, and the turn header at the row's end (2026-09-25, D46 and D47; the kind was a word under D28, 2026-09-21; the turn, 2026-09-30, D58) | Battle |
 | World | The locale's three layers and drift, behind the game frame (2026-09-25, D47; the field state moved to the scene backdrop, 2026-09-30, D60). Before the first region, on the starter screen and the region picker, the opening painting from the asset manifest in their place, and nothing else (2026-10-01, D87) | Every screen, mounted once by `app.ts`, outside the frame |
 | Scene backdrop | The game screen's painted scene inside the frame, from the asset manifest: the locale's battle backdrop, or the gym's, behind the battle stage; the locale's map backdrop behind the map. During a battle, the field state as a weather wash and a terrain tint over it, global tokens mixed into the backdrop's own. A missing file is the manifest's placeholder at the correct size (2026-09-30, D60) | The battle stage and the map, inside the frame. Never outside it: that is the World's |
-| Reward card | A defender consumable's sprite in the same slot, and a trade's two sprites and species names (2026-10-05, D101). The item or berry sprite in a fixed slot, a relic's icon and the capability glyph it satisfies (2026-09-30, D65 and D66), the boosted type chip, the move card on a move kind, with no TM disc (D67 and D71), `+N` beside the currency glyph on coins and `+N%` beside a bar on a restore (D66), and the shop's price beside the currency glyph (2026-09-22, D29 and D36). Three across where they fit, stacked where they do not. **Selected only after a tap**: no card carries the selected state before the player puts it there, and the claim is the Confirm band's commit (2026-09-30, D69) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |
+| Reward card | A defender consumable's sprite in the same slot, and a trade's two sprites and species names (2026-10-05, D102). The item or berry sprite in a fixed slot, a relic's icon and the capability glyph it satisfies (2026-09-30, D65 and D66), the boosted type chip, the move card on a move kind, with no TM disc (D67 and D71), `+N` beside the currency glyph on coins and `+N%` beside a bar on a restore (D66), the shop's price beside the currency glyph (2026-09-22, D29 and D36), and on the gym's "pick a berry" card a fan of three berry sprites in the item slot, the first three of its table, never a resist berry (2026-10-02, D99). Three across where they fit, stacked where they do not. **The berry pick opens in the cards' place on the result screen**: one item card per berry, five across, the same component and the same claim band, with a cancel that returns to the berries and never past them (D99). **Selected only after a tap**: no card carries the selected state before the player puts it there, and the claim is the Confirm band's commit (2026-09-30, D69) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |
 | Shell nav | Five tabs, each a word and a control icon: Map, Team, Bag, Run Info, Settings. **A tab opens a screen, not an overlay** (2026-09-30, D53). Opened while a decision is pending elsewhere, the screen is a readout: it never advances run state, never submits, never consumes RNG, and closing it returns to the pending decision, which is the §12 standing rule's three properties carried from the drawer to the screen. Map from anywhere but the map is the chain without its picker, so there is still exactly one path by which a node completes. **Narrowed 2026-10-02 (D94, D95):** the readout property holds in a battle only. Outside one, Team opens the writable party screen and Bag the writable bag screen from every surface; neither submits the pending decision, and an item layout made there is applied at the next question (between nodes) or at the resolving node's boundary (while one is open), so it always reaches the next fight. Reorder and release are offered between nodes only. In a battle both are the readout, with no editing control drawn | The shell, every viewport. Replaces the drawer triggers |
 | Run Info screen | The decision feed, newest first, and the run's position: gym rail, locale, seed (2026-09-30, D53 and D55) | The Run Info tab. The desktop sidebar mounts the same feed |
 | Map node card | Node glyph at 24 with the leader's name on a gym, then beneath it the tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29; the glyph exists and the pips sit beneath it since 2026-09-25, D46). **On the map screen's graph, the step being chosen from carries the whole card, its detail line included** (the payout as the currency glyph and a number, the AI tier, a shop's shelf as a count and a coin amount; never the kind's hint, which is the glyph's inspect, D77). **Every other row carries the node glyph (and a gym's leader), the tier pips and the capability glyph with its chevron, and nothing else at rest**; the rest of the card is on the node glyph's long press. Where the frame is too short for even that, those rows keep the glyph alone, with the rest on the same press. **Since 2026-10-01 (D85) a later row, one not yet reached, keeps the glyph alone at every height**: the tier pips and the capability chevron join the rest of the card on the press, and only the row being chosen from and the walked rows carry them at rest. Off the chosen row the disc has no ring; the glyph sits on a soft token over the painting A node's place on the graph is its option index within its step against the scene backdrop's slot grid, never a hash or a draw (2026-09-30, D63 and D75) | The map screen and the map drawer |
@@ -848,10 +868,10 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | The map's later rows lose nothing (2026-09-30, D63; the pips and chevron off later rows 2026-10-01, D85) | A tester routes toward a node two or more steps ahead and is surprised by what it paid or how its opponent played, or long-presses more than half the later nodes before every pick | The detail line returns to every row that fits it, and the map drops a row of chrome to make the room |
 | Six-word hints carry the shape of a risk (2026-09-22, D33) | A tester cannot say which of two options is the variable one, or presses a button expecting no cost and is charged | The hints go back up, and the row rises with them rather than the hints being dropped |
 | Move chips suffice for the discard decision | Testers expand every chip to a full card before choosing | Chips gain PP at rest, still no words |
-| Fourteen glyph families is the right size (2026-10-05, D99; thirteen under D54, 2026-09-30; twelve under D47, 2026-09-25; eleven under D46, ten under D37, 2026-09-22) | Testers confuse any two glyphs after labels fade | One of the pair becomes a word permanently |
-| The eye reads as the opponent's action, not a hint (2026-10-05, D99) | A tester says the game told them which move to use, or reads the revealed move as their own | The move chip goes and the move name alone stays, behind the eye's press |
-| The crit percentage reads as a chance, not accuracy (2026-10-05, D99) | A tester reads it as hit chance | The percentage moves to the flame's press, and the flame alone stays at rest |
-| The class name at the door reads as identity, not a difficulty (2026-10-05, D100) | A tester picks by class name alone and is surprised by the tier, or asks which class is harder | The class name moves to the trainer glyph's press, and the type chips stay |
+| Fourteen glyph families is the right size (2026-10-05, D100; thirteen under D54, 2026-09-30; twelve under D47, 2026-09-25; eleven under D46, ten under D37, 2026-09-22) | Testers confuse any two glyphs after labels fade | One of the pair becomes a word permanently |
+| The eye reads as the opponent's action, not a hint (2026-10-05, D100) | A tester says the game told them which move to use, or reads the revealed move as their own | The move chip goes and the move name alone stays, behind the eye's press |
+| The crit percentage reads as a chance, not accuracy (2026-10-05, D100) | A tester reads it as hit chance | The percentage moves to the flame's press, and the flame alone stays at rest |
+| The class name at the door reads as identity, not a difficulty (2026-10-05, D101) | A tester picks by class name alone and is surprised by the tier, or asks which class is harder | The class name moves to the trainer glyph's press, and the type chips stay |
 | Reward-tier pips read as a range, not a rating (2026-09-22, D33) | A tester reads more filled pips as a recommendation, or cannot say which options can pay the same thing | The tier letters return beside the pips, and the row rises by four |
 | The field factor on the button reads as a fact, not a hint (2026-09-25, D49) | A tester says the button is telling them what to pick, or picks a field-boosted move into an immunity and says the number sent them | The multiplier returns to the plain type factor and the field's part of it moves to inspect |
 | R7, three exposures is the right count | Inspect rate on a family has not fallen by run three | Count becomes a tuning number per family |

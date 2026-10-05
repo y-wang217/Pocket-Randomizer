@@ -39,6 +39,7 @@ import {
 } from '../src/core/run';
 import { applyItemPlan } from '../src/core/items';
 import type { PokemonSpec, PokemonState } from '../src/core/types';
+import { firstRunWhere, seedRange } from './seed-search';
 
 const snorlax = (moves: string[]): PokemonState =>
   createPartyMember({ species: 'Snorlax', ability: 'Thick Fat', moves, level: 50 } as PokemonSpec);
@@ -385,8 +386,22 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
      * found, and its own wanted-list had to lose the same two entries first:
      * a scanner asking for a decision the game cannot produce searches every
      * seed and reports none.
+     *
+     * **Searched rather than pinned from `-25`**, under `test/seed-search.ts`:
+     * `ALL-DECISIONS-1` stopped reaching an acquisition when the species-locked
+     * abilities and moves left the pools, and a fourth hand-picked replacement
+     * would expire at the next bump the same way.
      */
-    const run = await playRun('ALL-DECISIONS-1', policy);
+    const wanted = ['acquisition', 'release', 'shop', 'item-assign'];
+    const { run } = await firstRunWhere(
+      seedRange('ALL-DECISIONS-', 40),
+      (seed) => {
+        seen.clear();
+        return playRun(seed, policy);
+      },
+      () => wanted.every((decision) => seen.has(decision)),
+      'exercised every decision in the census',
+    );
 
     expect(['victory', 'defeat']).toContain(run.outcome);
     /*
@@ -395,7 +410,7 @@ describe('a scripted run exercising every Stage 4.5.1 decision', () => {
      * run that takes a move card is carrying a TM from that node on, which is
      * what `item-assign` now fires on at every boundary after it.
      */
-    for (const decision of ['acquisition', 'release', 'shop', 'item-assign']) {
+    for (const decision of wanted) {
       expect(seen.has(decision), `the run never exercised ${decision}`).toBe(true);
     }
 

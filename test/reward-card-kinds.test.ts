@@ -40,7 +40,7 @@ import { chooseDraftPick, chooseGymType, draftOptions } from '../src/core/defend
 import type { Reward } from '../src/core/rewards';
 import { RELICS } from '../src/data/relics';
 import { relicCopy } from '../src/data/itemCopy';
-import { PREMIUM_ITEMS } from '../src/data/items';
+import { BERRIES, PREMIUM_ITEMS } from '../src/data/items';
 
 /**
  * One of every kind.
@@ -51,7 +51,7 @@ import { PREMIUM_ITEMS } from '../src/data/items';
  */
 /*
  * Defender Mode v0's two kinds are in the table since its step 7 wrote their
- * faces (bible Rev 24, D101). A trade names a member of the party it is shown
+ * faces (bible Rev 25, D102). A trade names a member of the party it is shown
  * to, so its card is drawn against a defender run's party (`stateFor`).
  */
 const DEFENDER = ((): RunState => {
@@ -81,6 +81,7 @@ const ONE_OF_EACH: Record<Reward['kind'], Reward> = {
     offered: draftOptions(chooseGymType(createRun('REWARD-CARD-OFFER', undefined, 'defender'), 0))[0]!,
     requested: DEFENDER.party[0]!.acquired!,
   },
+  berryPick: { kind: 'berryPick', berries: BERRIES.map((berry) => berry.id), picked: null },
 };
 
 /** The run a kind's card is drawn against: a trade needs the party it names. */
@@ -131,6 +132,20 @@ describe('the reward card', () => {
       expect(card.querySelector('.move'), `${kind} mounts no move card`).not.toBeNull();
       expect(card.querySelector('.reward__kind'), `${kind} kept a kind label`).toBeNull();
     }
+
+    // The berry pick: a fan of berry sprites in the item slot, no word at
+    // rest, and the press that opens its name and line. The berry gym reward
+    // patch. Once answered, the chosen berry alone, with that berry's press.
+    const pick = renderRewardCard(ONE_OF_EACH.berryPick, state, () => undefined);
+    const fan = pick.querySelector<HTMLElement>('.reward__berries');
+    expect(fan, 'the berry pick draws no sprites').not.toBeNull();
+    expect(fan?.children.length, 'the berry pick fans a different number of sprites').toBe(3);
+    expect(fan?.dataset['tip'], 'the berry pick opens no inspect panel').toBe('berrypick:all');
+    expect(pick.textContent?.trim(), 'the berry pick kept a word at rest').toBe('');
+    const answered = renderRewardCard({ ...ONE_OF_EACH.berryPick, picked: 'chopleberry' } as Reward, state, () => undefined);
+    const chosen = answered.querySelector<HTMLElement>('.reward__berries');
+    expect(chosen?.children.length, 'an answered pick still fans the table').toBe(1);
+    expect(chosen?.dataset['tip']).toBe('item:chopleberry');
   });
 
   /*

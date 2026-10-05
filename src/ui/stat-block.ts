@@ -102,8 +102,8 @@ export interface StatBlockOptions {
    */
   stages?: Readonly<Record<string, { stage: number; effective: number; multiplier: string }>>;
   /**
-   * The engine's Speed under a defender run's Flying badge. **Bible Rev 24,
-   * D99, extending D98**: the Speed cell shows this number, with the wing
+   * The engine's Speed under a defender run's Flying badge. **Bible Rev 25,
+   * D100, extending D98**: the Speed cell shows this number, with the wing
    * beneath it in place of a stage count when there is no stage.
    */
   badgeSpeed?: number;

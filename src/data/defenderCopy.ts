@@ -1,6 +1,6 @@
 /**
  * Defender Mode v0's inspect copy: what each gym badge does, and each
- * consumable's effect line. **Bible Rev 24, D99 and D101.**
+ * consumable's effect line. **Bible Rev 25, D100 and D102.**
  *
  * Read by `ui/` only, so `build-config/content-hash.ts` excludes it: a
  * reworded line must not refuse every defender seed recorded before it (D12).

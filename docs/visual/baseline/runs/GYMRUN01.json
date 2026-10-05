@@ -1,9 +1,9 @@
 {
   "seed": "GYMRUN01",
   "versions": {
-    "runLog": "gymrun-run-23/gymrun-0.3.0",
-    "contentHash": "564eda0ee3fac33d9df0f3e1710788bf2450ad5bd2226da8c01ca3b54a1eab5b",
-    "randomizer": "gymrun-randomizer-24",
+    "runLog": "gymrun-run-24/gymrun-0.3.0",
+    "contentHash": "b85ac93912caa3e508f0d1451b13d0ec9d3c92cdf6bc6be007cf654f3fbf2cc6",
+    "randomizer": "gymrun-randomizer-26",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -27,21 +27,21 @@
     {
       "species": "Snubbull",
       "level": 20,
-      "ability": "Mimicry",
+      "ability": "Minus",
       "moves": [
         "Draining Kiss 16/16",
         "Upper Hand 20/24",
         "Force Palm 16/16",
         "Poison Fang 24/24"
       ],
-      "item": null,
+      "item": "payapaberry",
       "hp": "0/60",
       "fainted": true
     },
     {
       "species": "Nosepass",
       "level": 20,
-      "ability": "Healer",
+      "ability": "Hospitality",
       "moves": [
         "Rock Throw 18/24",
         "Frost Breath 13/16",
@@ -125,20 +125,10 @@
       "label": "Garnet's Gym",
       "tier": null,
       "opponent": "Garnet (Rock)",
-      "turns": 7,
+      "turns": 5,
       "winner": "p1",
-      "hpAfter": 28,
-      "casualties": [
-        {
-          "side": "p1",
-          "name": "Cedar",
-          "level": 15,
-          "species": "Snubbull",
-          "bySpecies": null,
-          "byMove": null,
-          "indirect": "Salt Cure"
-        }
-      ]
+      "hpAfter": 46,
+      "casualties": []
     },
     {
       "segment": 1,
@@ -175,10 +165,10 @@
     "seed": "GYMRUN01",
     "mode": "attacker",
     "versions": {
-      "runLog": "gymrun-run-23/gymrun-0.3.0",
-      "contentHash": "564eda0ee3fac33d9df0f3e1710788bf2450ad5bd2226da8c01ca3b54a1eab5b",
+      "runLog": "gymrun-run-24/gymrun-0.3.0",
+      "contentHash": "b85ac93912caa3e508f0d1451b13d0ec9d3c92cdf6bc6be007cf654f3fbf2cc6",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-24"
+      "randomizerVersion": "gymrun-randomizer-26"
     },
     "decisions": [
       {
@@ -409,27 +399,6 @@
         "choice": {
           "kind": "move",
           "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
         }
       },
       {

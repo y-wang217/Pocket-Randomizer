@@ -77,7 +77,7 @@ export interface DrawerView {
     loose: readonly ItemId[];
     capacity: number;
     tms: readonly string[];
-    /** A defender run's consumables, listed at rest (bible Rev 24, D101). Never used here. */
+    /** A defender run's consumables, listed at rest (bible Rev 25, D102). Never used here. */
     consumables?: readonly string[];
   };
   tuning: Tuning;

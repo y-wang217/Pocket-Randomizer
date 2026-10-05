@@ -59,6 +59,7 @@ import type { FlagKind } from '../core/battle/flags';
 import { categoryInfo } from '../data/categoryInfo';
 import { itemById } from '../data/items';
 import { itemCopy, relicCopy } from '../data/itemCopy';
+import { BERRY_PICK_COPY } from '../core/hpCopy';
 import { statInfo } from '../data/statInfo';
 import { statBlock } from './stat-block';
 import { stageRowValue } from '../data/statStages';
@@ -256,11 +257,17 @@ type TipKind =
    * carries a line per tier inside it, from `data/eventCopy.ts`.
    */
   | 'reward-tier'
-  /** Defender Mode v0 (bible Rev 24, D99 and D101): a badge mark, a consumable, a trade's two Pokemon. */
+  /** Defender Mode v0 (bible Rev 25, D100 and D102): a badge mark, a consumable, a trade's two Pokemon. */
   | 'badge'
   | 'consumable'
   | 'trade-offer'
-  | 'trade-ask';
+  | 'trade-ask'
+  /**
+   * The "pick a berry" card, whose face is a fan of berry sprites and whose
+   * words are here. The berry gym reward patch. `berrypick:all` is the
+   * trigger the card carries; there is one card and one explanation.
+   */
+  | 'berrypick';
 
 const KINDS = [
   'type',
@@ -311,6 +318,7 @@ const KINDS = [
   'consumable',
   'trade-offer',
   'trade-ask',
+  'berrypick',
 ] as const satisfies readonly TipKind[];
 
 /**
@@ -879,7 +887,20 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
       return renderTradeOfferTip(id);
     case 'trade-ask':
       return renderTradeAskTip(id);
+    case 'berrypick':
+      return renderBerryPick();
   }
+}
+
+/**
+ * The berry pick card, in words. **The berry gym reward patch.** Section 3's
+ * item row for a card that is a choice: the name and the one effect line,
+ * from `core/hpCopy.ts`, as every item card's long press reads.
+ */
+function renderBerryPick(): HTMLElement {
+  const body = panel(BERRY_PICK_COPY.name);
+  body.append(line(BERRY_PICK_COPY.line, 'tip__text'));
+  return body;
 }
 
 /**

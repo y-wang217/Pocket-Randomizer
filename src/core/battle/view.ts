@@ -442,7 +442,7 @@ export interface RevealedView {
 export interface ActiveUiView {
   /**
    * True when this Pokemon carries the Flying badge, so its Speed cell shows
-   * the engine's number with the wing (bible Rev 24, D99). Defender Mode v0.
+   * the engine's number with the wing (bible Rev 25, D100). Defender Mode v0.
    */
   badgeSpeed?: true;
   species: string;
@@ -510,9 +510,9 @@ export interface AccuracyStagesView {
 }
 
 export interface MoveUiView {
-  /** Defender Mode v0, D99: the flame and the next use's crit chance, 0..1. */
+  /** Defender Mode v0, D100: the flame and the next use's crit chance, 0..1. */
   critChance?: number;
-  /** Defender Mode v0, D99 and D102: the fifth button, with the wing. */
+  /** Defender Mode v0, D100 and D103: the fifth button, with the wing. */
   badgeMove?: true;
   slot: number;
   id: string;
@@ -618,7 +618,7 @@ export interface MoveUiView {
 }
 
 export interface BattleUiView {
-  /** Defender Mode v0, D99: the opponent's committed action, beside the eye. */
+  /** Defender Mode v0, D100: the opponent's committed action, beside the eye. */
   foeIntent?: FoeIntent;
   turn: number;
   ended: boolean;

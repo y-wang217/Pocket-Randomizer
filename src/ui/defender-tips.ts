@@ -1,5 +1,5 @@
 /**
- * Defender Mode v0's inspect panels. **Bible Rev 24, D99 and D101.**
+ * Defender Mode v0's inspect panels. **Bible Rev 25, D100 and D102.**
  *
  * Four kinds, each answered from a table or a registered Pokemon, never from
  * copy written into a screen (R5):

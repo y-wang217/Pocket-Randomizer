@@ -353,7 +353,7 @@ export type FoeIntent =
   | {
       kind: 'move';
       move: string;
-      /** What the move chip draws (bible Rev 24, D99): id, type, category, power. */
+      /** What the move chip draws (bible Rev 25, D100): id, type, category, power. */
       id: string;
       type: string;
       category: 'Physical' | 'Special' | 'Status';
@@ -866,6 +866,17 @@ export type RunDecision =
    * run never offered.
    */
   | { kind: 'reward'; index: number }
+  /**
+   * Which berry a "pick a berry" card was answered with. An index into the
+   * card's `berries`, recorded immediately after the `reward` entry that took
+   * the card, and only then.
+   *
+   * An index for the reason every other index here is one: the card's table
+   * is reconstructed from the seed, so a log naming `'chopleberry'` would
+   * survive a table edit and hand the player a berry their card never
+   * listed. The pick consumes no RNG. The berry gym reward patch.
+   */
+  | { kind: 'berry'; index: number }
   /**
    * Which shelf slots were bought, as indexes into the shop's stock.
    *

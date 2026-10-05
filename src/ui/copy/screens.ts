@@ -130,16 +130,6 @@ export const TARGET_COPY = {
    * (recommended if your moves are good)" would be the UI ranking the option
    * against the party, which the copy rule bars.
    */
-  /**
-   * The control that picks a recipient. **Milestone M3.3.**
-   *
-   * New copy, because the card used to *be* the button and now it is the party
-   * row with a control beside it — `screens/pre-gym.ts`'s shape, which asks the
-   * same "which member" question. Flat, like every label here: "Teach it"
-   * states the action where a "best fit" would rank the six against each
-   * other, which Part 4 bars.
-   */
-  choose: { long: 'Teach it to this one', short: 'Teach it' },
   decline: { long: "Don't learn it", short: "Don't learn it" },
   /**
    * The confirm behind the decline. **Milestone M3.3.**
@@ -165,7 +155,34 @@ export const TARGET_COPY = {
   forfeitCancel: { long: 'Keep', short: 'Keep' },
 } as const satisfies Record<string, Prose>;
 
-/** What a move would do to one member, in one line. Facts about the pairing only. */
+/**
+ * The control that picks a recipient. **Milestone M3.3**, named since the
+ * teach screen text-load patch (2026-10-05).
+ *
+ * The card used to *be* the button and now it is the party row with a control
+ * beside it — `screens/pre-gym.ts`'s shape, which asks the same "which member"
+ * question. Flat, like every label here: "Teach it" states the action where a
+ * "best fit" would rank the six against each other, which Part 4 bars. It
+ * names the member it answers with, the species as the card above it prints
+ * it, because six identical "Teach it" buttons left the player matching each
+ * to its card by position (`docs/spec/gymrun-patch-teach-screen-text-load.md`).
+ */
+export const TARGET_CHOOSE = (species: string): Prose => ({
+  long: `Teach it to ${species}`,
+  short: `Teach it to ${species}`,
+});
+
+/**
+ * What a move would do to one member, in one line. Facts about the pairing only.
+ *
+ * Two lines, where there were three. The third, *"Four moves. You choose what
+ * Flamethrower replaces."*, stood under every full member, which on most runs
+ * is every member, and the author cut it as text the screen did not need
+ * (`docs/spec/gymrun-patch-teach-screen-text-load.md`). The fact is not gone,
+ * it is the default: a member with no line is one with four moves and no copy
+ * of this one, and the replace screen behind the button asks which goes. That
+ * is R4, exception-based display, on a fact with exactly three values.
+ */
 export const TARGET_EFFECT = {
   known: (move: string): Prose => ({
     long: `Already knows ${move}. Taking it here restores its PP.`,
@@ -174,10 +191,6 @@ export const TARGET_EFFECT = {
   free: (move: string): Prose => ({
     long: `Has a free move slot. ${move} goes straight in.`,
     short: `Free slot. ${move} goes in.`,
-  }),
-  choose: (move: string): Prose => ({
-    long: `Knows four moves. You choose which one ${move} replaces.`,
-    short: `Four moves. You choose what ${move} replaces.`,
   }),
 };
 
@@ -284,6 +297,12 @@ export const REWARD_COPY = {
  * question and the band's two controls. The way out returns to the cards.
  */
 export const CLAIM_COPY = { title: 'Take this?', confirm: 'Take', cancel: 'Back' } as const;
+/**
+ * The berry pick's claim band, after a "pick a berry" card is taken. The
+ * berry gym reward patch. The band's cancel returns to the fifteen berries,
+ * never past them: the card is taken and the pick has no decline.
+ */
+export const BERRY_PICK_CLAIM_COPY = { title: 'This one?', confirm: 'Take', cancel: 'Back' } as const;
 export const BUY_COPY = { title: 'Buy and leave?', confirm: 'Buy', cancel: 'Back' } as const;
 
 /**

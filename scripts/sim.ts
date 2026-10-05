@@ -816,6 +816,12 @@ function valueOfReward(reward: Reward, state: RunState, segment: number): number
     case 'relic':
       return 150;
 
+    // A choice is worth its best option to this run, priced as the item card
+    // for that berry would be. Nothing more: the bot does not know the next
+    // gym's type any better for being offered the choice.
+    case 'berryPick':
+      return Math.max(0, ...reward.berries.map((id) => valueOfReward({ kind: 'item', item: id }, state, segment)));
+
     case 'currency':
       // Valued at what it buys: a share of a good item at this segment's
       // prices, so a payout keeps its meaning as the scale climbs.
@@ -1538,6 +1544,13 @@ function buildPolicy(
      * other bot takes the heaviest option, ties to the lower index — a bot may
      * hold a verdict the UI may not, and base stat total is the one it has.
      */
+    /*
+     * The berry the bot's own table prices highest, which is Sitrus. The same
+     * reasoning as `ITEM_VALUE`'s resist rows: this baseline claims no
+     * foresight about the next gym, so it does not reach for the resist berry
+     * a player would. A `--policy` that plans the pick is where that belongs.
+     */
+    chooseBerry: async (pick) => bestBy(pick.berries, (id) => ITEM_VALUE[id] ?? 0),
     chooseEvolution: async (question) =>
       randomBattle
         ? stream.nextInt(question.options.length)

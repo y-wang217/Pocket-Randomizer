@@ -169,6 +169,7 @@ function isRunDecision(value: unknown): boolean {
     case 'evolve':
     case 'node':
     case 'reward':
+    case 'berry':
     case 'target':
       return typeof decision.index === 'number';
     /*

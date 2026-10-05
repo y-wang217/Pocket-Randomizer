@@ -442,8 +442,14 @@ body {
      prefix and not a preference expressed here. */
   /* Stage 5.0/1: a solid window, the plan's GBA HP box. The blur and the
      translucent scrim above were V5's, over the world; the frame is opaque
-     now and the plan forbids `backdrop-filter`. */
-  border: var(--rule-heavy) solid var(--border-heavy);
+     now and the plan forbids `backdrop-filter`.
+
+     `--panel-edge` rather than `--border-heavy`, Stage 5.0/5: the mid-grey
+     scored 1.03 to 3.18 against the nine paintings and carried none of them,
+     leaving the fill to do all the work — which it cannot on `cave`, the one
+     backdrop darker than the panel. The token's own comment has the numbers
+     and why no darker fill answers it instead. */
+  border: var(--rule-heavy) solid var(--panel-edge);
   border-radius: var(--radius-card);
 }
 
@@ -1470,7 +1476,12 @@ body {
    row not expanded hides its body — every row of a kind together. */
 .collapse__toggle { display: inline-flex; }
 [data-collapsible]:not([data-expanded="true"]) > .collapse__body { display: none; }
-.party__member-toggle { margin-left: auto; }
+/* The member card's fold is a full-width bar under the stat block, between
+   the head and the body it opens (`member-card.ts`; the teach screen
+   text-load patch, 2026-10-05). The meta line it used to end holds only the
+   hidden HP text on a healthy member with no status now, and draws nothing. */
+.party__member-toggle { width: 100%; justify-content: center; margin-top: var(--space-1); }
+.party__member .panel__meta:has(> .panel__hp-text:not([data-fainted]):only-child) { display: none; }
 
 /* The party screen's two hotbars in Pocket: each is the collection beside it
    at a second size — slot, species, item — and the cards and rows below carry
@@ -1655,7 +1666,7 @@ body {
 /* Backpack tiles: the slot, then the item as one tap target (R13, D81). */
 .backpack__item { gap: var(--space-1); align-items: flex-start; flex-wrap: nowrap; }
 .backpack__item[data-picked="true"] { flex-wrap: wrap; }
-.collapse__toggle.party__member-toggle { padding: 0 var(--space-1h); }
+.collapse__toggle.party__member-toggle { display: flex; padding: 0 var(--space-1h); }
 
 /* Relics in Pocket: the list folds behind the title, which carries the count
    (`party.ts`, `renderRelics`); opened, the rows flow as name chips and the
@@ -4727,6 +4738,22 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
 
 .rewards:has(.move--card) { grid-template-columns: minmax(0, 1fr); }
 
+/*
+ * The berry pick: fifteen item cards, five across. The berry gym reward
+ * patch. A sprite needs less room than a move card, and fifteen at three
+ * across would run off a phone; five across is three rows of the same card.
+ */
+.rewards--berries { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.rewards--berries .reward:not(:has(.move--card)) { min-height: 64px; padding: calc(var(--space-2) * var(--chrome-pad)); }
+
+/*
+ * The berry pick card's face: three berry sprites fanned in the item slot.
+ * Each cell is the sheet's 24px and the slot is the item card's 44px, so the
+ * cells overlap by design rather than shrink; the slot itself does not move.
+ */
+.reward__berries > * { margin-left: calc(-1 * var(--space-2h)); }
+.reward__berries > :first-child { margin-left: 0; }
+
 .rewards .reward:not(:has(.move--card)) {
   align-items: center;
   justify-content: center;
@@ -7305,6 +7332,13 @@ button,
 .sidebar__pip[data-phase='done'] { background: var(--border-heavy); }
 .sidebar__pip[data-phase='current'] { background: var(--selected); }
 .sidebar__progress { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+/* Run Progress folds behind its heading, shut by default (`sidebar.ts`; the
+   teach screen text-load patch, 2026-10-05). Folded, the panel is its heading
+   and gives the column's height back. */
+.sidebar__progress[data-expanded='false'] { flex: 0 0 auto; }
+.sidebar__progress[data-expanded='false'] > .sidebar__title { margin-bottom: 0; }
+.sidebar__progress[data-expanded='false'] > :not(.sidebar__title) { display: none; }
+.sidebar__toggle { width: 100%; padding: 0; background: none; border: 0; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; text-align: left; cursor: pointer; }
 
 /* The decision feed, on the Run Info screen and in the sidebar. */
 .feed { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-h); font-size: var(--fs-md); }
@@ -7845,12 +7879,12 @@ button,
 }
 
 
-/* Defender Mode v0: the mode choice in the seed bar (bible Rev 24, D100). */
+/* Defender Mode v0: the mode choice in the seed bar (bible Rev 25, D101). */
 .seedbar__modes { display: inline-flex; gap: var(--space-1); }
 .seedbar__mode[aria-pressed='true'] { outline: 2px solid currentColor; outline-offset: -2px; }
 
 /*
- * Defender Mode v0, bible Rev 24, D99 and D102. The fifth button is the battle
+ * Defender Mode v0, bible Rev 25, D100 and D103. The fifth button is the battle
  * button in its own row under the 2x2 grid; the badge marks sit beside a name;
  * the opponent's revealed action sits on its panel beside the eye.
  */
@@ -7861,7 +7895,7 @@ button,
 .panel__intent:empty { display: none; }
 .stat__stage--badge { display: inline-flex; align-items: center; }
 
-/* ---------- gym type select (Defender Mode v0, bible Rev 24, D100) ---------- */
+/* ---------- gym type select (Defender Mode v0, bible Rev 25, D101) ---------- */
 
 /* The locale card's grammar, with a type chip and the badge's mark for a face. */
 .screen--gym-select { align-items: flex-start; }
@@ -7894,7 +7928,7 @@ button,
 .gym-type__chips { display: flex; align-items: center; gap: var(--space-2); }
 .gym-type__badge { display: inline-flex; color: var(--text); }
 
-/* ---------- defender reward faces (bible Rev 24, D101) ---------- */
+/* ---------- defender reward faces (bible Rev 25, D102) ---------- */
 
 /* A trade: two sprites in fixed slots, offered on the left, asked on the right. */
 .reward--trade { flex-direction: row; justify-content: space-around; align-items: flex-end; }
@@ -7903,11 +7937,11 @@ button,
 .reward__trade-name { font-size: var(--fs-md); font-weight: 600; }
 .reward__trade-side:focus-visible { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
 
-/* ---------- Bag consumables (bible Rev 24, D101) ---------- */
+/* ---------- Bag consumables (bible Rev 25, D102) ---------- */
 .consumables__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
 .consumables .backpack__pick:disabled { opacity: 0.55; cursor: not-allowed; }
 .held__item[data-refused='true'] .held__pick { opacity: 0.55; cursor: not-allowed; }
 .held__refusal { grid-column: 1 / -1; color: var(--text-dim); font-size: var(--fs-sm); }
 
-/* The defender boss's pre-gym title: the gym mark, its team size, then the level (D100). */
+/* The defender boss's pre-gym title: the gym mark, its team size, then the level (D101). */
 .pre-gym__size { margin-left: var(--space-1); font-variant-numeric: tabular-nums; }

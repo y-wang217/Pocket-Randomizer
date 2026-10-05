@@ -21,7 +21,7 @@
 /** Decision surfaces: zero scroll at 390x844 in Pocket, a hard gate. */
 export const DECISION_SURFACES = [
   'starter',
-  /** Defender Mode v0's first decision (bible Rev 24, D100). */
+  /** Defender Mode v0's first decision (bible Rev 25, D101). */
   'gym-select',
   'locale',
   'map',

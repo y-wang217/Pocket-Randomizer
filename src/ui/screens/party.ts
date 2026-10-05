@@ -107,7 +107,7 @@ export interface PartyScreen {
        */
       onTeach: (move: string, done: (teach: TmTeach | null) => void) => void;
       /**
-       * Use a consumable on a member. **Defender Mode v0, bible Rev 24, D101.**
+       * Use a consumable on a member. **Defender Mode v0, bible Rev 25, D102.**
        * Handed up to the run's party editor, which logs it and refuses what
        * this screen dims. Absent where the run has none to use.
        */
@@ -183,7 +183,7 @@ export interface PartyView {
    */
   canEditParty?: boolean;
   /**
-   * The run's consumables, in acquisition order. **Defender Mode v0, D101.**
+   * The run's consumables, in acquisition order. **Defender Mode v0, D102.**
    * Listed on the Bag at rest, each with its name and effect line (R13).
    */
   consumables?: readonly string[];
@@ -258,7 +258,7 @@ export function createPartyScreen(): PartyScreen {
   // The item picked for a two-tap move on the Bag (D97): a held one by slot,
   // or a loose one by its index in the backpack.
   // Or a consumable, by its index in the run's list, whose second tap is a
-  // member to use it on (D101).
+  // member to use it on (D102).
   let picked: Picked = null;
 
   let onDone: () => void = () => undefined;
@@ -849,7 +849,7 @@ function renderHeld(
     pick.append(slotNumber(slot), name, icon, what, effect);
     pick.setAttribute('aria-pressed', String(isPicked));
     /*
-     * With a consumable picked, a member is who it is used on (D101), and a
+     * With a consumable picked, a member is who it is used on (D102), and a
      * member the run would refuse is dimmed and says why: the refusal is loud
      * here as it is in `core/run.ts`, never a tap that silently does nothing.
      */
@@ -884,7 +884,7 @@ function renderHeld(
 }
 
 /**
- * The run's consumables. **Defender Mode v0, bible Rev 24, D101.** A carried
+ * The run's consumables. **Defender Mode v0, bible Rev 25, D102.** A carried
  * item under R13: each row is the item's sprite, name and effect line at rest.
  * A tap picks it up, and the held list above is where it goes. Where the run
  * refuses a use (a battle in progress), the pick is dimmed and the rows stay.

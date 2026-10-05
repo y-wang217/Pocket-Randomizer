@@ -114,8 +114,8 @@ describe('an item layout made between nodes', () => {
   }, 240_000);
 
   it('moved the run log axis', () => {
-    // At `-22` or later: Defender Mode v0 moved it again, to `-23`.
-    expect(Number(/gymrun-run-(\d+)\//.exec(RUN_LOG_VERSION)?.[1])).toBeGreaterThanOrEqual(22);
+    // To `-22`; the berry gym reward patch and Defender Mode v0 moved it again, so "at least".
+    expect(Number(/^gymrun-run-(\d+)\//.exec(RUN_LOG_VERSION)?.[1])).toBeGreaterThanOrEqual(22);
   });
 });
 

@@ -12842,7 +12842,483 @@ which pushes reachability the other way. Whether a fork is now common enough
 to meet by playing is the open item in `README.md` section 5, and it is a
 difficulty question for the author rather than an assertion for a file.
 
-## 101. Defender Mode v0: a second run mode
+## 101. The gym deals a berry pick, and the player resolves it
+
+**2026-10-02**, on `claude/berry-gym-rewards-gz15ms`. Prompt
+[`spec/gymrun-patch-berry-gym-reward.md`](spec/gymrun-patch-berry-gym-reward.md),
+filed 2026-09-25 and built after the author's ruling of 2026-10-02: *"build the
+card that opens a pick."* Moves `RANDOMIZER_VERSION` to `-24`, `RUN_LOG_VERSION`
+to `-23` and `contentHash` from `d4af80` to `bd20d7`; `AI_VERSION` holds.
+Bible Rev 24, D99.
+
+The message's first sentence, that resist berries are not good gym reward
+items, had nothing to remove: no gym page on `main` could deal a berry (the
+brief records the check). The second sentence is what was built. **A gym's
+second page can now deal a "pick a berry" card.** Taking it opens a choice of
+every berry in the table, and the player's answer is what lands in the bag.
+
+### The card is a kind, not a row
+
+`data/rewardPools.ts` gains a `berryPick` entry, `{ weight, berries }`, in
+both bands of `GYM` at the currency lump's weight and in no other pool. It is
+a kind because no `item` row can express it: an item entry draws one id from
+its list at generation, and the whole point of this card is that nothing is
+drawn. `core/rewards.ts` resolves the entry to
+`{ kind: 'berryPick', berries, picked: null }` and spends no RNG doing so.
+
+**That is why the randomizer axis moves twice over.** The weighted pick over
+the gym's page-2 table lands differently for the same float, which is
+composition; and the entry it lands on consumes zero draws where an `item`
+entry consumes one, so the gym's `rewards` stream is read a different number
+of times on a page that deals it, and every later draw on that stream shifts.
+A recorded seed produces a different gym page, which is exactly what the axis
+guards.
+
+The card is fungible with itself (`FUNGIBLE_KINDS`), so `drawable` never
+deals two onto one page: two picks from one table are one card printed twice,
+the same reading the R19 fix gave two coin cards. The relic fallback excludes
+it for the same reason it excludes coins.
+
+### The pick is a decision
+
+`RunDecision` gains `{ kind: 'berry', index }`, an index into the card's
+`berries`, and `RunPolicy` gains `chooseBerry`. `playRun` asks it immediately
+after the `reward` entry that took the card and records the pair in that
+order; the replay cursor steps through them positionally as it does the gym's
+two pages. The card handed to `resolveNode` carries the answer in `picked`,
+so `applyReward` sees one object and asks nothing. An unanswered pick is
+refused there with a thrown error rather than resolved to berry 0: the card's
+only value is that the player chose, and a default would be the run choosing
+for them.
+
+`RUN_LOG_VERSION` moves for the added kind, the plain case of the four-word
+rule. The scripted baseline answers 0 (Oran); the sim's greedy bot answers
+with the berry its own `ITEM_VALUE` prices highest (Sitrus), and prices the
+card at its best option, which keeps the baseline's stated refusal to plan
+around the next gym's type. A `--policy` that plans the pick is where that
+would belong.
+
+### The surface
+
+Read against the bible before any of it was drawn. Rules touched: **R1**
+(the sprite sits in the item card's fixed slot), **R2** (no word at rest on
+the card or the pick), **R3** (the fan is the kind, once), **R5** (the card's
+long press is its name and one effect line, `BERRY_PICK_COPY`, as every item
+card's), **R6** (one face), section 3's *Berry* row, section 4's *Item, berry
+or relic reward card* row, and section 5's *Reward card* and *Confirm band*
+rows. **C1** is untouched: the fifteen berries render in table order, none
+selected at rest, none marked, and the next gym's type is on the rail where
+it has always been, not on the cards.
+
+- **The card's face** is a fan of three berry sprites in the item card's
+  slot, the first three of the card's own table (the healing and status
+  berries, never the resist ones, so the face cannot read as a hint). Once
+  answered, the chosen berry alone, with that berry's press. `src/ui/screens/reward.ts`.
+- **The pick** is drawn on the result screen in the cards' place, after the
+  claim band commits the card: fifteen `item` reward cards, five across, the
+  same component, the same heading and badge, selected only after a tap and
+  claimed by the band's commit (`This one?` / `Take` / `Back`). The band's
+  cancel returns to the fifteen and never past them, since the card is taken.
+  `src/ui/screens/result.ts`, `BerryPrompt`; `src/ui/app.ts`, `chooseBerry`. No second
+  path by which a node completes.
+- **The decision feed** prints `Berry · <name>` at the `berry` entry and
+  `Reward · Pick a berry` at the `reward` entry before it. The saved-log
+  validator admits the kind.
+
+**Filed as the bible's D99 rather than built around it**: section 5's Reward
+card row did not name a face for a card that is a choice, and the row is
+descriptive of every kind, so it gains the fan and the pick's grid. No
+sentence at rest, no second mechanism, no glyph family and no third move-card
+call site, so section 10's rule 3 did not stop the build; the row is amended
+because the canon would otherwise be silent on a face the tree draws.
+
+### What re-recorded, and why each was owed
+
+- **`RANDOMIZER_VERSION` to `-24`**, for the reasons above.
+- **`RUN_LOG_VERSION` to `-23`**, for the added decision.
+- **`contentHash` to `bd20d7`.** The table moved.
+- **`test/fixtures/sim-report.json`**, by its own write command. Three axes
+  moved in the same commit.
+- **`docs/visual/baseline/`**, by its own write command: every run file and
+  the data digest. Every seed's run moved, not only the ones that reach a gym
+  page that deals the pick, because the scripted bot's index-0 answer on page
+  2 lands on a different card wherever the weighted pick shifted, and the
+  bag, the shop and the fights after it follow. `docs/visual/baseline/battles/GYMRUN01.json` is
+  unmoved: no battle draw changed.
+- **`test/gym-held-items.test.ts`'s digest** is unmoved: it covers wild and
+  trainer teams, and no team draw changed.
+- **`docs/copy.md`**, regenerated. It had not been since before the Rev 22
+  and Rev 23 work, so the diff carries those line moves too. The audit gains
+  the berry pick's two lines, the feed's `berry` line, and a *Confirm band*
+  section that registers `CLAIM_COPY` and `BUY_COPY` for the first time
+  beside the pick's band.
+
+### What it measured
+
+The benchmark row is in [`balance.md`](balance.md) section 0, stamped
+`randomizer-24` · `bd20d7`, RETUNE, 400 seeds, `table` AI, read against a
+baseline row taken on `main` at `47bd73f` on the same prefix and AI, recorded
+beside it because the head of the merged tree had no `table` row. **Recorded, not chased.**
+
+### The gate, in the container that built it
+
+Types, lint, build, smoke, the Node half of the suite and the browser half
+were run; the strict-trim leg was run after them. Two browser cases were red
+before and after this patch and are not its own:
+`test/visual-backdrop-contrast.test.ts`'s *HP boxes distinct from all nine
+backdrops* under `weather=none` and under `terrain=misty`, which fail
+identically on `main` at `c1d527d` in a clean worktree, and which no file this
+patch touches can reach. Left open for whoever owns the stage. A third,
+`test/visual-chips.test.ts`, never left its setup in this container: ten
+minutes alone on the CPU with no case reported, and on `main` in the same
+worktree its setup fails and all seventeen cases skip. Environmental here,
+not this patch's; it is the one browser file this branch has no reading for.
+
+## 102. No species-locked ability or move in the pools
+
+**2026-10-04**, on `claude/species-locked-pool`. Prompt
+[`spec/gymrun-patch-species-locked-pool.md`](spec/gymrun-patch-species-locked-pool.md).
+Moves `RANDOMIZER_VERSION` to `-25` and `contentHash` from `bd20d7` to
+`1ba856`; `RUN_LOG_VERSION` and `AI_VERSION` hold.
+
+The bug report asked whether species-dependent abilities and moves had already
+been filtered out. **They had not.** The ability pool was "every standard
+ability in the generation" minus `No Ability`, and no move filter looked at
+species. Zen Mode, Stance Change, Multitype, Zero to Hero and twenty more could
+all be rolled, and so could Aura Wheel and Hyperspace Fury.
+
+### What was checked, and how
+
+Every entry in both pools was read against `@pkmn/sim`'s own handler, not the
+dex text: any ability or move whose handler names a species, a forme, a held
+type item or a type check was listed and read. That read gives three shapes.
+
+- **A no-op on anyone else** (the handler returns early unless the holder is
+  Darmanitan, Aegislash, Mimikyu and so on, or needs a Plate, a Memory, a
+  doubles ally or terastallization): Battle Bond, Commander, Disguise, the four
+  Embody Aspects, Flower Gift, Forecast, Gulp Missile, Hunger Switch, Ice Face,
+  Multitype, Poison Puppeteer, Power Construct, RKS System, Schooling, Shields
+  Down, Stance Change, Teraform Zero, Zen Mode. Moves: Aura Wheel fails unless
+  the user is Morpeko, Hyperspace Fury unless it is Hoopa-Unbound.
+- **A forme change into somebody else**: Zero to Hero and Tera Shift call
+  `formeChange` into Palafin-Hero and Terapagos-Terastal with no species check.
+  Any holder became that Pokemon. Worse than a blank.
+- **Locked to a type, not a species.** Double Shock fails from a user that is
+  not Electric, and Flower Veil only guards the side's Grass types, which in
+  singles is the holder or nobody. The prompt said species. These two are the
+  same failure (a dead slot on whoever rolls it off-type) and abilities and
+  coverage moves are drawn off-type, so they went with the rest. Burn Up is
+  the same lock and was already out: the gen 9 dex marks it Unobtainable.
+
+**Kept**, because they do the whole of what they say on any holder even though
+the dex calls them signatures: As One (both), Comatose, Tera Shell, Illusion,
+Drizzle and Drought (the species check only adds the Primal), Natural Cure,
+Ivy Cudgel, Raging Bull, Judgment (they change type only for their owner),
+Order Up, Relic Song, Water Shuriken (the extras are owner-only, the hit is
+not).
+
+### Where it lives
+
+In `scripts/gen-pools.ts`, as `SPECIES_LOCKED_ABILITIES` and
+`SPECIES_LOCKED_MOVES`, beside the other structural exclusions, and **not** in
+`data/blacklists.ts`. The blacklist is for entries the engine plays and the
+simulator shows ruining a distribution. These are entries the engine refuses,
+which is the same class as `UNSCOREABLE` and `SELF_KO`. The pools went from 310
+abilities to 286 and lost three damaging moves.
+
+`test/species-locked.test.ts` holds it two ways. The excluded ids are absent.
+And every pooled entry whose handler names a species, a forme, a Plate, a
+Memory or a type check is in a reviewed list with the reason it works on any
+holder. A signature arriving with a `@pkmn/sim` upgrade fails the test instead
+of reaching a run.
+
+### What re-recorded
+
+The sim fixture, the visual baseline and its data digest, the content-hash pin
+in `test/ai-priority.test.ts`, and the held-item team digest in
+`test/gym-held-items.test.ts`: each one is a seed's draw, and a shorter list
+moves it. Two played-run tests had pinned seeds that stopped reaching their
+branch, `ALL-DECISIONS-1` in `test/move-replacement.test.ts` and `LEAD-RUN-25`
+in `test/lead-selection.test.ts`. Both now search under `test/seed-search.ts`
+instead of pinning a fifth replacement.
+
+### What it measured
+
+[`balance.md`](balance.md) section 0, stamped `randomizer-25` · `1ba856`,
+RETUNE, 400 seeds, `table` AI, read against the `randomizer-24` row on the same
+prefix and AI: mean gyms 1.83 to 1.72, completion 0.8% both. Inside a standard
+error. **Recorded, not chased.**
+
+### The gate, in the container that built it
+
+Types, lint, build, smoke, the Node half of the suite and its strict-trim run
+are green. The browser half has three red cases, and none of them is this
+patch's. Two are the `test/visual-backdrop-contrast.test.ts` HP-box cases that
+section 101 records as red on `main`. The third is
+`test/visual-chips.test.ts`'s *type chip at or above the contrast floor*: type
+chips on the locale and starter screens at 2 to 4.5:1. It fails identically on
+`main` at `ad8016d`, with the same eleven samples, in a clean worktree. Section
+101 had no reading of that file in its container, and this is the first. It
+comes from the palette, and nothing in the pools can reach it. Left open for
+whoever owns the stage.
+
+## 103. A test for the tally, and the patch main overtook
+
+**2026-10-04**, on `claude/sleepy-mccarthy-crfmqt`. Prompt
+[`spec/gymrun-patch-gate-tally-test.md`](spec/gymrun-patch-gate-tally-test.md).
+Test and tooling only: nothing under `src/`, no version axis moves, no baseline
+re-recorded.
+
+### 103.1 What this is the remainder of
+
+A patch filed on this same branch against `379c154` — "the tolerance that never
+fired, and a sampler that answered", PR #93 — was overtaken while open, and its
+prompt never reached `main`, so it is named here rather than linked: `main` moved 354 commits,
+and sections 47 and 57 had already landed every part of it. Recorded as a
+comparison rather than quietly dropped, because two of the rows are cases where
+the version already here is the better one and the reasoning is worth keeping:
+
+| that patch | `main`, and why it wins |
+|---|---|
+| strip ANSI before reading the tally | 47.5, same diagnosis |
+| wait for images before a box is measured | 47.2. The same `img.decode()` hang on a `loading="lazy"` sprite below the fold was met from both directions; that patch **deleted** the wait, 47.2 flips `loading` to `eager` so the wait terminates *and* still means something |
+| skip a chip with no text | 47.3, and further: `band` comes off `VARIANTS` rather than going quietly absent |
+| serve the sprite host from a local fixture | 57.4's `GYMRUN_PROXY`, which measures **real sprites** through the box's egress proxy — a fixture only ever proves the fixture |
+| carry box, modal share and geometry in the message | superseded by uploading the failing screenshots |
+
+Two findings from it are kept because they cost real time, and one is a
+correction:
+
+- **The font was ruled out, and that was wrong.** Installed font *packages* on
+  the sandbox match the Playwright image's set, and that was taken as
+  equivalence. 57.3 needed `FONTCONFIG_FILE` to reject DejaVu and prefer
+  Liberation Mono to reproduce the CI number: `fc-match` on one box says
+  nothing about another's preference order. Comparing package lists is not
+  comparing resolution, and the candidate dismissed that way was the one that
+  mattered.
+- **Independent corroboration of 47.1**: the gallery Ghost chip reads
+  **5.13:1 on `rgb(34,38,58)`** here, on Chromium 1194 and on the container's
+  1243, matching the developer-box figure 47.1 recorded. Five type hues under
+  4.5 on `rgb(46,50,54)` reproduces 47.4's shape too.
+
+PR #93 is closed carrying that table.
+
+### 103.2 The one gap: `check.mjs` had no test of any kind
+
+The tolerance from section 33 did not fire once until 47.5 fixed it, and the
+guard's own comment says why it survived:
+
+> Locally, with no `CI`, vitest emits plain text and the same guard matched —
+> which is exactly how a bug of this shape survives being tested.
+
+A guard exercised only in the environment where it cannot fail is untested,
+which is the cry-wolf problem `test/boundaries.test.ts` already warns about —
+and it had been sitting in the gate itself.
+
+The tally predicates move to `scripts/check-tally.mjs` **byte-for-byte**, with
+their prose, so a test can reach them. `check.mjs` ends in
+`process.exit(await main())`, so a test that imported it would run the gate; an
+`import.meta.url` entry guard was the alternative and is the worse seam,
+because a guard that fails open means a test run invokes the ten-leg gate it is
+part of. `scripts/check-tally.d.mts` follows the convention
+`scripts/visual/contrast.d.mts` sets.
+
+`test/check-gate.test.ts` is the first test to cover the runner. Its fixtures
+are real: the escape pattern is what this repo emits under `FORCE_COLOR=1`, the
+failing shape is run 37205550086's chromium leg, and the passing counts are
+47.5's own. Against the coloured passing tally under an `onTaskUpdate` timeout:
+
+| | tolerated |
+|---|---|
+| section 33's predicates, before the strip | **false** — the bug |
+| `main` today | **true**, note `120 files, 1650 tests` |
+
+**The guard then fired for real while this was being verified.** `test:node` on
+this branch hit the reporter RPC timeout on its own and reported
+`ERRORED — 157 files, 2051 tests passed`, `check: green`. That is the behaviour
+under test, observed rather than argued.
+
+## 104. A floor that was reading a word nobody paints
+
+**2026-10-05**, on `claude/sleepy-mccarthy-crfmqt`. Prompt
+[`spec/gymrun-patch-chip-word-not-painted.md`](spec/gymrun-patch-chip-word-not-painted.md).
+Test-only: nothing under `src/`, no version axis moves, no baseline re-recorded.
+
+**Protocol first, because it was broken.** Protocol 1 and 7 require the prompt
+in `docs/spec/` before any work, and this prompt was written after the change
+was committed. It is recorded rather than backdated: a register whose dates
+cannot be trusted is worse than one that admits a gap.
+
+### 104.1 Eleven rows, every one a type chip, and none of it contrast
+
+Run 37205550086 failed the chip floor on `starter` and `locale`:
+
+```
+locale "Fire"  1.99:1 rgb(238,169,113) on rgb(174,114,70)
+locale "Water" 2.03:1 rgb(155,178,228) on rgb(94,122,174)
+locale "Bug"   2.03:1 rgb(195,203,100) on rgb(134,142,58)
+```
+
+Each one is a label on a darker version of its own hue, which looks like a
+tinted surface problem and is not. `typeChip` and `categoryChip` both append a
+`.chip__word` span carrying the word, and `styles.css:1422` is the **only** rule
+for that class in the tree:
+
+```css
+.chip__word { display: none; }
+```
+
+Stage 5.0/1 retired the density modes, so the word became markup that exists to
+be hidden. `wordForm`'s comment still reads *"Pocket renders the glyph alone,
+the other two render the word"*; there is no other mode left to be the other
+two.
+
+`chipsOn` read `node.textContent`, and **`textContent` includes the text of a
+`display:none` element.** So those chips read as worded and the sampler measured
+the colour their word would have had. Measured on the starter screen:
+
+| variant | `textContent` | `innerText` | `.chip__word` |
+|---|---|---|---|
+| type | `"Dark"` | `""` | `display: none` |
+| type | `"Fire"` | `""` | `display: none` |
+| category | `"PHYS"` | `""` | `display: none` |
+| neutral | `"Mold Breaker"` | `"MOLD BREAKER"` | *no word span* |
+
+**29 of 32 chips on that one screen report text that is not painted.** Only
+`neutral` chips paint their words, because they set text on the node directly
+rather than through `wordForm`.
+
+This is section 47.3 arriving through the one door its fix left open. 47.3
+covered `bandChip`, which sets no `textContent` at all; `type` and `category`
+have `textContent` and no rendered text, which an empty-text skip cannot see.
+Its own words apply unchanged: *"a measurement of nothing, free to land
+anywhere, including under the floor."*
+
+### 104.2 What it cost to fix
+
+`chipsOn` reads `innerText`. `type` and `category` become textless and come off
+`VARIANTS`, the way `band` did — **and this is the larger loss, because a type
+chip is the most common chip in the app.** The honest statement of the net
+effect is that the suite now asserts less about type chips than its numbers
+previously implied, not that it asserts more: a floor reading a colour painted
+nowhere was never covering them, it was reporting on them.
+
+What those chips need is the contrast floor between a filled mark and an empty
+one that the `VARIANTS` comment already names and `docs/README.md` already
+carries as an open item. This patch does not build it, and the gap is now
+larger than when it was filed.
+
+`.chip__word` itself is left alone. It is dead markup on a player-facing
+component, so removing it is a `src/` change and `CLAUDE.md` routes that
+through the design bible.
+
+### 104.3 What the locale screen is actually doing, which is correct
+
+D86 rules the locale card *"the crop of its map backdrop, full-bleed, the name
+and the type chips each on a semi-opaque plate over it"*. The screenshot the
+suite wrote shows exactly that. The chips are rendered as the bible specifies,
+and the 2:1 readings were never about them.
+
+## 105. An edge for the one painting the fill cannot stand on
+
+**2026-10-05**, on `claude/sleepy-mccarthy-crfmqt`. Prompt
+[`spec/gymrun-patch-hp-panel-edge.md`](spec/gymrun-patch-hp-panel-edge.md),
+filed before the code. `src/ui/` only: no `src/data/**`, so `contentHash` holds
+at `1ba856`; no version axis moves; no baseline re-recorded.
+
+The other half of `main`'s red. `test/visual-backdrop-contrast.test.ts` is Stage
+5.0/5's third bullet — *"Check HP box and text contrast against every battle
+backdrop"* — and it asserts the HP box **reads as a panel on a painting**: WCAG
+2 1.4.11's 3:1, the dominant colour in a 6px ring of art outside the box against
+the box's border and fill, **whichever is better**. One backdrop failed:
+`cave`, both panels, `max(border 1.34, fill 2.88)`.
+
+### 105.1 Two guesses the probe killed before it answered anything
+
+The test reports only failures, so cave's were the only numbers on record. Two
+explanations were built on them and both were wrong, which is why the probe that
+dumps all eighteen readings came before the token change rather than after.
+
+**"The fill is locale-derived, so it co-varies with the art."** It is not.
+`--panel-scrim` → `--bg-raised` → `--base-surface`, and `locales.css` overrides
+`--locale-*` and never `--base-surface`; both panel colours are global
+constants. This one reached a PR body before it was caught.
+
+**"Cave is the lightest art, so a light border must clear the darkest."** Cave
+is the **darkest** of the nine, at luminance 0.127 against summit's 0.701. And
+the binding rule is not a floor on one colour: the test takes `max` per
+backdrop, so a border only has to carry the backdrops the fill cannot.
+
+Both are the same error as sections 47, 57 and 104 — reasoning about a
+measurement instead of taking it — and the fix that followed from either would
+have been wrong.
+
+### 105.2 What the eighteen readings say
+
+| backdrop | around | lum | fill |
+|---|---|---:|---:|
+| **cave** | rgb(92,100,116) | **0.127** | **2.88** |
+| marsh me | rgb(132,116,84) | 0.180 | 3.75 |
+| badlands foe | rgb(196,100,68) | 0.213 | 4.28 |
+| … | | | |
+| shore | rgb(244,212,156) | 0.687 | 12.01 |
+| summit | rgb(204,220,236) | 0.701 | 12.24 |
+
+The fill is dark, so it separates from eight light paintings and collapses
+against the one dark one. **No darker fill answers that**: against cave's stone
+`--base-deep` reads 3.22 and **pure black reads 3.53** — half a point of margin
+on a floor of three, and a panel that reads as a hole rather than a window.
+
+The border is the other half of the `max` and was carrying nothing anywhere,
+1.03 to 3.18 across all eighteen. A **light** border fails in the opposite
+direction to the fill, so between the two there is no painting where both are
+weak — which is a property of the pair, not of either colour.
+
+### 105.3 The value, and what it costs
+
+`--panel-edge: #d2d8e2`, its own token because `--border-heavy` is read by eight
+other rules and this is a question about one component standing on art.
+
+Chosen as the **darkest** value with real margin, because all nine backdrops pay
+for this edge visually and only cave is rescued by it:
+
+| border | vs cave |
+|---|---|
+| `#737880`, today | 1.34 |
+| `#b4bac4` | 3.05, a bare pass |
+| **`#d2d8e2`** | **4.15** |
+| `--cream #efe6d2` | 4.79 |
+
+Cool rather than warm, so it sits with the panel's own `#151c27`.
+
+**Before and after, all eighteen:**
+
+| | cave | every other backdrop |
+|---|---|---|
+| before | **2.88**, failing | 3.75 to 12.24 |
+| after | **4.15** | **3.75 to 12.24, unchanged to the hundredth** |
+
+Cave is carried by the border now; the other sixteen are carried by the fill
+exactly as before. A fix that cleared cave by pushing another backdrop toward
+the floor would not have been one, and this moves no other number at all.
+
+### 105.4 The bible
+
+Rows touched: **D60**, which makes the *Scene backdrop* the painted art inside
+the frame and a sibling of *World*, and section 5's Pokemon panel row. The
+governing intent is Stage 5.0/1's note in `styles.css` — *"a solid window, the
+plan's GBA HP box"*, superseding V5.3's *"a scrim, not a card"* — and a GBA HP
+box is a defined edge around a field.
+
+**No amendment filed.** This adds no visual device; it gives an edge the rule
+already puts there a value that does its job. A *second* edge colour would have
+been a new device, and CLAUDE.md's "stops and files an amendment before
+building" would have applied.
+
+`NON_TEXT_FLOOR` is untouched. Moving a floor to clear a miss is what the gates
+section forbids, and the floor was never the thing that was wrong.
+
+## 106. Defender Mode v0: a second run mode
 
 **2026-10-04**, on `claude/eager-turing-0059br`. Prompt:
 [`spec/gymrun-defender-mode-v0-fun-test.md`](spec/gymrun-defender-mode-v0-fun-test.md).
@@ -12852,7 +13328,7 @@ A fun test, not a stage: if it is not fun by hand the branch is thrown away,
 so everything it adds sits in `core/defender/`, `data/defender.ts`,
 `data/trainerClasses.ts` and clearly fenced additions elsewhere.
 
-### 101.1 Step 2: the mode flag, gym select, the draft, the type lock, IVs, classes
+### 106.1 Step 2: the mode flag, gym select, the draft, the type lock, IVs, classes
 
 - **The mode is an input, not an axis.** `RunLog.mode` sits beside the seed,
   not in `versions`, and `assertReplayable(log, mode)` refuses a log replayed
@@ -12884,7 +13360,7 @@ so everything it adds sits in `core/defender/`, `data/defender.ts`,
   this step's choice. `generateClassTeam` is `generateTrainerTeam` with a
   type-set admit and the rank's IV, and nothing else differs.
 
-### 101.2 The IV reversal
+### 106.2 The IV reversal
 
 `pokerun-build-spec.md` line 149 keeps IVs out "through Stage 5". The defender
 prompt reverses that for this mode and asks for the reversal to be recorded
@@ -12902,7 +13378,7 @@ the adapter built (`driver.ts` `ivOf`). Views carry `ivs` only when it is not
 `statBandAt`, the stat bar's floor and ceiling, still assumes 31, so a rank-0
 challenger's bars can sit below their floor. A display question for step 7.
 
-### 101.3 Deviations from the prompt at step 2
+### 106.3 Deviations from the prompt at step 2
 
 - **`playRun` in defender mode stops after the draft, loudly**, with an error
   naming step 3. The prompt orders the waves after this step, and a defender
@@ -12922,7 +13398,7 @@ challenger's bars can sit below their floor. A display question for step 7.
   writes their lines (`ui/decision-feed.ts`); no defender run reaches a
   screen before then.
 
-### 101.4 Gates at step 2
+### 106.4 Gates at step 2
 
 Type check, lint, hedge lint, build and smoke run are clean. The node half
 under `GYMRUN_TRIM_STRICT=1` passes 156 files and 2055 tests; it exits 1 on
@@ -12933,7 +13409,7 @@ reproduce on `origin/main` at `47bd73f` in the same container
 chip floor), **identically on `origin/main`**: pre-existing, presentation,
 and untouched by this step.
 
-### 101.5 Step 3: the waves, the door, the intermission, the boss
+### 106.5 Step 3: the waves, the door, the intermission, the boss
 
 **2026-10-04.** The author's go-ahead after step 2's review read "go ahead
 step 2", with step 2 already built and pushed; it was taken as approval of step
@@ -12976,7 +13452,7 @@ expected shape for a step that has not built recruitment yet. Recorded, not
 chased; step 6 takes the real benchmark. The full eight ranks to victory are
 held by a structural walk in `test/defender-waves.test.ts`.
 
-### 101.6 Step 4: the three badges, through the sim
+### 106.6 Step 4: the three badges, through the sim
 
 **2026-10-04.** A badge applies to a party member exactly when its species
 carries the gym type (`core/defender/badge.ts` `battleBadgeFor`, read off the
@@ -13046,7 +13522,7 @@ mean bosses beaten Fire 2.08, Psychic 1.80, Flying 2.33 (step 3: 2.03, 1.80,
 opponent does and a bot that does not read it. The bot holds no Fire streak
 and never presses the fifth move, so both rows understate their badge.
 
-### 101.7 Step 5: consumables, trades, the recruit draft, the off-type relic
+### 106.7 Step 5: consumables, trades, the recruit draft, the off-type relic
 
 **2026-10-05.**
 
@@ -13087,7 +13563,7 @@ and never presses the fifth move, so both rows understate their badge.
   shown it, `DefenderRunState.offTypeOffered` treats it as held, so it never
   shows again, taken or not.
 
-### 101.8 Deviations from the prompt at step 5
+### 106.8 Deviations from the prompt at step 5
 
 - **Where an off-type mon comes from is not in the prompt.** Every draft,
   recruit and trade obeys the type lock, so the exempt slot had no source. The
@@ -13106,7 +13582,7 @@ and never presses the fifth move, so both rows understate their badge.
   first door, first card, so never a trade) beat 2.0 bosses on mean, with one
   run reaching six; the recruit drafts are what lets a run pass rank 3.
 
-### 101.9 Step 6: the benchmark rows
+### 106.9 Step 6: the benchmark rows
 
 **2026-10-05.** `npm run sim:defender -- --seeds 200 --prefix DEFENDER --write`
 (`scripts/defender-bench.ts`) plays one row per gym type under
@@ -13123,9 +13599,9 @@ that is not a trade, so it takes the same first card the attacker baseline
 does unless that card is the trade, which a carried trade never is (it takes
 the last slot). No number was tuned against these rows.
 
-### 101.10 Step 7: the UI, built to bible Rev 24
+### 106.10 Step 7: the UI, built to bible Rev 25
 
-**2026-10-05.** Built to D99 to D102 as ruled
+**2026-10-05.** Built to D101 to D103 as ruled
 (`spec/gymrun-defender-mode-v0-rulings-d99-d102.md`), on the existing screens.
 Nothing under `core/` changed except one read for the screens,
 `core/defender/badge.ts` `flameSlotFor`, which is `memberBadge`'s own rule for
@@ -13162,7 +13638,7 @@ when a flame is drawn, so a card cannot show a flame the battle would not honour
 
 #### Deviations recorded at step 7
 
-- **The consumable sprite is a placeholder, not a Showdown cell.** D101 says
+- **The consumable sprite is a placeholder, not a Showdown cell.** D103 says
   the Showdown sheet carries a Potion, Super Potion and Hyper Potion. Neither
   `@pkmn/img`'s index nor Showdown's client item data (`data/items.js`) carries
   any of the three, so no cell can be named. The face draws the lettered
@@ -13174,11 +13650,11 @@ when a flame is drawn, so a card cannot show a flame the battle would not honour
 - **The Stranger's Pass draws the same placeholder.** It is the one relic with
   no manifest entry, and `assetIcon` throws on a missing key, so its card would
   have thrown on the first boss page that offered it (`relicIcon`).
-- **The crit chance is floored, not rounded.** Gen 9's stage 1 is 12.5%; D99
+- **The crit chance is floored, not rounded.** Gen 9's stage 1 is 12.5%; D101
   writes the three values as 12, 50 and 100, so the button floors, and a
   chance is never shown higher than it is.
 - **A defender boss has no leader anywhere, not only on the pre-gym screen.**
-  D100 rules the pre-gym variant. The same absence reaches every surface that
+  D102 rules the pre-gym variant. The same absence reaches every surface that
   printed the attacker's leader for a segment: the map's heading (no leader, no
   type chip, no `gym:` tip, no blurb), the eight-step rail (the numbers alone),
   the boss node (its team size, bare), the battle header (the gym mark alone),
@@ -13188,3 +13664,35 @@ when a flame is drawn, so a card cannot show a flame the battle would not honour
 - **The boss's level on the pre-gym screen is the team's highest.** A boss
   team is drawn at one level, so it is that level; the highest is read so an
   empty team reads 0 rather than throwing.
+
+### 106.11 The merge onto main, and what it renumbered
+
+**2026-10-05.** Main moved twenty-seven commits while this mode was built,
+and two of them took the same version numbers this branch had: the berry gym
+reward patch took `gymrun-randomizer-24` and `gymrun-run-23`, and section 101,
+and the species-locked pool patch took `gymrun-randomizer-25`. The two `-24`s
+and the two `-23`s are different builds, so the merge is a composition
+neither side was, and each axis moves past main's:
+
+| axis | main | this branch | merged |
+|---|---|---|---|
+| `RANDOMIZER_VERSION` | `-25` | `-24` | `-26` |
+| `RUN_LOG_VERSION` | `-23` | `-23` | `-24` |
+| `contentHash` | `1ba856` | `564eda` | `b85ac9` |
+
+This section was section 101 on the branch and is 106 here, after main's 101
+to 105. Main also took bible Rev 24 and D99 for the berry pick, so this
+branch's Rev 24 is **Rev 25** and its D99 to D102 are **D100 to D103**, in the
+same order (the badge family, the budgets, the reward faces and the Bag, the
+fifth button). The proposal (`reports/defender-mode-v0-step7-bible.md`) and the
+ruling (`spec/gymrun-defender-mode-v0-rulings-d99-d102.md`) keep the numbers
+they were written with. References to it from this branch's code, tests and documents were
+moved with it; a "section 101" written by main is still the berry pick.
+Everything above this subsection that names a version or a hash names the
+branch's own, as it was when written: the record is not edited, this note
+supersedes it.
+
+`test/attacker-generation-golden.test.ts` was re-minted on main's tree
+(`-25`, before the merge), not on the merged one, and then held against the
+merged tree: so it still proves the mode moved no attacker draw, against the
+generation main ships.

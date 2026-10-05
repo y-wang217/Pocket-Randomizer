@@ -166,6 +166,11 @@ describe('the gym held-item ladder', () => {
    * levels down at every segment, every wild team here moved with it, and
    * `gymrun-randomizer-22` arrived beside it. Trainer teams did not move; the
    * digest covers both, so it moves once.
+   *
+   * **Re-recorded 2026-10-04**, from `8acd0cd19c67dc7c`, with
+   * `gymrun-randomizer-25`: the ability and move pools each lost their
+   * species-locked entries, so the same float picks a different ability or
+   * move on every team that drew near one.
    */
   it('generates trainer and wild teams byte-identically to before the ladder existed', () => {
     const records: string[] = [];
@@ -186,7 +191,7 @@ describe('the gym held-item ladder', () => {
       }
     }
     const digest = createHash('sha256').update(records.join('\n')).digest('hex').slice(0, 16);
-    expect(digest).toBe('8acd0cd19c67dc7c');
+    expect(digest).toBe('aa380896c804ea42');
   });
 
   it('spends the same two draws on a gym member as on any other opponent', () => {
