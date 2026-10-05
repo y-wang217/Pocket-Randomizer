@@ -13640,7 +13640,7 @@ when a flame is drawn, so a card cannot show a flame the battle would not honour
 
 - **The consumable sprite is a placeholder, not a Showdown cell.** D103 says
   the Showdown sheet carries a Potion, Super Potion and Hyper Potion. Neither
-  `@pkmn/img`'s index nor Showdown's client item data (`data/items.js`) carries
+  `@pkmn/img`'s index nor the item table Showdown's own client serves carries
   any of the three, so no cell can be named. The face draws the lettered
   placeholder every icon falls back to (`ui/assets/manifest.ts`
   `placeholderIcon`), at a relic icon's size, and stays outside `MANIFEST` so
