@@ -1822,6 +1822,7 @@ export function mountApp(root: HTMLElement): void {
   } else void start(newSeed());
   if (saved && fromUrl?.kind !== 'foreign') {
     console.warn('GYMRUN: the saved run cannot be replayed on this build', describeVersionMismatch(versionMismatch(saved)!));
-    seedBar.warn(SEED_COPY.saveOutdated);
+    // Reported, not acted on: the new run has started, so the bar stays shut.
+    seedBar.warn(SEED_COPY.saveOutdated, { open: false });
   }
 }
