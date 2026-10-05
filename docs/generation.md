@@ -13061,3 +13061,259 @@ chips on the locale and starter screens at 2 to 4.5:1. It fails identically on
 101 had no reading of that file in its container, and this is the first. It
 comes from the palette, and nothing in the pools can reach it. Left open for
 whoever owns the stage.
+
+## 103. A test for the tally, and the patch main overtook
+
+**2026-10-04**, on `claude/sleepy-mccarthy-crfmqt`. Prompt
+[`spec/gymrun-patch-gate-tally-test.md`](spec/gymrun-patch-gate-tally-test.md).
+Test and tooling only: nothing under `src/`, no version axis moves, no baseline
+re-recorded.
+
+### 103.1 What this is the remainder of
+
+A patch filed on this same branch against `379c154` — "the tolerance that never
+fired, and a sampler that answered", PR #93 — was overtaken while open, and its
+prompt never reached `main`, so it is named here rather than linked: `main` moved 354 commits,
+and sections 47 and 57 had already landed every part of it. Recorded as a
+comparison rather than quietly dropped, because two of the rows are cases where
+the version already here is the better one and the reasoning is worth keeping:
+
+| that patch | `main`, and why it wins |
+|---|---|
+| strip ANSI before reading the tally | 47.5, same diagnosis |
+| wait for images before a box is measured | 47.2. The same `img.decode()` hang on a `loading="lazy"` sprite below the fold was met from both directions; that patch **deleted** the wait, 47.2 flips `loading` to `eager` so the wait terminates *and* still means something |
+| skip a chip with no text | 47.3, and further: `band` comes off `VARIANTS` rather than going quietly absent |
+| serve the sprite host from a local fixture | 57.4's `GYMRUN_PROXY`, which measures **real sprites** through the box's egress proxy — a fixture only ever proves the fixture |
+| carry box, modal share and geometry in the message | superseded by uploading the failing screenshots |
+
+Two findings from it are kept because they cost real time, and one is a
+correction:
+
+- **The font was ruled out, and that was wrong.** Installed font *packages* on
+  the sandbox match the Playwright image's set, and that was taken as
+  equivalence. 57.3 needed `FONTCONFIG_FILE` to reject DejaVu and prefer
+  Liberation Mono to reproduce the CI number: `fc-match` on one box says
+  nothing about another's preference order. Comparing package lists is not
+  comparing resolution, and the candidate dismissed that way was the one that
+  mattered.
+- **Independent corroboration of 47.1**: the gallery Ghost chip reads
+  **5.13:1 on `rgb(34,38,58)`** here, on Chromium 1194 and on the container's
+  1243, matching the developer-box figure 47.1 recorded. Five type hues under
+  4.5 on `rgb(46,50,54)` reproduces 47.4's shape too.
+
+PR #93 is closed carrying that table.
+
+### 103.2 The one gap: `check.mjs` had no test of any kind
+
+The tolerance from section 33 did not fire once until 47.5 fixed it, and the
+guard's own comment says why it survived:
+
+> Locally, with no `CI`, vitest emits plain text and the same guard matched —
+> which is exactly how a bug of this shape survives being tested.
+
+A guard exercised only in the environment where it cannot fail is untested,
+which is the cry-wolf problem `test/boundaries.test.ts` already warns about —
+and it had been sitting in the gate itself.
+
+The tally predicates move to `scripts/check-tally.mjs` **byte-for-byte**, with
+their prose, so a test can reach them. `check.mjs` ends in
+`process.exit(await main())`, so a test that imported it would run the gate; an
+`import.meta.url` entry guard was the alternative and is the worse seam,
+because a guard that fails open means a test run invokes the ten-leg gate it is
+part of. `scripts/check-tally.d.mts` follows the convention
+`scripts/visual/contrast.d.mts` sets.
+
+`test/check-gate.test.ts` is the first test to cover the runner. Its fixtures
+are real: the escape pattern is what this repo emits under `FORCE_COLOR=1`, the
+failing shape is run 37205550086's chromium leg, and the passing counts are
+47.5's own. Against the coloured passing tally under an `onTaskUpdate` timeout:
+
+| | tolerated |
+|---|---|
+| section 33's predicates, before the strip | **false** — the bug |
+| `main` today | **true**, note `120 files, 1650 tests` |
+
+**The guard then fired for real while this was being verified.** `test:node` on
+this branch hit the reporter RPC timeout on its own and reported
+`ERRORED — 157 files, 2051 tests passed`, `check: green`. That is the behaviour
+under test, observed rather than argued.
+
+## 104. A floor that was reading a word nobody paints
+
+**2026-10-05**, on `claude/sleepy-mccarthy-crfmqt`. Prompt
+[`spec/gymrun-patch-chip-word-not-painted.md`](spec/gymrun-patch-chip-word-not-painted.md).
+Test-only: nothing under `src/`, no version axis moves, no baseline re-recorded.
+
+**Protocol first, because it was broken.** Protocol 1 and 7 require the prompt
+in `docs/spec/` before any work, and this prompt was written after the change
+was committed. It is recorded rather than backdated: a register whose dates
+cannot be trusted is worse than one that admits a gap.
+
+### 104.1 Eleven rows, every one a type chip, and none of it contrast
+
+Run 37205550086 failed the chip floor on `starter` and `locale`:
+
+```
+locale "Fire"  1.99:1 rgb(238,169,113) on rgb(174,114,70)
+locale "Water" 2.03:1 rgb(155,178,228) on rgb(94,122,174)
+locale "Bug"   2.03:1 rgb(195,203,100) on rgb(134,142,58)
+```
+
+Each one is a label on a darker version of its own hue, which looks like a
+tinted surface problem and is not. `typeChip` and `categoryChip` both append a
+`.chip__word` span carrying the word, and `styles.css:1422` is the **only** rule
+for that class in the tree:
+
+```css
+.chip__word { display: none; }
+```
+
+Stage 5.0/1 retired the density modes, so the word became markup that exists to
+be hidden. `wordForm`'s comment still reads *"Pocket renders the glyph alone,
+the other two render the word"*; there is no other mode left to be the other
+two.
+
+`chipsOn` read `node.textContent`, and **`textContent` includes the text of a
+`display:none` element.** So those chips read as worded and the sampler measured
+the colour their word would have had. Measured on the starter screen:
+
+| variant | `textContent` | `innerText` | `.chip__word` |
+|---|---|---|---|
+| type | `"Dark"` | `""` | `display: none` |
+| type | `"Fire"` | `""` | `display: none` |
+| category | `"PHYS"` | `""` | `display: none` |
+| neutral | `"Mold Breaker"` | `"MOLD BREAKER"` | *no word span* |
+
+**29 of 32 chips on that one screen report text that is not painted.** Only
+`neutral` chips paint their words, because they set text on the node directly
+rather than through `wordForm`.
+
+This is section 47.3 arriving through the one door its fix left open. 47.3
+covered `bandChip`, which sets no `textContent` at all; `type` and `category`
+have `textContent` and no rendered text, which an empty-text skip cannot see.
+Its own words apply unchanged: *"a measurement of nothing, free to land
+anywhere, including under the floor."*
+
+### 104.2 What it cost to fix
+
+`chipsOn` reads `innerText`. `type` and `category` become textless and come off
+`VARIANTS`, the way `band` did — **and this is the larger loss, because a type
+chip is the most common chip in the app.** The honest statement of the net
+effect is that the suite now asserts less about type chips than its numbers
+previously implied, not that it asserts more: a floor reading a colour painted
+nowhere was never covering them, it was reporting on them.
+
+What those chips need is the contrast floor between a filled mark and an empty
+one that the `VARIANTS` comment already names and `docs/README.md` already
+carries as an open item. This patch does not build it, and the gap is now
+larger than when it was filed.
+
+`.chip__word` itself is left alone. It is dead markup on a player-facing
+component, so removing it is a `src/` change and `CLAUDE.md` routes that
+through the design bible.
+
+### 104.3 What the locale screen is actually doing, which is correct
+
+D86 rules the locale card *"the crop of its map backdrop, full-bleed, the name
+and the type chips each on a semi-opaque plate over it"*. The screenshot the
+suite wrote shows exactly that. The chips are rendered as the bible specifies,
+and the 2:1 readings were never about them.
+
+## 105. An edge for the one painting the fill cannot stand on
+
+**2026-10-05**, on `claude/sleepy-mccarthy-crfmqt`. Prompt
+[`spec/gymrun-patch-hp-panel-edge.md`](spec/gymrun-patch-hp-panel-edge.md),
+filed before the code. `src/ui/` only: no `src/data/**`, so `contentHash` holds
+at `1ba856`; no version axis moves; no baseline re-recorded.
+
+The other half of `main`'s red. `test/visual-backdrop-contrast.test.ts` is Stage
+5.0/5's third bullet — *"Check HP box and text contrast against every battle
+backdrop"* — and it asserts the HP box **reads as a panel on a painting**: WCAG
+2 1.4.11's 3:1, the dominant colour in a 6px ring of art outside the box against
+the box's border and fill, **whichever is better**. One backdrop failed:
+`cave`, both panels, `max(border 1.34, fill 2.88)`.
+
+### 105.1 Two guesses the probe killed before it answered anything
+
+The test reports only failures, so cave's were the only numbers on record. Two
+explanations were built on them and both were wrong, which is why the probe that
+dumps all eighteen readings came before the token change rather than after.
+
+**"The fill is locale-derived, so it co-varies with the art."** It is not.
+`--panel-scrim` → `--bg-raised` → `--base-surface`, and `locales.css` overrides
+`--locale-*` and never `--base-surface`; both panel colours are global
+constants. This one reached a PR body before it was caught.
+
+**"Cave is the lightest art, so a light border must clear the darkest."** Cave
+is the **darkest** of the nine, at luminance 0.127 against summit's 0.701. And
+the binding rule is not a floor on one colour: the test takes `max` per
+backdrop, so a border only has to carry the backdrops the fill cannot.
+
+Both are the same error as sections 47, 57 and 104 — reasoning about a
+measurement instead of taking it — and the fix that followed from either would
+have been wrong.
+
+### 105.2 What the eighteen readings say
+
+| backdrop | around | lum | fill |
+|---|---|---:|---:|
+| **cave** | rgb(92,100,116) | **0.127** | **2.88** |
+| marsh me | rgb(132,116,84) | 0.180 | 3.75 |
+| badlands foe | rgb(196,100,68) | 0.213 | 4.28 |
+| … | | | |
+| shore | rgb(244,212,156) | 0.687 | 12.01 |
+| summit | rgb(204,220,236) | 0.701 | 12.24 |
+
+The fill is dark, so it separates from eight light paintings and collapses
+against the one dark one. **No darker fill answers that**: against cave's stone
+`--base-deep` reads 3.22 and **pure black reads 3.53** — half a point of margin
+on a floor of three, and a panel that reads as a hole rather than a window.
+
+The border is the other half of the `max` and was carrying nothing anywhere,
+1.03 to 3.18 across all eighteen. A **light** border fails in the opposite
+direction to the fill, so between the two there is no painting where both are
+weak — which is a property of the pair, not of either colour.
+
+### 105.3 The value, and what it costs
+
+`--panel-edge: #d2d8e2`, its own token because `--border-heavy` is read by eight
+other rules and this is a question about one component standing on art.
+
+Chosen as the **darkest** value with real margin, because all nine backdrops pay
+for this edge visually and only cave is rescued by it:
+
+| border | vs cave |
+|---|---|
+| `#737880`, today | 1.34 |
+| `#b4bac4` | 3.05, a bare pass |
+| **`#d2d8e2`** | **4.15** |
+| `--cream #efe6d2` | 4.79 |
+
+Cool rather than warm, so it sits with the panel's own `#151c27`.
+
+**Before and after, all eighteen:**
+
+| | cave | every other backdrop |
+|---|---|---|
+| before | **2.88**, failing | 3.75 to 12.24 |
+| after | **4.15** | **3.75 to 12.24, unchanged to the hundredth** |
+
+Cave is carried by the border now; the other sixteen are carried by the fill
+exactly as before. A fix that cleared cave by pushing another backdrop toward
+the floor would not have been one, and this moves no other number at all.
+
+### 105.4 The bible
+
+Rows touched: **D60**, which makes the *Scene backdrop* the painted art inside
+the frame and a sibling of *World*, and section 5's Pokemon panel row. The
+governing intent is Stage 5.0/1's note in `styles.css` — *"a solid window, the
+plan's GBA HP box"*, superseding V5.3's *"a scrim, not a card"* — and a GBA HP
+box is a defined edge around a field.
+
+**No amendment filed.** This adds no visual device; it gives an edge the rule
+already puts there a value that does its job. A *second* edge colour would have
+been a new device, and CLAUDE.md's "stops and files an amendment before
+building" would have applied.
+
+`NON_TEXT_FLOOR` is untouched. Moving a floor to clear a miss is what the gates
+section forbids, and the floor was never the thing that was wrong.

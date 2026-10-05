@@ -442,8 +442,14 @@ body {
      prefix and not a preference expressed here. */
   /* Stage 5.0/1: a solid window, the plan's GBA HP box. The blur and the
      translucent scrim above were V5's, over the world; the frame is opaque
-     now and the plan forbids `backdrop-filter`. */
-  border: var(--rule-heavy) solid var(--border-heavy);
+     now and the plan forbids `backdrop-filter`.
+
+     `--panel-edge` rather than `--border-heavy`, Stage 5.0/5: the mid-grey
+     scored 1.03 to 3.18 against the nine paintings and carried none of them,
+     leaving the fill to do all the work — which it cannot on `cave`, the one
+     backdrop darker than the panel. The token's own comment has the numbers
+     and why no darker fill answers it instead. */
+  border: var(--rule-heavy) solid var(--panel-edge);
   border-radius: var(--radius-card);
 }
 
