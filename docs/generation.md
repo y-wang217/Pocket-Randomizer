@@ -13137,3 +13137,84 @@ failing shape is run 37205550086's chromium leg, and the passing counts are
 this branch hit the reporter RPC timeout on its own and reported
 `ERRORED — 157 files, 2051 tests passed`, `check: green`. That is the behaviour
 under test, observed rather than argued.
+
+## 104. A floor that was reading a word nobody paints
+
+**2026-10-05**, on `claude/sleepy-mccarthy-crfmqt`. Prompt
+[`spec/gymrun-patch-chip-word-not-painted.md`](spec/gymrun-patch-chip-word-not-painted.md).
+Test-only: nothing under `src/`, no version axis moves, no baseline re-recorded.
+
+**Protocol first, because it was broken.** Protocol 1 and 7 require the prompt
+in `docs/spec/` before any work, and this prompt was written after the change
+was committed. It is recorded rather than backdated: a register whose dates
+cannot be trusted is worse than one that admits a gap.
+
+### 104.1 Eleven rows, every one a type chip, and none of it contrast
+
+Run 37205550086 failed the chip floor on `starter` and `locale`:
+
+```
+locale "Fire"  1.99:1 rgb(238,169,113) on rgb(174,114,70)
+locale "Water" 2.03:1 rgb(155,178,228) on rgb(94,122,174)
+locale "Bug"   2.03:1 rgb(195,203,100) on rgb(134,142,58)
+```
+
+Each one is a label on a darker version of its own hue, which looks like a
+tinted surface problem and is not. `typeChip` and `categoryChip` both append a
+`.chip__word` span carrying the word, and `styles.css:1422` is the **only** rule
+for that class in the tree:
+
+```css
+.chip__word { display: none; }
+```
+
+Stage 5.0/1 retired the density modes, so the word became markup that exists to
+be hidden. `wordForm`'s comment still reads *"Pocket renders the glyph alone,
+the other two render the word"*; there is no other mode left to be the other
+two.
+
+`chipsOn` read `node.textContent`, and **`textContent` includes the text of a
+`display:none` element.** So those chips read as worded and the sampler measured
+the colour their word would have had. Measured on the starter screen:
+
+| variant | `textContent` | `innerText` | `.chip__word` |
+|---|---|---|---|
+| type | `"Dark"` | `""` | `display: none` |
+| type | `"Fire"` | `""` | `display: none` |
+| category | `"PHYS"` | `""` | `display: none` |
+| neutral | `"Mold Breaker"` | `"MOLD BREAKER"` | *no word span* |
+
+**29 of 32 chips on that one screen report text that is not painted.** Only
+`neutral` chips paint their words, because they set text on the node directly
+rather than through `wordForm`.
+
+This is section 47.3 arriving through the one door its fix left open. 47.3
+covered `bandChip`, which sets no `textContent` at all; `type` and `category`
+have `textContent` and no rendered text, which an empty-text skip cannot see.
+Its own words apply unchanged: *"a measurement of nothing, free to land
+anywhere, including under the floor."*
+
+### 104.2 What it cost to fix
+
+`chipsOn` reads `innerText`. `type` and `category` become textless and come off
+`VARIANTS`, the way `band` did — **and this is the larger loss, because a type
+chip is the most common chip in the app.** The honest statement of the net
+effect is that the suite now asserts less about type chips than its numbers
+previously implied, not that it asserts more: a floor reading a colour painted
+nowhere was never covering them, it was reporting on them.
+
+What those chips need is the contrast floor between a filled mark and an empty
+one that the `VARIANTS` comment already names and `docs/README.md` already
+carries as an open item. This patch does not build it, and the gap is now
+larger than when it was filed.
+
+`.chip__word` itself is left alone. It is dead markup on a player-facing
+component, so removing it is a `src/` change and `CLAUDE.md` routes that
+through the design bible.
+
+### 104.3 What the locale screen is actually doing, which is correct
+
+D86 rules the locale card *"the crop of its map backdrop, full-bleed, the name
+and the type chips each on a semi-opaque plate over it"*. The screenshot the
+suite wrote shows exactly that. The chips are rendered as the bible specifies,
+and the 2:1 readings were never about them.
