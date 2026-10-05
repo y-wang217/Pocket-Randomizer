@@ -490,8 +490,14 @@ describe('the version axes', () => {
      * And at checkpoint 8, from `16dc95`: the Gen 5 to 9 rivals enter eight
      * tables from Serebii. `gymrun-randomizer-29` moves beside it.
      * `docs/generation.md` section 107.
+     *
+     * And at checkpoint 9, from `c4bf74`: the nine Gen 1 to 4 files split
+     * into bosses and routes, eighteen files for the same records, and the
+     * registry in `index.ts`. **No randomizer axis moves**: the held-item
+     * digest and the sim fixture are byte-identical but for this hash, which
+     * is the evidence the seam moved no draw. `docs/generation.md` section 108.
      */
-    expect(CONTENT_HASH).toBe('c4bf74c6b5e17ec5166bcab4d40fb2444f3714b3c229011928cff76715d6a36a');
+    expect(CONTENT_HASH).toBe('22ebcb59bd2606f513ab2608ce7e05fdf1cbc55c9462e4538ab144e005eec324');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

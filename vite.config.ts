@@ -17,12 +17,19 @@ export default defineConfig({
     // We are shipping a Pokemon engine; one large chunk is the expected shape,
     // not a code-splitting oversight (docs/engine-notes.md section 4 has the
     // breakdown). The limit is set just above the current size so that a
-    // regression still trips the warning.
+    // regression still trips the warning. Since Stage 6.0 checkpoint 9 there
+    // is a second chunk beside it: the encounter library's route trainers,
+    // from the one dynamic import in src/ui/app.ts, installed before the
+    // first run (docs/generation.md section 108).
     chunkSizeWarningLimit: 3500,
   },
   test: {
     environment: 'node',
     include: ['test/**/*.test.ts'],
+    // The whole encounter library, installed before any test generates a
+    // run (checkpoint 9). The registry test resets modules to prove the
+    // throw without it.
+    setupFiles: ['test/setup/encounter-library.ts'],
     /*
      * Raised from the 5s default in Stage 4.
      *

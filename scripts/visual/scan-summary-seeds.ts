@@ -5,6 +5,8 @@
  *
  *   npx vite-node scripts/visual/scan-summary-seeds.ts [count]
  */
+// The route half of the encounter library, before any run (checkpoint 9).
+import '../../src/data/encounters/full';
 import { greedyAiPolicy } from '../../src/core/battle/ai';
 import { causeOfDeath, gymsCleared, playRun, scriptedRunPolicy } from '../../src/core/run';
 

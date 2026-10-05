@@ -89,6 +89,8 @@ function isSurface(value: string): value is GallerySurface {
 const EXHAUSTED_EXPOSURE = 4;
 
 async function main(): Promise<void> {
+  // The route half of the library, before any fixture builds a run (checkpoint 9).
+  await import('../data/encounters/full');
   const params = new URLSearchParams(globalThis.location.hash.replace(/^#/, ''));
   const seed = params.get('seed') ?? 'S49B-1';
   const requested = params.get('screen') ?? 'summary';

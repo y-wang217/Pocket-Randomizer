@@ -75,6 +75,8 @@
  * census, not a defect in it. They fall off this table when M1.1 and M2.1 ship
  * the glyphs, and that fall is the delta M7.2 reads.
  */
+// The route half of the encounter library, before any run (checkpoint 9).
+import '../../src/data/encounters/full';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -84,7 +86,7 @@ import { build } from 'vite';
 import { PHONE, launch, serve } from './browser.mjs';
 import { GALLERY_SURFACES, type GallerySurface } from '../../src/ui/gallery-surfaces';
 import { ABILITY_POOL } from '../../src/data/abilities';
-import { ENCOUNTERS } from '../../src/data/encounters';
+import { allEncounters } from '../../src/data/encounters';
 import { BERRIES, CHOICE_ITEMS, MODEST_ITEMS, STAPLE_ITEMS, TYPE_ITEMS } from '../../src/data/items';
 import { LOCALES } from '../../src/data/locales';
 import { DAMAGING_MOVES, STATUS_MOVES } from '../../src/data/movePools';
@@ -345,7 +347,7 @@ export function properNouns(): Set<string> {
     ...RELICS.map((entry) => entry.name),
     ...LOCALES.map((entry) => entry.name),
     // Every trainer the library can name: a leader's name on the map is a proper noun (Stage 6.0).
-    ...ENCOUNTERS.map((entry) => entry.trainer.name),
+    ...allEncounters().map((entry) => entry.trainer.name),
     ...NICKNAMES,
   ];
   const out = new Set<string>();

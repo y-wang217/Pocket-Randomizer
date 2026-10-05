@@ -71,14 +71,37 @@ function literal(record: EncounterRecord): string {
   return `  { ${fields.join(', ')} },`;
 }
 
+/**
+ * Write a game's tables: the bosses, rivals, leaders, Elite Four and
+ * villains in `<game>.ts`, and the route trainers, where the game has any,
+ * in `<game>-routes.ts`. **Checkpoint 9.** The split is the bundle seam:
+ * `index.ts` imports the first statically and the host installs the second
+ * (`full.ts`) before any run, so four fifths of the library's bytes are a
+ * chunk of their own. Ids, order and content are unchanged by the split.
+ */
 export function emitGame(game: GameId, records: EncounterRecord[], source: EncounterSource): void {
+  const routes = records.filter((record) => record.role === 'route');
+  const bosses = records.filter((record) => record.role !== 'route');
+  writeFileSync(join(OUT, `${game}.ts`), fileText(game, bosses, source, 'ROWS', routes.length));
+  if (routes.length > 0) writeFileSync(join(OUT, `${game}-routes.ts`), fileText(game, routes, source, 'ROUTE_ROWS', 0));
+}
+
+function fileText(game: GameId, records: EncounterRecord[], source: EncounterSource, suffix: 'ROWS' | 'ROUTE_ROWS', routesElsewhere: number): string {
   const constName = game.toUpperCase();
   const body = records.map(literal).join('\n');
-  const text = `/**
+  const what =
+    suffix === 'ROUTE_ROWS'
+      ? `${GAME_LABEL[game]}: ${records.length} route trainers, the half of the game the host
+ * installs before a run (\`full.ts\`); the bosses are in \`${game}.ts\`.`
+      : routesElsewhere > 0
+        ? `${GAME_LABEL[game]}: ${records.length} encounters, the bosses, rivals, leaders, Elite Four
+ * and villains; its ${routesElsewhere} route trainers are in \`${game}-routes.ts\`.`
+        : `${GAME_LABEL[game]}: ${records.length} encounters.`;
+  return `/**
  * GENERATED FILE — do not hand-edit. Produced by \`npm run gen:encounters\`
  * from ${source.repo} at ${source.sha}. Fix the importer or the pin, then regenerate.
  *
- * ${GAME_LABEL[game]}: ${records.length} encounters. A row's \`cite\` is its label
+ * ${what} A row's \`cite\` is its label
  * inside the files named below. A row's \`party\` is one string per the grammar
  * in \`types.ts\` (\`species:level[@item][>moves][#gender]\`, members on \`|\`),
  * decoded once at load by \`index.ts\`.
@@ -94,9 +117,8 @@ export const ${constName}_SOURCE: EncounterSource = {
   files: [${source.files.map((file) => `'${file}'`).join(', ')}],
 };
 
-export const ${constName}_ROWS: readonly EncounterRow[] = [
+export const ${constName}_${suffix}: readonly EncounterRow[] = [
 ${body}
 ];
 `;
-  writeFileSync(join(OUT, `${game}.ts`), text);
 }

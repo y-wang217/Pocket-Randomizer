@@ -45,6 +45,8 @@
  * class that looks marginal on this evidence is marginal or better, never
  * worse.
  */
+// The route half of the encounter library, before any run (checkpoint 9).
+import '../src/data/encounters/full';
 import { stripNondeterministic, type BattleSession } from '../src/core/battle/driver';
 import { playRun, scriptedRunPolicy } from '../src/core/run';
 import { greedyAiPolicy } from '../src/core/battle/ai';

@@ -33,6 +33,8 @@
  * feeds would hand over a seed that does not satisfy it — which the test then
  * reports, loudly, as the assertion it already carries.
  */
+// The route half of the encounter library, before any run (checkpoint 9).
+import '../src/data/encounters/full';
 import { greedyAiPolicy } from '../src/core/battle/ai';
 
 import { defaultItemPlan, playRun, scriptedRunPolicy, type RunPolicy } from '../src/core/run';

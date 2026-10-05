@@ -11,7 +11,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { ENCOUNTERS, encounterById } from '../src/data/encounters';
+import { allEncounters, encounterById } from '../src/data/encounters';
 import { CANDIDATE_WINDOW, encounterCandidates, fitParty, playable } from '../src/data/encounters/library';
 import { entryOfSpecies } from '../src/data/evolution';
 import { GYMS } from '../src/data/gyms';
@@ -91,7 +91,7 @@ describe('candidates', () => {
   });
 
   it('exclude every record whose ace the pool cannot play', () => {
-    const unplayable = ENCOUNTERS.filter((r) => playable(r) === null);
+    const unplayable = allEncounters().filter((r) => playable(r) === null);
     expect(unplayable.length).toBeGreaterThan(0);
     for (const record of unplayable) {
       for (let segment = 0; segment < 8; segment++) {
@@ -105,7 +105,7 @@ describe('the fit', () => {
   const brock = encounterById('rby/brock-1')!;
 
   it('puts the ace on the cap and every member inside the range', () => {
-    for (const record of ENCOUNTERS.filter((r) => playable(r) !== null).slice(0, 400)) {
+    for (const record of allEncounters().filter((r) => playable(r) !== null).slice(0, 400)) {
       for (const segment of [0, 3, 7]) {
         const level = opponentLevel('gym', segment, 'normal');
         const size = opponentTeamSize('gym', segment, 'normal');

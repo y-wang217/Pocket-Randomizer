@@ -38,7 +38,7 @@ import { DAMAGING_MOVES, STATUS_MOVES } from '../movePools';
 import { opponentLevel, speciesBandsFor } from '../scaling';
 import type { Tier } from '../../core/types';
 import type { SpeciesEntry } from '../speciesPools';
-import { ENCOUNTERS } from './index';
+import { allEncounters } from './index';
 import type { EncounterRecord } from './types';
 
 export type EncounterKind = 'trainer' | 'gym';
@@ -155,7 +155,9 @@ export function encounterCandidates(kind: EncounterKind, segment: number, tier: 
   const cached = candidateCache.get(key);
   if (cached) return cached;
   const target = opponentLevel(kind, segment, tier).max;
-  const eligible = ENCOUNTERS.filter((record) => playable(record) !== null)
+  // Throws until the host has installed the route tables (checkpoint 9):
+  // a window drawn from half the library would be a different draw.
+  const eligible = allEncounters().filter((record) => playable(record) !== null)
     .filter((record) => (kind === 'gym' ? isChallengerCandidate(record) : isTrainerCandidate(record, tier)));
   const ranked = (kind === 'trainer' ? inTierBands(eligible, segment, tier) : eligible)
     .map((record) => ({ record, distance: Math.abs(aceLevel(record) - target) }))

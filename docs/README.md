@@ -468,7 +468,11 @@ section 106. **Checkpoint 8 added the Gen 5 to 9 rivals** from Serebii's
 per-character pages (282 records, set moves and items throughout, the
 library at 5,921); X and Y and Scarlet and Violet have no such page and stay
 a gap. `RANDOMIZER_VERSION` to `-29`, `contentHash` to `c4bf74`. Record
-[`generation.md`](generation.md) section 107.
+[`generation.md`](generation.md) section 107. **Checkpoint 9 built the bundle
+seam**: the Gen 1 to 4 route trainers (4,839 records, four fifths of the
+library's bytes) are a chunk of their own, installed into a registry by the
+host before any run; `core/` throws before any draw without them. No draw
+moved. Record [`generation.md`](generation.md) section 108.
 
 **In flight: no species-locked ability or move.** Branch
 `claude/species-locked-pool`, prompt
@@ -1385,11 +1389,10 @@ One line each. The analysis lives where the pointer goes, not here.
    with Bulbapedia citations is the way left, and Bulbapedia cannot be read
    from this container. `generation.md` section 107.
 
-0. **The route trainers could leave the main chunk.** The library costs 178 kB
-   gzipped on the wire, above the ~150 kB line; the compact encoding did not
-   move it. Ruled 2026-10-05: a host-filled registry for the 4,839 Gen 1 to 4
-   route trainers, with `core/` throwing loudly on an unfilled one, is an
-   acceptable seam. Deferred, not built. `generation.md` section 104.
+0. ~~**The route trainers could leave the main chunk.**~~ **Closed 2026-10-05,
+   same branch**: built as Stage 6.0 checkpoint 9, the registry in
+   `data/encounters/index.ts` filled by the host before any run, the route
+   half a chunk of its own. `generation.md` section 108.
 
 00. **An evolution fork may still be out of reach, and the measurement that
     said so is stale.** A fork needs a branching species in the party at a gym

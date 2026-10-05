@@ -26,6 +26,8 @@
  *     accuracy over the run, the number that says how good the approximation
  *     is where it is not backed by a bracket.
  */
+// The route half of the encounter library, before any run (checkpoint 9).
+import '../src/data/encounters/full';
 import { decide } from '../src/core/battle/ai';
 import { movePriority, type BattleSession } from '../src/core/battle/driver';
 import type { Policy } from '../src/core/battle/policy';

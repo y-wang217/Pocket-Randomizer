@@ -13757,3 +13757,116 @@ reading a file-name pattern in this section as a path, reworded, then green;
 `npm run build` (one chunk, the warning it has always tripped); `npm run
 smoke` passed; `npm run measure` and the benchmark as above; the Chromium
 leg as above.
+
+## 108. The bundle seam: the route trainers leave the main chunk
+
+**2026-10-05**, Stage 6.0 checkpoint 9, on `claude/dazzling-noether-vb19k9`.
+Prompt [`spec/gymrun-stage6.0-checkpoint9-bundle-seam.md`](spec/gymrun-stage6.0-checkpoint9-bundle-seam.md),
+built on checkpoint 6's ruling 6. `contentHash` moves from `c4bf74` to
+`22ebcb` for the split files; **no randomizer axis moves**, and the evidence
+is that the held-item digest and the sim fixture are byte-identical but for
+the hash. `RUN_LOG_VERSION` and `AI_VERSION` hold.
+
+Section 103 set a ~150 kB gzipped line for the library and found it at
++189; section 104's compact encoding took 11 kB off it. 4,839 of the 5,921
+records are Gen 1 to 4 route trainers, which only route nodes draw, in 1.31
+MB of the directory's 1.51 MB. This checkpoint moves them into a chunk of
+their own.
+
+### The seam
+
+- **Two files per Gen 1 to 4 game.** `scripts/import-encounters/emit.ts`
+  writes the game's file (bosses, rivals, leaders, Elite Four, villains) and
+  a routes file beside it (`src/data/encounters/rby-routes.ts` and its eight
+  siblings, the route trainers). Ids, order and content are what
+  they were; `npm run gen:encounters` twice is a no-op. Gen 5 to 9 have no
+  route record and keep one file.
+- **The registry**, `src/data/encounters/index.ts`: the nineteen boss tables
+  are imported statically and decoded at load; `installRouteTables(routes)`
+  decodes the route rows, appends them per game and rebuilds the sorted
+  whole and the id map. Idempotent: the same tables again is a no-op, a
+  different set throws (a library that changed under a running app would
+  reinterpret its seed). `allEncounters()`, `encounterTables()` and
+  `encounterById()` replace the `ENCOUNTERS` and `ENCOUNTER_TABLES` constants
+  and **throw until the install**, with a message that names the two ways
+  in; `library.ts`'s `encounterCandidates` reads `allEncounters()`, so a
+  route node, a boss node and `createRun` itself all refuse before any draw.
+  `bossTables()` is for the data test's split check and never the draw's
+  input. `core/` has no side effect here: it reads a registry the host
+  filled, and the one mutable slot is `data/`'s (CLAUDE.md's architecture
+  section and `architecture.md`'s seams say so).
+- **The two ways in.** `src/data/encounters/routes.ts` gathers the nine
+  route files; `src/data/encounters/full.ts` imports it and installs at
+  load. Node imports `full` statically: `scripts/sim.ts`,
+  `scripts/visual/baseline.ts`, `scripts/visual/census.ts`,
+  `scripts/scan-seed.ts`, `scripts/priority-audit.ts`,
+  `scripts/protocol-census.ts`, `scripts/visual/scan-summary-seeds.ts`, and
+  the test setup `test/setup/encounter-library.ts` named in
+  `vite.config.ts`'s `setupFiles`. The app imports it dynamically:
+  `const encounterLibrary = import('../data/encounters/full')` at the top of
+  `ui/app.ts` (the fetch starts with the first paint) and `await
+  encounterLibrary` as the first line of `start()`, before `playRun`. The
+  gallery entry awaits the same import at the top of its `main()`. These are
+  the only dynamic imports in `src/`, and `test/encounter-registry.test.ts`
+  holds that nothing under `core/` and nothing else under `ui/` touches the
+  route half.
+- **The hash.** `build-config/content-hash.ts` hashes everything under
+  `src/data/` not on its exclusion list, so both halves stay hashed wherever
+  they move; `test/content-hash.test.ts`'s "reached from core" graph no
+  longer sees the route files, and that is fine, because the rule it
+  enforces is that nothing core reaches is *excluded*, not that only what
+  core reaches is included.
+
+### Tests
+
+- New `test/encounter-registry.test.ts`: with a reset module cache, every
+  accessor, both candidate kinds and `createRun` throw the installation
+  message and the boss tables hold no route record; after
+  `installRouteTables`, the library is 5,921 in id order, the install is a
+  no-op the second time and throws on a different set, and `createRun`
+  builds eight segments; nothing under `core/` and only `app.ts` and
+  `gallery.ts` under `ui/` import the route half, both dynamically; there
+  are no other dynamic imports in `src/`; nine route files sit under
+  `src/data/`.
+- `test/encounters-data.test.ts` gains the split check (no route in a boss
+  table, the route count per game equals the difference, one source per
+  game) and reads the accessors; `test/encounter-library.test.ts`,
+  `test/challenger.test.ts` and `scripts/visual/census.ts` read them too.
+- `test/ai-priority.test.ts`'s hash pin re-minted; `test/fixtures/sim-report.json`
+  and `docs/visual/baseline/` re-recorded with only their hash lines moving,
+  which is the evidence section 103 established for "no draw moved".
+
+### What it measured
+
+- **The bundle.** Two chunks where there was one. `dist/assets/index-*.js`
+  goes from 5,116 kB minified and 1,026 kB gzipped (section 107) to
+  **4,138 kB and 892 kB**; the route chunk, `dist/assets/full-*.js`, is
+  980 kB minified and **131 kB gzipped**, fetched once in parallel with the
+  first paint and awaited before the first run. The main chunk is now
+  **134 kB gzipped lighter** than it was before the library, section 103's
+  line is met, and the whole app on the wire (both chunks) is 1,023 kB
+  against 1,026. Vite's 3,500 kB warning still trips on the main chunk,
+  which is the engine's size and not the library's.
+- **The seam, by hand**: a vite-node script that imports `core/run` and
+  calls `createRun` without `full` throws the installation message before
+  any draw.
+- **No draw moved**: the held-item digest (`96ac96497a3b5b51`) and the sim
+  fixture passed untouched before the hash pin was re-minted, and the fixture
+  and the visual baseline re-recorded with only their hash lines moving.
+
+### The gate, as run
+
+In this container, on 2026-10-05, in this order: `npm run gen:encounters`
+twice (second run a no-op diff); `npm run types` clean; `npm run lint`
+clean; `npm run hedge` clean; `npx vitest run test/encounter-registry.test.ts
+test/encounters-data.test.ts test/encounter-library.test.ts
+test/gym-held-items.test.ts test/sim-fixture.test.ts test/content-hash.test.ts
+test/boundaries.test.ts test/challenger.test.ts` green with the digest and
+the fixture untouched; the hash pin, the fixture and the baseline
+re-minted; `npm run test:unit` and `npm run test:trim` **2,089 of 2,089**;
+`npm run build` (two chunks); `npm run smoke` passed, the built app loading
+the route chunk before its first run; `npm run measure` as above; the
+Chromium leg 192 of 199, the same seven container-bound failures sections
+105 to 107 record. The doc-path check asked four file-name patterns in the
+new prose to be reworded, which they were. No benchmark: no draw moved, and
+the row would read the `-29` row again.

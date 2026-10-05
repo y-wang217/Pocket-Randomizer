@@ -14,7 +14,7 @@ import { Dex } from '@pkmn/sim';
 import { describe, expect, it } from 'vitest';
 
 import { BLACKLISTED_SPECIES } from '../src/data/blacklists';
-import { ENCOUNTERS, ENCOUNTER_TABLES, decodeParty, encodeParty, encounterById } from '../src/data/encounters';
+import { allEncounters, bossTables, decodeParty, encodeParty, encounterById, encounterTables } from '../src/data/encounters';
 import type { GameId } from '../src/data/encounters/types';
 import { SPECIES_POOL } from '../src/data/speciesPools';
 
@@ -60,20 +60,33 @@ const EXPECTED_COUNTS: Record<string, number> = {
 
 describe('the encounter library', () => {
   it('is large enough to be a library rather than a roster', () => {
-    expect(ENCOUNTERS.length).toBeGreaterThan(500);
+    expect(allEncounters().length).toBeGreaterThan(500);
   });
 
   it('holds exactly the tables it was reviewed with', () => {
     const counts = Object.fromEntries(
-      Object.entries(ENCOUNTER_TABLES).map(([game, table]) => [game, table.records.length]),
+      Object.entries(encounterTables()).map(([game, table]) => [game, table.records.length]),
     );
     expect(counts).toEqual(EXPECTED_COUNTS);
-    expect(ENCOUNTERS.length).toBe(Object.values(EXPECTED_COUNTS).reduce((a, b) => a + b, 0));
+    expect(allEncounters().length).toBe(Object.values(EXPECTED_COUNTS).reduce((a, b) => a + b, 0));
+  });
+
+  it('keeps every route trainer out of the boss tables, which is the bundle seam', () => {
+    // Checkpoint 9: the main chunk carries `bossTables()`; the host installs
+    // the rest. A route record in a boss table would ride the main chunk
+    // for nothing; a boss in a routes file would be missing until the install.
+    for (const [game, table] of Object.entries(bossTables())) {
+      expect(table.records.some((record) => record.role === 'route'), `${game} boss table`).toBe(false);
+      const whole = encounterTables()[game as GameId];
+      const routes = whole.records.length - table.records.length;
+      expect(routes, `${game} routes`).toBe(whole.records.filter((record) => record.role === 'route').length);
+      expect(whole.source).toEqual(table.source);
+    }
   });
 
   it('has ids unique across every game, each under its own game', () => {
     const seen = new Set<string>();
-    for (const [game, table] of Object.entries(ENCOUNTER_TABLES)) {
+    for (const [game, table] of Object.entries(encounterTables())) {
       for (const record of table.records) {
         expect(record.id.startsWith(`${game}/`), record.id).toBe(true);
         expect(record.game, record.id).toBe(game);
@@ -86,13 +99,13 @@ describe('the encounter library', () => {
   });
 
   it('is sorted by id, because the order is the draw order', () => {
-    for (let i = 1; i < ENCOUNTERS.length; i += 1) {
-      expect(ENCOUNTERS[i - 1]!.id < ENCOUNTERS[i]!.id, `${ENCOUNTERS[i - 1]!.id} before ${ENCOUNTERS[i]!.id}`).toBe(true);
+    for (let i = 1; i < allEncounters().length; i += 1) {
+      expect(allEncounters()[i - 1]!.id < allEncounters()[i]!.id, `${allEncounters()[i - 1]!.id} before ${allEncounters()[i]!.id}`).toBe(true);
     }
   });
 
   it('cites a pinned revision or date per game, and a label per row', () => {
-    for (const [game, table] of Object.entries(ENCOUNTER_TABLES)) {
+    for (const [game, table] of Object.entries(encounterTables())) {
       if (table.source.repo.startsWith('pokemondb.net')) {
         // One page from pokemondb, and for Sword and Shield the Champion Cup
         // page from Serebii after it, both fetched on the pinned date.
@@ -122,14 +135,14 @@ describe('the party encoding', () => {
   it('decodes every row the files carry, and reads Brock as the game shipped him', () => {
     // `index.ts` already decoded every row at load, so reaching here is the
     // proof the grammar is total over the files; the round trip is the rest.
-    for (const record of ENCOUNTERS) {
+    for (const record of allEncounters()) {
       expect(decodeParty(encodeParty(record.party), record.id)).toEqual(record.party.map((m) => ({ ...m })));
     }
     expect(encounterById('rby/brock-1')!.party).toEqual([
       { species: 'geodude', level: 12 },
       { species: 'onix', level: 14 },
     ]);
-    const withMoves = ENCOUNTERS.find((r) => r.party.some((m) => m.moves && m.item));
+    const withMoves = allEncounters().find((r) => r.party.some((m) => m.moves && m.item));
     expect(withMoves, 'a record with set moves and an item').toBeDefined();
     const member = withMoves!.party.find((m) => m.moves && m.item)!;
     expect(encodeParty([member])).toBe(`${member.species}:${member.level}@${member.item}>${member.moves!.join(',')}`);
@@ -146,7 +159,7 @@ describe('the party encoding', () => {
 
 describe('every record', () => {
   it('names species, moves and items the dex knows', () => {
-    for (const record of ENCOUNTERS) {
+    for (const record of allEncounters()) {
       expect(record.party.length, record.id).toBeGreaterThan(0);
       for (const member of record.party) {
         expect(dex.species.get(member.species).exists, `${record.id} ${member.species}`).toBe(true);
@@ -168,7 +181,7 @@ describe('every record', () => {
     // Gladion's Type: Null and Silvally, Hop's Zacian and Zamazenta, and two
     // more Galarian formes.
     const outside = new Set<string>();
-    for (const record of ENCOUNTERS) {
+    for (const record of allEncounters()) {
       for (const member of record.party) {
         if (!poolSpecies.has(member.species) || BLACKLISTED_SPECIES.includes(member.species)) outside.add(member.species);
       }
@@ -205,7 +218,7 @@ describe('every record', () => {
 
   it('wears a sprite the CDN listing has, or none', () => {
     let missing = 0;
-    for (const record of ENCOUNTERS) {
+    for (const record of allEncounters()) {
       if (record.trainer.sprite === null) {
         missing += 1;
         continue;
@@ -218,7 +231,7 @@ describe('every record', () => {
   });
 
   it('carries a gym type only on a gym, and one the dex knows', () => {
-    for (const record of ENCOUNTERS) {
+    for (const record of allEncounters()) {
       if (record.gymType !== undefined) {
         expect(record.role, record.id).toBe('gym');
         expect(dex.types.get(record.gymType).exists, `${record.id} ${record.gymType}`).toBe(true);
@@ -235,7 +248,7 @@ describe('every record', () => {
 describe('the leaders are who the games say', () => {
   it('names the leaders the games had, once per game at least', () => {
     const expectLeader = (game: GameId, name: string, type: string) => {
-      const rows = ENCOUNTERS.filter((r) => r.game === game && r.role === 'gym' && r.trainer.name === name);
+      const rows = allEncounters().filter((r) => r.game === game && r.role === 'gym' && r.trainer.name === name);
       expect(rows.length, `${game} ${name}`).toBeGreaterThan(0);
       for (const row of rows) expect(row.gymType, row.id).toBe(type);
     };
@@ -253,11 +266,11 @@ describe('the leaders are who the games say', () => {
     expectLeader('swsh', 'Allister', 'Ghost');
     expectLeader('sv', 'Ryme', 'Ghost');
     expectLeader('sm', 'Hala', 'Fighting');
-    expect(ENCOUNTERS.filter((r) => r.game === 'bw' && r.trainer.name === 'Shauntal').every((r) => r.role === 'elite')).toBe(true);
-    expect(ENCOUNTERS.filter((r) => r.game === 'bw' && r.trainer.name === 'N').every((r) => r.role === 'boss' && r.place === "N's Castle")).toBe(true);
+    expect(allEncounters().filter((r) => r.game === 'bw' && r.trainer.name === 'Shauntal').every((r) => r.role === 'elite')).toBe(true);
+    expect(allEncounters().filter((r) => r.game === 'bw' && r.trainer.name === 'N').every((r) => r.role === 'boss' && r.place === "N's Castle")).toBe(true);
     // Koga is Elite Four in Johto, a gym leader in Kanto.
-    expect(ENCOUNTERS.filter((r) => r.game === 'crystal' && r.trainer.name === 'Koga').every((r) => r.role === 'elite')).toBe(true);
-    expect(ENCOUNTERS.filter((r) => r.game === 'frlg' && r.trainer.name === 'Koga').every((r) => r.role === 'gym')).toBe(true);
+    expect(allEncounters().filter((r) => r.game === 'crystal' && r.trainer.name === 'Koga').every((r) => r.role === 'elite')).toBe(true);
+    expect(allEncounters().filter((r) => r.game === 'frlg' && r.trainer.name === 'Koga').every((r) => r.role === 'gym')).toBe(true);
   });
 
   it('reads Red and Blue as the games shipped them', () => {

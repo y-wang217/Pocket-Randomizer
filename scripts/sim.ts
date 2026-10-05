@@ -48,6 +48,8 @@
  * and nothing else. `--nodes` compares node policies instead, which is the
  * other question and a different run.
  */
+// The route half of the encounter library, before any run (checkpoint 9).
+import '../src/data/encounters/full';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 

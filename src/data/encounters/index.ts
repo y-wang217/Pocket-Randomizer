@@ -16,6 +16,11 @@
  * The game files carry each party as one string (`types.ts`, `EncounterRow`)
  * and this file decodes them once at load. Nothing below this line sees a
  * row, so the encoding is a bundle-size fact and not a draw fact.
+ *
+ * Since checkpoint 9 the library is in two halves: the bosses, statically
+ * imported here, and the Gen 1 to 4 route trainers, installed by the host
+ * through `installRouteTables` (`full.ts`). The accessors throw until the
+ * install, so a run can never be generated against half of the library.
  */
 import { B2W2_ROWS, B2W2_SOURCE } from './b2w2';
 import { BDSP_ROWS, BDSP_SOURCE } from './bdsp';
@@ -52,8 +57,15 @@ function table(source: EncounterSource, rows: readonly EncounterRow[]): Encounte
   return { source, records: rows.map(decodeRow) };
 }
 
-/** Every game's table, keyed by game, with where it came from. */
-export const ENCOUNTER_TABLES: Readonly<Record<GameId, EncounterTable>> = {
+/**
+ * Every game's bosses, rivals, leaders, Elite Four and villains, keyed by
+ * game, with where they came from: the half of the library the main chunk
+ * carries. **Checkpoint 9.** The Gen 1 to 4 route trainers (`<game>-routes.ts`,
+ * four fifths of the bytes) are not here: the host installs them through
+ * `installRouteTables` before any run, and until it does the accessors below
+ * throw rather than answer with a half-stocked library.
+ */
+const BOSS_TABLES: Readonly<Record<GameId, EncounterTable>> = {
   rby: table(RBY_SOURCE, RBY_ROWS),
   yellow: table(YELLOW_SOURCE, YELLOW_ROWS),
   gs: table(GS_SOURCE, GS_ROWS),
@@ -75,14 +87,66 @@ export const ENCOUNTER_TABLES: Readonly<Record<GameId, EncounterTable>> = {
   sv: table(SV_SOURCE, SV_ROWS),
 };
 
-/** The whole library in id order. The order is the draw order, so it is sorted here and not left to the import list. */
-export const ENCOUNTERS: readonly EncounterRecord[] = Object.values(ENCOUNTER_TABLES)
-  .flatMap((table) => table.records)
-  .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+const byId = (records: readonly EncounterRecord[]): Map<string, EncounterRecord> => new Map(records.map((record) => [record.id, record]));
 
-const byId = new Map(ENCOUNTERS.map((record) => [record.id, record]));
+/** The registry: null until the host installs the route tables. The one mutable seam in `data/`. */
+let installed: { tables: Readonly<Record<GameId, EncounterTable>>; all: readonly EncounterRecord[]; byId: Map<string, EncounterRecord> } | null = null;
 
-/** One record by id, or null. A missing id is a data error upstream, never a draw. */
+const NOT_INSTALLED =
+  "The encounter library's route tables are not installed. Under Node, import 'src/data/encounters/full' before generating a run; in the app, await the dynamic import of the same module (ui/app.ts does this before its first run). A run generated without them would draw from a half-stocked library, so this throws instead.";
+
+/**
+ * Install the route tables. **Checkpoint 9, the bundle seam.** Called by
+ * `full.ts` at its load, which the app imports dynamically before its first
+ * run and every Node entry imports statically. Idempotent: the same tables
+ * again is a no-op; a different set is a data error and throws, because a
+ * library that changed under a running app would reinterpret its seed.
+ */
+export function installRouteTables(routes: Readonly<Partial<Record<GameId, readonly EncounterRow[]>>>): void {
+  const tables = Object.fromEntries(
+    (Object.keys(BOSS_TABLES) as GameId[]).map((game) => {
+      const base = BOSS_TABLES[game];
+      const extra = routes[game];
+      return [game, extra ? { source: base.source, records: [...base.records, ...extra.map(decodeRow)] } : base];
+    }),
+  ) as Record<GameId, EncounterTable>;
+  // The whole library in id order. The order is the draw order, so it is
+  // sorted here and not left to the import list or the install order.
+  const all = Object.values(tables)
+    .flatMap((entry) => entry.records)
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  if (installed) {
+    const same = installed.all.length === all.length && installed.all.every((record, index) => record.id === all[index]!.id);
+    if (!same) throw new Error('The encounter library\'s route tables were installed twice with different contents');
+    return;
+  }
+  installed = { tables, all, byId: byId(all) };
+}
+
+/** True once the host has installed the route tables. */
+export function routeTablesInstalled(): boolean {
+  return installed !== null;
+}
+
+/** Every game's table, keyed by game, with where it came from. Throws until the route tables are installed. */
+export function encounterTables(): Readonly<Record<GameId, EncounterTable>> {
+  if (!installed) throw new Error(NOT_INSTALLED);
+  return installed.tables;
+}
+
+/** The whole library in id order, the draw order. Throws until the route tables are installed. */
+export function allEncounters(): readonly EncounterRecord[] {
+  if (!installed) throw new Error(NOT_INSTALLED);
+  return installed.all;
+}
+
+/** The bosses alone, for the data test's split check: never the draw's input. */
+export function bossTables(): Readonly<Record<GameId, EncounterTable>> {
+  return BOSS_TABLES;
+}
+
+/** One record by id, or null. A missing id is a data error upstream, never a draw. Throws until the route tables are installed. */
 export function encounterById(id: string): EncounterRecord | null {
-  return byId.get(id) ?? null;
+  if (!installed) throw new Error(NOT_INSTALLED);
+  return installed.byId.get(id) ?? null;
 }
