@@ -98,13 +98,22 @@ afterAll(async () => {
  * capability family at 0.164 against a floor of 0.12; what neither instrument
  * covers is a filled-against-empty *contrast* floor, and it is filed as an
  * open item in `docs/README.md`.
+ *
+ * **`type` and `category` come off for exactly that reason, 2026-10-05.** Both
+ * append a `.chip__word`, and `styles.css` has hidden that class outright since
+ * Stage 5.0/1 retired the density modes, so neither paints a word on any
+ * surface. The sweep had been measuring them anyway, because `textContent`
+ * reads through `display: none`; with the sampler reading rendered text they
+ * are textless and drop out, the way `band` did. That is the same real loss
+ * named above and it is a larger one — a type chip is the most common chip in
+ * the app — but a floor that was reading a colour painted nowhere was not
+ * covering them in the first place. It was reporting on them, which is worse.
+ * They are the population the filled-against-empty rule has to serve.
  */
 const VARIANTS = [
-  'type',
   'tier',
   'status',
   'stage',
-  'category',
   'effect',
   'flag',
   'neutral',
@@ -348,8 +357,25 @@ async function chipsOn(page: Page, scratch: Page, screen: string, label = screen
        * A floor asserted against a reading like that is not strict, it is
        * random, and a random assertion in a gate is worse than none: it teaches
        * the reader to re-run rather than to look.
+       *
+       * **`innerText`, not `textContent`, and that distinction was the whole of
+       * run 37205550086.** `bandChip` was not the population, only the part of
+       * it `textContent` could see. `typeChip` and `categoryChip` both append a
+       * `.chip__word` span carrying the word, and `styles.css` sets
+       * `.chip__word { display: none }` — the only rule for that class in the
+       * tree, because Stage 5.0/1 retired the density modes and left the word
+       * as markup that exists to be hidden. `textContent` includes the text of
+       * a `display:none` element, so those chips read as worded, and the
+       * sampler measured the colour their word would have had. On the starter
+       * screen alone that was **29 of 32 chips**, and all eleven rows of that
+       * run's failure were type chips, as low as 1.99:1 — the same
+       * measurement-of-nothing this comment already describes, arriving
+       * through the one door the `textContent` read left open.
+       *
+       * `innerText` is the rendered text, so a word that is not painted reads
+       * as no word, which is what the skip below already means.
        */
-      const text = (node.textContent ?? '').trim();
+      const text = ((node as HTMLElement).innerText ?? '').trim();
       if (!text) return [];
       return [{
         variant,
