@@ -266,6 +266,30 @@ export function assetIcon(key: AssetKey): HTMLElement {
 }
 
 /**
+ * A placeholder icon with no manifest entry behind it. **Defender Mode v0**,
+ * whose prompt ships it on placeholders with no new art: a defender-only relic
+ * (the Stranger's Pass) and the three consumables are drawn as the lettered
+ * chip every manifest entry falls back to, at the native size of their kind.
+ * Kept out of `MANIFEST` so the attacker's "no placeholder remains" holds
+ * (`test/asset-manifest.test.ts`).
+ */
+export function placeholderIcon(name: string, native: NativeSize): HTMLElement {
+  const icon = document.createElement('span');
+  icon.className = 'asset asset--placeholder';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.style.setProperty('--asset-w', String(native.width));
+  icon.style.setProperty('--asset-h', String(native.height));
+  icon.textContent = relicLetters(name);
+  return icon;
+}
+
+/** A relic's icon: its drawing, or a placeholder for a defender-only relic. */
+export function relicIcon(id: string, name: string): HTMLElement {
+  const key = `relic:${id}` as AssetKey;
+  return MANIFEST.has(key) ? assetIcon(key) : placeholderIcon(name, NATIVE.relic);
+}
+
+/**
  * The manifest key holding a glyph's drawing, for the three glyph families
  * that have one: node, capability and currency (D61). The band chevron is a
  * capability glyph with no class C slot, and stays the sheet's mark.

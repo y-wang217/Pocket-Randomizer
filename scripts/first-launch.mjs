@@ -63,6 +63,7 @@ export const EXPOSED_FAMILIES = [
   'node',
   'field',
   'currency',
+  'badge',
 ];
 const PAST_EVERY_LABEL = 1_000;
 

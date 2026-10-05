@@ -78,8 +78,10 @@ describe('the glyph sheet', () => {
    */
   // Thirteen since Stage 5.0/3: `currency`, ruled under D54 (Rev 15) and
   // first drawn for the shop price and the coins card (D66, Rev 17).
-  it('fills all thirteen families of section 2, and no fourteenth', () => {
-    expect(GLYPH_FAMILIES).toHaveLength(13);
+  // Fourteen since Defender Mode v0: `badge`, filed as D100 before any of it
+  // was built and ruled into Rev 25 (`docs/reports/defender-mode-v0-step7-bible.md`).
+  it('fills all fourteen families of section 2, and no fifteenth', () => {
+    expect(GLYPH_FAMILIES).toHaveLength(14);
     for (const family of GLYPH_FAMILIES) expect(glyphsOf(family), family).not.toHaveLength(0);
     const drawn = new Set(GLYPHS.map((glyph) => glyph.family));
     expect([...drawn].sort()).toEqual([...GLYPH_FAMILIES].sort());

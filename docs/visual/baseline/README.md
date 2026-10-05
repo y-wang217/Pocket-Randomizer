@@ -484,6 +484,20 @@ move buttons ending at 704 against the 740 usable line, on a screen whose
   above; the patch's delta against it is −15,596 B of font files and the
   licence beside them.
 
+- **2026-10-04, Defender Mode v0 step 2.** `runs/` and `data-digest.txt`
+  re-recorded. The only lines that move are the version stamps
+  (`gymrun-run-23`, `gymrun-randomizer-24`, `contentHash` `ae3155`) and the
+  log's new `"mode": "attacker"`: every decision, visit, casualty and party is
+  byte identical, and `battles/` is unchanged. `docs/generation.md` section
+  106.
+- **2026-10-04, Defender Mode v0 step 3.** `runs/` and `data-digest.txt`
+  re-recorded for `contentHash` alone (`bfe391`, the defender relic list).
+  Nothing else in any file moved.
+- **2026-10-04, Defender Mode v0 step 4.** The same, for `9ad1d9`, the badge
+  numbers in `data/defender.ts`. Runs and battles byte identical otherwise.
+- **2026-10-05, Defender Mode v0 step 5.** The same, for `564eda`: the
+  consumables table, the trade numbers and the Stranger's Pass.
+
 ## The data digest is `contentHash`
 
 **2026-09-11, overnight Branch 3.** `data-digest.txt` was a plain sha256 over
@@ -492,3 +506,9 @@ carries, computed by `build-config/content-hash.ts` over the same directory
 minus the exclusion list. A presentation stage moves it exactly when it moves
 the version axis, and never for a reworded tooltip or a new coach mark.
 `docs/generation.md` section 12g.
+- **2026-10-05, Defender Mode v0 merged onto main.** `runs/` and
+  `data-digest.txt` re-recorded from main's own copies. The only lines that
+  move are the version stamps (`gymrun-run-24`, `gymrun-randomizer-26`,
+  `contentHash` `b85ac9`) and the log's `"mode": "attacker"`: every decision,
+  visit, casualty and party is byte identical to main's, and `battles/` is
+  unchanged. `docs/generation.md` section 106.11.

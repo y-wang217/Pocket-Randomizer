@@ -325,6 +325,16 @@ export const GLYPHS: readonly Glyph[] = [
    * category ring.
    */
   { id: 'currency-coin', family: 'currency', label: labelOf('currency-coin'), art: path('M4 6.5a8 3.5 0 1 0 16 0 8 3.5 0 1 0-16 0zM4 9.2v2.8c0 1.9 3.6 3.5 8 3.5s8-1.6 8-3.5V9.2c-1.3 1.6-4.4 2.7-8 2.7s-6.7-1.1-8-2.7zm0 5.5v2.8c0 1.9 3.6 3.5 8 3.5s8-1.6 8-3.5v-2.8c-1.3 1.6-4.4 2.7-8 2.7s-6.7-1.1-8-2.7z') },
+
+  /*
+   * The badge family. **D100, Defender Mode v0.** Three marks, one per gym
+   * type. A flame with an inner tongue, an almond eye with a pupil, a single
+   * swept wing of three feathers. The eye is filled where `field-psychic`'s is
+   * an outline over a bar, so the two do not read as one mark on one surface.
+   */
+  { id: 'badge-flame', family: 'badge', label: labelOf('badge-flame'), art: path('M12 2.5c.6 3.2 2.6 4.9 4.3 6.8 1.6 1.8 2.7 3.8 2.7 6.2a7 7 0 0 1-14 0c0-2.6 1.3-4.6 2.9-6.1.2 1.6.9 2.8 2 3.4-.4-3.9.6-7.4 2.1-10.3zm0 11c-1.5 1.3-2.4 2.6-2.4 4a2.4 2.4 0 0 0 4.8 0c0-1.4-.9-2.7-2.4-4z') },
+  { id: 'badge-eye', family: 'badge', label: labelOf('badge-eye'), art: path('M12 5c5 0 8.8 3.4 10.5 7-1.7 3.6-5.5 7-10.5 7S3.2 15.6 1.5 12C3.2 8.4 7 5 12 5zm0 3.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6zm0 2.2a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2z') },
+  { id: 'badge-wing', family: 'badge', label: labelOf('badge-wing'), art: path('M3 19.5c2.6-7.6 8.2-13.2 18-15-1.2 2.8-3 4.8-5.4 6.1 1.6.2 3-.1 4.4-.8-1.5 2.6-3.8 4.2-6.8 4.8 1.2.4 2.4.4 3.7.1-2.9 3-7.1 4.6-12.4 4.8zm2.2-1.8c3.6-1.4 6.6-3.8 9-7.2-3.6 1.6-6.6 4-9 7.2z') },
 ];
 
 /** The glyphs of one family, in sheet order. */

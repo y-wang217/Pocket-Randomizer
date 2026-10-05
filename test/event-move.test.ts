@@ -163,11 +163,13 @@ describe('the version axes this patch moved', () => {
     /*
      * `-22` is the wild and early-gym level columns, and `-23` the region
      * composition patch: a per-route ceiling on rests and shops, spent during
-     * the draw, and a floor of battle-only steps.
+     * the draw, and a floor of battle-only steps. `-24` is Defender Mode v0's
+     * draws, all under `defender/` keys; no attacker draw moved.
      */
     // And `-24` the berry pick the gym pool deals, resolved with no draw;
     // `-25` the species-locked abilities and moves out of the pools.
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-25');
+    // `-26` Defender Mode v0's draws, merged onto `-25`.
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-26');
   });
 });
 

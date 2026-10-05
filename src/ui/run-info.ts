@@ -16,7 +16,6 @@
  */
 import type { RunState } from '../core/run';
 import { formatSeedString } from '../core/seedString';
-import { gymForSegment } from '../data/gyms';
 import { FEED_COPY } from './copy/feed';
 import { RUN_INFO_COPY } from './copy/screens';
 import type { FeedEntry } from './decision-feed';
@@ -44,7 +43,7 @@ export function renderFeed(entries: readonly FeedEntry[], limit?: number): HTMLE
     if (entry.segment !== segment) {
       segment = entry.segment;
       const heading = el('li', 'feed__segment');
-      heading.textContent = FEED_COPY.segment(entry.segment, gymForSegment(entry.segment).leader);
+      heading.textContent = FEED_COPY.segment(entry.segment, entry.leader);
       list.append(heading);
     }
     const row = el('li', 'feed__entry');

@@ -219,7 +219,7 @@ export const SIDEBAR_COPY = {
   whereTitle: 'Where',
   team: 'Team',
   where: (locale: string | null, segment: number, gyms: number, leader: string): string =>
-    `${locale ? `${locale} · ` : ''}Gym ${segment + 1} of ${gyms} · ${leader}`,
+    `${locale ? `${locale} · ` : ''}Gym ${segment + 1} of ${gyms}${leader ? ` · ${leader}` : ''}`,
 } as const;
 
 export const SETTINGS_COPY = {

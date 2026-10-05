@@ -24,7 +24,7 @@
  * Run Info tab reaches the same feed.
  */
 import { heldItem } from '../core/items';
-import { gymsCleared, localeOf, partyCapacity, type RunState } from '../core/run';
+import { gymsCleared, localeOf, partyCapacity, runMode, type RunState } from '../core/run';
 import { GYMS, gymForSegment } from '../data/gyms';
 import { localeById } from '../data/locales';
 import { assetIcon } from './assets/manifest';
@@ -103,10 +103,11 @@ export function createSidebar(): Sidebar {
         return;
       }
       const segment = state.currentSegment;
-      const gym = gymForSegment(segment);
+      // A defender rank's boss has no leader (ruling R6).
+      const leader = runMode(state) === 'defender' ? '' : gymForSegment(segment).leader;
       const locale = localeOf(state);
       const line = el('p', 'sidebar__line');
-      line.textContent = SIDEBAR_COPY.where(locale ? localeById(locale).name : null, segment, GYMS.length, gym.leader);
+      line.textContent = SIDEBAR_COPY.where(locale ? localeById(locale).name : null, segment, GYMS.length, leader);
       const pips = el('ol', 'sidebar__pips');
       const cleared = gymsCleared(state);
       GYMS.forEach((_, index) => {

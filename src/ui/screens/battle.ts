@@ -63,6 +63,11 @@ export interface BattleScreen {
      * them would be a fact about nothing.
      */
     segment?: number,
+    /**
+     * A defender run's boss, which has no leader to name (ruling R6): the
+     * gym mark alone. **Defender Mode v0.**
+     */
+    leaderless?: boolean,
   ): () => void;
   /**
    * Play the end of the fight and park until it has been seen.
@@ -167,7 +172,7 @@ export function createBattleScreen(): BattleScreen {
     root,
     outro: (kind) => scene.outro(kind),
     cancel: () => scene.cancel(),
-    attach(session, node, reveal, onChoose, segment) {
+    attach(session, node, reveal, onChoose, segment, leaderless = false) {
       /*
        * **The kind is the node's mark, at 16. Patch 4.10.1, D46.**
        *
@@ -181,7 +186,7 @@ export function createBattleScreen(): BattleScreen {
       title.replaceChildren(nodeKindGlyph(node.kind, GLYPH_LABELS[`node-${node.kind}`] ?? node.kind, 16));
       // The leader's name from the gym table, not the node's `"<Leader>'s Gym"`
       // label, which `core/` keeps for the log and which would double the mark.
-      if (node.kind === 'gym') {
+      if (node.kind === 'gym' && !leaderless) {
         title.append(document.createTextNode(segment === undefined ? node.label : gymForSegment(segment).leader));
       }
       /*

@@ -123,6 +123,12 @@ export interface NodeSpec {
   id: string;
   kind: NodeKind;
   /**
+   * The challenger's trainer class id, on a Defender Mode v0 door node only.
+   * `data/trainerClasses.ts` holds the class and `data/trainerClassCopy.ts`
+   * its name.
+   */
+  trainerClass?: string;
+  /**
    * The locale this node's route runs through, or null for the gym.
    *
    * **Added by the event rejig, and it is plumbing rather than a new fact.**
@@ -240,7 +246,11 @@ export interface Step {
  * differing from the first only in cases nobody would think to test.
  */
 export interface LocaleRoute {
-  locale: LocaleId;
+  /**
+   * Null on a Defender Mode v0 rank, which has one route and no locale: the
+   * mode switches locales off.
+   */
+  locale: LocaleId | null;
   steps: Step[];
 }
 
@@ -1056,7 +1066,7 @@ function ensureKind(
  * trades rather than the same trade offered twice. See
  * `tuning.distinctTiersPerStep` for why that is the rule and not the option.
  */
-function assignTiers(
+export function assignTiers(
   kinds: readonly ChoosableKind[],
   segment: number,
   stream: RngStream,

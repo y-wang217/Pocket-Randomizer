@@ -65,9 +65,9 @@ export const MAX_STAGE = 6;
  * and a panel that computed 130 for something the engine gave 1 HP would be
  * wrong in the single most visible way available.
  */
-export function hpAtLevel(base: number, level: number, maxHpOverride?: number): number {
+export function hpAtLevel(base: number, level: number, maxHpOverride?: number, iv: number = GYMRUN_IV): number {
   if (maxHpOverride !== undefined) return maxHpOverride;
-  return Math.trunc(((2 * base + GYMRUN_IV + Math.trunc(GYMRUN_EV / 4) + 100) * level) / 100 + 10);
+  return Math.trunc(((2 * base + iv + Math.trunc(GYMRUN_EV / 4) + 100) * level) / 100 + 10);
 }
 
 /**
@@ -77,19 +77,24 @@ export function hpAtLevel(base: number, level: number, maxHpOverride?: number): 
  * minus stat, so both branches are identity. Spelling that out rather than
  * multiplying by 1 keeps the function honest about what it assumes.
  */
-export function statAtLevel(base: number, level: number): number {
-  return Math.trunc(((2 * base + GYMRUN_IV + Math.trunc(GYMRUN_EV / 4)) * level) / 100 + 5);
+export function statAtLevel(base: number, level: number, iv: number = GYMRUN_IV): number {
+  return Math.trunc(((2 * base + iv + Math.trunc(GYMRUN_EV / 4)) * level) / 100 + 5);
 }
 
 /** The whole spread at once, from a species' base stats. */
-export function statsAtLevel(base: StatsTable, level: number, maxHpOverride?: number): StatsTable {
+export function statsAtLevel(
+  base: StatsTable,
+  level: number,
+  maxHpOverride?: number,
+  iv: number = GYMRUN_IV,
+): StatsTable {
   return {
-    hp: hpAtLevel(base.hp, level, maxHpOverride),
-    atk: statAtLevel(base.atk, level),
-    def: statAtLevel(base.def, level),
-    spa: statAtLevel(base.spa, level),
-    spd: statAtLevel(base.spd, level),
-    spe: statAtLevel(base.spe, level),
+    hp: hpAtLevel(base.hp, level, maxHpOverride, iv),
+    atk: statAtLevel(base.atk, level, iv),
+    def: statAtLevel(base.def, level, iv),
+    spa: statAtLevel(base.spa, level, iv),
+    spd: statAtLevel(base.spd, level, iv),
+    spe: statAtLevel(base.spe, level, iv),
   };
 }
 
@@ -120,6 +125,15 @@ export function applyStage(value: number, stage: number): number {
  * than assumed here — see `view.ts`.
  */
 export const PARALYSIS_SPEED_MULTIPLIER = 0.5;
+
+/**
+ * A 4096-based modifier applied the sim's way: `Battle#modify`, truncation and
+ * the half-up rounding included. **Defender Mode v0**, for the Flying badge's
+ * Speed, which the sim chains through `ModifySpe` and applies before paralysis.
+ */
+export function applySimModifier(value: number, numerator: number): number {
+  return Math.trunc((Math.trunc(value * numerator) + 2048 - 1) / 4096);
+}
 
 export function applyParalysis(speed: number): number {
   return Math.floor(speed * PARALYSIS_SPEED_MULTIPLIER);

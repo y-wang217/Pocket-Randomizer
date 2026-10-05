@@ -34,6 +34,7 @@ import {
   type RunState,
 } from '../../core/run';
 import { GYMS } from '../../data/gyms';
+import { TRAINER_CLASS_NAMES } from '../../data/trainerClassCopy';
 import { deathsFrom, type DeathRecord } from '../../core/graveyard';
 import { displayName } from '../../core/nicknames';
 import { scoreRun, type ScoreBreakdown, type ScoreComponent } from '../../core/scoring';
@@ -323,7 +324,7 @@ function renderRoute(state: RunState): HTMLElement[] {
     const locale = choice == null ? null : routeAt(segment, choice).locale;
     const band = el('li', `route__band${locale ? ` locale--${locale}` : ' route__band--unreached'}`);
     band.dataset['segment'] = String(index + 1);
-    band.title = locale ? `${localeById(locale).name} · ${segment.leader}` : segment.leader;
+    band.title = [locale ? localeById(locale).name : '', segment.leader].filter(Boolean).join(' · ');
     const visits = state.history.filter((visit) => visit.segment === index);
     for (const visit of visits) {
       const dot = el('span', `route__dot${visit.node.kind === 'gym' ? ' route__dot--gym' : ''}`);
@@ -380,8 +381,8 @@ function describeDeath(death: CauseOfDeath, state: RunState): string {
   const species = state.party.find((member) => displayName(member.spec) === death.species)?.spec.species ?? death.species;
   const where =
     death.kind === 'gym'
-      ? `fighting ${death.leader} at gym ${death.segment + 1}`
-      : `at a ${death.kind} node in segment ${death.segment + 1}, on the way to ${death.leader}`;
+      ? `fighting ${death.leader ? `${death.leader} ` : ''}at gym ${death.segment + 1}`
+      : `at a ${death.kind} node in segment ${death.segment + 1}${death.leader ? `, on the way to ${death.leader}` : ''}`;
 
   if (death.byMove && death.bySpecies) {
     return `${species} fainted to ${death.bySpecies}'s ${death.byMove}, ${where}.`;
@@ -502,10 +503,18 @@ function renderVisit(visit: RunState['history'][number], state: RunState): HTMLE
 
   const segment = el('span', 'summary__node-segment');
   segment.textContent = `${visit.segment + 1}`;
-  segment.title = `${state.segments[visit.segment]?.leader ?? ''}'s segment`;
+  const leader = state.segments[visit.segment]?.leader ?? '';
+  // A defender rank's boss has no leader (ruling R6), so its segment is its number.
+  segment.title = leader ? `${leader}'s segment` : `Gym ${visit.segment + 1}`;
 
   const label = el('span', 'summary__node-label');
-  label.textContent = visit.node.encounter?.opponent ?? visit.node.label;
+  // A defender door's challenger is named by its class (D101); a boss by its node.
+  const trainerClass = visit.node.trainerClass;
+  label.textContent = trainerClass
+    ? (TRAINER_CLASS_NAMES[trainerClass] ?? trainerClass)
+    : leader === '' && visit.node.kind === 'gym'
+      ? visit.node.label
+      : (visit.node.encounter?.opponent ?? visit.node.label);
 
   const outcome = el('span', 'summary__node-outcome');
   if (visit.result) {
@@ -582,7 +591,7 @@ function shareViewOf(
     locales: state.localeChoices.flatMap((choice, index) => {
       if (choice == null) return [];
       const route = state.segments[index]?.routes[choice];
-      const locale = route ? localeById(route.locale) : null;
+      const locale = route?.locale ? localeById(route.locale) : null;
       return locale ? [locale.name] : [];
     }),
   };

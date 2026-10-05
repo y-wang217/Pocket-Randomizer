@@ -234,7 +234,7 @@ describe('the version guard', () => {
   it('refuses a Stage 4.5.2 log, naming both versions', () => {
     const stale: RunLog = {
       seed: 'STAGE452',
-      versions: { ...currentVersions(), runLog: 'gymrun-run-8/gymrun-0.3.0', randomizerVersion: 'gymrun-randomizer-6' },
+      mode: 'attacker', versions: { ...currentVersions(), runLog: 'gymrun-run-8/gymrun-0.3.0', randomizerVersion: 'gymrun-randomizer-6' },
       decisions: [],
     };
     // Synchronous, deliberately: `replayRunPolicy` checks the stamp before
@@ -250,7 +250,7 @@ describe('the version guard', () => {
     // the game onto a different sequence.
     const stale: RunLog = {
       seed: 'REKEYED',
-      versions: { ...currentVersions(), randomizerVersion: 'gymrun-randomizer-6' },
+      mode: 'attacker', versions: { ...currentVersions(), randomizerVersion: 'gymrun-randomizer-6' },
       decisions: [],
     };
     expect(() => replayRun(stale)).toThrow(/gymrun-randomizer-6/);

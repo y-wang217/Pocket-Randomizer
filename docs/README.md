@@ -68,6 +68,34 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 **In flight: Stage 5.0, the visual redesign ([`spec/gymrun-stage5.0-visual-redesign.md`](spec/gymrun-stage5.0-visual-redesign.md)). 5.0/0, the spike and audit, is done on `claude/hopeful-shannon-kch3gw` and stopped for review.** The report is [`visual/reports/5.0-stage0-spike.md`](visual/reports/5.0-stage0-spike.md). It filed D50 to D76 in the discrepancy register. The author ruled D50 and D52 to D55 the same day ([`spec/gymrun-stage5.0-rulings-d50-d55.md`](spec/gymrun-stage5.0-rulings-d50-d55.md)); the bible is at **Rev 15** (one face and no density setting, tabs open screens, a mid-run Run Info screen, a `currency` family, and Run Progress as a decision feed replayed from the run log), recorded in [`generation.md` §87](generation.md). **5.0/1 is built and stopped for review**: one face with the density setting deleted, the shell nav with its read-only guard, the decision feed, Run Info and Settings screens, the desktop sidebar, the light palette and the asset manifest. Report [`visual/reports/5.0-stage1.md`](visual/reports/5.0-stage1.md), record [`generation.md` §87](generation.md). **D56 to D60 were ruled the same day** ([`spec/gymrun-stage5.0-rulings-d56-d60.md`](spec/gymrun-stage5.0-rulings-d56-d60.md)): the HP box is the panel restyled with every fact, the move button is the full move card, the header stays above the stage, D26's log handle stands with no Info button, and the World stays behind the frame while the painted backdrops live inside it. Bible **Rev 16**, [`generation.md` §88](generation.md). The author confirmed D60's reading and ruled D62 option 1 everywhere ([`spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md`](spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md)). **5.0/2, the battle screen, is built on `claude/wizardly-wright-cum8e0` and stopped for review**: the stage on its scene backdrop with platforms, the HP boxes and move buttons restyled with every fact kept, the header row with section 6's turn header built for the first time, the strip under the stage, and the bench behind a Switch button. The nine battle backdrops came forward from 5.0/5 into this stage at the author's request, converted from paintings at 224x136, with notes for the asset pipeline in the report. Report [`visual/reports/5.0-stage2.md`](visual/reports/5.0-stage2.md), record [`generation.md` §88](generation.md). WebKit and a real iPhone are the reviewer's. 5.0/0 and 5.0/1 merged as #77, 5.0/2 as #78. **5.0/3, the reward, result and shop cards, is built on `claude/stage-5.0-3-cards` and stopped for review**, after the author took every recommendation on D65 to D71 ([`spec/gymrun-stage5.0-rulings-d65-d71.md`](spec/gymrun-stage5.0-rulings-d65-d71.md), bible **Rev 17**): a card's face is its mark with the name and effect on the long press, a tap selects and the confirm band claims, the relic card carries its capability glyph, and the currency family is drawn. Report [`visual/reports/5.0-stage3.md`](visual/reports/5.0-stage3.md), record [`generation.md` §89](generation.md). No version axis moved; `contentHash` holds at `715122`. 5.0/4 (map) waits on D61, D63, D64, D72 and D75.
 
+**Also in flight: Defender Mode v0, a fun test.** Branch
+`claude/eager-turing-0059br`, prompt
+[`spec/gymrun-defender-mode-v0-fun-test.md`](spec/gymrun-defender-mode-v0-fun-test.md),
+pre-code report and rulings
+[`reports/defender-mode-v0-report.md`](reports/defender-mode-v0-report.md),
+record [`generation.md`](generation.md) section 106. A second run mode chosen
+at run creation: the player is the gym leader, drafts a Fire, Psychic or
+Flying roster locked to that type, and defends eight ranks of waves and bosses.
+Thrown away if it is not fun by hand. **All seven steps are built, and the mode
+is playable in the app**: choose *Defend* in the seed bar and start a run. Step
+7, the UI, was stopped before code on four bible amendments
+([`reports/defender-mode-v0-step7-bible.md`](reports/defender-mode-v0-step7-bible.md)),
+ruled as recommended into the design bible's Rev 25 (D100 to D103, the Badge
+glyph family the fourteenth), then built to it (`generation.md` 106.10, with
+`scripts/smoke-defender.mjs` playing it by clicking). In order: the mode on the log and its guard, gym select, the
+draft for all three types, the type lock, the opponent IV table and trainer
+classes; then eight ranks of doors, an intermission and an untyped boss, with a
+headless `playRun` to completion; then the Fire streak, the Psychic reveal and
+Flying's Speed and fifth move as format-level handlers; then Potions,
+trade cards, recruit drafts and the Stranger's Pass; then one benchmark row per
+gym type, mean bosses beaten Fire 2.55, Psychic 2.35, Flying 3.305 (200 seeds,
+`DEFENDER`, `balance.md` section 0). Built as `RANDOMIZER_VERSION` `-24`,
+`RUN_LOG_VERSION` `-23` and `contentHash` `564eda` on the branch; **merged onto
+main's berry pick and species-locked pools** as `-26`, `-24` and `b85ac9`,
+with `AI_VERSION` held (`generation.md` 106.11). Attacker generation is frozen
+by `test/attacker-generation-golden.test.ts`, re-minted on main's `-25`, and the
+sim fixture and visual baseline moved in their version stamps only.
+
 **Also in flight, reapplied onto this tree on 2026-10-02: the Toll price gate,
 and a ceiling on a region with a floor under its fights.** Branch
 `claude/t2-berry-inventory-gating-7gvcye`, prompts

@@ -58,6 +58,7 @@ import { statBandAt, type StatBand } from '../core/battle/driver';
 import { STAT_ORDER, statInfo } from '../data/statInfo';
 import { el } from './dom';
 import { glyphNode } from './theme/glyph';
+import { GLYPH_LABELS } from '../data/glyphLabels';
 
 /** The six numbers, keyed as `STAT_ORDER` spells them. HP is max HP. */
 export type StatValues = Readonly<Record<string, number>>;
@@ -100,6 +101,12 @@ export interface StatBlockOptions {
    * (R4).
    */
   stages?: Readonly<Record<string, { stage: number; effective: number; multiplier: string }>>;
+  /**
+   * The engine's Speed under a defender run's Flying badge. **Bible Rev 25,
+   * D100, extending D98**: the Speed cell shows this number, with the wing
+   * beneath it in place of a stage count when there is no stage.
+   */
+  badgeSpeed?: number;
 }
 
 /**
@@ -163,10 +170,22 @@ export function statBlock(values: StatValues, options: StatBlockOptions = {}): H
     // The number, at rest (R13). On a staged cell, the stat as it stands
     // (D98): the number the fight is using.
     const staged = options.stages?.[stat];
-    const shown = staged && staged.stage !== 0 ? staged.effective : value;
+    const badged = stat === 'spe' && options.badgeSpeed !== undefined && !(staged && staged.stage !== 0);
+    const shown = staged && staged.stage !== 0 ? staged.effective : badged ? (options.badgeSpeed ?? value) : value;
     const number = el('span', 'stat__value');
     number.textContent = String(shown);
     row.append(label, number);
+    if (badged) {
+      const wing = glyphNode('badge-wing', { label: GLYPH_LABELS['badge-wing'] ?? '' });
+      if (wing) {
+        wing.dataset['tip'] = 'badge:Flying';
+        const holder = el('span', 'stat__stage stat__stage--badge');
+        holder.append(wing);
+        row.append(holder);
+      }
+      label.dataset['value'] = String(shown);
+      label.dataset['base'] = String(value);
+    }
     if (staged && staged.stage !== 0) {
       const up = staged.stage > 0;
       row.dataset['stage'] = up ? 'up' : 'down';

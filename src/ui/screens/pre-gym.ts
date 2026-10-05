@@ -33,7 +33,9 @@
 import type { PokemonState, ItemId } from '../../core/types';
 import type { GymDefinition } from '../../data/gyms';
 import type { Tuning } from '../../data/tuning';
-import { el } from '../scene';
+import { el, levelAria, levelText } from '../scene';
+import { nodeKindGlyph } from '../chip';
+import { GLYPH_LABELS } from '../../data/glyphLabels';
 import { memberCardContents } from '../member-card';
 import { typeChip } from './starter-select';
 
@@ -63,6 +65,13 @@ export interface PreGymView {
   party: readonly PokemonState[];
   holding: readonly (ItemId | null)[];
   tuning: Tuning;
+  /**
+   * A defender rank's boss, which has no leader and no type (ruling R6).
+   * **Bible Rev 25, D101**: the team size, bare, beside the gym mark, and the
+   * level as the party row writes one, in place of the leader name and the
+   * type chip. Absent in an attacker run.
+   */
+  boss?: { size: number; level: number };
 }
 
 export interface PreGymScreen {
@@ -192,15 +201,33 @@ export function createPreGymScreen(): PreGymScreen {
        * one word on the line the counting rule could see, on a screen that is
        * only ever reached by walking into a gym.
        */
-      title.textContent = view.gym.leader;
-      // The leader's blurb, on tap, for Pocket. Same tip the map's title carries.
-      title.dataset['tip'] = `gym:${view.segment}`;
-      title.tabIndex = 0;
-      title.setAttribute('role', 'button');
-      leaderType.replaceChildren(typeChip(view.gym.type));
-      // The leader's own blurb, from `data/gyms.ts`. Flavour that says how the
-      // leader plays, written where every other gym string is written.
-      blurb.textContent = view.gym.blurb;
+      if (view.boss) {
+        // D101: the gym mark and the team size, then the level. No tip: a
+        // boss has no blurb to open.
+        const size = el('span', 'pre-gym__size');
+        size.textContent = String(view.boss.size);
+        title.replaceChildren(nodeKindGlyph('gym', GLYPH_LABELS['node-gym'] ?? 'gym', 24), size);
+        delete title.dataset['tip'];
+        title.removeAttribute('tabindex');
+        title.removeAttribute('role');
+        const level = el('span', 'panel__level');
+        level.textContent = levelText(view.boss.level);
+        level.setAttribute('aria-label', levelAria(view.boss.level));
+        leaderType.replaceChildren(level);
+        blurb.textContent = '';
+        blurb.hidden = true;
+      } else {
+        title.textContent = view.gym.leader;
+        // The leader's blurb, on tap, for Pocket. Same tip the map's title carries.
+        title.dataset['tip'] = `gym:${view.segment}`;
+        title.tabIndex = 0;
+        title.setAttribute('role', 'button');
+        leaderType.replaceChildren(typeChip(view.gym.type));
+        // The leader's own blurb, from `data/gyms.ts`. Flavour that says how the
+        // leader plays, written where every other gym string is written.
+        blurb.textContent = view.gym.blurb;
+        blurb.hidden = false;
+      }
 
       manage.onclick = () => handlers.onManageParty();
 

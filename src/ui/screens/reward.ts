@@ -48,7 +48,11 @@ import type { RunState } from '../../core/run';
 import { itemById } from '../../data/items';
 import { relicById } from '../../data/relics';
 import { CAPABILITY_LABELS } from '../../data/eventCopy';
-import { assetIcon } from '../assets/manifest';
+import { NATIVE, placeholderIcon, relicIcon } from '../assets/manifest';
+import { consumableById } from '../../data/consumables';
+import { DEFENDER_SCREEN_COPY } from '../copy/defender';
+import { registerTradeAsk, registerTradeOffer } from '../defender-tips';
+import { spriteImg } from '../sprites';
 import { openBand } from '../band';
 import { createBar } from '../bar';
 import { capabilityGlyph, coinAmount, tierChip } from '../chip';
@@ -228,12 +232,12 @@ export function renderRewardCard(
     case 'relic': {
       const entry = relicById(reward.relic);
       const icon = el('span', 'reward__sprite reward__relic');
-      icon.append(assetIcon(`relic:${reward.relic}`));
+      icon.append(relicIcon(reward.relic, entry?.name ?? reward.relic));
       icon.dataset['tip'] = `relic:${reward.relic}`;
       icon.setAttribute('role', 'img');
       icon.setAttribute('aria-label', entry?.name ?? reward.relic);
       card.append(icon);
-      if (entry) card.append(capabilityGlyph(entry.grants, CAPABILITY_LABELS[entry.grants]));
+      if (entry?.grants) card.append(capabilityGlyph(entry.grants, CAPABILITY_LABELS[entry.grants]));
       break;
     }
 
@@ -255,6 +259,53 @@ export function renderRewardCard(
     case 'technique': {
       const facts = describeMove(reward.move);
       if (facts) card.append(moveCard(moveCardData(facts, tuning)));
+      break;
+    }
+
+    /*
+     * **A consumable is its sprite, and nothing else. Bible Rev 25, D102.**
+     * Section 3's *Held item* row: the name and the effect line are the press.
+     * The Showdown sheet's index carries no Potion, so the sprite is the
+     * placeholder every icon falls back to (the prompt ships on placeholders).
+     */
+    case 'consumable': {
+      const entry = consumableById(reward.id);
+      const slot = el('span', 'reward__sprite');
+      slot.append(placeholderIcon(entry?.name ?? reward.id, NATIVE.relic));
+      slot.dataset['tip'] = `consumable:${reward.id}`;
+      slot.setAttribute('role', 'img');
+      slot.setAttribute('aria-label', entry?.name ?? reward.id);
+      card.append(slot);
+      break;
+    }
+
+    /*
+     * **A trade is two sprites in fixed slots, each with its species name.
+     * Bible Rev 25, D102.** The offered mon on the left, the member asked for
+     * on the right; species are proper nouns, so the budget is 0. C2: the
+     * offered mon's press opens its starter card and the member's its party
+     * row, through the `trade-offer:` and `trade-ask:` tips.
+     */
+    case 'trade': {
+      const offered = reward.offered;
+      const asked = state.party.find((member) => member.acquired === reward.requested);
+      if (!offered || !asked) break;
+      const gymType = state.defender?.gymType ?? null;
+      const side = (species: string, tip: string, which: 'offer' | 'ask'): HTMLElement => {
+        const holder = el('span', `reward__trade-side reward__trade-side--${which}`);
+        holder.dataset['tip'] = tip;
+        holder.tabIndex = 0;
+        holder.setAttribute('role', 'button');
+        const name = el('span', 'reward__trade-name');
+        name.textContent = species;
+        holder.append(spriteImg(species), name);
+        return holder;
+      };
+      card.setAttribute('aria-label', DEFENDER_SCREEN_COPY.tradeLabel(offered.species, asked.spec.species));
+      card.append(
+        side(offered.species, `trade-offer:${registerTradeOffer(offered, gymType)}`, 'offer'),
+        side(asked.spec.species, `trade-ask:${registerTradeAsk(asked)}`, 'ask'),
+      );
       break;
     }
 

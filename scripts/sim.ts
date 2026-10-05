@@ -792,6 +792,12 @@ function valueOfReward(reward: Reward, state: RunState, segment: number): number
       const missing = lead.maxHp > 0 ? 1 - lead.hp / lead.maxHp : 0;
       return missing * reward.fraction * 190;
     }
+    // Defender Mode v0's two kinds. The benchmark bot never trades, and values
+    // a consumable as a small heal it can spend later.
+    case 'consumable':
+      return 20;
+    case 'trade':
+      return 0;
     /*
      * A relic, priced flat and priced high.
      *

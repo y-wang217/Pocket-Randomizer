@@ -200,6 +200,8 @@ describe('what a locale decides', () => {
     for (const seed of MANY_SEEDS) {
       for (const segment of createRun(seed).segments) {
         for (const route of segment.routes) {
+          // An attacker route always has a locale; only a defender rank has none.
+          if (!route.locale) throw new Error(`attacker route with no locale in ${seed}`);
           const allowed = new Set(localeById(route.locale).types);
           for (const step of route.steps) {
             for (const node of step.options) {
@@ -237,6 +239,8 @@ describe('what a locale decides', () => {
     for (const seed of MANY_SEEDS) {
       for (const segment of createRun(seed).segments) {
         for (const route of segment.routes) {
+          // An attacker route always has a locale; only a defender rank has none.
+          if (!route.locale) throw new Error(`attacker route with no locale in ${seed}`);
           const allowed = new Set(localeById(route.locale).types);
           for (const step of route.steps) {
             for (const node of step.options) {

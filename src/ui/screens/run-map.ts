@@ -45,7 +45,9 @@
 import type { NodeSpec, Segment } from '../../core/encounters';
 import type { LocaleId } from '../../data/locales';
 import type { NodeVisit, RunState } from '../../core/run';
-import { gymsCleared, localeOf, stepsOf } from '../../core/run';
+import { gymsCleared, localeOf, runMode, stepsOf } from '../../core/run';
+import { trainerClass } from '../../data/trainerClasses';
+import { TRAINER_CLASS_NAMES } from '../../data/trainerClassCopy';
 import { localeById } from '../../data/locales';
 import { resolveCapability, type CapabilityContext } from '../../core/capabilities';
 // The two label tables the event screen prints too, from one file (4.8.0.2).
@@ -182,26 +184,35 @@ export function createRunMap(): RunMap {
 export function renderHeading(state: RunState, segment: Segment): HTMLElement[] {
   const gym = segment.gymDefinition;
   const team = segment.gym.encounter?.team.length ?? 1;
+  /*
+   * **A defender rank's boss has no leader, no type and no blurb** (report
+   * ruling R6), so the heading drops all three, as D101's pre-gym variant
+   * does, and keeps the number, the team size and the distance.
+   */
+  const defender = runMode(state) === 'defender';
 
   const title = el('h2', 'screen__title');
-  title.textContent = `Gym ${state.currentSegment + 1} of ${state.segments.length} — ${gym.leader}`;
-  // The leader's blurb, on tap. Pocket hides the flavour line under the
-  // heading and the title says it instead (`ui/tooltips.ts`, `gym:`).
-  title.dataset['tip'] = `gym:${state.currentSegment}`;
-  title.tabIndex = 0;
-  title.setAttribute('role', 'button');
+  title.textContent = `Gym ${state.currentSegment + 1} of ${state.segments.length}${defender ? '' : ` — ${gym.leader}`}`;
+  if (!defender) {
+    // The leader's blurb, on tap. Pocket hides the flavour line under the
+    // heading and the title says it instead (`ui/tooltips.ts`, `gym:`).
+    title.dataset['tip'] = `gym:${state.currentSegment}`;
+    title.tabIndex = 0;
+    title.setAttribute('role', 'button');
+  }
 
   const subtitle = el('p', 'screen__blurb');
   subtitle.replaceChildren(
-    typeChip(gym.type),
+    ...(defender ? [] : [typeChip(gym.type)]),
     // The gym's team size is public and the level band is not. Size changes
     // how the fight is *approached* — a solo Pokemon against three has to
     // budget PP — so hiding it would hide the decision rather than create one.
-    document.createTextNode(` · ${team} Pokemon · ${stepsOf(state).length} steps before the gym`),
+    document.createTextNode(`${defender ? '' : ' · '}${team} Pokemon · ${stepsOf(state).length} steps before the gym`),
   );
 
   const blurb = el('p', 'map__blurb');
   blurb.textContent = gym.blurb;
+  blurb.hidden = gym.blurb === '';
 
   /*
    * The region the segment is being walked through, above the step chain.
@@ -231,6 +242,19 @@ export function renderHeading(state: RunState, segment: Segment): HTMLElement[] 
  */
 export function renderRail(state: RunState): HTMLElement[] {
   const cleared = gymsCleared(state);
+
+  // A defender run's ranks carry no leader and no type (ruling R6): the
+  // number and its phase alone, one per rank.
+  if (runMode(state) === 'defender') {
+    return state.segments.map((_, index) => {
+      const phase = index < cleared ? 'done' : index === state.currentSegment ? 'current' : 'upcoming';
+      const item = el('li', `rail__gym rail__gym--${phase}`);
+      const number = el('span', 'rail__number');
+      number.textContent = phase === 'done' ? '✓' : String(index + 1);
+      item.append(number);
+      return item;
+    });
+  }
 
   return GYMS.map((gym, index) => {
     const phase = index < cleared ? 'done' : index === state.currentSegment ? 'current' : 'upcoming';
@@ -469,6 +493,7 @@ function renderStepRow(
         full: phase === 'current',
         visit: walked === option ? plan.visits[step.index] : undefined,
         passed: phase === 'done' && walked !== option,
+        defender: runMode(state) === 'defender',
         onChoose: choose ? () => choose(option) : undefined,
       });
       element.style.setProperty('--x', `${slotX(locale, step.index, step.options.length, option)}%`);
@@ -493,6 +518,7 @@ function renderGymRow(state: RunState, segment: Segment, plan: Plan): HTMLElemen
     full: false,
     visit: plan.gymVisit,
     passed: false,
+    defender: runMode(state) === 'defender',
   });
   element.style.setProperty('--x', '50%');
   element.querySelector('.node__mark')?.setAttribute('data-anchor', 'gym');
@@ -550,7 +576,9 @@ function nodeDetailText(node: NodeSpec, segment: number, visit?: NodeVisit): str
 function visitText(node: NodeSpec, visit: NodeVisit): string {
   if (!visit.result) return 'restored';
   const turns = `${visit.result.turns} turn${visit.result.turns === 1 ? '' : 's'}`;
-  return node.encounter ? `${node.encounter.opponent} · ${turns}` : turns;
+  if (!node.encounter) return turns;
+  const who = node.trainerClass ? (TRAINER_CLASS_NAMES[node.trainerClass] ?? node.trainerClass) : node.encounter.opponent;
+  return `${who} · ${turns}`;
 }
 
 /**
@@ -574,6 +602,8 @@ interface NodeOptions {
   visit: NodeVisit | undefined;
   /** A node on a walked step that was not the one taken. */
   passed: boolean;
+  /** A defender run: a gym is a boss with no leader, a trainer has a class. */
+  defender: boolean;
   onChoose?: () => void;
 }
 
@@ -612,7 +642,23 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
   if (node.kind === 'gym') {
     const size = node.encounter?.team.length ?? 0;
     const name = el('span', 'node__name');
-    name.textContent = `${gymLeaderName(segment)}${size > 1 ? ` · ${size} Pokemon` : ''}`;
+    // A defender boss has no leader: its team size, bare, as on the pre-gym
+    // screen (D101).
+    name.textContent = options.defender ? String(size) : `${gymLeaderName(segment)}${size > 1 ? ` · ${size} Pokemon` : ''}`;
+    element.append(name);
+  }
+
+  /*
+   * **A defender door's challenger: the class name beside the trainer mark.
+   * Bible Rev 25, D101.** Identity, as a gym's leader name is (D46), and on
+   * every row, since a walked door is named by who was behind it. Its types
+   * are type chips on the step being chosen from only; an untyped class shows
+   * none.
+   */
+  const challenger = node.trainerClass ? trainerClass(node.trainerClass) : null;
+  if (options.defender && node.trainerClass) {
+    const name = el('span', 'node__name node__name--class');
+    name.textContent = TRAINER_CLASS_NAMES[node.trainerClass] ?? node.trainerClass;
     element.append(name);
   }
 
@@ -652,6 +698,11 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
     requirement.dataset['detail'] = RARITY_LABELS[node.event.rarity];
     gate.append(requirement, capabilityBandChevron(band, BAND_LABELS[band]));
     facts.append(gate);
+  }
+  if (options.full && challenger && challenger.types.length > 0) {
+    const types = el('span', 'node__types');
+    types.replaceChildren(...challenger.types.map(typeChip));
+    facts.append(types);
   }
   if (facts.childElementCount > 0) element.append(facts);
 

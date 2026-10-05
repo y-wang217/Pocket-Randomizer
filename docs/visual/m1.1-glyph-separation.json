@@ -82,6 +82,13 @@
    "score": 0.3671875
   },
   {
+   "family": "badge",
+   "a": "badge-flame",
+   "b": "badge-wing",
+   "simulation": "none",
+   "score": 0.375
+  },
+  {
    "family": "accuracy",
    "a": "accuracy-target",
    "b": "accuracy-never-miss",
@@ -8573,6 +8580,90 @@
    "b": "field-psychic",
    "simulation": "tritanopia",
    "score": 0.3515625
+  },
+  {
+   "family": "badge",
+   "a": "badge-flame",
+   "b": "badge-eye",
+   "simulation": "none",
+   "score": 0.45703125
+  },
+  {
+   "family": "badge",
+   "a": "badge-flame",
+   "b": "badge-wing",
+   "simulation": "none",
+   "score": 0.375
+  },
+  {
+   "family": "badge",
+   "a": "badge-eye",
+   "b": "badge-wing",
+   "simulation": "none",
+   "score": 0.421875
+  },
+  {
+   "family": "badge",
+   "a": "badge-flame",
+   "b": "badge-eye",
+   "simulation": "protanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "badge",
+   "a": "badge-flame",
+   "b": "badge-wing",
+   "simulation": "protanopia",
+   "score": 0.375
+  },
+  {
+   "family": "badge",
+   "a": "badge-eye",
+   "b": "badge-wing",
+   "simulation": "protanopia",
+   "score": 0.421875
+  },
+  {
+   "family": "badge",
+   "a": "badge-flame",
+   "b": "badge-eye",
+   "simulation": "deuteranopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "badge",
+   "a": "badge-flame",
+   "b": "badge-wing",
+   "simulation": "deuteranopia",
+   "score": 0.375
+  },
+  {
+   "family": "badge",
+   "a": "badge-eye",
+   "b": "badge-wing",
+   "simulation": "deuteranopia",
+   "score": 0.421875
+  },
+  {
+   "family": "badge",
+   "a": "badge-flame",
+   "b": "badge-eye",
+   "simulation": "tritanopia",
+   "score": 0.45703125
+  },
+  {
+   "family": "badge",
+   "a": "badge-flame",
+   "b": "badge-wing",
+   "simulation": "tritanopia",
+   "score": 0.375
+  },
+  {
+   "family": "badge",
+   "a": "badge-eye",
+   "b": "badge-wing",
+   "simulation": "tritanopia",
+   "score": 0.421875
   }
  ]
 }

@@ -20,6 +20,7 @@
     "test:browser": "node scripts/vitest-split.mjs browser",
     "test:webkit": "GYMRUN_ENGINE=webkit npm run test:browser",
     "sim": "vite-node scripts/sim.ts",
+    "sim:defender": "vite-node scripts/defender-bench.ts",
     "gen:pools": "vite-node scripts/gen-pools.ts",
     "content-hash": "vite-node scripts/content-hash.ts",
     "copy-audit": "vite-node scripts/copy-audit.ts",

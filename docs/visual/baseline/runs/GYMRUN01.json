@@ -1,9 +1,9 @@
 {
   "seed": "GYMRUN01",
   "versions": {
-    "runLog": "gymrun-run-23/gymrun-0.3.0",
-    "contentHash": "1ba85628b9d9f0be536aa8f964d0ae18a198b7dc5955ae4812ec856383c1112d",
-    "randomizer": "gymrun-randomizer-25",
+    "runLog": "gymrun-run-24/gymrun-0.3.0",
+    "contentHash": "b85ac93912caa3e508f0d1451b13d0ec9d3c92cdf6bc6be007cf654f3fbf2cc6",
+    "randomizer": "gymrun-randomizer-26",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -163,11 +163,12 @@
   ],
   "log": {
     "seed": "GYMRUN01",
+    "mode": "attacker",
     "versions": {
-      "runLog": "gymrun-run-23/gymrun-0.3.0",
-      "contentHash": "1ba85628b9d9f0be536aa8f964d0ae18a198b7dc5955ae4812ec856383c1112d",
+      "runLog": "gymrun-run-24/gymrun-0.3.0",
+      "contentHash": "b85ac93912caa3e508f0d1451b13d0ec9d3c92cdf6bc6be007cf654f3fbf2cc6",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-25"
+      "randomizerVersion": "gymrun-randomizer-26"
     },
     "decisions": [
       {

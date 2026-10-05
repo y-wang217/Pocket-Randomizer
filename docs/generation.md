@@ -13317,3 +13317,382 @@ building" would have applied.
 
 `NON_TEXT_FLOOR` is untouched. Moving a floor to clear a miss is what the gates
 section forbids, and the floor was never the thing that was wrong.
+
+## 106. Defender Mode v0: a second run mode
+
+**2026-10-04**, on `claude/eager-turing-0059br`. Prompt:
+[`spec/gymrun-defender-mode-v0-fun-test.md`](spec/gymrun-defender-mode-v0-fun-test.md).
+Pre-code report and rulings:
+[`reports/defender-mode-v0-report.md`](reports/defender-mode-v0-report.md).
+A fun test, not a stage: if it is not fun by hand the branch is thrown away,
+so everything it adds sits in `core/defender/`, `data/defender.ts`,
+`data/trainerClasses.ts` and clearly fenced additions elsewhere.
+
+### 106.1 Step 2: the mode flag, gym select, the draft, the type lock, IVs, classes
+
+- **The mode is an input, not an axis.** `RunLog.mode` sits beside the seed,
+  not in `versions`, and `assertReplayable(log, mode)` refuses a log replayed
+  in the other mode with a message naming both, after the four axes. A log on
+  the current schema with no mode is refused as `(none)`. `replayRun` and
+  `resumeRun` take the mode from `PlayRunOptions.mode`, so a defender log
+  replayed with the defaults throws rather than replaying as attacker.
+- **A defender run has its own generator** (report section 8), `createRun(seed,
+  tuning, 'defender')`, and every draw it makes is under a `defender/` key.
+  `test/attacker-generation-golden.test.ts` was minted before the first change
+  to `src/` and holds 200 whole attacker maps byte-identical.
+- **The draft is drawn for all three gym types** (report ruling R3): the gym
+  type is a decision, so a draw that depended on it would make the draft's RNG
+  consumption a function of play. 27 specs and 27 highlight draws per run.
+  Drafted mons are generated as starters are — starter level, starter move
+  bands, no held item — from the segment-0 species distribution narrowed to
+  the type.
+- **The Fire highlight is drawn now, at generation, for every drafted mon**,
+  whatever the type: one uniform draw over the mon's damaging slots on its own
+  key, exactly one draw even for a mon with none. The badge that reads it is
+  step 4.
+- **Party capacity reads the shipped schedule one row ahead** (ruling R1(a)):
+  3, 3, 4, 4, 5, 5, 6, 6. `DEFENDER_SLOT_SCHEDULE_OFFSET` in `data/defender.ts`.
+- **Trainer classes** are a new table. Early ranks 0 to 2 are Bug Catcher
+  (Bug), Youngster (Normal) and Lass (Grass); ranks 3 to 5 are Hiker
+  (Rock/Ground), Swimmer (Water), Black Belt (Fighting) and Bird Keeper
+  (Flying); ranks 6 and 7 are the untyped Ace Trainer and Veteran. **The prompt
+  names the classes but not Lass's or Youngster's type**, and those two are
+  this step's choice. `generateClassTeam` is `generateTrainerTeam` with a
+  type-set admit and the rank's IV, and nothing else differs.
+
+### 106.2 The IV reversal
+
+`pokerun-build-spec.md` line 149 keeps IVs out "through Stage 5". The defender
+prompt reverses that for this mode and asks for the reversal to be recorded
+here. **Recorded: defender opponents, bosses included, carry one flat IV per
+rank from `DEFENDER_OPPONENT_IVS` = [0, 5, 10, 14, 18, 24, 26, 28]; player mons
+carry 31.** It reaches the sim through an optional `PokemonSpec.ivs` that no
+attacker spec sets, so every attacker set is unchanged.
+
+The one-spread rule was what made the opponent's stat readout exact without
+reading the engine. It survives because the IV is still public — it is the
+rank's row in a data table — so `statsAtLevel`, `visibleSpeed` and the AI's
+`@smogon/calc` bodies now take the IV the sim was built with, read off the set
+the adapter built (`driver.ts` `ivOf`). Views carry `ivs` only when it is not
+31, so attacker views are the objects they were. **Not yet followed:**
+`statBandAt`, the stat bar's floor and ceiling, still assumes 31, so a rank-0
+challenger's bars can sit below their floor. A display question for step 7.
+
+### 106.3 Deviations from the prompt at step 2
+
+- **`playRun` in defender mode stops after the draft, loudly**, with an error
+  naming step 3. The prompt orders the waves after this step, and a defender
+  state has no segments until they exist. Recorded rather than papered over
+  with a fake ending.
+- **`RANDOMIZER_VERSION` moves to `-24` and `RUN_LOG_VERSION` to `-23` now**,
+  once, for the whole branch. Later steps add decisions and draws under the
+  same two bumps rather than moving them again on a branch nothing has
+  released.
+- **Class names live in `data/trainerClassCopy.ts`, not `data/trainerClasses.ts`.**
+  The prompt puts the name in the class table. The 2026-09-22 ruling (D12,
+  section 65) is that no copy a player reads is inside `contentHash`, and the
+  class table is hashed because `core/` draws from it, so the name moved to an
+  excluded copy file keyed by class id. The table keeps the id, the type set,
+  the rank band and the sprite key.
+- **The decision feed says nothing for the two new decisions** until step 7
+  writes their lines (`ui/decision-feed.ts`); no defender run reaches a
+  screen before then.
+
+### 106.4 Gates at step 2
+
+Type check, lint, hedge lint, build and smoke run are clean. The node half
+under `GYMRUN_TRIM_STRICT=1` passes 156 files and 2055 tests; it exits 1 on
+three `[vitest-worker]: Timeout calling "onTaskUpdate"` errors, which
+reproduce on `origin/main` at `47bd73f` in the same container
+(`test/run-replay.test.ts` alone). The browser half fails three tests,
+`visual-backdrop-contrast` (two backdrop rows) and `visual-chips` (the type
+chip floor), **identically on `origin/main`**: pre-existing, presentation,
+and untouched by this step.
+
+### 106.5 Step 3: the waves, the door, the intermission, the boss
+
+**2026-10-04.** The author's go-ahead after step 2's review read "go ahead
+step 2", with step 2 already built and pushed; it was taken as approval of step
+2 and the go-ahead for step 3, and said so in the session.
+
+- **A rank is a `Segment` with one route and no locale**, built by
+  `core/defender/waves.ts` `generateRank`. The route is
+  `DEFENDER_WAVE_LENGTH[rank]` door steps of two trainer nodes, then one
+  intermission step holding one shop node; the boss is the segment's `gym`.
+  Emitting the attacker's own shape is what lets `playNode`, `resolveNode`, the
+  result screen, the two-page boss payout, the full restore and the slot
+  unlock run unchanged. `LocaleRoute.locale` became `LocaleId | null` for it.
+- **Each door draws two different classes, then two tiers**, on one `map` key
+  per door; each side's team is `generateClassTeam` on its own `randomizer`
+  key, with the rank's IV; each side carries its reward offer of three.
+  Every key is `defender/…`.
+- **The intermission is played without a question**, as the gym is: a step of
+  one option is not a choice. Its shop question is asked as any shop's. **A TM
+  is taught there and nowhere else**: `teachableNow` in defender mode opens only
+  after a shop visit, so a move a door or a boss pays waits in the bag.
+- **The boss is not type-locked** (ruling R6): `generateBossTeam` is
+  `generateGymTeam`'s level column, team size and move band bonus over the
+  untyped pool, with the rank's IV. It is unnamed; the pre-boss lead question
+  is the attacker's, handed the rank's own definition. Its payout is the
+  existing two pages.
+- **The defender relic list** (ruling R2) is `DEFENDER_RELIC_IDS`, eight
+  relics, threaded into `generateRewardOffer`, `generateGymRewardOffer` and
+  `resolveRewardEntry` as an optional last argument that every attacker caller
+  leaves at `RELIC_IDS`.
+- **The door is a `door` decision** (ruling R4), added under the step-2
+  `RUN_LOG_VERSION` bump.
+
+**Measured, not a gate.** Under `scriptedRunPolicy(greedyAiPolicy)` (first
+door, buys nothing) over 40 seeds per type, prefix `DIST-`: bosses beaten
+Fire 2.0, Psychic 1.8, Flying 2.0 mean; no run passed rank 5. Even with an
+opponent that always picks its weakest move, ten runs (`WIN-`) ended between
+ranks 2 and 6. The party stays at three until step 5's recruit drafts fill the
+unlocked slots, against bosses that field the full schedule, so this is the
+expected shape for a step that has not built recruitment yet. Recorded, not
+chased; step 6 takes the real benchmark. The full eight ranks to victory are
+held by a structural walk in `test/defender-waves.test.ts`.
+
+### 106.6 Step 4: the three badges, through the sim
+
+**2026-10-04.** A badge applies to a party member exactly when its species
+carries the gym type (`core/defender/badge.ts` `battleBadgeFor`, read off the
+spec, never live types, ruling R7). The core builds a `BattleBadge` per battle;
+the adapter executes it. **The mechanism is `Battle#onEvent(eventid, format,
+callback)`** in `core/battle/format.ts` `installDefenderBadge`: handlers on the
+battle keyed to the format, each checking a flag on the eligible p1 Pokemon's
+`m`. An attacker battle passes no badge, registers no handler, appends no move
+and reorders nothing: the sim fixture and the visual baseline battles are
+byte-identical apart from `contentHash`.
+
+- **Fire.** `ModifyCritRatio` adds `fireCritStages[streak]` (+1, +2, +3, then
+  +3) when the move used is the highlighted slot's; `AfterMove` counts a use of
+  it and zeroes the streak on any other move; `SwitchIn`, `SwitchOut` and
+  `Faint` zero it. A turn on which the move never runs (flinch, full
+  paralysis, sleep) fires no `AfterMove`, so the streak holds (R7). Each
+  boosted use prints `|debug|gymrun-fire-streak … stage +N`, which Custom Game
+  emits, so test 3 asserts the stage on the protocol and the third use's
+  `|-crit|`. The move button's `MoveView.critChance` is the move's own ratio
+  plus the next use's stage, through Gen 9's table restated in
+  `format.ts` `critChanceAt`.
+- **Psychic.** Under the Psychic badge, on a turn where both sides choose and
+  the opponent is not replacing a faint, `runBattle` asks the opponent first,
+  holds its answer on the session (`revealFoeIntent`), and builds the player's
+  view with `foeIntent` set, while the player's active Pokemon carries the
+  type. The opponent reads only its own view and draws only on its own stream,
+  and submission order is unchanged, so **the battle is the battle without the
+  badge**: test 4's second case holds the protocols equal. The answer shown is
+  the one answer the policy returned; nothing asks it twice.
+- **Flying.** `ModifySpe` chains `flyingSpeed` (1.1, a 4505/4096 numerator
+  after the sim's truncation) for eligible members, so every engine read of
+  Speed carries it. The AI orders turns off `ActiveView.baseSpeed`, which is
+  `storedStats`, so the view carries `speedModifier` and `core/battle/speed.ts`
+  applies it the sim's way: after the stage, **before paralysis**, because
+  paralysis runs last in `ModifySpe` and finalises every modifier first, and
+  with `Battle#modify`'s rounding (`stats.ts` `applySimModifier`). Test 5
+  holds the AI's read equal to the engine's, paralysed and not.
+- **The fifth move** is appended to an eligible member's set after its own
+  moves (`driver.ts` `withFifthMoves`; `toPokemonSet` still keeps four), its
+  slot's PP set to `fifthMovePp` = 1 after the carry-over, and stripped from
+  the read-back so it never reaches the party. A fresh `Battle` per fight is
+  "resets every battle". `MoveView.badgeMove` marks it for the UI.
+
+**Versions.** `AI_VERSION` holds (ruling R5): the policy code reads one new
+optional field that is absent on every attacker view, and no attacker decision
+moved. `ENGINE_VERSION` holds for the same reason on the adapter: an attacker
+battle is the battle it was. `RUN_LOG_VERSION` and `RANDOMIZER_VERSION` hold at
+step 2's values; `contentHash` moves to `9ad1d9` for `DEFENDER_BADGE`.
+
+**Known edges, recorded rather than handled.**
+
+- A Leppa Berry restores the fifth move's PP like any other slot's.
+- Pluck eats the target's berry and gains its effect, as it does in the
+  games; it is not Peck with more power.
+- A `BattleLog` replayed on its own (`replayBattle`, which nothing under
+  `src/` calls) does not carry the badge; a defender battle reproduces through
+  the run log, which does.
+- **The stat block's Speed number at stage 0** still reads `storedStats` for
+  the player's own Pokemon, as it already does for Choice Scarf and paralysis.
+  The prompt asks that no Speed readout contradict the multiplier, and the
+  stat block is a surface, so that is step 7's, under the bible.
+
+**Measured, not a gate.** `scriptedRunPolicy(greedyAiPolicy)`, prefix
+`DIST-`, 40 seeds per type, `AI_VERSION` `gymrun-ai-7-tiers-reach-the-app`:
+mean bosses beaten Fire 2.08, Psychic 1.80, Flying 2.33 (step 3: 2.03, 1.80,
+2.08). Psychic is unchanged to the run, which is the reveal changing nothing the
+opponent does and a bot that does not read it. The bot holds no Fire streak
+and never presses the fifth move, so both rows understate their badge.
+
+### 106.7 Step 5: consumables, trades, the recruit draft, the off-type relic
+
+**2026-10-05.**
+
+- **Consumables** are `data/consumables.ts`: Potion 20, Super Potion 60, Hyper
+  Potion 120, Gen 9's amounts, flat HP, never a revive. A list of their own,
+  `RunState.consumables`, beside `tms` and on the same capacity
+  (`items.inventoryLoad` counts all three lists). Not `ItemEntry`s: that table
+  is what a Pokemon may hold, its `consumable` flag already means a berry, and
+  the sim knows no Potion. A defender door offer adds
+  `DEFENDER_CONSUMABLE_ENTRY` to its tier's pool, through a new optional last
+  argument to `generateRewardOffer` that attacker callers leave empty.
+  **Using one is a party edit**, `{ kind: 'consume', id, slot }`: logged where
+  it is made, replayed at the same point, and refused with a throw while a
+  battle is being fought (`run.ts` `battling`). It is spent on use.
+- **Trades** are a reward kind drawn abstract, like a relic card. Each door
+  node draws, on its own key and whether or not the card is carried: the roll
+  against `DEFENDER_TRADE.rate` (0.25), one offered mon **per gym type** at the
+  `hard` tier's species bands (the "one quality step above the rank's norm"),
+  and one `selector`. A carried trade takes the offer's last card, so an offer
+  still holds exactly three. When the offer is shown, `resolveTrade` picks the
+  gym type's mon and the member the selector lands on in **acquisition order**
+  (`PokemonState.acquired`, stamped 0, 1, 2 by the draft and once more by every
+  recruit and trade, ruling R8). Taking the card swaps mon for mon in the same
+  slot; the leaving member's held item goes to the backpack; the party size
+  never changes.
+- **Recruit drafts** are drawn at generation for every rank whose boss opens a
+  slot (bosses 2, 4 and 6 on the schedule read one row ahead), all three gym
+  types, three typed mons and one off-type candidate each, at the next rank's
+  level and bands. Asked after the boss's clear and before the item plan, as a
+  `recruit` decision, only while the party is under capacity.
+- **The Stranger's Pass** is in the boss relic pool only
+  (`DEFENDER_BOSS_RELIC_IDS`) and grants one party slot exempt from the type
+  lock. It lives in `data/relics.ts` `DEFENDER_ONLY_RELICS`, **outside
+  `RELICS`**, so `RELIC_IDS` and every attacker relic shuffle are what they were;
+  `relicById` finds it. `Relic.grants` became `Capability | null` for it, with
+  `RELICS` typed `CapabilityRelic[]` so every attacker relic still grants one.
+  "At most once per run" is enforced at resolution: once any resolved offer has
+  shown it, `DefenderRunState.offTypeOffered` treats it as held, so it never
+  shows again, taken or not.
+
+### 106.8 Deviations from the prompt at step 5
+
+- **Where an off-type mon comes from is not in the prompt.** Every draft,
+  recruit and trade obeys the type lock, so the exempt slot had no source. The
+  default taken: **while a Stranger's Pass slot is free, a recruit draft's third
+  option is the rank's off-type candidate**, drawn at generation for every type
+  whether or not it is ever offered. Flagged for review in the step 5 report.
+- **"Trade accept" is the reward decision**, not a decision of its own: taking
+  the trade card is accepting, as the prompt says, and the `reward` index
+  records it.
+- **The off-type relic grants no capability**, so its reward-card face, party
+  row and tooltip show no capability chip. Those faces, and the faces for the
+  two new reward kinds, are step 7's; `test/reward-card-kinds.test.ts` leaves
+  the two kinds out until then.
+- **Measured, not a gate.** Over 20 seeds (`S5-`), 1,120 door offers held 288
+  trade cards (25.7%) and 514 consumable cards. Twenty scripted runs (`S5R-`,
+  first door, first card, so never a trade) beat 2.0 bosses on mean, with one
+  run reaching six; the recruit drafts are what lets a run pass rank 3.
+
+### 106.9 Step 6: the benchmark rows
+
+**2026-10-05.** `npm run sim:defender -- --seeds 200 --prefix DEFENDER --write`
+(`scripts/defender-bench.ts`) plays one row per gym type under
+`core/defender/bench.ts` `defenderBenchPolicy` and commits the report to
+`sim-reports/benchmarks/`. The rows and their reading are `balance.md` section
+0, "Defender Mode v0, its own table": mean bosses beaten **Fire 2.55, Psychic
+2.35, Flying 3.305**, 200 seeds, prefix `DEFENDER`, `ai-7-tiers-reach-the-app`,
+stamped beside `randomizer-24`, `run-23` and `564eda`.
+
+The bot uses a consumable at three moments between battles (before a door,
+at the intermission's shop question and before the boss's lead question), on
+any living member under half HP, smallest item first. It takes the first card
+that is not a trade, so it takes the same first card the attacker baseline
+does unless that card is the trade, which a carried trade never is (it takes
+the last slot). No number was tuned against these rows.
+
+### 106.10 Step 7: the UI, built to bible Rev 25
+
+**2026-10-05.** Built to D101 to D103 as ruled
+(`spec/gymrun-defender-mode-v0-rulings-d99-d102.md`), on the existing screens.
+Nothing under `core/` changed except one read for the screens,
+`core/defender/badge.ts` `flameSlotFor`, which is `memberBadge`'s own rule for
+when a flame is drawn, so a card cannot show a flame the battle would not honour.
+
+- **Mode choice.** Two controls in the seed bar, `Attack` and `Defend`
+  (`ui/seed-bar.ts`). Start, New seed and a linked seed play the bar's mode; a
+  resume plays the saved log's own and moves the bar to say so (`ui/app.ts`
+  `start`).
+- **Gym type select.** `ui/screens/gym-select.ts`, a router screen of its own
+  and a gallery surface (`gym-select`), the locale card's grammar: a type chip
+  and the badge mark per card, the instruction as the only words.
+- **Draft and recruit.** The starter screen, with the pick's heading in the
+  title's slot, the attacker blurb hidden, and the flame on the highlighted
+  move chip under Fire (`moveChip`'s `flame`).
+- **The door.** The map's node card names the class beside the trainer mark
+  on every row, and its types are type chips on the step being chosen from.
+- **Battle.** The flame and the next use's crit chance on the highlighted
+  button, the wing on the fifth button in its own row, the eye and the
+  revealed move chip (or incoming species) on the opposing panel, the wing in
+  the Speed cell with the engine's number.
+- **Reward cards.** A consumable is its sprite, with the name and effect line
+  on the `consumable:` press. A trade is two sprites and two species names, the
+  offered mon's press opening its starter card (`trade-offer:`) and the
+  member's opening its party row (`trade-ask:`).
+- **Bag.** Consumables listed at rest with name and effect line, used by two
+  taps, the item then a member, through the run's party editor. A member the
+  run would refuse is dimmed and says why; inside a battle node the pick is
+  dimmed. The in-battle readout lists them too.
+- **Feed.** One line per defender decision (`ui/copy/defender.ts`
+  `DEFENDER_FEED_COPY`), registered in `docs/copy.md`.
+- **Smoke.** `scripts/smoke-defender.mjs` plays a defender run in the built
+  bundle by clicking, from the mode choice to the summary.
+
+#### Deviations recorded at step 7
+
+- **The consumable sprite is a placeholder, not a Showdown cell.** D103 says
+  the Showdown sheet carries a Potion, Super Potion and Hyper Potion. Neither
+  `@pkmn/img`'s index nor the item table Showdown's own client serves carries
+  any of the three, so no cell can be named. The face draws the lettered
+  placeholder every icon falls back to (`ui/assets/manifest.ts`
+  `placeholderIcon`), at a relic icon's size, and stays outside `MANIFEST` so
+  the attacker's "no placeholder remains" holds. The prompt ships the mode on
+  placeholders, so this is the prompt's own fallback; the encoding (an item
+  sprite in a fixed slot, name and effect on the press) is unchanged.
+- **The Stranger's Pass draws the same placeholder.** It is the one relic with
+  no manifest entry, and `assetIcon` throws on a missing key, so its card would
+  have thrown on the first boss page that offered it (`relicIcon`).
+- **The crit chance is floored, not rounded.** Gen 9's stage 1 is 12.5%; D101
+  writes the three values as 12, 50 and 100, so the button floors, and a
+  chance is never shown higher than it is.
+- **A defender boss has no leader anywhere, not only on the pre-gym screen.**
+  D102 rules the pre-gym variant. The same absence reaches every surface that
+  printed the attacker's leader for a segment: the map's heading (no leader, no
+  type chip, no `gym:` tip, no blurb), the eight-step rail (the numbers alone),
+  the boss node (its team size, bare), the battle header (the gym mark alone),
+  the sidebar's line, the feed's segment heading, and the summary's route and
+  death lines. Each would otherwise have named an attacker gym leader the
+  defender never meets. No word is added; each drops one.
+- **The boss's level on the pre-gym screen is the team's highest.** A boss
+  team is drawn at one level, so it is that level; the highest is read so an
+  empty team reads 0 rather than throwing.
+
+### 106.11 The merge onto main, and what it renumbered
+
+**2026-10-05.** Main moved twenty-seven commits while this mode was built,
+and two of them took the same version numbers this branch had: the berry gym
+reward patch took `gymrun-randomizer-24` and `gymrun-run-23`, and section 101,
+and the species-locked pool patch took `gymrun-randomizer-25`. The two `-24`s
+and the two `-23`s are different builds, so the merge is a composition
+neither side was, and each axis moves past main's:
+
+| axis | main | this branch | merged |
+|---|---|---|---|
+| `RANDOMIZER_VERSION` | `-25` | `-24` | `-26` |
+| `RUN_LOG_VERSION` | `-23` | `-23` | `-24` |
+| `contentHash` | `1ba856` | `564eda` | `b85ac9` |
+
+This section was section 101 on the branch and is 106 here, after main's 101
+to 105. Main also took bible Rev 24 and D99 for the berry pick, so this
+branch's Rev 24 is **Rev 25** and its D99 to D102 are **D100 to D103**, in the
+same order (the badge family, the budgets, the reward faces and the Bag, the
+fifth button). The proposal (`reports/defender-mode-v0-step7-bible.md`) and the
+ruling (`spec/gymrun-defender-mode-v0-rulings-d99-d102.md`) keep the numbers
+they were written with. References to it from this branch's code, tests and documents were
+moved with it; a "section 101" written by main is still the berry pick.
+Everything above this subsection that names a version or a hash names the
+branch's own, as it was when written: the record is not edited, this note
+supersedes it.
+
+`test/attacker-generation-golden.test.ts` was re-minted on main's tree
+(`-25`, before the merge), not on the merged one, and then held against the
+merged tree: so it still proves the mode moved no attacker draw, against the
+generation main ships.

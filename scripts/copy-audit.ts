@@ -113,6 +113,9 @@ import {
   DRAWER_BAG_HEADING,
 } from '../src/ui/copy/screens';
 import { FEED_COPY } from '../src/ui/copy/feed';
+import { DEFENDER_FEED_COPY, DEFENDER_SCREEN_COPY, MODE_COPY } from '../src/ui/copy/defender';
+import { BADGE_COPY, BADGE_SCOPE, CONSUMABLE_COPY, CONSUMABLE_RULE } from '../src/data/defenderCopy';
+import { TRAINER_CLASS_NAMES } from '../src/data/trainerClassCopy';
 import { OUTCOME_WORDS, TIER_ROWS } from '../src/ui/copy/summary';
 import * as hpCopy from '../src/core/hpCopy';
 import { BERRY_PICK_COPY } from '../src/core/hpCopy';
@@ -585,6 +588,42 @@ section({
     { key: 'reordered', text: FEED_COPY.reordered('Pidgey', 0) },
     { key: 'evolved', text: FEED_COPY.evolved('Pidgey', 'Pidgeotto') },
     { key: 'segment', text: FEED_COPY.segment(0, 'Garnet') },
+  ],
+});
+
+section({
+  title: 'Defender Mode v0',
+  where: 'The mode choice in the seed bar, the gym type select screen, the draft and recruit headings, the trade card\'s accessible name, the Bag\'s refused use, and the decision feed\'s lines for the mode\'s decisions. Bible Rev 25, D100 to D103. Shown with sample names.',
+  source: 'src/ui/copy/defender.ts',
+  rows: [
+    ...Object.entries(MODE_COPY).map(([key, text]) => ({ key: `mode · ${key}`, text })),
+    { key: 'gym select', text: DEFENDER_SCREEN_COPY.gymSelect },
+    { key: 'draft', text: DEFENDER_SCREEN_COPY.draft },
+    { key: 'recruit', text: DEFENDER_SCREEN_COPY.recruit },
+    { key: 'trade label', text: DEFENDER_SCREEN_COPY.tradeLabel('Vulpix', 'Ponyta') },
+    { key: 'use refused', text: DEFENDER_SCREEN_COPY.useRefused('Ponyta is already at full HP') },
+    { key: 'feed · gym type', text: DEFENDER_FEED_COPY.gymType('Fire') },
+    { key: 'feed · draft', text: DEFENDER_FEED_COPY.draft('Vulpix') },
+    { key: 'feed · door', text: DEFENDER_FEED_COPY.door('Bug Catcher') },
+    { key: 'feed · recruit', text: DEFENDER_FEED_COPY.recruit('Growlithe') },
+    { key: 'feed · consume', text: DEFENDER_FEED_COPY.consume('Potion', 'Vulpix') },
+    { key: 'feed · segment, no leader', text: FEED_COPY.segment(0, '') },
+  ],
+});
+
+section({
+  title: 'Defender Mode v0, inspect and names',
+  where: 'What each gym badge does, on any badge mark\'s press; each consumable\'s effect line, at rest in the Bag and on its press; and the trainer class names at the door. Bible Rev 25, D100 to D102.',
+  source: 'src/data/defenderCopy.ts, src/data/trainerClassCopy.ts',
+  rows: [
+    ...Object.entries(BADGE_COPY).flatMap(([type, copy]) => [
+      { key: `badge.${type} · name`, text: copy.name },
+      { key: `badge.${type} · effect`, text: copy.effect },
+    ]),
+    { key: 'badge scope', text: BADGE_SCOPE },
+    ...Object.entries(CONSUMABLE_COPY).map(([id, text]) => ({ key: `consumable.${id}`, text })),
+    { key: 'consumable rule', text: CONSUMABLE_RULE },
+    ...Object.entries(TRAINER_CLASS_NAMES).map(([id, text]) => ({ key: `class.${id}`, text })),
   ],
 });
 

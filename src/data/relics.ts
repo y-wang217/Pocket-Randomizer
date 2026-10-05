@@ -73,7 +73,12 @@ export type RelicPassive =
 export interface Relic {
   id: RelicId;
   name: string;
-  grants: Capability;
+  /**
+   * The capability it grants, or null for a relic that grants none. Every
+   * attacker relic grants one; only Defender Mode v0's off-type relic does not,
+   * because a defender run has no events for a capability to gate.
+   */
+  grants: Capability | null;
   passive: RelicPassive;
   /*
    * `playerDescription` lived here and is gone. **M5.1, D12 and the hash
@@ -89,7 +94,10 @@ export interface Relic {
    */
 }
 
-export const RELICS: readonly Relic[] = [
+/** A relic that grants a capability: every relic an attacker run can hold. */
+export type CapabilityRelic = Relic & { grants: Capability };
+
+export const RELICS: readonly CapabilityRelic[] = [
   {
     id: 'rusted-machete',
     name: 'Rusted Machete',
@@ -155,7 +163,20 @@ export const RELICS: readonly Relic[] = [
 /** Every relic id, in table order. */
 export const RELIC_IDS: readonly RelicId[] = RELICS.map((relic) => relic.id);
 
-const BY_ID = new Map(RELICS.map((relic) => [relic.id, relic]));
+/**
+ * Relics only a Defender Mode v0 run offers. **Kept out of `RELICS`**, so
+ * `RELIC_IDS`, which the attacker's relic shuffle reads the length of, is the
+ * list it always was. `relicById` finds these too, so a held one names itself.
+ *
+ * The Stranger's Pass has no passive in `RelicPassive`'s sense: what it does,
+ * one party slot exempt from the type lock, is read by `core/defender/` off
+ * the held list, not folded into `RelicEffects`.
+ */
+export const DEFENDER_ONLY_RELICS: readonly Relic[] = [
+  { id: 'strangers-pass', name: "Stranger's Pass", grants: null, passive: { kind: 'none' } },
+];
+
+const BY_ID = new Map([...RELICS, ...DEFENDER_ONLY_RELICS].map((relic) => [relic.id, relic]));
 
 /** The relic with this id, or null. Null rather than a throw: see `core/relics.ts`. */
 export function relicById(id: RelicId): Relic | null {
@@ -163,6 +184,6 @@ export function relicById(id: RelicId): Relic | null {
 }
 
 /** Every relic granting `capability`, in table order. */
-export function relicsGranting(capability: Capability): readonly Relic[] {
+export function relicsGranting(capability: Capability): readonly CapabilityRelic[] {
   return RELICS.filter((relic) => relic.grants === capability);
 }

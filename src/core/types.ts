@@ -71,6 +71,27 @@ export interface PokemonSpec {
    * species side of the line, with ability and moves.
    */
   gender?: Gender;
+  /**
+   * One IV applied to every stat. **Defender Mode v0.** Absent means 31, which
+   * is what every Pokemon in attacker mode carries, so no attacker spec sets it
+   * and nothing an attacker run generates or fights moved when it arrived.
+   *
+   * Flat rather than a table because the only producer is the defender rank
+   * table, `data/scaling.ts` `DEFENDER_OPPONENT_IVS`, which is one number per
+   * rank. On the spec rather than beside it for the reason gender is: it is
+   * fixed when the Pokemon is generated and never changes.
+   */
+  ivs?: number;
+  /**
+   * The move slot the Fire badge highlights, zero-based. **Defender Mode v0.**
+   *
+   * Drawn when a defender-side mon is generated, from its damaging slots, and
+   * drawn for every such mon whatever the gym type, so the draw count never
+   * depends on the player's choice. It names a *slot*, so a TM taught into it
+   * inherits it. Absent on every attacker spec, and on a mon with no damaging
+   * move.
+   */
+  highlightSlot?: number;
 }
 
 export type TeamSpec = PokemonSpec[];
@@ -173,6 +194,14 @@ export interface MoveView {
    * generated table; `test/ai-priority.test.ts` sweeps it.
    */
   priority: number;
+  /**
+   * The chance this move crits on its next use, 0..1, on the Fire badge's
+   * highlighted slot only. **Defender Mode v0.** The move's own ratio plus the
+   * streak stage its next use would carry.
+   */
+  critChance?: number;
+  /** True on the Flying badge's once-per-battle fifth move. Defender Mode v0. */
+  badgeMove?: true;
 }
 
 /**
@@ -195,6 +224,8 @@ export interface SwitchView {
   ability: string;
   /** Move ids, so a policy can estimate what this member would threaten with. */
   moves: string[];
+  /** The flat IV when it is not 31, as `ActiveView.ivs`. Defender Mode v0. */
+  ivs?: number;
   hp: number;
   maxHp: number;
   hpFraction: number;
@@ -242,6 +273,20 @@ export interface ActiveView {
    */
   baseSpeed: number;
   /**
+   * The Flying badge's Speed modifier, as the sim's own 4096-based numerator
+   * (4506 for 1.1x), when this Pokemon carries the badge. **Defender Mode v0.**
+   * Absent everywhere else. `battle/speed.ts` applies it the way the sim does,
+   * after paralysis and with the sim's rounding, so the AI's turn-order read is
+   * the engine's number.
+   */
+  speedModifier?: number;
+  /**
+   * The flat IV this Pokemon carries, when it is not 31. **Defender Mode v0.**
+   * Absent everywhere in attacker mode. Public: a defender opponent's IV is
+   * its rank's row in `DEFENDER_OPPONENT_IVS`, which is data.
+   */
+  ivs?: number;
+  /**
    * Known ability, or null when it is not public information.
    *
    * Your own Pokemon always reports its ability. The opponent's reports null:
@@ -275,6 +320,47 @@ export interface ActiveView {
  * sweep measures something real.
  */
 /** The two effective Speeds a policy compares. See `battle/speed.ts`. */
+/**
+ * One p1 team member's badge, in submitted order. **Defender Mode v0.**
+ *
+ * Null for a member that does not carry the gym type: a badge applies to
+ * gym-type members only, and the off-type slot gets nothing.
+ */
+export interface BadgeMember {
+  /** Fire: the move id in the highlighted slot, or null without one. */
+  highlight: string | null;
+  /** Flying: the once-per-battle fifth move's name, Peck or Pluck. */
+  fifthMove: string | null;
+}
+
+/**
+ * The gym badge a defender battle runs under, for the player's side only.
+ * Built by `core/defender/badge.ts` from the team and the gym type, executed by
+ * the adapter (`battle/format.ts` `installDefenderBadge`). Absent on every
+ * attacker battle, which is therefore the battle it always was.
+ */
+export interface BattleBadge {
+  gymType: string;
+  members: readonly (BadgeMember | null)[];
+}
+
+/**
+ * The opponent's committed action for this turn, as the Psychic badge reveals
+ * it before the player chooses. **Defender Mode v0.** The move by name, or the
+ * bench member it is switching to.
+ */
+export type FoeIntent =
+  | {
+      kind: 'move';
+      move: string;
+      /** What the move chip draws (bible Rev 25, D100): id, type, category, power. */
+      id: string;
+      type: string;
+      category: 'Physical' | 'Special' | 'Status';
+      basePower: number;
+    }
+  | { kind: 'switch'; species: string; name: string };
+
 export interface SpeedView {
   me: number;
   foe: number;
@@ -333,6 +419,12 @@ export interface BattleView {
    * `core/battle/knowledge.ts` is the reader and carries the rule.
    */
   seen?: SeenKnowledge;
+  /**
+   * The foe's committed action this turn, shown before this side chooses.
+   * **Defender Mode v0, the Psychic badge**, and only while this side's active
+   * Pokemon carries the gym type. Never on a forced replacement.
+   */
+  foeIntent?: FoeIntent;
 }
 
 /** What a battle has revealed about one side's active Pokemon. See `battle/knowledge.ts`. */
@@ -593,6 +685,13 @@ export interface PokemonState extends BattleMemberState {
    */
   joinedSegment: number;
   /**
+   * The order this member joined a Defender Mode v0 party in: 0, 1, 2 for the
+   * draft, then one more for every recruit and trade. Absent in attacker mode.
+   * **Never a slot**: party order is a decision (lead, reorder), and a trade's
+   * requested member is resolved in acquisition order (report ruling R8).
+   */
+  acquired?: number;
+  /**
    * What this member has done, cumulatively, across the whole run.
    *
    * **Derived state, and it never enters a `RunLog`.** A replay rebuilds it
@@ -727,7 +826,9 @@ export interface TmTeach {
 export type PartyEdit =
   | { kind: 'reorder'; from: number; to: number }
   | { kind: 'release'; slot: number }
-  | { kind: 'items'; plan: ItemPlan };
+  | { kind: 'items'; plan: ItemPlan }
+  /** Defender Mode v0: spend one consumable on one member, between battles. */
+  | { kind: 'consume'; id: string; slot: number };
 
 export type RunDecision =
   /*
@@ -897,7 +998,29 @@ export type RunDecision =
    * `pendingEvolutionQuestion`), which is what lets a replay ask at exactly
    * the points the live run did.
    */
-  | { kind: 'evolve'; index: number };
+  | { kind: 'evolve'; index: number }
+  /*
+   * Defender Mode v0. The gym type, as an index into `DEFENDER_GYM_TYPES`, and
+   * one draft pick, as an index into that pick's offered options. Neither
+   * draws: every draft option for every type was drawn at generation.
+   */
+  | { kind: 'gymType'; index: number }
+  | { kind: 'draft'; index: number }
+  /* Defender Mode v0: which of a door's two challengers, by index. */
+  | { kind: 'door'; index: number }
+  /* Defender Mode v0: which of a slot unlock's recruit draft joins, by index. */
+  | { kind: 'recruit'; index: number };
+
+/**
+ * Which game a run is. **Defender Mode v0.**
+ *
+ * An input, like the seed, rather than a build axis: the same build plays
+ * both, and the same seed means two different runs in the two modes. So it is
+ * recorded on the log beside the seed, not in `RunLogVersions`, and a log
+ * replayed in the other mode is refused by name (`core/run.ts`
+ * `assertReplayable`).
+ */
+export type RunMode = 'attacker' | 'defender';
 
 /**
  * The four version axes a run log is stamped with, and replay checks.
@@ -941,6 +1064,8 @@ export interface RunLogVersions {
  */
 export interface RunLog {
   seed: string;
+  /** Defender Mode v0. Which game the decisions answer. See `RunMode`. */
+  mode: RunMode;
   versions: RunLogVersions;
   decisions: RunDecision[];
 }

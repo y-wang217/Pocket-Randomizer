@@ -318,7 +318,7 @@ describe('the version guard', () => {
      */
     const stale: RunLog = {
       seed: 'PRE-LEAD',
-      versions: { ...currentVersions(), runLog: 'gymrun-run-10/gymrun-0.3.0' },
+      mode: 'attacker', versions: { ...currentVersions(), runLog: 'gymrun-run-10/gymrun-0.3.0' },
       decisions: [],
     };
 
