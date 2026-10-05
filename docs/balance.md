@@ -119,6 +119,45 @@ rather than the weather.
 Every row stays, including the ones produced by a bad comparison. A benchmark
 that keeps only its good numbers measures nothing.
 
+### Defender Mode v0, its own table
+
+**2026-10-05, step 6 of the defender prompt**
+([`spec/gymrun-defender-mode-v0-fun-test.md`](spec/gymrun-defender-mode-v0-fun-test.md)).
+A second run mode is a second yardstick: its metric is **mean bosses beaten**
+out of eight, not mean gyms, and its rows are never read against the attacker
+table above. Same discipline: read down a prefix and a seed count, never
+across.
+
+**This bot does not read the Psychic reveal and does not hold a Fire streak, so
+both rows understate their badge.** It never presses Flying's fifth move on
+purpose either. The bot is `core/defender/bench.ts` `defenderBenchPolicy`:
+greedy battles, the first challenger at every door, never a trade, a consumable
+on any member under half HP. **The test of this mode is by hand.**
+
+| stamp | ai | prefix | seeds | gym type | mean bosses | completion | boss clear rate, bosses 1-8 | recruits | consumables used |
+|---|---|---|---|---|---|---|---|---|---|
+| `randomizer-24` · `run-23` · `564eda` | `ai-7-tiers-reach-the-app` | DEFENDER | 200 | Fire | **2.55** | 0.0% | 94.3 / 93.8 / 81.8 / 53.5 / 76.9 / 85.7 / 100 / – | 0.98 | 0.82 |
+| `randomizer-24` · `run-23` · `564eda` | `ai-7-tiers-reach-the-app` | DEFENDER | 200 | Psychic | **2.35** | 0.0% | 95.9 / 88.2 / 73.0 / 51.6 / 57.7 / 57.1 / 100 / – | 0.93 | 0.97 |
+| `randomizer-24` · `run-23` · `564eda` | `ai-7-tiers-reach-the-app` | DEFENDER | 200 | Flying | **3.305** | 0.5% | 96.4 / 95.7 / 86.0 / 71.6 / 74.6 / 57.6 / 66.7 / 50.0 | 1.37 | 1.38 |
+
+**Recorded, not chased.** Three readings worth carrying, none of them a gate:
+
+- **Boss 4 is the cliff for every type**: 53.5%, 51.6% and 71.6%. It is the
+  rank-3 boss, the first one fielding four against a party that has had one
+  recruit draft at most, and the first rank whose doors are middle-band
+  classes. Reached by 160, 129 and 147 runs, so the column is deep enough to
+  mean something.
+- **Flying leads by about 0.8 bosses** while its badge is the one this bot
+  plays least: it never presses the fifth move on purpose. The 1.1x Speed is
+  passive, so this bot gets all of it; Fire's and Psychic's badges need a
+  player, which is the asymmetry the header warns about. Flying's runs also
+  last longer, so they meet more recruit drafts (1.37 per run against 0.98 and
+  0.93), which compounds.
+- **Psychic's row is its no-badge row**, because the reveal changes nothing an
+  opponent does and this bot does not read it (`generation.md` section 101.6).
+
+Report `sim-reports/benchmarks/2026-10-05T00-52-24-356Z-defender-v0-gymrun-randomizer-24-200.json`.
+
 ### What still gates, absolutely
 
 Determinism. Stream isolation. The two version guards. The full test suite.

@@ -13105,3 +13105,20 @@ and never presses the fifth move, so both rows understate their badge.
   trade cards (25.7%) and 514 consumable cards. Twenty scripted runs (`S5R-`,
   first door, first card, so never a trade) beat 2.0 bosses on mean, with one
   run reaching six; the recruit drafts are what lets a run pass rank 3.
+
+### 101.9 Step 6: the benchmark rows
+
+**2026-10-05.** `npm run sim:defender -- --seeds 200 --prefix DEFENDER --write`
+(`scripts/defender-bench.ts`) plays one row per gym type under
+`core/defender/bench.ts` `defenderBenchPolicy` and commits the report to
+`sim-reports/benchmarks/`. The rows and their reading are `balance.md` section
+0, "Defender Mode v0, its own table": mean bosses beaten **Fire 2.55, Psychic
+2.35, Flying 3.305**, 200 seeds, prefix `DEFENDER`, `ai-7-tiers-reach-the-app`,
+stamped beside `randomizer-24`, `run-23` and `564eda`.
+
+The bot uses a consumable at three moments between battles (before a door,
+at the intermission's shop question and before the boss's lead question), on
+any living member under half HP, smallest item first. It takes the first card
+that is not a trade, so it takes the same first card the attacker baseline
+does unless that card is the trade, which a carried trade never is (it takes
+the last slot). No number was tuned against these rows.

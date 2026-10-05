@@ -1,0 +1,104 @@
+{
+  "mode": "defender",
+  "note": "This bot does not read the Psychic reveal and does not hold a Fire streak, so both rows understate their badge. It never presses the Flying fifth move on purpose either. The test of this mode is by hand.",
+  "randomizerVersion": "gymrun-randomizer-24",
+  "runLogVersion": "gymrun-run-23/gymrun-0.3.0",
+  "contentHash": "564eda0ee3fac33d9df0f3e1710788bf2450ad5bd2226da8c01ca3b54a1eab5b",
+  "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
+  "policy": "defenderBenchPolicy: greedy battles, first door, never trades, consumable under half HP",
+  "rows": [
+    {
+      "gymType": "Fire",
+      "seedPrefix": "DEFENDER",
+      "seedCount": 200,
+      "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
+      "meanBossesBeaten": 2.55,
+      "completion": 0,
+      "bossesBeaten": [
+        18,
+        16,
+        45,
+        98,
+        13,
+        4,
+        4,
+        2,
+        0
+      ],
+      "bossClearRate": [
+        94.3,
+        93.8,
+        81.8,
+        53.5,
+        76.9,
+        85.7,
+        100,
+        null
+      ],
+      "meanRecruits": 0.975,
+      "meanConsumablesUsed": 0.815
+    },
+    {
+      "gymType": "Psychic",
+      "seedPrefix": "DEFENDER",
+      "seedCount": 200,
+      "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
+      "meanBossesBeaten": 2.35,
+      "completion": 0,
+      "bossesBeaten": [
+        12,
+        39,
+        68,
+        49,
+        17,
+        11,
+        3,
+        1,
+        0
+      ],
+      "bossClearRate": [
+        95.9,
+        88.2,
+        73,
+        51.6,
+        57.7,
+        57.1,
+        100,
+        null
+      ],
+      "meanRecruits": 0.925,
+      "meanConsumablesUsed": 0.97
+    },
+    {
+      "gymType": "Flying",
+      "seedPrefix": "DEFENDER",
+      "seedCount": 200,
+      "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
+      "meanBossesBeaten": 3.305,
+      "completion": 0.5,
+      "bossesBeaten": [
+        11,
+        12,
+        30,
+        69,
+        34,
+        25,
+        13,
+        5,
+        1
+      ],
+      "bossClearRate": [
+        96.4,
+        95.7,
+        86,
+        71.6,
+        74.6,
+        57.6,
+        66.7,
+        50
+      ],
+      "meanRecruits": 1.37,
+      "meanConsumablesUsed": 1.38
+    }
+  ]
+}
