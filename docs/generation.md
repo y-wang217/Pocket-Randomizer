@@ -13648,3 +13648,112 @@ chunk, the warning it has always tripped); `npm run smoke` passed with the
 bar in the rail's place; `npm run measure` as above; the Chromium leg as
 above. No re-record was owed: no draw, no decision and no data table moved,
 and the sim fixture and the visual baseline held without being touched.
+
+## 107. The Gen 5 to 9 rivals join the challenger pool
+
+**2026-10-05**, Stage 6.0 checkpoint 8, on `claude/dazzling-noether-vb19k9`.
+Prompt [`spec/gymrun-stage6.0-checkpoint8-gen5-9-rivals.md`](spec/gymrun-stage6.0-checkpoint8-gen5-9-rivals.md);
+research [`research/encounter-sources.md`](research/encounter-sources.md)
+section 9. Moves `RANDOMIZER_VERSION` to `-29` and `contentHash` from
+`16dc95` to `c4bf74`; `RUN_LOG_VERSION` and `AI_VERSION` hold.
+
+Section 105 left the challenger pool without a Gen 5 to 9 rival, because
+pokemondb's leader pages carry none. Serebii keeps a page per rival
+character for eight of the ten games, and this checkpoint reads them.
+
+### What was read, and from where
+
+- **The pages**, pinned in `scripts/import-encounters/sources.json` under
+  `serebii.pages`, which is now a list per game (the Champion Cup stays
+  first for Sword and Shield): Cheren and Bianca (Black and White), Hugh
+  (Black 2 and White 2), Brendan and May and Wally (Omega Ruby and Alpha
+  Sapphire), Hau and Gladion (Sun and Moon, and again Ultra), Trace (Let's
+  Go), Hop, Marnie and Bede (Sword and Shield), Barry (Brilliant Diamond and
+  Shining Pearl). `fetchSerebii` saves each as one file per page, named for the game and the page and
+  waits a second between pages.
+- **The parser**, `scripts/import-encounters/parse-serebii-rivals.ts`: one
+  `table.trainer` per fight and per starter variant, cut at the first
+  `</table>` after its level cells (the items sub-table sits before them);
+  the trainer's class and name from the cell that carries them (`Pokémon
+  Trainer Hop`, `Gym Leader Marnie`, `Champion Rival`); members from the
+  second row's named links, the one place all four template eras write the
+  species as text, with the first row's image file name for a regional form
+  (`026-a.png`); levels from the `level` cells; set moves from each
+  member's `Attacks:` cell by `attackdex` slug, validated against the dex;
+  held items from each `Hold Item:` cell, `No Item` as none. Moves and
+  items are kept only where the page's cells line up one per member. The
+  place is the nearest preceding `Location:` line, carried across a fight's
+  starter variants, else the encounter heading, else the region.
+- **Classes and roles**: the games print the rival as `Pokémon Trainer`,
+  which is what the rows read; Let's Go prints `Rival`, and `Champion` for
+  Trace's title fights (role `champion`, admitted to the pool as a titled
+  protagonist); `Team Skull Gladion` keeps its class; Bede's and Marnie's
+  later fights as `Gym Leader` are role `gym` with Fairy and Dark, so they
+  reach the route windows at `hard` and `elite` as every leader does. The
+  Omega Ruby page lists `Brendan / May` once per fight; both names get the
+  record, since which one a player met is theirs to remember.
+- **282 records**, every one with set moves, 135 with items, every rival
+  with a sprite on the CDN. The library is **5,921**. Six more species fall
+  outside the pool (Type: Null, Silvally, Zacian, Zamazenta, Galarian Ponyta
+  and Yamask) and are pinned; the fit drops them.
+
+### Deviations and gaps
+
+- **X and Y and Scarlet and Violet have no rival page on Serebii** under
+  any slug tried (`rival`, `rivals`, each character's name, `rivalbattles`,
+  `characters`, hyphenated pairs), so Calem, Serena, Shauna, Tierno, Trevor,
+  Nemona, Arven and Penny are still not challengers. Recorded in
+  [`README.md`](README.md) section 5 as what remains of the gap; a
+  hand-curated table is the way left, and the ruling's source for one,
+  Bulbapedia, cannot be read from here (section 103's deviation).
+- **Some rows duplicate pokemondb's**: Hop's, Marnie's and Bede's Champion
+  Cup fights are on both the Cup page and the rival pages, and Bede's
+  semi-final is in pokemondb's miscellany too. The one-record-per-name rule
+  (section 105) makes a duplicate harmless to the draw; the counts carry it.
+- **Serebii lists Blastoise on Gladion's Ultra title-defence team.** The row
+  cites what the page says, as every row does.
+
+### What moved
+
+- `RANDOMIZER_VERSION` to `-29`: a record that enters a candidate window
+  shifts the records behind it, the regenerate rule the generated files
+  state. The held-item digest moved (`021d1ac5804761f9` to
+  `96ac96497a3b5b51`) because Bede's and Marnie's leader fights enter the
+  route windows at `hard` and `elite`; the sim fixture, the visual baseline
+  and the hash pin re-recorded; `test/encounters-data.test.ts` pins the eight
+  new counts, the two-page source rule now a list, and the wider
+  outside-pool set.
+
+### What it measured
+
+- **The benchmark**, 400 seeds on `RETUNE` with the table AI, in
+  [`balance.md`](balance.md) section 0: **2.00 mean gyms** against 1.89 on
+  the `-28` row, completion 1.0% to 1.8%. A challenger is now as often
+  Hau's Popplio or Hop's Wooloo as Brock's Onix, and gyms 1 and 2 clear a
+  little more often (88.2% of 323 at gym 1 against 86.4%); gym 3 holds at
+  68.5%. The species check passes (Dhelmise in 15.3% of runs). Recorded,
+  not chased.
+- **The bundle.** `dist/assets/index-*.js` 5,116 kB minified, 1,026 kB
+  gzipped, against 5,020 kB and 1,013 kB at section 106: **+13 kB gzipped**
+  for 282 records with set moves, which is the compact encoding doing its
+  work on the wire where section 104 found it could not. The open item in
+  [`README.md`](README.md) section 5 stands.
+- **The Chromium leg** (`GYMRUN_ENGINE=chromium npm run test:browser`):
+  192 of 199, the same seven container-bound failures sections 105 and 106
+  record, none on a surface this checkpoint touched (it touched none).
+  WebKit was not run here; CI runs both.
+
+### The gate, as run
+
+In this container, on 2026-10-05, in this order: `fetchSerebii` for the
+fifteen pinned pages; `npm run gen:encounters` twice (second run a no-op
+diff); `npm run types` clean; `npm run lint` clean; `npm run hedge` clean;
+`npx vitest run test/encounters-data.test.ts test/encounter-library.test.ts
+test/gym-held-items.test.ts test/randomizer.test.ts test/event-move.test.ts
+test/gym-pays-twice.test.ts` green after the pins; the re-mints (hash,
+digest, fixture, baseline); `npm run test:unit` and `npm run test:trim`
+**2,082 of 2,083** on the first run, the one failure `test/boundaries.test.ts`
+reading a file-name pattern in this section as a path, reworded, then green;
+`npm run build` (one chunk, the warning it has always tripped); `npm run
+smoke` passed; `npm run measure` and the benchmark as above; the Chromium
+leg as above.

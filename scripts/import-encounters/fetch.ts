@@ -25,10 +25,16 @@ export interface PokemondbPin {
   pages: Record<string, string>;
 }
 
+/** Serebii's pin: one or more pages per game, each saved as `<game>-<basename>.html`. */
+export interface SerebiiPin {
+  fetchedAt: string;
+  pages: Record<string, readonly string[]>;
+}
+
 interface Manifest {
   repos: Record<string, SourcePin>;
   pokemondb: PokemondbPin;
-  serebii: PokemondbPin;
+  serebii: SerebiiPin;
 }
 
 function manifest(): Manifest {
@@ -43,7 +49,7 @@ export function loadPokemondb(): PokemondbPin {
   return manifest().pokemondb;
 }
 
-export function loadSerebii(): PokemondbPin {
+export function loadSerebii(): SerebiiPin {
   return manifest().serebii;
 }
 
@@ -95,18 +101,22 @@ export async function fetchPokemondb(): Promise<void> {
   }
 }
 
-/** Serebii's Champion Cup page, the one page pokemondb does not carry. */
+/** Serebii's pages, the ones pokemondb does not carry: the Champion Cup and the Gen 5 to 9 rivals. */
 export async function fetchSerebii(): Promise<void> {
   const pin = loadSerebii();
   const dir = sourcePath('serebii');
   mkdirSync(dir, { recursive: true });
-  for (const [game, page] of Object.entries(pin.pages)) {
-    const response = await fetch(`https://www.serebii.net/${page}`, {
-      headers: { 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) GYMRUN encounter importer' },
-    });
-    if (!response.ok) throw new Error(`serebii ${page}: HTTP ${response.status}`);
-    writeFileSync(join(dir, `${game}-championcup.html`), await response.text());
-    console.log(`serebii: ${game} from ${page}`);
+  for (const [game, pages] of Object.entries(pin.pages)) {
+    for (const page of pages) {
+      const response = await fetch(`https://www.serebii.net/${page}`, {
+        headers: { 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) GYMRUN encounter importer' },
+      });
+      if (!response.ok) throw new Error(`serebii ${page}: HTTP ${response.status}`);
+      const basename = page.split('/').pop()!.replace(/\.shtml$/, '');
+      writeFileSync(join(dir, `${game}-${basename}.html`), await response.text());
+      console.log(`serebii: ${game} from ${page}`);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
   }
 }
 

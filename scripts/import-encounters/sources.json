@@ -83,10 +83,17 @@
     }
   },
   "serebii": {
-    "$comment": "Sword and Shield's Champion Cup, which pokemondb's roster page does not carry, read from Serebii on the date below.",
+    "$comment": "What pokemondb's roster pages do not carry, read from Serebii on the date below: Sword and Shield's Champion Cup (checkpoint 5) and the Gen 5 to 9 rivals' per-character pages (checkpoint 8; X and Y and Scarlet and Violet have none). Each page is saved as <game>-<basename>.html.",
     "fetchedAt": "2026-10-05",
     "pages": {
-      "swsh": "swordshield/championcup.shtml"
+      "bw": ["blackwhite/cheren.shtml", "blackwhite/bianca.shtml"],
+      "b2w2": ["black2white2/rival.shtml"],
+      "oras": ["omegarubyalphasapphire/rival.shtml", "omegarubyalphasapphire/wally.shtml"],
+      "sm": ["sunmoon/hau.shtml", "sunmoon/gladion.shtml"],
+      "usum": ["ultrasunultramoon/hau.shtml", "ultrasunultramoon/gladion.shtml"],
+      "lgpe": ["letsgopikachueevee/rival.shtml"],
+      "swsh": ["swordshield/championcup.shtml", "swordshield/hop.shtml", "swordshield/marnie.shtml", "swordshield/bede.shtml"],
+      "bdsp": ["brilliantdiamondshiningpearl/barry.shtml"]
     }
   }
 }

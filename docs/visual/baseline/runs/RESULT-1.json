@@ -2,8 +2,8 @@
   "seed": "RESULT-1",
   "versions": {
     "runLog": "gymrun-run-23/gymrun-0.3.0",
-    "contentHash": "16dc9508fc4b5db49a4a16d0794c9381c4b0bb789683c897c63dfefe6162a6cb",
-    "randomizer": "gymrun-randomizer-28",
+    "contentHash": "c4bf74c6b5e17ec5166bcab4d40fb2444f3714b3c229011928cff76715d6a36a",
+    "randomizer": "gymrun-randomizer-29",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -11,11 +11,11 @@
   "gymsCleared": 1,
   "causeOfDeath": {
     "segment": 1,
-    "leader": "Silver",
+    "leader": "Brendan",
     "kind": "gym",
     "species": "Cedar",
-    "bySpecies": "Bayleef",
-    "byMove": "Breaking Swipe",
+    "bySpecies": "Wingull",
+    "byMove": "Gust",
     "indirect": null
   },
   "currency": 152,
@@ -33,7 +33,7 @@
       "moves": [
         "Trailblaze 25/32",
         "Thief 40/40",
-        "Shadow Claw 19/24",
+        "Shadow Claw 22/24",
         "Psycho Cut 32/32"
       ],
       "item": "miracleseed",
@@ -48,7 +48,7 @@
         "Vine Whip 39/40",
         "Quick Attack 46/48",
         "Snore 24/24",
-        "Temper Flare 16/16"
+        "Temper Flare 15/16"
       ],
       "item": "mysticwater",
       "hp": "0/62",
@@ -59,7 +59,7 @@
       "level": 20,
       "ability": "Infiltrator",
       "moves": [
-        "Ancient Power 5/8",
+        "Ancient Power 4/8",
         "Spark 32/32",
         "Stomp 32/32",
         "Fake Tears 32/32"
@@ -213,29 +213,29 @@
     {
       "segment": 1,
       "kind": "gym",
-      "label": "Challenger Rival Silver",
+      "label": "Challenger Pokemon Trainer Brendan",
       "tier": null,
-      "opponent": "Rival Silver",
-      "turns": 8,
+      "opponent": "Pokemon Trainer Brendan",
+      "turns": 7,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
         {
           "side": "p1",
-          "name": "Gale",
+          "name": "Verbena",
           "level": 20,
-          "species": "Skiddo",
-          "bySpecies": "Bayleef",
-          "byMove": "Breaking Swipe",
+          "species": "Omanyte",
+          "bySpecies": "Grovyle",
+          "byMove": "Trop Kick",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Verbena",
+          "name": "Gale",
           "level": 20,
-          "species": "Omanyte",
-          "bySpecies": "Bayleef",
-          "byMove": "Trop Kick",
+          "species": "Skiddo",
+          "bySpecies": "Grovyle",
+          "byMove": "Breaking Swipe",
           "indirect": null
         },
         {
@@ -243,8 +243,8 @@
           "name": "Cedar",
           "level": 20,
           "species": "Pumpkaboo",
-          "bySpecies": "Bayleef",
-          "byMove": "Breaking Swipe",
+          "bySpecies": "Wingull",
+          "byMove": "Gust",
           "indirect": null
         }
       ]
@@ -254,9 +254,9 @@
     "seed": "RESULT-1",
     "versions": {
       "runLog": "gymrun-run-23/gymrun-0.3.0",
-      "contentHash": "16dc9508fc4b5db49a4a16d0794c9381c4b0bb789683c897c63dfefe6162a6cb",
+      "contentHash": "c4bf74c6b5e17ec5166bcab4d40fb2444f3714b3c229011928cff76715d6a36a",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-28"
+      "randomizerVersion": "gymrun-randomizer-29"
     },
     "decisions": [
       {
@@ -684,48 +684,6 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "switch",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
           "kind": "switch",
           "slot": 3
         }
@@ -740,8 +698,43 @@
       {
         "kind": "battle",
         "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
           "kind": "switch",
           "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
         }
       },
       {

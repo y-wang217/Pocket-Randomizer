@@ -24,6 +24,7 @@ import { parseGen3 } from './parse-gen3';
 import { parseHgss, parsePlatinum } from './parse-gen4';
 import { parsePokemondb, unplacedNames } from './parse-pokemondb';
 import { parseSerebiiCup } from './parse-serebii-cup';
+import { parseSerebiiRivals } from './parse-serebii-rivals';
 import { refreshSpriteList } from './sprites';
 
 const POKEMONDB_GAMES: GameId[] = ['bw', 'b2w2', 'xy', 'oras', 'sm', 'usum', 'lgpe', 'swsh', 'bdsp', 'sv'];
@@ -38,8 +39,8 @@ const IMPORTS: { game: GameId; repo: string; parse: () => RawEncounter[] }[] = [
   { game: 'frlg', repo: 'pokefirered', parse: () => parseGen3('pokefirered', 'frlg') },
   { game: 'platinum', repo: 'pokeplatinum', parse: parsePlatinum },
   { game: 'hgss', repo: 'pokeheartgold', parse: parseHgss },
-  // Sword and Shield's roster page has no Champion Cup; Serebii's page supplies it, appended under the same game.
-  ...POKEMONDB_GAMES.map((game) => ({ game, repo: 'pokemondb', parse: () => (game === 'swsh' ? [...parsePokemondb(game), ...parseSerebiiCup()] : parsePokemondb(game)) })),
+  // pokemondb's roster pages carry no Champion Cup and no rival; Serebii's pages supply both, appended under the same game.
+  ...POKEMONDB_GAMES.map((game) => ({ game, repo: 'pokemondb', parse: () => [...parsePokemondb(game), ...(game === 'swsh' ? parseSerebiiCup() : []), ...parseSerebiiRivals(game)] })),
 ];
 
 const poolSpecies = new Set(SPECIES_POOL.map((s) => s.id).filter((id) => !BLACKLISTED_SPECIES.includes(id)));
@@ -177,9 +178,9 @@ async function main(): Promise<void> {
     if (entry.repo === 'pokemondb') {
       const page = pokemondb.pages[entry.game];
       if (!page) throw new Error(`${entry.game} has no pokemondb page in sources.json`);
-      const extra = serebii.pages[entry.game];
-      source = extra
-        ? { repo: 'pokemondb.net, serebii.net', sha: pokemondb.fetchedAt, files: [page, extra] }
+      const extra = serebii.pages[entry.game] ?? [];
+      source = extra.length > 0
+        ? { repo: 'pokemondb.net, serebii.net', sha: pokemondb.fetchedAt, files: [page, ...extra] }
         : { repo: 'pokemondb.net', sha: pokemondb.fetchedAt, files: [page] };
     } else {
       const pin = sources[entry.repo];

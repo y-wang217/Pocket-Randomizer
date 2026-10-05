@@ -99,9 +99,10 @@ describe('the run log version', () => {
      * `-26` is every trainer and gym drawn from the encounter library, and
      * `-27` the library gaining the Champion Cup, which is the regenerate
      * rule the generated tables state. `-28` is the boss drawn as a
-     * challenger from a cast rather than a leader of the gym's type.
+     * challenger from a cast rather than a leader of the gym's type; `-29`
+     * the Gen 5 to 9 rivals joining that cast.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-28');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-29');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

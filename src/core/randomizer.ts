@@ -446,7 +446,20 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * node choice and the lead choice are the same questions in the same order.
  * `docs/spec/gymrun-stage6.0-checkpoint6-challengers.md`, `docs/generation.md` section 105.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-28';
+/*
+ * ## `-29`: the Gen 5 to 9 rivals join the challenger pool
+ *
+ * Stage 6.0, checkpoint 8. 282 records from Serebii's per-character pages
+ * (Cheren, Bianca, Hugh, Brendan, May, Wally, Hau, Gladion, Trace, Hop,
+ * Marnie, Bede, Barry: every rival fight with its set moves and items) enter
+ * the tables. A record that enters a candidate window shifts the records
+ * behind it, so the same draw on `encounterKey` lands on a different
+ * challenger wherever one entered, which is the regenerate rule the
+ * generated files state. Same count on every key. `contentHash` moves beside
+ * it for the tables. `RUN_LOG_VERSION` holds.
+ * `docs/spec/gymrun-stage6.0-checkpoint8-gen5-9-rivals.md`, `docs/generation.md` section 107.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-29';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

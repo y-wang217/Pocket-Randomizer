@@ -189,6 +189,11 @@ describe('the gym held-item ladder', () => {
    * name, rivals leave the route windows and leaders enter them at `hard`
    * and `elite`, so the same pick lands on a different record at every
    * trainer node. Wild teams did not move.
+   *
+   * **Re-recorded 2026-10-05**, from `021d1ac5804761f9`, with
+   * `gymrun-randomizer-29`: the Gen 5 to 9 rivals join the library, and
+   * among them Bede's and Marnie's later fights as gym leaders, which enter
+   * the route windows at `hard` and `elite`. Wild teams did not move.
    */
   it('generates trainer and wild teams byte-identically to before the ladder existed', () => {
     const records: string[] = [];
@@ -209,7 +214,7 @@ describe('the gym held-item ladder', () => {
       }
     }
     const digest = createHash('sha256').update(records.join('\n')).digest('hex').slice(0, 16);
-    expect(digest).toBe('021d1ac5804761f9');
+    expect(digest).toBe('96ac96497a3b5b51');
   });
 
   it('spends the same two draws on a gym member as on any other opponent', () => {

@@ -1,8 +1,8 @@
 /**
  * GENERATED FILE — do not hand-edit. Produced by `npm run gen:encounters`
- * from pokemondb.net at 2026-10-05. Fix the importer or the pin, then regenerate.
+ * from pokemondb.net, serebii.net at 2026-10-05. Fix the importer or the pin, then regenerate.
  *
- * Let's Go, Pikachu! and Let's Go, Eevee!: 31 encounters. A row's `cite` is its label
+ * Let's Go, Pikachu! and Let's Go, Eevee!: 49 encounters. A row's `cite` is its label
  * inside the files named below. A row's `party` is one string per the grammar
  * in `types.ts` (`species:level[@item][>moves][#gender]`, members on `|`),
  * decoded once at load by `index.ts`.
@@ -13,9 +13,9 @@
 import type { EncounterRow, EncounterSource } from './types';
 
 export const LGPE_SOURCE: EncounterSource = {
-  repo: 'pokemondb.net',
+  repo: 'pokemondb.net, serebii.net',
   sha: '2026-10-05',
-  files: ['lets-go-pikachu-eevee/gymleaders-elitefour'],
+  files: ['lets-go-pikachu-eevee/gymleaders-elitefour', 'letsgopikachueevee/rival.shtml'],
 };
 
 export const LGPE_ROWS: readonly EncounterRow[] = [
@@ -50,4 +50,22 @@ export const LGPE_ROWS: readonly EncounterRow[] = [
   { id: 'lgpe/archer-1', game: 'lgpe', gen: 7, trainer: { name: "Archer", class: "Pokemon Trainer", sprite: 'archer' }, role: 'boss', place: "Kanto", party: "electrode:54|golbat:54|magmar:54|weezing:54", cite: "#trainers-misc Archer" },
   { id: 'lgpe/green-1', game: 'lgpe', gen: 7, trainer: { name: "Green", class: "Pokemon Trainer", sprite: 'green' }, role: 'boss', place: "Cerulean City", party: "clefable:66|gengar:66|kangaskhan:66|victreebel:66|ninetales:66|blastoise:68", cite: "#trainers-misc Pokémon Trainer Green" },
   { id: 'lgpe/red-1', game: 'lgpe', gen: 7, trainer: { name: "Red", class: "Pokemon Trainer", sprite: 'red-lgpe' }, role: 'boss', place: "Kanto", party: "pikachu:85|machamp:85|arcanine:85|lapras:85|snorlax:85|venusaur:85", cite: "#trainers-misc Pokémon Trainer Red" },
+  { id: 'lgpe/trace-5', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Rival", sprite: 'trace' }, role: 'rival', place: "Pallet Town", party: "eevee:6>tackle,growl", cite: "rival.shtml Trace #1" },
+  { id: 'lgpe/trace-6', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Rival", sprite: 'trace' }, role: 'rival', place: "Pallet Town", party: "pikachu:6>thundershock,growl", cite: "rival.shtml Trace #2" },
+  { id: 'lgpe/trace-7', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Rival", sprite: 'trace' }, role: 'rival', place: "Route 22", party: "pidgey:3>tackle,sandattack|eevee:7>tackle,quickattack", cite: "rival.shtml Trace #3" },
+  { id: 'lgpe/trace-8', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Rival", sprite: 'trace' }, role: 'rival', place: "Route 22", party: "pidgey:3>tackle,sandattack|pikachu:7>thundershock,quickattack", cite: "rival.shtml Trace #4" },
+  { id: 'lgpe/trace-9', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Rival", sprite: 'trace' }, role: 'rival', place: "Cerulean City", party: "pidgey:12>quickattack,sandattack,gust|oddish:12>absorb,acid,poisonpowder|eevee:13>quickattack,tailwhip,doublekick", cite: "rival.shtml Trace #5" },
+  { id: 'lgpe/trace-10', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Rival", sprite: 'trace' }, role: 'rival', place: "Cerulean City", party: "pidgey:12>quickattack,sandattack,gust|oddish:12>absorb,acid,poisonpowder|pikachu:13>thundershock,doubleteam,quickattack", cite: "rival.shtml Trace #6" },
+  { id: 'lgpe/trace-11', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Rival", sprite: 'trace' }, role: 'rival', place: "S.S. Anne", party: "pidgeotto:20>quickattack,sandattack,wingattack|oddish:20>razorleaf,acid,sleeppowder|eevee:21>doublekick,quickattack,bite", cite: "rival.shtml Trace #7" },
+  { id: 'lgpe/trace-12', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Rival", sprite: 'trace' }, role: 'rival', place: "S.S. Anne", party: "pidgeotto:20>quickattack,sandattack,wingattack|oddish:20>razorleaf,acid,sleeppowder|pikachu:21>thundershock,quickattack,doublekick", cite: "rival.shtml Trace #8" },
+  { id: 'lgpe/trace-13', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Rival", sprite: 'trace' }, role: 'rival', place: "Pokémon Tower", party: "pidgeotto:27>quickattack,wingattack,sandattack|gloom:27>razorleaf,sleeppowder,acid|jolteon:28>thundershock,quickattack,pinmissile", cite: "rival.shtml Trace #9" },
+  { id: 'lgpe/trace-14', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Rival", sprite: 'trace' }, role: 'rival', place: "Pokémon Tower", party: "pidgeotto:27>quickattack,wingattack,sandattack|gloom:27>razorleaf,sleeppowder,acid|raichu:28>thundershock,quickattack,thunderpunch", cite: "rival.shtml Trace #10" },
+  { id: 'lgpe/trace-15', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Rival", sprite: 'trace' }, role: 'rival', place: "Silph Co.", party: "cubone:36>focusenergy,bonemerang,headbutt|pidgeot:36>quickattack,airslash,sandattack,roost|gloom:36>razorleaf,toxic,acid|jolteon:37>thundershock,quickattack,pinmissile,doublekick", cite: "rival.shtml Trace #11" },
+  { id: 'lgpe/trace-16', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Rival", sprite: 'trace' }, role: 'rival', place: "Silph Co.", party: "cubone:36>focusenergy,bonemerang,headbutt|pidgeot:36>quickattack,airslash,sandattack,roost|gloom:36>razorleaf,toxic,acid|raichu:37>thundershock,quickattack,thunderpunch,slam", cite: "rival.shtml Trace #12" },
+  { id: 'lgpe/trace-17', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Rival", sprite: 'trace' }, role: 'rival', place: "Route 22", party: "pidgeot:50>quickattack,airslash,sandattack,roost|vileplume:50>petaldance,toxic,acid|marowak:50>focusenergy,bonemerang,thrash,swordsdance|jolteon:51>thunder,quickattack,pinmissile,doublekick", cite: "rival.shtml Trace #13" },
+  { id: 'lgpe/trace-18', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Rival", sprite: 'trace' }, role: 'rival', place: "Route 22", party: "pidgeot:50>quickattack,airslash,sandattack,roost|vileplume:50>petaldance,toxic,acid|marowak:50>focusenergy,bonemerang,thrash,swordsdance|raichu:51>thunder,quickattack,thunderpunch,slam", cite: "rival.shtml Trace #14" },
+  { id: 'lgpe/trace-19', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Champion", sprite: 'trace' }, role: 'champion', place: "Pokémon League", party: "pidgeot:56>quickattack,airslash,heatwave|vileplume:56>solarbeam,reflect,sludgebomb|marowak:56>firepunch,bonemerang,brickbreak|rapidash:56>flareblitz,quickattack,poisonjab|slowbro:56>psychic,surf,lightscreen|jolteon:57>thunder,quickattack,pinmissile", cite: "rival.shtml Trace #15" },
+  { id: 'lgpe/trace-20', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Champion", sprite: 'trace' }, role: 'champion', place: "Pokémon League", party: "pidgeot:56>quickattack,airslash,heatwave|vileplume:56>solarbeam,reflect,sludgebomb|marowak:56>firepunch,bonemerang,brickbreak|rapidash:56>flareblitz,quickattack,poisonjab|slowbro:56>psychic,surf,lightscreen|raichu:57>thunder,quickattack,irontail", cite: "rival.shtml Trace #16" },
+  { id: 'lgpe/trace-21', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Champion", sprite: 'trace' }, role: 'champion', place: "Cerulean Cave", party: "pidgeot:66>quickattack,airslash,heatwave|vileplume:66>solarbeam,reflect,sludgebomb,dazzlinggleam|marowak:66>brickbreak,earthquake,firepunch,thunderpunch|rapidash:66>flareblitz,quickattack,poisonjab,drillrun|slowbro:66>psychic,surf,blizzard,lightscreen|jolteon:67>thunder,quickattack,pinmissile,shadowball", cite: "rival.shtml Trace #17" },
+  { id: 'lgpe/trace-22', game: 'lgpe', gen: 7, trainer: { name: "Trace", class: "Champion", sprite: 'trace' }, role: 'champion', place: "Cerulean Cave", party: "pidgeot:66>quickattack,airslash,heatwave|vileplume:66>solarbeam,reflect,sludgebomb,dazzlinggleam|marowak:66>brickbreak,earthquake,firepunch,thunderpunch|rapidash:66>flareblitz,quickattack,poisonjab,drillrun|slowbro:66>psychic,surf,blizzard,lightscreen|raichu:67>brickbreak,quickattack,thunder,irontail", cite: "rival.shtml Trace #18" },
 ];

@@ -464,7 +464,11 @@ mounts and the locale screen; the eight-badge rail, the sidebar's pips and
 the badge glyph retired; the boss node and the battle title wear the
 challenger's own sprite. No draw moved: `RANDOMIZER_VERSION` holds at `-28`
 and `contentHash` at `16dc95`. Record [`generation.md`](generation.md)
-section 106.
+section 106. **Checkpoint 8 added the Gen 5 to 9 rivals** from Serebii's
+per-character pages (282 records, set moves and items throughout, the
+library at 5,921); X and Y and Scarlet and Violet have no such page and stay
+a gap. `RANDOMIZER_VERSION` to `-29`, `contentHash` to `c4bf74`. Record
+[`generation.md`](generation.md) section 107.
 
 **In flight: no species-locked ability or move.** Branch
 `claude/species-locked-pool`, prompt
@@ -1371,11 +1375,15 @@ One line each. The analysis lives where the pointer goes, not here.
    option 1 and built as Stage 6.0 checkpoint 7, bible Rev 27.
    `generation.md` section 106.
 
-0. **The library has no Gen 5 to 9 rival.** pokemondb's leader pages carry
-   none, so Cheren, Bianca, Hugh, Calem, Serena, Shauna, Hau's rival fights,
-   Gladion and Arven are not challengers yet; the Gen 1 to 4 rivals and the
-   titled protagonists are. A Serebii import like the Champion Cup's closes
-   it as a data patch. `generation.md` section 105.
+0. ~~**The library has no Gen 5 to 9 rival.**~~ **Closed 2026-10-05, same
+   branch**, for eight of ten games: Cheren, Bianca, Hugh, Brendan, May,
+   Wally, Hau, Gladion, Trace, Hop, Marnie, Bede and Barry from Serebii's
+   per-character pages, with set moves and items, as Stage 6.0 checkpoint 8.
+   **X and Y and Scarlet and Violet stay a gap**: Serebii has no rival page
+   for either under any slug tried, so Calem, Serena, Shauna, Tierno,
+   Trevor, Nemona, Arven and Penny are not challengers. A hand-curated table
+   with Bulbapedia citations is the way left, and Bulbapedia cannot be read
+   from this container. `generation.md` section 107.
 
 0. **The route trainers could leave the main chunk.** The library costs 178 kB
    gzipped on the wire, above the ~150 kB line; the compact encoding did not

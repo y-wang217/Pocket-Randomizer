@@ -305,7 +305,37 @@ that a one-line edit reverses.
   on that page is in the image file name (`078-g.png` is Galarian Rapidash)
   rather than the alt text; Bea and Allister share one heading and are told
   apart by the type most of the table's members carry. The library is
-  **5,639**. Twenty species on these rosters fall outside the pool: the regional
+  **5,639**.
+
+  **The Gen 5 to 9 rivals, checkpoint 8.** pokemondb's leader pages carry no
+  rival fight. Serebii keeps one page per rival character for most games,
+  and every one of them is the same shape across four template eras: one
+  `table.trainer` per fight and per starter variant, the trainer's class and
+  name in a cell, each member linked by name, `Level N` cells, an `Attacks:`
+  cell per member with `attackdex` links, and a `Hold Item:` cell per
+  member. `scripts/import-encounters/parse-serebii-rivals.ts` reads them,
+  pinned in `sources.json` beside the Champion Cup:
+
+  | game | pages | records |
+  |---|---|---|
+  | Black and White | `blackwhite/cheren.shtml`, `blackwhite/bianca.shtml` | 42 |
+  | Black 2 and White 2 | `black2white2/rival.shtml` (Hugh) | 30 |
+  | Omega Ruby and Alpha Sapphire | `omegarubyalphasapphire/rival.shtml` (Brendan and May, one record each per fight), `omegarubyalphasapphire/wally.shtml` | 34 |
+  | Sun and Moon | `sunmoon/hau.shtml`, `sunmoon/gladion.shtml` | 37 |
+  | Ultra Sun and Ultra Moon | `ultrasunultramoon/hau.shtml`, `ultrasunultramoon/gladion.shtml` | 37 |
+  | Let's Go, Pikachu! and Let's Go, Eevee! | `letsgopikachueevee/rival.shtml` (Trace; `Rival` as the game prints the class, `Champion` for the title fights) | 18 |
+  | Sword and Shield | `swordshield/hop.shtml`, `swordshield/marnie.shtml`, `swordshield/bede.shtml` (the two later gym fights as `Leader`, Dark and Fairy) | 60 |
+  | Brilliant Diamond and Shining Pearl | `brilliantdiamondshiningpearl/barry.shtml` | 24 |
+
+  282 encounters with set moves throughout and items where the game gave
+  them, bringing the library to **5,921**. Every rival resolves to a sprite.
+  Six more species fall outside the pool (Type: Null, Silvally, Zacian,
+  Zamazenta, Galarian Ponyta and Yamask), pinned with the rest. **X and Y and
+  Scarlet and Violet have no such page** under any slug tried (`rival`,
+  `rivals`, the characters' own names, `rivalbattles`, `characters`), so
+  Calem, Serena, Shauna, Tierno, Trevor, Nemona, Arven and Penny stay a
+  gap. Serebii lists Blastoise on Gladion's Ultra title-defence team; the
+  row cites what the page says. Twenty species on these rosters fall outside the pool: the regional
   formes the pool excludes (Alolan Ninetales, Galarian Weezing, Lycanroc
   Midnight and the like) and Zekrom and Reshiram on N's team; the fit rule
   drops them, and the data test pins the set. Every named trainer resolves

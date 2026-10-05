@@ -486,8 +486,12 @@ describe('the version axes', () => {
      * the library's candidate rules cast a challenger, and the glyph label
      * and coach mark read it. `gymrun-randomizer-28` moves beside it.
      * `docs/generation.md` section 105.
+     *
+     * And at checkpoint 8, from `16dc95`: the Gen 5 to 9 rivals enter eight
+     * tables from Serebii. `gymrun-randomizer-29` moves beside it.
+     * `docs/generation.md` section 107.
      */
-    expect(CONTENT_HASH).toBe('16dc9508fc4b5db49a4a16d0794c9381c4b0bb789683c897c63dfefe6162a6cb');
+    expect(CONTENT_HASH).toBe('c4bf74c6b5e17ec5166bcab4d40fb2444f3714b3c229011928cff76715d6a36a');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

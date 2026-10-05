@@ -24,7 +24,7 @@ const root = new URL('..', import.meta.url).pathname;
 const pins = JSON.parse(readFileSync(`${root}scripts/import-encounters/sources.json`, 'utf8')) as {
   repos: Record<string, { sha: string; paths: string[] }>;
   pokemondb: { fetchedAt: string; pages: Record<string, string> };
-  serebii: { fetchedAt: string; pages: Record<string, string> };
+  serebii: { fetchedAt: string; pages: Record<string, string[]> };
 };
 const spriteList = new Set(
   (JSON.parse(readFileSync(`${root}scripts/import-encounters/sprites.json`, 'utf8')) as { ids: string[] }).ids,
@@ -46,15 +46,15 @@ const EXPECTED_COUNTS: Record<string, number> = {
   frlg: 639,
   platinum: 725,
   hgss: 734,
-  bw: 23,
-  b2w2: 20,
+  bw: 65,
+  b2w2: 50,
   xy: 13,
-  oras: 18,
-  sm: 23,
-  usum: 31,
-  lgpe: 31,
-  swsh: 32,
-  bdsp: 38,
+  oras: 52,
+  sm: 60,
+  usum: 68,
+  lgpe: 49,
+  swsh: 92,
+  bdsp: 62,
   sv: 36,
 };
 
@@ -97,11 +97,11 @@ describe('the encounter library', () => {
         // One page from pokemondb, and for Sword and Shield the Champion Cup
         // page from Serebii after it, both fetched on the pinned date.
         expect(table.source.sha, `${game} fetch date`).toBe(pins.pokemondb.fetchedAt);
-        const serebii = pins.serebii.pages[game];
-        if (serebii) {
+        const serebii = pins.serebii.pages[game] ?? [];
+        if (serebii.length > 0) {
           expect(pins.serebii.fetchedAt, `${game} serebii fetch date`).toBe(table.source.sha);
           expect(table.source.repo).toBe('pokemondb.net, serebii.net');
-          expect([...table.source.files]).toEqual([pins.pokemondb.pages[game], serebii]);
+          expect([...table.source.files]).toEqual([pins.pokemondb.pages[game], ...serebii]);
         } else {
           expect(table.source.repo).toBe('pokemondb.net');
           expect([...table.source.files]).toEqual([pins.pokemondb.pages[game]]);
@@ -164,7 +164,9 @@ describe('every record', () => {
     // set, or a pool change that shrinks it, is a deliberate act. Gen 1 to 4
     // contribute a blacklisted species and two Wormadam formes; Gen 5 to 9
     // add the regional formes the pool excludes and the two box legendaries
-    // N fields in Black and White.
+    // N fields in Black and White; the Gen 5 to 9 rivals (checkpoint 8) add
+    // Gladion's Type: Null and Silvally, Hop's Zacian and Zamazenta, and two
+    // more Galarian formes.
     const outside = new Set<string>();
     for (const record of ENCOUNTERS) {
       for (const member of record.party) {
@@ -182,15 +184,21 @@ describe('every record', () => {
       'marowakalola',
       'ninetalesalola',
       'oricoriopompom',
+      'ponytagalar',
+      'raichualola',
       'rapidashgalar',
       'reshiram',
       'sandslashalola',
       'shedinja',
+      'silvally',
       'toxtricitylowkey',
+      'typenull',
       'weezinggalar',
       'wormadamsandy',
       'wormadamtrash',
       'yamaskgalar',
+      'zacian',
+      'zamazenta',
       'zekrom',
     ]);
   });

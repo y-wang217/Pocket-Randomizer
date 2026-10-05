@@ -169,8 +169,9 @@ describe('the version axes this patch moved', () => {
     // `-25` the species-locked abilities and moves out of the pools;
     // `-26` every trainer and gym a record from the encounter library;
     // `-27` the Champion Cup joining it, which reorders the candidate windows;
-    // `-28` the boss a challenger, one record per name in every window.
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-28');
+    // `-28` the boss a challenger, one record per name in every window;
+    // `-29` the Gen 5 to 9 rivals entering the challenger windows.
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-29');
   });
 });
 
