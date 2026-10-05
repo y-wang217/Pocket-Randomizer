@@ -114,7 +114,7 @@ describe('the recipient screen', () => {
     const controls = [...screen.root.querySelectorAll<HTMLButtonElement>('.target__choose')];
     expect(controls.length).toBe(ROSTER.length);
     // Each control names the member it answers with (2026-10-05).
-    expect(controls.map((control) => control.textContent)).toEqual(ROSTER.map((m) => `Teach it to ${m.species}`));
+    expect(controls.map((control) => control.querySelector('.copy__short')?.textContent)).toEqual(ROSTER.map((m) => `Teach it to ${m.species}`));
     controls[1]?.click();
     expect(picked).toEqual([1]);
   });
