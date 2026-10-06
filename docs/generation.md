@@ -14777,9 +14777,9 @@ door row and its absence on an unmet attacker trainer.
 ### Gates
 
 `npm run types`, `npm run lint` and `npm run hedge` clean; `npm run
-test:unit` 2,189 of 2,190 on the first pass, the one failure a path in this
-section, corrected (three vitest worker timeouts in that pass, run beside a
-build and the smoke, none a test); in Chromium `test/visual-release-c.test.ts`,
+test:unit` **2,190 of 2,190** in 170 files (a first pass beside a build and
+the smoke failed one path in this section, corrected; both passes logged a
+vitest worker RPC timeout in this container, which is not a test); in Chromium `test/visual-release-c.test.ts`,
 `test/visual-motion.test.ts` and `test/visual-battle-outro.test.ts` 24 of 24
 against the harness's own build; `npm run build` and `scripts/smoke-defender.mjs`
 against it, whose `stats/defender-map.png` shows the Shore rank with the
