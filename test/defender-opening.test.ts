@@ -13,7 +13,8 @@ import { hpAtLevel } from '../src/core/battle/stats';
 import { drawDoorClasses } from '../src/core/defender/classes';
 import { generateDefenderDraft } from '../src/core/defender/draft';
 import { chooseDraftPick, chooseGymType, draftOptions } from '../src/core/defender/opening';
-import { carriesGymType, typeLockRefusal } from '../src/core/defender/typeLock';
+import { badgesActive } from '../src/core/defender/badge';
+import { carriesGymType, offTypeCount } from '../src/core/defender/typeLock';
 import { generateClassTeam } from '../src/core/randomizer';
 import { createRng } from '../src/core/rng';
 import {
@@ -202,25 +203,34 @@ describe('the mode is recorded and guarded (prompt test 10, the guard)', () => {
   });
 });
 
-describe('the type lock (prompt test 2, the exemption half)', () => {
-  const fire = (species: string): Pick<PokemonSpec, 'species'> => ({ species });
+/*
+ * **Reversed 2026-10-06.** The type lock used to refuse an off-type mon
+ * outside the Stranger's Pass's one exempt slot; the refusal and the slot are
+ * deleted. What the gym type decides now is whether the badge is lit.
+ */
+describe('the badge condition (prompt test 2, the exemption half, reversed)', () => {
+  const mon = (species: string) => ({ spec: { species } as PokemonSpec });
+  const fire = (party: { spec: PokemonSpec }[], relics: string[] = []) => ({ party, relics, defender: { gymType: 'Fire' as const } });
 
-  it('admits a mon carrying the type in either slot', () => {
-    expect(typeLockRefusal([], fire('Charmander'), 'Fire', 0)).toBeNull();
-    expect(typeLockRefusal([], fire('Talonflame'), 'Flying', 0)).toBeNull(); // Fire/Flying, Flying second
+  it('reads the gym type off either type slot', () => {
+    expect(carriesGymType({ species: 'Charmander' }, 'Fire')).toBe(true);
+    expect(carriesGymType({ species: 'Talonflame' }, 'Flying')).toBe(true); // Fire/Flying, Flying second
+    expect(offTypeCount([{ species: 'Charmander' }, { species: 'Squirtle' }], 'Fire')).toBe(1);
   });
 
-  it('refuses an off-type mon with no exempt slot, naming it', () => {
-    expect(typeLockRefusal([fire('Charmander')], fire('Squirtle'), 'Fire', 0)).toMatch(/Squirtle does not carry Fire/);
+  it('is lit while every member carries the type, and dark once one does not', () => {
+    expect(badgesActive(fire([mon('Charmander'), mon('Vulpix')]))).toBe(true);
+    expect(badgesActive(fire([mon('Charmander'), mon('Squirtle')]))).toBe(false);
+    expect(badgesActive(fire([mon('Squirtle'), mon('Bulbasaur')]))).toBe(false);
   });
 
-  it('accepts one off-type mon into one exempt slot, and no more', () => {
-    const party = [fire('Charmander'), fire('Vulpix')];
-    expect(typeLockRefusal(party, fire('Squirtle'), 'Fire', 1)).toBeNull();
-    const withOne = [...party, fire('Squirtle')];
-    expect(typeLockRefusal(withOne, fire('Bulbasaur'), 'Fire', 1)).toMatch(/exempt slot is taken/);
-    // A trade that replaces the off-type member frees the exemption it used.
-    expect(typeLockRefusal(withOne, fire('Bulbasaur'), 'Fire', 1, 2)).toBeNull();
+  it('is lit again with the Stranger\'s Pass, however many off-type members stand', () => {
+    expect(badgesActive(fire([mon('Charmander'), mon('Squirtle'), mon('Bulbasaur')], ['strangers-pass']))).toBe(true);
+  });
+
+  it('is never lit outside a defender run', () => {
+    expect(badgesActive({ party: [mon('Charmander')], relics: [], defender: null })).toBe(false);
+    expect(badgesActive({ party: [mon('Charmander')], relics: ['strangers-pass'], defender: { gymType: null } })).toBe(false);
   });
 });
 

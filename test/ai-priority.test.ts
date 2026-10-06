@@ -516,8 +516,13 @@ describe('the version axes', () => {
      * loses the sixteen abilities with no effect in a singles battle (three
      * with no engine handler, thirteen that act only on a doubles ally).
      * `gymrun-randomizer-31` moves beside it. `docs/generation.md` section 114.
+     *
+     * And for the defender design message's fourth change, from `fe2201`:
+     * `data/defender.ts` loses the exempt slot and gains the recruit draft's
+     * shape. `gymrun-randomizer-32` moves beside it. `docs/generation.md`
+     * section 115.
      */
-    expect(CONTENT_HASH).toBe('fe220132dbb41c5e2e15e6d0fb99f42aefd8420d9c4d46504a07c321c32f223f');
+    expect(CONTENT_HASH).toBe('d186818bd0d9004419c2b9f83a487c62d4a105206fa12a3eb98ba62946cd40b3');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

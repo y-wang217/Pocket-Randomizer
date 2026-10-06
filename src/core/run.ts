@@ -71,7 +71,7 @@ import {
 } from './defender/opening';
 import { DEFENDER_RANKS } from '../data/defender';
 import { generateRank } from './defender/waves';
-import { battleBadgeFor } from './defender/badge';
+import { badgesActive, battleBadgeFor } from './defender/badge';
 import { chooseRecruit, generateRecruits, recruitOptions } from './defender/recruit';
 import { resolveTrade } from './defender/trade';
 import { useConsumable } from './defender/consumables';
@@ -2774,7 +2774,9 @@ async function playNode(
   };
 
   const team = battleTeamFor(state.party);
-  // Defender Mode v0: the gym badge, for gym-type members of the player's team.
+  // Defender Mode v0: the gym badge, for gym-type members of the player's team,
+  // and only while the badge is lit (`badgesActive`: no off-type member, or the
+  // Stranger's Pass held).
   const gymType = state.defender?.gymType;
   const run = await runBattle(
     team,
@@ -2785,7 +2787,7 @@ async function playNode(
     {
       simSeed: node.encounter.simSeed,
       carryOver: carryOverFor(state.party),
-      ...(gymType ? { badge: battleBadgeFor(team, gymType) } : {}),
+      ...(gymType && badgesActive(state) ? { badge: battleBadgeFor(team, gymType) } : {}),
       onStart: (session) => options.onBattle?.(session, node, state),
     },
   );

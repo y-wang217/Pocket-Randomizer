@@ -14664,3 +14664,67 @@ the attacker golden and the visual baseline re-recorded; `npm run test:unit`
 and `npm run test:trim` green across 170 files (`check.mjs` reporting the
 reporter RPC timeout both legs have hit on every tree in this container, with
 every test passed); `npm run build` and `npm run smoke` passed.
+
+## 115. Off-type members: the type lock becomes a badge condition
+
+**2026-10-06**, the defender design message's fourth change, on
+`claude/affectionate-hopper-0beolc`. Prompt
+[`spec/gymrun-patch-defender-events-trades-revenge-offtype.md`](spec/gymrun-patch-defender-events-trades-revenge-offtype.md):
+*"allow the user to acquire non-typed mons, but make passives (gym badge the
+player holds) disabled once you add a non-typed mon, which the relic that
+allows non-typed mons reenables"*, and the ruling *"Restores badges, lifts the
+cap"*. `RANDOMIZER_VERSION` to `-32`, `contentHash` from `fe2201` to `d18681`;
+`RUN_LOG_VERSION` and `AI_VERSION` hold. Built first of the four because it
+deletes rules the other three would otherwise have to work around.
+
+### What is deleted
+
+Three rules leave the lineage, with this note rather than a flag:
+
+- **The exempt slot.** `DEFENDER_BASE_EXEMPT_SLOTS`, `DEFENDER_OFF_TYPE_SLOTS`
+  and `core/defender/exempt.ts` are gone. Section 106.7's "one party slot
+  exempt from the type lock" and 106.8's "while a Stranger's Pass slot is
+  free, a recruit draft's third option is the rank's off-type candidate" are
+  both superseded.
+- **The type lock's refusal.** `typeLockRefusal` is gone from
+  `core/defender/typeLock.ts`, and with it the refusals in `chooseRecruit`
+  and `applyTrade`. `carriesGymType` and `offTypeCount` stay: the gym type is
+  still read off the species, never a battle's live types.
+- **The third typed recruit.** `generateRecruits` drew three typed mons and
+  one off-type and showed the off-type in the third's place only while a slot
+  was free. It now draws two typed and one off-type (`DEFENDER_RECRUIT`),
+  and `recruitOptions` returns all three, typed first and the off-type last,
+  so the logged index names the same mon on every replay. That is the draw
+  that moves the randomizer axis, under `defender/recruit/*` keys only.
+
+### What replaces them
+
+`badgesActive(state)` in `core/defender/badge.ts`: a defender run's badge is
+lit while every party member carries the gym type, or while the Stranger's
+Pass is held. `playNode` installs the badge only when it is lit, so an
+off-type member without the Pass puts the badge out for the whole team, typed
+members included; `memberBadge` still gives an off-type member nothing even
+while it is lit. The Pass's own meaning therefore changes from "one exempt
+slot" to "the badge stays lit whatever stands in the party", and it gets its
+first `RELIC_COPY` line to say so.
+
+**Default taken, recorded as a deviation**: trade offers stay typed. The
+message asked for off-type acquisition and named the recruit; a trade's
+offered mon is still drawn from the gym type's pool, so a trade never puts
+the badge out. The bench bot (`scriptedRunPolicy`, `chooseRecruit` 0) always
+picks a typed recruit, so the defender benchmark rows do not measure this
+change; recorded in `balance.md` when the rows are re-run at the end of the
+four.
+
+The badge's *shown* state waits on D110 (bible Rev 29): the marks dim while
+the badge is dark, and the off-type recruit card wears the dimmed mark so the
+consequence is read before pressing.
+
+### Tests
+
+`test/defender-opening.test.ts`'s type lock describe becomes the badge
+condition; `test/defender-economy.test.ts` asserts the three-option draft, two
+off-type recruits joining, the Pass lighting the badge, and, over a played
+run, that a battle carries a crit chance exactly while `badgesActive` holds.
+`npm run types`, the sim fixture and the visual baseline re-recorded for the
+stamp; the attacker golden holds.

@@ -174,8 +174,9 @@ describe('the version axes this patch moved', () => {
     // `-29` the boss a challenger, one record per name in every window;
     // `-30` the Gen 5 to 9 rivals entering the challenger windows, and the
     // merge of Stage 6.0 onto Defender Mode (the four above renumbered then);
-    // `-31` sixteen blank abilities leaving the pool.
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-31');
+    // `-31` sixteen blank abilities leaving the pool;
+    // `-32` the recruit draft drawing two typed mons and one off-type.
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-32');
   });
 });
 

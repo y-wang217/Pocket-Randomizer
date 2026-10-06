@@ -488,7 +488,17 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * beside it for the table. `RUN_LOG_VERSION` holds.
  * `docs/spec/gymrun-patch-blank-abilities.md`, `docs/generation.md` section 114.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-31';
+/*
+ * ## `-32`: the recruit draft draws two typed mons and one off-type. The
+ * defender design message's fourth change (`docs/spec/gymrun-patch-defender-events-trades-revenge-offtype.md`):
+ * the off-type option is always offered and always admissible, so the third
+ * typed draw it used to stand in for is not made. `defender/recruit/*` keys
+ * only; no attacker draw moves. The exempt slot and the type lock's refusal
+ * are deleted; the badge goes dark instead (`core/defender/badge.ts`).
+ * `contentHash` moves for `data/defender.ts`. `RUN_LOG_VERSION` holds.
+ * `docs/generation.md` section 115.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-32';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

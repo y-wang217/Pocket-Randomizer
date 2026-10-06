@@ -2,13 +2,17 @@
  * The recruit draft. **Defender Mode v0, step 5.**
  *
  * When a boss's win unlocks a party slot, the player picks one of three mons
- * carrying the gym type, at the new rank's level. Trades cannot grow a party,
- * so this is the only way one grows. Drawn at generation for every rank whose
- * boss unlocks a slot, for all three gym types, plus one off-type candidate
- * per type that replaces the third option only while a Stranger's Pass slot is
- * free (`recruitOptions`). Every draw happens whatever the run does.
+ * at the new rank's level: two carrying the gym type and one that does not
+ * (`DEFENDER_RECRUIT`). Trades cannot grow a party, so this is the only way
+ * one grows. Drawn at generation for every rank whose boss unlocks a slot, for
+ * all three gym types. Every draw happens whatever the run does.
+ *
+ * **2026-10-06.** The off-type option used to replace the third typed one only
+ * while a Stranger's Pass slot was free, and a pick outside the exemption was
+ * refused. Both are gone: the option is always there and always admissible,
+ * and what it costs is the badge (`badge.ts`, `badgesActive`).
  */
-import { DEFENDER_GYM_TYPES, DEFENDER_RANKS, DEFENDER_SLOT_SCHEDULE_OFFSET, DEFENDER_DRAFT, type DefenderGymType } from '../../data/defender';
+import { DEFENDER_GYM_TYPES, DEFENDER_RANKS, DEFENDER_RECRUIT, DEFENDER_SLOT_SCHEDULE_OFFSET, type DefenderGymType } from '../../data/defender';
 import { partyCapacityAfter } from '../../data/partyTuning';
 import { playerLevel } from '../../data/scaling';
 import { joiningSpec } from '../acquisition';
@@ -19,9 +23,7 @@ import type { RunState } from '../run';
 import { defenderRecruitKey } from '../streamKeys';
 import type { PokemonSpec, PokemonState } from '../types';
 import { finishDefenderMon } from './draft';
-import { exemptSlots } from './exempt';
 import type { DefenderRecruits, RecruitOffer } from './opening';
-import { offTypeCount, typeLockRefusal } from './typeLock';
 
 /** Whether beating rank `rank`'s boss unlocks a slot, on the schedule read one row ahead. */
 export function bossUnlocksSlot(rank: number): boolean {
@@ -42,10 +44,10 @@ export function generateRecruits(rng: Rng): (DefenderRecruits | null)[] {
     for (const type of DEFENDER_GYM_TYPES) {
       const stream = rng.randomizer.at(defenderRecruitKey(rank, type));
       const seen = new Set<string>();
-      const typed = generateTypedMons(type, segment, level, damaging, DEFENDER_DRAFT.options, stream, seen).map((spec, i) =>
+      const typed = generateTypedMons(type, segment, level, damaging, DEFENDER_RECRUIT.typed, stream, seen).map((spec, i) =>
         finishDefenderMon(spec, `recruit/${rank}/${type}/${i}`, rng),
       );
-      const [off] = generateOffTypeMons(type, segment, level, damaging, 1, stream, seen);
+      const [off] = generateOffTypeMons(type, segment, level, damaging, DEFENDER_RECRUIT.offType, stream, seen);
       if (!off) throw new Error(`No off-type recruit for ${type} at rank ${rank}`);
       byType[type] = { typed, offType: finishDefenderMon(off, `recruit/${rank}/${type}/off`, rng) };
     }
@@ -60,18 +62,17 @@ export function recruitOptions(state: RunState, bossesBeaten: number): readonly 
   if (!defender || !gymType) return [];
   const offer = defender.recruits[bossesBeaten - 1]?.[gymType];
   if (!offer) return [];
-  const exemptFree = offTypeCount(state.party.map((member) => member.spec), gymType) < exemptSlots(state);
-  return exemptFree ? [...offer.typed.slice(0, -1), offer.offType] : offer.typed;
+  // The typed options first, the off-type one last: a fixed order, so the
+  // logged index means the same mon on every replay.
+  return [...offer.typed, offer.offType];
 }
 
-/** Add the picked recruit to the party, under the type lock, with the next acquisition index. */
+/** Add the picked recruit to the party with the next acquisition index. */
 export function chooseRecruit(state: RunState, options: readonly PokemonSpec[], index: number): RunState {
   const defender = state.defender;
   if (!defender?.gymType) throw new Error('A recruit needs a defender run with a gym type');
   const spec = options[index];
   if (!spec) throw new RangeError(`Recruit pick ${index} out of range (${options.length} offered)`);
-  const refusal = typeLockRefusal(state.party.map((member) => member.spec), spec, defender.gymType, exemptSlots(state));
-  if (refusal) throw new RangeError(`Recruit refused: ${refusal}`);
   const member: PokemonState = {
     ...createPartyMember(joiningSpec(spec, state.currentSegment), state.currentSegment),
     acquired: defender.acquisitions,

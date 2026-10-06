@@ -107,9 +107,10 @@ describe('the run log version', () => {
      * that cast, and the merge of Stage 6.0 onto Defender Mode, where the
      * four were renumbered above main's `-26`. `-31` is sixteen abilities
      * with no battle effect leaving the pool, so every ability draw reads a
-     * different name.
+     * different name. `-32` is the defender recruit draft drawing two typed
+     * mons and one off-type, under `defender/` keys only.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-31');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-32');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });
