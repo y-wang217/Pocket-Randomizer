@@ -1550,7 +1550,13 @@ body {
   gap: var(--space-1);
 }
 .party__member[data-expanded="true"],
+.party__slot:has(.party__member[data-expanded="true"]),
 .pre-gym__slot:has(.party__member[data-expanded="true"]) { grid-column: 1 / -1; }
+/* The party screen's slot: the card, then the Lead control at rest under it
+   (the party lead at rest patch). The card takes the height so two-up Lead
+   controls sit on one line whatever the cards above them hold. */
+.party__slot { display: flex; flex-direction: column; gap: var(--space-h); min-width: 0; }
+.party__slot > .party__member { flex: 1 1 auto; }
 .party__member:not([data-expanded="true"]) .badge--archetype,
 .party__member:not([data-expanded="true"]):not(.party__member--offered) .party__ability { display: none; }
 /* **The offered card is not a member card that folds.** It wears
@@ -1580,7 +1586,7 @@ body {
 .party__member .hp[data-tip] { overflow: visible; cursor: help; }
 .party__member .hp[data-tip]::after { content: ''; position: absolute; inset: calc(-1 * var(--space-2)) 0; }
 /* The item's "to bag" control folds with the body: a control on a card is
-   one tap away in Pocket, as the lead and release controls are. */
+   one tap away in Pocket, as the release control is. */
 .party__member:not([data-expanded="true"]) .party__item .button { display: none; }
 .party__member .panel__meta,
 .party__member .party__item {

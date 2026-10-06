@@ -718,16 +718,29 @@ function renderManaged(
    */
   if (!canEditParty) return card;
 
-  const actions = el('div', 'party__actions');
+  /*
+   * **Lead at rest, Release in the fold.** The party lead at rest patch,
+   * 2026-10-06. Lead sat in the fold beside Release, under the four move
+   * cards, so on a phone it was a `+` and a screen's scroll away and the
+   * author read the screen as having no way to change the lead at all. It
+   * now sits under the card, outside it, in a slot wrapper the way the
+   * pre-gym screen's is, so the party row component carries no new word.
+   * Release stays one tap deeper: it is the irreversible one.
+   */
+  const slot = el('div', 'party__slot');
+  slot.dataset['slot'] = String(index);
 
   const lead = document.createElement('button');
   lead.type = 'button';
-  lead.className = 'button button--small';
+  lead.className = 'button button--small party__lead';
   lead.textContent = 'Lead';
+  lead.setAttribute('aria-label', index === 0 ? `${member.spec.species} is leading` : `Lead with ${member.spec.species}`);
   // Disabled rather than hidden on the member that already leads: a button that
   // disappears from one row and not the others reads as a bug.
   lead.disabled = index === 0;
   lead.addEventListener('click', () => handlers.onReorder(index, 0));
+
+  const actions = el('div', 'party__actions');
 
   const release = document.createElement('button');
   release.type = 'button';
@@ -749,10 +762,11 @@ function renderManaged(
     }),
   );
 
-  actions.append(lead, release);
+  actions.append(release);
   // Into the card's fold, with the stats and moves the decision is made on.
   (card.querySelector('.collapse__body') ?? card).append(actions);
-  return card;
+  slot.append(card, lead);
+  return slot;
 }
 
 /**
