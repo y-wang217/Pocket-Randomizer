@@ -729,13 +729,22 @@ export function createScene(): Scene {
 /**
  * The view a step is drawn from. **The per-move replay patch.**
  *
- * Each side's body is the view it stood at before the batch until the step's
- * switch brought the final view's in, so the level, the types and the stats
- * beside the sprite are the body's own and not the next one's. Over that, what
- * the lines said: the HP after this action, read exact where the protocol gave
+ * What is stepped is what the lines say and the stage shows: each side's HP,
+ * who is standing, and the faint. Everything else a panel carries (the
+ * status, the volatiles, the stages, the traits) is the turn's view's from
+ * the first step, as it was when the turn was drawn at once: the reader does
+ * not step those, and a panel that showed the previous turn's status under a
+ * body already shown hit would be the stale half of two views. A body that is
+ * still to be switched in is the view from before the batch until its switch
+ * step brings the turn's view's body in, so the level, the types and the
+ * stats beside the sprite are its own and not the next one's.
+ *
+ * The HP is the lines' after this action, read exact where the protocol gave
  * the side's own numbers and as a fraction of the body's own max where it gave
- * a percentage (the foe's), and the faint. The species comes from the switch
- * line, so a body that arrived and left inside one batch is still drawn.
+ * a percentage (the foe's); before any line has moved it, it is the HP the
+ * side stood at before the batch, never the turn's end value, which is the
+ * whole bug. The species comes from the switch line, so a body that arrived
+ * and left inside one batch is still drawn.
  *
  * The foe's count is held one higher through the steps before its faint, so
  * the panel does not say a body is down before the stage shows it go.
@@ -745,14 +754,20 @@ function composeStep(previous: BattleUiView, final: BattleUiView, steps: readonl
   const body = (side: 'p1' | 'p2'): ActiveUiView => {
     const key = side === 'p1' ? 'player' : 'opponent';
     const state = step.bodies[side];
-    const base = state.switched ? final[key] : previous[key];
+    const sameBody = previous[key].species === final[key].species;
+    // The turn's facts once the body on this side is the turn's body; the
+    // earlier body's own until its switch step.
+    const base = state.switched || sameBody ? final[key] : previous[key];
+    const before = state.switched ? base.hp : previous[key].hp;
     const hp = state.hp
       ? {
           max: base.hp.max,
           fraction: state.fainted ? 0 : state.hp.fraction,
           current: state.fainted ? 0 : state.hp.max === base.hp.max ? state.hp.current : Math.round(state.hp.fraction * base.hp.max),
         }
-      : base.hp;
+      : state.fainted
+        ? { ...before, fraction: 0, current: 0 }
+        : before;
     const species = state.switched && state.species ? state.species : base.species;
     return { ...base, species, name: species === base.species ? base.name : species, hp, fainted: state.fainted };
   };

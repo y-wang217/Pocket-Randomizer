@@ -607,6 +607,31 @@ describe('the chunk lands in its step', () => {
     expect(beatsOf(first, 'hit')).toEqual({ me: undefined, foe: undefined });
   });
 
+  it('carries the turn\'s status and stages from the first step, and only the HP from before', () => {
+    /*
+     * What the lines step is the HP, who is standing and the faint; the
+     * status chip, the volatiles and the stages are the turn's view's on
+     * every step. `test/visual-v5.test.ts` reads a loaded board's chips on
+     * the first step's frame, and a panel showing the previous turn's status
+     * under a body already shown hit would be two views at once.
+     */
+    const scene = createScene();
+    const full = baseView();
+    scene.update(full, NOOP);
+    const burned = {
+      ...withHp(full, 'opponent', 0.5),
+      opponent: { ...withHp(full, 'opponent', 0.5).opponent, status: { id: 'brn', label: 'BRN' } as never },
+    };
+    // One step, p1's, whose lines did not say where the foe's HP went.
+    scene.update(burned, NOOP, { steps: [{ side: 'p1', kind: 'move', bodies: { p1: body(), p2: body() }, marks: [], fired: [] }], marks: [], fired: [], bracket: null });
+    const status = scene.root.querySelector<HTMLElement>('.panel--foe .badge--status');
+    expect(status?.hidden).toBe(false);
+    expect(status?.dataset['status']).toBe('brn');
+    expect(fillOf(scene, 'foe').style.width).toBe('100%');
+    advance(2);
+    expect(fillOf(scene, 'foe').style.width).toBe('50%');
+  });
+
   it('mirrors when the other side goes first, which is the reported turn', () => {
     const second = twoHits(['p2', 'p1']);
     expect(slotOf(second, 'me')).toBe('1');

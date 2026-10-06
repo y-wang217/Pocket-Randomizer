@@ -14728,7 +14728,12 @@ over the view the stage stood at before the batch (so a body's level, types
 and stats are its own until its switch brings the final view's in), with the
 lines' HP (exact where the side's own numbers were given, a fraction of the
 body's max where a percentage was), the faint, and the switch line's species;
-the foe's count is held one higher until its faint is shown. Each step is the
+the foe's count is held one higher until its faint is shown. The status, the volatiles, the stages
+and the traits are the turn's view's from the first step, as they were when
+the turn was drawn at once; the reader steps HP, identity and the faint, and
+a panel showing the previous turn's status under a body already shown hit
+would be two views at once (the first CI run's `visual-v5` read a loaded
+board's chips on the first step's frame and found none). Each step is the
 one-slot vocabulary the stage already had: the lunge on the actor that moved
 (never on a switch, which is the swap beat), the hit and the chunk one beat
 after, the mark in the same slot. The view itself lands last, with the
