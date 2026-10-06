@@ -15,7 +15,7 @@
  * exists to keep shut, one level up.
  */
 import { movePriority, type BattleSession } from '../../core/battle/driver';
-import { readFlags, type FlagDeps, type FlaggedTurn } from '../../core/battle/flags';
+import { readFlags, type FlagDeps } from '../../core/battle/flags';
 import { buildBattleUiView, type RevealPolicy } from '../../core/battle/view';
 import type { NodeSpec } from '../../core/encounters';
 import type { Choice } from '../../core/types';
@@ -27,7 +27,7 @@ import { createBattleLog, type BattleLogView } from '../battle-log';
 import { createSpeciesIndex } from '../species-index';
 import { createFlagStrip, type FlagStrip } from '../flag-strip';
 import { createLogSheet, onPullUp, type LogSheet } from '../log-sheet';
-import { abnormalityMarks, firedTraits } from '../abnormality';
+import { flattenReplay, readReplay, type TurnReplay } from '../replay';
 import { createScene, el, type OutroKind, type Scene } from '../scene';
 import { fieldGlyph } from '../chip';
 import { applyField } from '../theme/field';
@@ -241,20 +241,23 @@ export function createBattleScreen(): BattleScreen {
       // Derived on every update, never stored. `BattleUiView` is a pure
       // function of the facts, so rebuilding it is cheaper than keeping one
       // alive and wondering which turn it describes.
-      const draw = (turns: readonly FlaggedTurn[] | undefined, batch: readonly FlaggedTurn[]): void => {
+      const draw = (replay: TurnReplay): void => {
         /*
-         * The third consumer of the one reading. **Branch 3B.**
+         * The third consumer of the one reading. **Branch 3B, and the per-move
+         * replay patch.**
          *
-         * `abnormalityMarks` reduces the turn's flags to at most one class and
-         * slot per side, and the scene is handed that rather than the flags —
-         * `test/boundaries.test.ts` forbids the scene from reading a flag,
-         * because a beat that can see severity is one step from a beat that
-         * shows it. The reduction happens here, off the same `turns` the log
-         * and the strip already get, so the rule at the top of this file still
-         * holds: one reading of the protocol, now three consumers.
+         * `readReplay` turns the batch into one step per action, each with its
+         * bodies' HP off the lines and its abnormality marks and trait fires
+         * reduced by `ui/abnormality.ts`, and the scene is handed that rather
+         * than the flags or the lines: `test/boundaries.test.ts` forbids the
+         * scene from reading either, because a beat that can see severity is
+         * one step from a beat that shows it. The reduction happens here, off
+         * the same `turns` the log and the strip already get, so the rule at
+         * the top of this file still holds: one reading of the protocol, now
+         * three consumers.
          */
         const view = buildBattleUiView(session.factsFor('p1'), reveal, abilityEffects);
-        scene.update(view, onChoose, turns, abnormalityMarks(batch), firedTraits(batch));
+        scene.update(view, onChoose, replay);
         // The world behind the stage wears the same state. **Tier 3.**
         applyField(view.field);
         /*
@@ -331,7 +334,10 @@ export function createBattleScreen(): BattleScreen {
          */
         const eventful = turns.some((turn) => turn.actions.some((each) => each.flags.length > 0) || turn.residual.length > 0);
         if (animate || eventful) flags.show(turns);
-        draw(animate ? turns : undefined, turns);
+        // The opening batch keeps its marks and fires, on the turn, and plays
+        // no step: an arrival is not a turn.
+        const replay = readReplay(protocol, turns);
+        draw(animate ? replay : flattenReplay(replay));
       };
 
       log.clear();

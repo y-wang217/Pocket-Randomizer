@@ -12,6 +12,7 @@
  * reads it is keyed in `core/streamKeys.ts` under `defender/`.
  */
 import type { TypeName } from '../core/types';
+import type { LocaleId } from './locales';
 import type { RelicId } from './relics';
 
 /**
@@ -40,6 +41,21 @@ export const DEFENDER_DRAFT = { picks: 3, options: 3 } as const;
  * Battles per wave, by rank. The prompt's starting row; step 3 reads it.
  */
 export const DEFENDER_WAVE_LENGTH: readonly number[] = [2, 2, 3, 3, 4, 4, 5, 5];
+
+/**
+ * Where each rank is set: the region whose paintings stand behind its map and
+ * its door fights, by rank. **The defender map backdrops patch, 2026-10-06.**
+ *
+ * A table and not a draw. The attacker offers locales and draws routes from
+ * them; a defender rank's doors come from its trainer classes and read no
+ * region, so the region decides nothing about the fight and is looked up
+ * rather than drawn (`core/defender/waves.ts` `rankLocale`). Every region once,
+ * in an order that climbs: the shore first, the summit for the last rank.
+ *
+ * The route carries it; the door nodes do not. A node's locale is what an
+ * event or a wild draw reads, and a rank has neither.
+ */
+export const DEFENDER_RANK_LOCALES: readonly LocaleId[] = ['shore', 'forest', 'marsh', 'city', 'cave', 'ruins', 'badlands', 'summit'];
 
 /**
  * How far ahead of the bosses beaten a defender run reads the shipped slot

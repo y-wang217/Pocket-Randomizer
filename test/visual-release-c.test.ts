@@ -132,11 +132,18 @@ describe('the one tuning number reaches the screen', () => {
      */
     expect(resolved.outro).toBe(`${DEFAULT_DISPLAY_TUNING.battleFeedbackMs}ms`);
 
-    await playATurn(page);
+    /*
+     * A turn, sampled on the frame its first step is drawn. **The per-move
+     * replay patch.** `stepOnce` clicks a move and the engine resolves the
+     * turn inside the click, so the first action's lunge and its target's hit
+     * are on the stage when the click returns; the later steps are on the
+     * scene's own clock and are asserted there (`test/battle-feedback.test.ts`).
+     */
+    await playUntil(page, (screen) => screen === 'battle');
+    await stepOnce(page);
     const applied = await page.evaluate(() => {
       const shadow = globalThis.document.querySelector('.panel--foe .hp__shadow');
-      const first = globalThis.document.querySelector('.stage__actor[data-acted="1"]');
-      const second = globalThis.document.querySelector('.stage__actor[data-acted="2"]');
+      const acted = [...globalThis.document.querySelectorAll('.stage__actor[data-acted]')];
       const hits = [...globalThis.document.querySelectorAll('.stage__actor[data-hit]')].map((actor) => {
         const sprite = actor.querySelector('.sprite:not(.sprite--ghost)');
         const style = sprite ? globalThis.getComputedStyle(sprite) : null;
@@ -150,23 +157,22 @@ describe('the one tuning number reaches the screen', () => {
         // rule that actually applied rather than the one it usually does.
         shadowSlot: shadow ? (shadow as HTMLElement).dataset['slot'] : undefined,
         shadowDelay: shadow ? globalThis.getComputedStyle(shadow).animationDelay : null,
-        first: timing(first),
-        second: timing(second),
+        acted: acted.map((actor) => ({ slot: (actor as HTMLElement).dataset['acted'], ...timing(actor) })),
         hits,
       };
     });
 
-    // The shadow spends the whole budget; the four beats run inside it, one
-    // quarter each, in their slots. That is what makes "one number" true
+    // The shadow spends the whole budget; a step's two beats run inside it,
+    // one quarter each, in slot 1. That is what makes "one number" true
     // rather than aspirational.
     const ms = DEFAULT_DISPLAY_TUNING.battleFeedbackMs;
     const beat = `${ms / 4000}s`;
     /*
      * **The chunk still spends the whole budget — delay included.** The
-     * victory-order patch slotted it, so on a turn the scene could place it
-     * holds at full strength until the slot of the move that caused it and
-     * fades over what is left. Delay plus duration is unchanged, and that is
-     * the claim this case exists to make: where inside the budget the chunk
+     * victory-order patch slotted it: on a turn the scene could place it, it
+     * holds at full strength until the beat after its step's lunge and fades
+     * over what is left. Delay plus duration is unchanged, and that is the
+     * claim this case exists to make: where inside the budget the chunk
      * resolves moved, how long the budget is did not.
      *
      * Unslotted — the opening draw, and any bar off the battle stage — it is
@@ -178,35 +184,74 @@ describe('the one tuning number reaches the screen', () => {
       expect(applied.shadow).toBe(`${ms / 1000}s`);
       expect(applied.shadowDelay).toBe('0s');
     } else {
-      // Slot 1 holds for a beat and fades over three; slot 2 holds for three
-      // and fades over one. The same two slots the hit beside it uses.
-      const holds = applied.shadowSlot === '1' ? 1 : 3;
-      expect(seconds(applied.shadowDelay)).toBeCloseTo((ms * holds) / 4000, 4);
-      expect(seconds(applied.shadow)).toBeCloseTo((ms * (4 - holds)) / 4000, 4);
+      // Slot 1, the only slot since the per-move replay: holds for a beat and fades over three.
+      expect(applied.shadowSlot).toBe('1');
+      expect(seconds(applied.shadowDelay)).toBeCloseTo(ms / 4000, 4);
+      expect(seconds(applied.shadow)).toBeCloseTo((ms * 3) / 4000, 4);
     }
-    expect(applied.first).toEqual({ duration: beat, delay: '0s' });
-    expect(applied.second).toEqual({ duration: beat, delay: `${ms / 2000}s` });
-    // A turn where both sides used a move lands at least one hit, and every
-    // hit sits in the slot after the lunge that took it.
-    expect(applied.hits.length).toBeGreaterThan(0);
+    // One body lunges per step, now, for a beat; never two at once.
+    expect(applied.acted).toHaveLength(1);
+    expect(applied.acted[0]).toEqual({ slot: '1', duration: beat, delay: '0s' });
+    // A hit, where the first action landed one, sits in the beat after the lunge.
     for (const hit of applied.hits) {
+      expect(hit.slot).toBe('1');
       expect(hit.duration).toBe(beat);
-      expect(hit.delay).toBe(hit.slot === '1' ? beat : `${(ms * 3) / 4000}s`);
+      expect(hit.delay).toBe(beat);
     }
     await context.close();
   }, 300_000);
 });
 
-describe('reduced motion', () => {
-  it('resolves every animation instantly and still prints every flag', async () => {
-    const reduced = await harness.browser.newContext({ viewport: PHONE, reducedMotion: 'reduce' });
-    await skipTutorialIn(reduced);
-    const page = await reduced.newPage();
-    await page.goto(`${harness.url}/#seed=S49R-2`, { waitUntil: 'load' });
-    await page.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
-    await playATurn(page);
+describe('the two lunges are drawn in sequence', () => {
+  it('lunges one body, then the other, never both at once', async () => {
+    /*
+     * **The per-move replay patch**, observed on the live app rather than by
+     * setting slots by hand: the first actor is marked on the click's frame
+     * and the second two beats later, by which time the first's mark is gone
+     * with its step. Sampled by polling the attributes through the turn; a
+     * turn where only one side acted (a KO on the first move, a switch) is
+     * skipped and another played, up to a few tries.
+     */
+    const { page, context } = await openApp(harness.browser, harness.url, 'S49R-2');
+    const budget = DEFAULT_DISPLAY_TUNING.battleFeedbackMs;
+    let seen: { me: string | undefined; foe: string | undefined }[] = [];
+    for (let attempt = 0; attempt < 8 && !sequenced(seen); attempt++) {
+      await playUntil(page, (screen) => screen === 'battle');
+      await stepOnce(page);
+      seen = await page.evaluate(async (ms) => {
+        const read = (side: string): string | undefined =>
+          (globalThis.document.querySelector(`.stage__actor--${side}`) as HTMLElement | null)?.dataset['acted'];
+        const samples: { me: string | undefined; foe: string | undefined }[] = [];
+        const until = performance.now() + ms * 1.5;
+        while (performance.now() < until) {
+          samples.push({ me: read('me'), foe: read('foe') });
+          await new Promise((resolve) => setTimeout(resolve, 16));
+        }
+        return samples;
+      }, budget);
+      await page.waitForTimeout(budget);
+    }
+    expect(sequenced(seen), `no turn in eight showed two lunges in sequence: ${JSON.stringify(seen.slice(0, 40))}`).toBe(true);
+    // Never both at once, on any sample of any turn played.
+    for (const sample of seen) expect(sample.me !== undefined && sample.foe !== undefined, 'two lunges at once').toBe(false);
+    await context.close();
+  }, 300_000);
+});
 
-    const state = await page.evaluate(() => {
+/** Whether the samples show one side marked, then later the other, each alone. */
+function sequenced(samples: readonly { me: string | undefined; foe: string | undefined }[]): boolean {
+  const order: ('me' | 'foe')[] = [];
+  for (const sample of samples) {
+    const marked = sample.me !== undefined ? 'me' : sample.foe !== undefined ? 'foe' : null;
+    if (marked && order[order.length - 1] !== marked) order.push(marked);
+  }
+  return order.length >= 2;
+}
+
+/** The stage and the strip, read on the page, for the reduced-motion case. */
+function sample(page: Awaited<ReturnType<typeof openApp>>['page']) {
+  return page.evaluate(() => {
+
       const shadow = globalThis.document.querySelector('.panel--foe .hp__shadow');
       const actors = [...globalThis.document.querySelectorAll('.stage__actor')];
       const sprites = [...globalThis.document.querySelectorAll('.stage__actor .sprite')];
@@ -219,12 +264,46 @@ describe('reduced motion', () => {
         // The lunge is on the actor and the hit on the sprite inside it; both
         // are read, so neither can slip past a check on the other.
         stageAnimations: [...actors, ...sprites].map((node) => globalThis.getComputedStyle(node).animationName),
-        nudged: actors.filter((actor) => (actor as HTMLElement).dataset['acted']).length,
-        hit: actors.filter((actor) => (actor as HTMLElement).dataset['hit']).length,
+        hit: actors.filter((actor) => (actor as HTMLElement).dataset['hit'] || (actor as HTMLElement).dataset['fainting']).length,
         flags: strip ? [...strip.querySelectorAll('.chip')].map((chip) => chip.textContent ?? '') : null,
         stripDisplay: strip ? globalThis.getComputedStyle(strip).display : null,
+        screen: globalThis.document.querySelector('.screen:not([hidden])')?.getAttribute('data-screen') ?? null,
       };
-    });
+  });
+}
+
+describe('reduced motion', () => {
+  it('resolves every animation instantly and still prints every flag', async () => {
+    const reduced = await harness.browser.newContext({ viewport: PHONE, reducedMotion: 'reduce' });
+    await skipTutorialIn(reduced);
+    const page = await reduced.newPage();
+    await page.goto(`${harness.url}/#seed=S49R-2`, { waitUntil: 'load' });
+    await page.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
+    /*
+     * A turn, sampled as the click returns: the first action's lunge is on
+     * the stage then (the per-move replay draws it on the frame the view
+     * arrives), and a hit follows within the turn's steps, which is waited
+     * for rather than assumed to be in the first. Played until a turn both
+     * resolved on the battle screen and said something on the strip, as
+     * `playATurn` does.
+     */
+    let nudged = 0;
+    let state: Awaited<ReturnType<typeof sample>> | null = null;
+    for (let attempt = 0; attempt < 16 && !(state && state.flags && state.flags.length > 0 && state.screen === 'battle'); attempt++) {
+      await playUntil(page, (screen) => screen === 'battle');
+      await stepOnce(page);
+      nudged = await page.evaluate(() => globalThis.document.querySelectorAll('.stage__actor[data-acted]').length);
+      await page
+        .waitForFunction(
+          () => globalThis.document.querySelector('.stage__actor[data-hit], .stage__actor[data-fainting]') !== null,
+          undefined,
+          { timeout: DEFAULT_DISPLAY_TUNING.battleFeedbackMs * 4 },
+        )
+        .catch(() => undefined);
+      state = await sample(page);
+      await page.waitForTimeout(DEFAULT_DISPLAY_TUNING.battleFeedbackMs * 2);
+    }
+    if (!state) throw new Error('no turn was sampled');
 
     expect(state.shadowAnimation).toBe('none');
     expect(state.shadowOpacity).toBe('0');
@@ -236,7 +315,7 @@ describe('reduced motion', () => {
      * and the strip still prints its words. Reduced motion removes the
      * movement, not the information.
      */
-    expect(state.nudged, 'the sides that acted are still marked').toBeGreaterThan(0);
+    expect(nudged, 'the side that acted is still marked').toBeGreaterThan(0);
     expect(state.hit, 'the side that was hit is still marked').toBeGreaterThan(0);
     expect(state.stripDisplay).not.toBe('none');
     expect(state.flags, 'the strip rendered').not.toBeNull();

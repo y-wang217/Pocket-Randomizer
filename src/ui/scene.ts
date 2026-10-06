@@ -19,8 +19,8 @@
  * reason: a row that is replaced cannot pulse when its stage changes.
  */
 import { EFFECTIVENESS_LABELS } from '../core/battle/effectiveness';
-import type { FlaggedTurn } from '../core/battle/flags';
 import type { AbnormalityMark, TraitFire } from './abnormality';
+import type { ReplayStep, TurnReplay } from './replay';
 import { hpStateBare } from '../core/hpCopy';
 import { BOOSTABLE_STATS, STAT_LABELS } from '../core/battle/stats';
 import {
@@ -45,7 +45,7 @@ import {
 import type { ActiveUiView, BattleUiView, BenchMoveUiView, MoveUiView, SwitchUiView } from '../core/battle/view';
 import type { LocaleId } from '../data/locales';
 import { createBar, type Bar } from './bar';
-import { outroHoldMs } from './theme/motion';
+import { beatMs, outroHoldMs } from './theme/motion';
 import {
   abilityChip,
   bandChip,
@@ -253,31 +253,19 @@ export interface Scene {
    * and passing the union through means the app never has to guess which panel
    * a number came from.
    *
-   * `turns` is the screen's one reading of the protocol batch that produced
-   * this view, the same object the log is rendering from. The stage's beats
-   * are driven off it — Release C item 2's rule, moved onto the sprites by the
-   * bar and beats patch — and the point of passing it rather than reading it
-   * here is that there is then no second reading to disagree with the log.
-   * Omitted on a redraw that is not the result of new protocol.
+   * `replay` is the screen's one reading of the protocol batch that produced
+   * this view, as steps: one per action, in the order the engine resolved
+   * them, each carrying what the bodies looked like after it
+   * (`ui/replay.ts`). **The per-move replay patch.** The scene draws one step
+   * every two beats, the lunge then the hit, and the view itself last, so the
+   * second move's effect is seen after the first's and a body that switches
+   * in and faints in one turn rises and sinks in turn. The point of being
+   * handed the steps rather than reading them is that there is then no second
+   * reading to disagree with the log. Omitted on a redraw that is not the
+   * result of new protocol, and with no steps on the opening batch, which
+   * keeps its marks and fires: an arrival is not a turn.
    */
-  update(
-    view: BattleUiView,
-    onChoose: (choice: Choice) => void,
-    turns?: readonly FlaggedTurn[],
-    /**
-     * The abnormality marks for this turn, already reduced. **Branch 3B.**
-     *
-     * Handed in rather than derived here, and that is a boundary rather than a
-     * convenience: `test/boundaries.test.ts` forbids this file from reading a
-     * flag, because a beat that could see severity is one step from a beat that
-     * shows it. `ui/abnormality.ts` does the reduction; `screens/battle.ts`
-     * calls it off the same single protocol reading it already makes, so there
-     * is still one source of truth about a turn and now three consumers of it.
-     */
-    marks?: readonly AbnormalityMark[],
-    /** The panels whose trait fired this turn, from `ui/abnormality.ts`. **Stage 4.11 Tier 4.** */
-    fired?: readonly TraitFire[],
-  ): void;
+  update(view: BattleUiView, onChoose: (choice: Choice) => void, replay?: TurnReplay): void;
   /**
    * Play the end of the fight, and park until it has been seen.
    *
@@ -430,6 +418,16 @@ export function createScene(): Scene {
   root.addEventListener(
     'pointerdown',
     () => {
+      /*
+       * A replay in progress lands on its final view first. **The per-move
+       * replay patch.** The tap skips the steps, not the outcome: the board is
+       * drawn at the turn's end state, and when the fight ended on this turn
+       * the outro's hold still runs from here, so the last turn is painted
+       * before the result screen. A second tap ends that hold, as it always
+       * did. Nothing below reaches `finishOutro` on this tap for that reason.
+       */
+      const replaying = endReplay !== null;
+      if (replaying) endReplay?.();
       // Every beat on the stage is the sprites' now: the swap since V5.5, the
       // lunge, the hit and the faint since the bar and beats patch.
       settleActor(foeActor);
@@ -440,7 +438,7 @@ export function createScene(): Scene {
        * stop the animation and leave the player waiting out the rest of a hold
        * with nothing moving, which is worse than the animation it cut short.
        */
-      finishOutro();
+      if (!replaying) finishOutro();
       /*
        * The HP shadow resolves on the same tap. It is the one thing on this
        * screen that stays on the glass after the numbers are already right, so
@@ -474,6 +472,89 @@ export function createScene(): Scene {
    */
   const outroMs = (): number => outroHoldMs();
 
+  /*
+   * The replay. **The per-move replay patch.**
+   *
+   * `lastView` is the view the stage stood at before the batch, which is what
+   * a step's bodies are composed over until a switch brings the final view's
+   * body in. The timers are the steps still to draw; `endReplay` lands the
+   * stage on the final view at once and is what a tap, a cancel, a reset and
+   * the next update all call, so no two replays ever run together and no step
+   * is ever drawn over a newer view. `replayDone` is what the outro waits on,
+   * so the hold at the end of a fight begins after the last turn's steps
+   * rather than under them.
+   */
+  let lastView: BattleUiView | null = null;
+  let replayTimers: ReturnType<typeof globalThis.setTimeout>[] = [];
+  let endReplay: (() => void) | null = null;
+  let replayDone: Promise<void> | null = null;
+
+  /**
+   * Draw the bodies and their panels from a view, with the beats of the step
+   * it is: the lunge on `acted`, the hit on whichever bar drew a chunk, the
+   * marks and the fires handed in. `slotted` puts the chunk and the hit one
+   * beat after the lunge; off it, the chunk fades from now, which is what a
+   * redraw with no step behind it (the opening draw, the final view of a
+   * replay, every bar off the stage) always did.
+   */
+  const drawBodies = (
+    view: BattleUiView,
+    acted: 'p1' | 'p2' | null,
+    marks: readonly AbnormalityMark[],
+    fired: readonly TraitFire[],
+    slotted: boolean,
+    /** A later draw of the same turn: a chunk a previous step drew stands where this one lost nothing. */
+    keep = false,
+  ): void => {
+    /*
+     * The panels' own beats, before the redraw takes the evidence away.
+     * **Stage 4.11 Tier 4, D48.** Cleared on both panels first, because the
+     * attribute is the whole of the state; the reflow is the beats' own
+     * trick, so two fires in a row each get their pulse. A berry's sprite
+     * is cloned into the ghost now, while the slot still holds it.
+     */
+    for (const panel of [me, foe]) {
+      delete panel.traits.dataset['fired'];
+      delete panel.traits.dataset['firedSlot'];
+      delete panel.itemGhost.dataset['fired'];
+      delete panel.itemGhost.dataset['firedSlot'];
+      panel.itemGhost.replaceChildren();
+    }
+    void me.root.offsetWidth;
+    for (const fire of fired) {
+      const panel = fire.side === 'p1' ? me : foe;
+      if (fire.what === 'ability') {
+        panel.traits.dataset['fired'] = 'true';
+        panel.traits.dataset['firedSlot'] = String(fire.slot);
+      } else if (panel.item.firstElementChild && !panel.item.hidden) {
+        panel.itemGhost.replaceChildren(panel.item.firstElementChild.cloneNode(true));
+        panel.itemGhost.dataset['fired'] = 'true';
+        panel.itemGhost.dataset['firedSlot'] = String(fire.slot);
+      }
+    }
+    updateActor(foeActor, view.opponent);
+    updateActor(meActor, view.player);
+    // Whether each bar drew a chunk. The hit beat reads this and nothing
+    // else, so the recoil and the chunk agree by construction. The chunk's
+    // slot is the step's: one beat after the lunge, or none.
+    const slot = slotted ? 1 : null;
+    const hit = {
+      foe: updateSidePanel(foe, view.opponent, true, view.fasterSide === 'opponent', slot, keep),
+      me: updateSidePanel(me, view.player, false, view.fasterSide === 'player', slot, keep),
+    };
+    // The opposing side's count, on the opposing panel and nowhere else.
+    renderRoster(foe.roster, view.opponentLeft);
+    renderIntent(foe.intent, view.foeIntent);
+    root.dataset['faster'] = view.fasterSide;
+    beats({ me: meActor, foe: foeActor }, hit, acted, marks);
+  };
+
+  /** Land a running replay on its final view at once. Idempotent. */
+  const finishReplay = (): void => {
+    const end = endReplay;
+    if (end) end();
+  };
+
   return {
     root,
     stage,
@@ -481,47 +562,65 @@ export function createScene(): Scene {
       // A second outro on one screen is not a thing that happens, but if it
       // did, the first must not be left parked forever.
       finishOutro();
-      /*
-       * A body that already fainted is not recalled. It has sunk, the static
-       * `data-fainted` rule is holding it at the sink's end state, and raising
-       * it to full opacity to shrink it again would be the double-animation the
-       * ghost rule already avoids on a swap. So the winner's side gets the
-       * beat and the loser's keeps its faint.
-       */
-      if (kind !== 'defeat') {
-        foeActor.root.dataset['outro'] = kind === 'caught' ? 'caught' : 'recall';
-        if (meActor.root.dataset['fainted'] !== 'true') meActor.root.dataset['outro'] = 'recall';
-      }
-      /*
-       * **There is no zero branch, and its absence is the fix.**
-       *
-       * There used to be `if (ms <= 0) return Promise.resolve()`, which was the
-       * line that turned a failed style lookup into the original defect: the
-       * result screen rendered on the frame the KO landed and the last turn was
-       * never painted. `outroHoldMs` cannot return zero — every path floors at
-       * `reducedMotionOutroMs` — so the branch is unreachable, and an
-       * unreachable branch that restores a bug is worse than no branch at all.
-       * `test/battle-outro.test.ts` asserts the floor from this end and
-       * `test/no-computed-timing.test.ts` from the other.
-       */
-      const ms = outroMs();
+      const pending = replayDone;
       return new Promise<void>((resolve) => {
-        const timer = globalThis.setTimeout(() => {
+        let timer: ReturnType<typeof globalThis.setTimeout> | null = null;
+        endOutro = () => {
+          if (timer !== null) globalThis.clearTimeout(timer);
           endOutro = null;
           resolve();
-        }, ms);
-        endOutro = () => {
-          globalThis.clearTimeout(timer);
-          resolve();
         };
+        const begin = (): void => {
+          // Ended by a tap or a cancel while the last turn was still playing.
+          if (endOutro === null) return;
+          /*
+           * A body that already fainted is not recalled. It has sunk, the static
+           * `data-fainted` rule is holding it at the sink's end state, and raising
+           * it to full opacity to shrink it again would be the double-animation the
+           * ghost rule already avoids on a swap. So the winner's side gets the
+           * beat and the loser's keeps its faint.
+           */
+          if (kind !== 'defeat') {
+            foeActor.root.dataset['outro'] = kind === 'caught' ? 'caught' : 'recall';
+            if (meActor.root.dataset['fainted'] !== 'true') meActor.root.dataset['outro'] = 'recall';
+          }
+          /*
+           * **There is no zero branch, and its absence is the fix.**
+           *
+           * There used to be `if (ms <= 0) return Promise.resolve()`, which was the
+           * line that turned a failed style lookup into the original defect: the
+           * result screen rendered on the frame the KO landed and the last turn was
+           * never painted. `outroHoldMs` cannot return zero — every path floors at
+           * `reducedMotionOutroMs` — so the branch is unreachable, and an
+           * unreachable branch that restores a bug is worse than no branch at all.
+           * `test/battle-outro.test.ts` asserts the floor from this end and
+           * `test/no-computed-timing.test.ts` from the other.
+           */
+          timer = globalThis.setTimeout(() => {
+            endOutro = null;
+            resolve();
+          }, outroMs());
+        };
+        /*
+         * After the last turn's steps, when one is still playing. **The
+         * per-move replay patch.** The hold exists so the last turn is seen,
+         * and a hold that ran under the replay would end before the replay
+         * did. Begun at once when nothing is playing, so the hold starts on
+         * the frame it is asked for, as it always did.
+         */
+        if (pending) void pending.then(begin);
+        else begin();
       });
     },
     cancel() {
+      finishReplay();
       settleActor(foeActor);
       settleActor(meActor);
       finishOutro();
     },
     reset() {
+      finishReplay();
+      lastView = null;
       moves.replaceChildren();
       clearBench(bench);
       benchOpen = false;
@@ -529,59 +628,12 @@ export function createScene(): Scene {
       actions.hidden = true;
       showPane();
     },
-    update(view, onChoose, turns, marks, fired = []) {
-      /*
-       * The panels' own beats, before the redraw takes the evidence away.
-       * **Stage 4.11 Tier 4, D48.** Cleared on both panels first, because the
-       * attribute is the whole of the state; the reflow is the beats' own
-       * trick, so two fires in a row each get their pulse. A berry's sprite
-       * is cloned into the ghost now, while the slot still holds it.
-       */
-      for (const panel of [me, foe]) {
-        delete panel.traits.dataset['fired'];
-        delete panel.traits.dataset['firedSlot'];
-        delete panel.itemGhost.dataset['fired'];
-        delete panel.itemGhost.dataset['firedSlot'];
-        panel.itemGhost.replaceChildren();
-      }
-      void me.root.offsetWidth;
-      for (const fire of fired) {
-        const panel = fire.side === 'p1' ? me : foe;
-        if (fire.what === 'ability') {
-          panel.traits.dataset['fired'] = 'true';
-          panel.traits.dataset['firedSlot'] = String(fire.slot);
-        } else if (panel.item.firstElementChild && !panel.item.hidden) {
-          panel.itemGhost.replaceChildren(panel.item.firstElementChild.cloneNode(true));
-          panel.itemGhost.dataset['fired'] = 'true';
-          panel.itemGhost.dataset['firedSlot'] = String(fire.slot);
-        }
-      }
-      updateActor(foeActor, view.opponent);
-      updateActor(meActor, view.player);
-      // Whether each bar drew a chunk. The hit beat reads this and nothing
-      // else, so the recoil and the chunk agree by construction.
-      /*
-       * **The turn's order, read once and used three times.** See `actingOrder`.
-       *
-       * It has to be read *before* the panels redraw, because the chunk a bar
-       * draws is now slotted to the move that caused it and `Bar.set` writes the
-       * slot and the chunk in one go. `beats` is handed the same list rather
-       * than re-deriving it, so the lunge, the recoil and the chunk cannot
-       * disagree about who went first.
-       */
-      const order = actingOrder(turns);
-      // No reading, no slot: the bar fades its chunk across the whole budget
-      // from now, which is what it did before slots existed. See `hitSlot`.
-      const chunkSlot = (side: 'p1' | 'p2'): number | null =>
-        order.length === 0 ? null : hitSlot(side, order);
-      const hit = {
-        foe: updateSidePanel(foe, view.opponent, true, view.fasterSide === 'opponent', chunkSlot('p2')),
-        me: updateSidePanel(me, view.player, false, view.fasterSide === 'player', chunkSlot('p1')),
-      };
-      // The opposing side's count, on the opposing panel and nowhere else.
-      renderRoster(foe.roster, view.opponentLeft);
-      renderIntent(foe.intent, view.foeIntent);
-      root.dataset['faster'] = view.fasterSide;
+    update(view, onChoose, replay) {
+      // A newer view ends the steps of the last one, on their final view.
+      finishReplay();
+      const previous = lastView;
+      lastView = view;
+
       // Any choice closes the bench: the next decision opens on the moves.
       const choose = (choice: Choice): void => {
         benchOpen = false;
@@ -606,19 +658,125 @@ export function createScene(): Scene {
        * R4 says the default renders nothing at all.
        *
        * The reflow between the clear and the set is the same trick the beats
-       * use one line down and for the same reason: re-setting an attribute an
-       * element already carries does not replay a CSS animation, so two
-       * priority turns running would flash once without it.
+       * use and for the same reason: re-setting an attribute an element
+       * already carries does not replay a CSS animation, so two priority turns
+       * running would flash once without it. The reading is `ui/replay.ts`'s,
+       * off the log's own marking, never recomputed here.
        */
-      const mark = bracketMark(turns);
+      const mark = replay?.bracket ?? null;
       for (const panel of [me, foe]) delete panel.root.dataset['bracket'];
       if (mark) {
         void me.root.offsetWidth;
         (mark.side === 'p1' ? me : foe).root.dataset['bracket'] = mark.way;
       }
-      beats({ me: meActor, foe: foeActor }, hit, order, marks ?? []);
+
+      const steps = replay?.steps ?? [];
+      /*
+       * No steps: the view lands at once, with the batch's marks and fires
+       * and no lunge. That is the opening draw (an arrival is not a turn),
+       * every redraw that is not new protocol, and the fixtures that hand
+       * the scene a view and nothing else.
+       */
+      if (steps.length === 0) {
+        drawBodies(view, null, replay?.marks ?? [], replay?.fired ?? [], false);
+        return;
+      }
+      // Steps with nothing drawn before (a fixture's first update) play over
+      // the view itself: the lines still say where each body's HP went.
+      const before = previous ?? view;
+
+      /*
+       * The steps, two beats apart. **The per-move replay patch.** The first
+       * is drawn now, so the turn begins on the frame its view arrives; each
+       * later one on a timer, read off the tuning at the moment of use so a
+       * battle-speed change takes effect on the next turn; and the view itself
+       * last, with the residual's marks and fires, so whatever the lines did
+       * not say is corrected by the session's own facts. A tap lands on that
+       * final view at once (`finishReplay`).
+       */
+      const beat = beatMs();
+      let done: () => void = () => undefined;
+      replayDone = new Promise<void>((resolve) => {
+        done = resolve;
+      });
+      const settle = (final: boolean): void => {
+        for (const timer of replayTimers) globalThis.clearTimeout(timer);
+        replayTimers = [];
+        endReplay = null;
+        replayDone = null;
+        if (final) drawBodies(view, null, [], [], false, true);
+        done();
+      };
+      endReplay = () => settle(true);
+      const at = (ms: number, draw: () => void): void => {
+        replayTimers.push(globalThis.setTimeout(draw, ms));
+      };
+      steps.forEach((step, index) => {
+        // A move lunges; a switch is the swap beat on the body, not a lunge.
+        const acted = step.kind === 'move' ? step.side : null;
+        const draw = (): void => drawBodies(composeStep(before, view, steps, index), acted, step.marks, step.fired, true, index > 0);
+        if (index === 0) draw();
+        else at(index * 2 * beat, draw);
+      });
+      at(steps.length * 2 * beat, () => {
+        drawBodies(view, null, replay?.marks ?? [], replay?.fired ?? [], false, true);
+        settle(false);
+      });
     },
   };
+}
+
+/**
+ * The view a step is drawn from. **The per-move replay patch.**
+ *
+ * What is stepped is what the lines say and the stage shows: each side's HP,
+ * who is standing, and the faint. Everything else a panel carries (the
+ * status, the volatiles, the stages, the traits) is the turn's view's from
+ * the first step, as it was when the turn was drawn at once: the reader does
+ * not step those, and a panel that showed the previous turn's status under a
+ * body already shown hit would be the stale half of two views. A body that is
+ * still to be switched in is the view from before the batch until its switch
+ * step brings the turn's view's body in, so the level, the types and the
+ * stats beside the sprite are its own and not the next one's.
+ *
+ * The HP is the lines' after this action, read exact where the protocol gave
+ * the side's own numbers and as a fraction of the body's own max where it gave
+ * a percentage (the foe's); before any line has moved it, it is the HP the
+ * side stood at before the batch, never the turn's end value, which is the
+ * whole bug. The species comes from the switch line, so a body that arrived
+ * and left inside one batch is still drawn.
+ *
+ * The foe's count is held one higher through the steps before its faint, so
+ * the panel does not say a body is down before the stage shows it go.
+ */
+function composeStep(previous: BattleUiView, final: BattleUiView, steps: readonly ReplayStep[], index: number): BattleUiView {
+  const step = steps[index]!;
+  const body = (side: 'p1' | 'p2'): ActiveUiView => {
+    const key = side === 'p1' ? 'player' : 'opponent';
+    const state = step.bodies[side];
+    const sameBody = previous[key].species === final[key].species;
+    // The turn's facts once the body on this side is the turn's body; the
+    // earlier body's own until its switch step.
+    const base = state.switched || sameBody ? final[key] : previous[key];
+    const before = state.switched ? base.hp : previous[key].hp;
+    const hp = state.hp
+      ? {
+          max: base.hp.max,
+          fraction: state.fainted ? 0 : state.hp.fraction,
+          current: state.fainted ? 0 : state.hp.max === base.hp.max ? state.hp.current : Math.round(state.hp.fraction * base.hp.max),
+        }
+      : state.fainted
+        ? { ...before, fraction: 0, current: 0 }
+        : before;
+    const species = state.switched && state.species ? state.species : base.species;
+    return { ...base, species, name: species === base.species ? base.name : species, hp, fainted: state.fainted };
+  };
+  const foeFaintsLater =
+    !step.bodies.p2.fainted && (final.opponent.fainted || steps.slice(index + 1).some((later) => later.bodies.p2.fainted));
+  const opponentLeft = foeFaintsLater
+    ? { ...final.opponentLeft, standing: final.opponentLeft.standing + 1 }
+    : final.opponentLeft;
+  return { ...final, player: body('p1'), opponent: body('p2'), opponentLeft };
 }
 
 /**
@@ -1034,6 +1192,8 @@ function updateSidePanel(
    * recoil `beats` writes on the same body are two uses of one reading.
    */
   slot: number | null = null,
+  /** A later draw of the same turn: see `SetOptions.keep` in `ui/bar.ts`. */
+  keep = false,
 ): boolean {
   /*
    * Whether the body on this side changed. **The panel reads it; it no longer
@@ -1165,7 +1325,7 @@ function updateSidePanel(
    * never happened, on the one turn the player most needs to read the board
    * correctly.
    */
-  const hit = panel.hp.set(active.hp.fraction, { chunk: !swapped, slot });
+  const hit = panel.hp.set(active.hp.fraction, { chunk: !swapped, slot, keep });
   /*
    * Both sides now show exact HP.
    *
@@ -1529,175 +1689,44 @@ function panelTypeChip(type: string): HTMLElement {
 }
 
 /**
- * The turn, as beats on the stage: each actor lunges in the order its side
- * acted, and each sprite that lost HP recoils in the slot after the lunge that
- * took it. **Release C item 2, moved from the panel to the sprite by the bar
- * and beats patch.**
+ * The turn, as beats on the stage: each actor lunges when its action is
+ * drawn, and each sprite that lost HP recoils in the beat after the lunge
+ * that took it. **Release C item 2, moved from the panel to the sprite by the
+ * bar and beats patch, and paced one action at a time by the per-move replay
+ * patch.**
  *
- * ## What it is for
+ * The log has said who went first since the round 2 patch, in an ordinal at
+ * the head of each entry. That is correct and it is *reading*, and the thing
+ * the playtest actually reported, "priority doesn't exist", was never fixed by
+ * a number you have to go and look at. A body that lunges when it acts puts
+ * the sequence where the player is already looking: on the board. The panel
+ * has been a scrim over a body since V5.3 and does not move at all.
  *
- * The log has said who went first since the round 2 patch, in an ordinal at the
- * head of each entry. That is correct and it is *reading*, and the thing the
- * playtest actually reported — "priority doesn't exist" — was never fixed by a
- * number you have to go and look at. A body that lunges when it acts puts the
- * sequence where the player is already looking: on the board.
- *
- * It was the panel that moved until this patch. The panel has been a scrim
- * over a body since V5.3, and V5.5 moved the swap beat onto the body for the
- * reason that applies here too: two animations for one event is noise, and
- * the thing that acted is the sprite. The panel no longer moves at all.
- *
- * ## It never computes an order
- *
- * The order is `turns`, which the screen read once and gave to the log as well.
- * There is no sort here, no Speed comparison and no second call to `readTurns`
- * — the actors move in the order the actions are already in, so the lunge and
- * the log's ordinals cannot disagree. Priority marking is not this function's
- * business at all: it is the log's rule, applied by the reader, and the flag
- * strip surfaces it. A same-bracket turn is unmarked there and unremarkable
- * here — both sides lunge either way, because both sides acted either way.
- *
- * ## It never reads a flag
- *
- * The hit is the same size for every hit. Whether the move was super
+ * The order is the steps' (`ui/replay.ts`), which the screen read once and
+ * gave to the log as well; the lunges and the log's ordinals cannot disagree.
+ * The hit is the same size for every hit: whether the move was super
  * effective, resisted or a crit is on the flag strip in words and in the size
- * of the chunk the bar just drew; a recoil that grew with the multiplier would
- * be a verdict drawn on the board, which is the one thing the copy rule bars.
- * So this function reads `action.side` off the turn and the chunk boolean off
- * the bar, and nothing else.
- *
- * ## Which turn, and which sides
- *
- * The last group in the batch that has any actions, and **not** the last group
- * with a turn number — those are different, and the difference is the whole
- * bug this comment exists to stop somebody reintroducing. An incremental
- * update arrives as `|move| … |move| … |upkeep| |turn|N+1`: the actions that
- * just resolved sit in the leading group, which has no number yet because the
- * line that would have numbered it came at the *start* of the previous batch,
- * and the trailing `|turn|` opens an empty group for a turn nobody has played.
- * Reading a turn number here moves nothing, forever.
- *
- * The opening replay is skipped by its caller passing no reading at all, which
- * is the right place for it: an arrival is not a turn, and lunging both actors
- * at the start of every battle is noise. A chunk with no reading — which the
- * jsdom tests produce and the app does not — lands in the first slot.
- *
- * A side is placed by its *first* action in that turn, so a replacement switch
- * after a faint does not re-place an actor that has already moved. That caps
- * the sequence at two, which is what the two `data-acted` steps in the
- * stylesheet are: the delays are tokens, not numbers written from here.
- *
- * ## Which slot a hit lands in
- *
- * The slot of the *other* side's lunge: the recoil is the answer to the move
- * that caused it, so it follows that move's beat. When the other side did not
- * act at all — recoil damage, weather, a burn on a turn the opponent
- * switched — the hit takes the last slot there is, so it still reads as a
- * consequence of the turn rather than as something that happened before it.
+ * of the chunk the bar drew, and a recoil that grew with the multiplier would
+ * be a verdict drawn on the board.
  */
 /**
- * The sides of a turn, in the order they first acted. **One reading, three
- * consumers.**
+ * The beats of one step. **The per-move replay patch.**
  *
- * Lifted out of `beats` by the victory-order patch, because the HP chunk is
- * slotted now and the bar is drawn before the beats are written. Three things
- * on the stage key off this list — the lunge, the recoil, and the chunk a bar
- * draws — and two independent readings of "who went first" sitting a hundred
- * pixels apart is exactly the disagreement `screens/battle.ts` reads the
- * protocol once to prevent, one level up.
+ * `acted` lunges now; a sprite whose bar drew a chunk is knocked back in the
+ * slot after it, one beat on; a mark rides the same slot. One slot, because a
+ * step is one action: the four-slot layout that placed a side by its first
+ * action and the hit in the slot after the other side's lunge is gone with
+ * the turn-at-once draw it paced, and the order is now the order the steps
+ * are drawn in, which is the order the engine resolved them. There is still
+ * no sort here, no Speed comparison and no second reading.
  *
- * ## Which turn, and which sides
- *
- * The last group in the batch that has any actions, and **not** the last group
- * with a turn number — those are different, and the difference is a bug worth
- * not reintroducing. An incremental update arrives as `|move| … |move| …
- * |upkeep| |turn|N+1`: the actions that just resolved sit in the leading group,
- * which has no number yet because the line that would have numbered it came at
- * the *start* of the previous batch, and the trailing `|turn|` opens an empty
- * group for a turn nobody has played. Reading a turn number here moves nothing,
- * forever.
- *
- * A side is placed by its *first* action, so a replacement switch after a faint
- * does not re-place a side that has already moved. That caps the list at two,
- * which is what the stylesheet's four slots are built around.
- *
- * ## It never computes an order
- *
- * There is no sort here, no Speed comparison and no second call to `readTurns`.
- * The order is the one the engine already resolved and the log already
- * numbered, so the beats and the log's ordinals cannot disagree.
+ * It still never reads a flag: the hit is the same size for every hit, and
+ * the marks arrive reduced from `ui/abnormality.ts` (`test/boundaries.test.ts`).
  */
-function actingOrder(turns: readonly FlaggedTurn[] | undefined): ('p1' | 'p2')[] {
-  const latest = turns ? [...turns].reverse().find((turn) => turn.actions.length > 0) : undefined;
-  const seen: ('p1' | 'p2')[] = [];
-  for (const { action } of latest?.actions ?? []) {
-    if (!seen.includes(action.side)) seen.push(action.side);
-  }
-  return seen;
-}
-
-/**
- * Which side a priority bracket put first this turn, and which way. **M4.2.**
- *
- * Section 6 step 2: *"First actor jiggles. If a bracket decided the order, the
- * priority chevron flashes on that panel. Same-bracket turns are unmarked,
- * matching the log rule."*
- *
- * **It is the log's rule because it is the log's reading.** `readTurns` sets
- * `priority` on the earlier action of a pair whose brackets differ and never
- * on a same-bracket turn, even one where both sides used a priority move; that
- * answer arrives here on the `TurnAction` and is not recomputed. There is no
- * Speed comparison in this file and no second call to a reader — the same
- * reason `actingOrder` above takes the order it is handed.
- *
- * It reads `action`, never `flags`. `test/boundaries.test.ts` forbids this file
- * from touching a flag at all, and the mapper's own `priority` flag is the
- * strip's copy of this fact rather than its source: both read the bracket the
- * log already marked, which is what stops the chevron and the strip disagreeing
- * about a turn they are describing a few hundred pixels apart.
- */
-function bracketMark(turns: readonly FlaggedTurn[] | undefined): { side: 'p1' | 'p2'; way: 'up' | 'down' } | null {
-  const latest = turns ? [...turns].reverse().find((turn) => turn.actions.length > 0) : undefined;
-  for (const { action } of latest?.actions ?? []) {
-    if (action.kind !== 'move' || !action.priority) continue;
-    // A bracket that put a move first is positive by construction — it beat the
-    // other side's — but the sign is read rather than assumed, because a
-    // negative bracket going first would mean the other move was lower still
-    // and the chevron would be claiming the wrong thing.
-    return { side: action.side, way: action.bracket > 0 ? 'up' : 'down' };
-  }
-  return null;
-}
-
-/**
- * Which slot a hit on `side` lands in, 1-based, or null when there is no turn.
- *
- * The slot of the *other* side's lunge: a hit is the answer to the move that
- * caused it, so it follows that move's beat. When the other side did not act at
- * all — recoil damage, weather, a burn on a turn the opponent switched — it
- * takes the last slot there is, so it still reads as a consequence of the turn
- * rather than as something that happened before it.
- *
- * With no turn reading at all — the opening draw, and the chunk-only fixtures
- * in `test/battle-feedback.test.ts` — the answer is slot 1, the first there is.
- * That is the pre-slot behaviour of the recoil and it is kept exactly: a hit
- * that cannot be placed still lands rather than going unmarked.
- *
- * The *bar* wants the other answer in that case — no slot, fade across the
- * whole budget from now, which is what every bar did before slots existed — so
- * `update` asks for null there rather than this function inventing a second
- * meaning for the same question.
- */
-function hitSlot(side: 'p1' | 'p2', order: readonly ('p1' | 'p2')[]): number {
-  const other = side === 'p1' ? 'p2' : 'p1';
-  const slot = order.indexOf(other);
-  return slot >= 0 ? slot + 1 : Math.max(order.length, 1);
-}
-
 function beats(
   actors: { me: Actor; foe: Actor },
   hit: { me: boolean; foe: boolean },
-  seen: readonly ('p1' | 'p2')[],
+  acted: 'p1' | 'p2' | null,
   marks: readonly AbnormalityMark[],
 ): void {
   for (const actor of [actors.me, actors.foe]) {
@@ -1707,32 +1736,26 @@ function beats(
 
   // Restart rather than extend, the same as the swap beat and the HP chunk:
   // re-setting an attribute an element already carries does not replay a CSS
-  // animation, and two turns running must each get their own beat.
+  // animation, and two steps running must each get their own beat.
   void actors.me.root.offsetWidth;
   // `p1` is the player throughout: the projection, the log formatter and the
   // protocol all take p1's view.
   const actorOf = (side: 'p1' | 'p2'): Actor => (side === 'p1' ? actors.me : actors.foe);
-  for (const [index, side] of seen.entries()) {
-    actorOf(side).root.dataset['acted'] = String(index + 1);
-  }
+  if (acted) actorOf(acted).root.dataset['acted'] = '1';
   for (const [side, took] of [['p1', hit.me], ['p2', hit.foe]] as const) {
     if (!took) continue;
-    actorOf(side).root.dataset['hit'] = String(hitSlot(side, seen));
+    actorOf(side).root.dataset['hit'] = '1';
   }
 
   /*
    * The abnormality marks, **handed in rather than read here.** Branch 3B.
    *
-   * `ui/abnormality.ts` reduces the turn's flags to at most one class and slot
-   * per side, and this only writes them. That split is a boundary rather than a
+   * `ui/abnormality.ts` reduces a step's flags to at most one class per side,
+   * and this only writes them. That split is a boundary rather than a
    * tidy-up: `test/boundaries.test.ts` forbids this file from touching `.flags`
    * at all, because "a beat that read `flags` would be one step from a recoil
    * that grew with the multiplier, which is a verdict drawn on the board". The
    * scene cannot weight a beat by severity because it never sees severity.
-   *
-   * The slot is the slot of the action that caused the flag, so a mark runs
-   * concurrently with the lunge or hit it accompanies and the turn gains no
-   * time at all.
    */
   for (const actor of [actors.me, actors.foe]) {
     delete actor.root.dataset['abnormal'];

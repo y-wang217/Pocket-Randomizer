@@ -49,7 +49,7 @@ import type { BattleReview } from '../src/core/run';
 import { abilityEffects } from '../src/data/abilityEffects';
 import { OPPONENT_TEAM, PLAYER_TEAM } from '../src/data/mons';
 import { outroFor } from '../src/ui/app';
-import { abnormalityMarks } from '../src/ui/abnormality';
+import { readReplay } from '../src/ui/replay';
 import { createScene, type Scene } from '../src/ui/scene';
 import { DEFAULT_DISPLAY_TUNING } from '../src/data/displayTuning';
 
@@ -331,24 +331,35 @@ describe('an abnormality gets a beat, and it costs the turn nothing', () => {
    * A turn's worth of protocol, read and handed to a fresh scene.
    *
    * Deliberately the same three calls `ui/screens/battle.ts` makes — one
-   * `readFlags` over the batch, `abnormalityMarks` over the result, then
-   * `scene.update(view, onChoose, turns, marks)` — so what is asserted below is
+   * `readFlags` over the batch, `readReplay` over the result (which reduces
+   * the marks through `abnormalityMarks`), then `scene.update(view, onChoose,
+   * replay)` — so what is asserted below is
    * the wiring that ships rather than a rehearsal of it. The scene derives no
    * mark of its own: `test/boundaries.test.ts` forbids it from reading a flag.
    */
-  function watch(lines: readonly string[]): Scene {
+  function watch(lines: readonly string[], settled = false): Scene {
     const scene = createScene();
     const session = createBattle({ teams: { p1: PLAYER_TEAM, p2: OPPONENT_TEAM }, seed: 'ABNORM01' });
     const view = buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects);
     const turns = readFlags([...lines], STUB);
-    scene.update(view, () => undefined, turns, abnormalityMarks(turns));
+    /*
+     * A flag on no action (a `|cant|` with no move behind it) is the final
+     * draw's, after the steps (the per-move replay patch); `settled` runs the
+     * clock out to it. The rest read the first step, drawn on the update.
+     */
+    if (settled) vi.useFakeTimers();
+    scene.update(view, () => undefined, readReplay([...lines], turns));
+    if (settled) {
+      vi.runAllTimers();
+      vi.useRealTimers();
+    }
     return scene;
   }
 
   const OPEN = ['|switch|p1a: Snorlax|Snorlax, L50, M|235/235', '|switch|p2a: Golem|Golem, L50, M|155/155', '|turn|1'];
 
   it('marks a flinched turn, which today leaves no other trace at all', () => {
-    const scene = watch([...OPEN, '|cant|p1a: Snorlax|flinch']);
+    const scene = watch([...OPEN, '|cant|p1a: Snorlax|flinch'], true);
     expect(actor(scene, 'me').dataset['abnormal']).toBe('prevented');
   });
 
@@ -408,7 +419,7 @@ describe('an abnormality gets a beat, and it costs the turn nothing', () => {
   });
 
   it('clears on a tap, like every other beat on the stage', () => {
-    const scene = watch([...OPEN, '|cant|p1a: Snorlax|flinch']);
+    const scene = watch([...OPEN, '|cant|p1a: Snorlax|flinch'], true);
     expect(actor(scene, 'me').dataset['abnormal']).toBe('prevented');
     scene.root.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
     expect(actor(scene, 'me').dataset['abnormal']).toBeUndefined();

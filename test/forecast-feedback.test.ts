@@ -40,6 +40,7 @@ import { moveChoice, type TeamSpec } from '../src/core/types';
 import { abilityEffects } from '../src/data/abilityEffects';
 import { flagChip } from '../src/ui/chip';
 import { createFlagStrip } from '../src/ui/flag-strip';
+import { readReplay } from '../src/ui/replay';
 import { createScene } from '../src/ui/scene';
 import { glyphNode } from '../src/ui/theme/glyph';
 
@@ -232,9 +233,9 @@ describe('the priority chevron, on the panel and on the card', () => {
 /**
  * One turn, played, with the scene handed exactly what the app hands it.
  *
- * The same two calls `ui/screens/battle.ts` makes — one `readFlags` over the
- * batch, then `scene.update(view, onChoose, turns)` — so what is asserted is
- * the wiring that ships. `test/battle-feedback.test.ts` states the idiom.
+ * The same calls `ui/screens/battle.ts` makes — one `readFlags` over the
+ * batch, `readReplay` over the result, then `scene.update(view, onChoose,
+ * replay)` — so what is asserted is the wiring that ships. `test/battle-feedback.test.ts` states the idiom.
  */
 function playOneTurn(p1: TeamSpec, p2: TeamSpec, seed: string): HTMLElement {
   const session = createBattle({ teams: { p1, p2 }, seed });
@@ -246,7 +247,7 @@ function playOneTurn(p1: TeamSpec, p2: TeamSpec, seed: string): HTMLElement {
   scene.update(
     buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects),
     () => undefined,
-    readFlags(batch, { priorityOf: movePriority }),
+    readReplay(batch, readFlags(batch, { priorityOf: movePriority })),
   );
   return scene.root;
 }
@@ -300,7 +301,8 @@ describe('the chevron on the turn a bracket decided', () => {
       return session.protocolFor('p1').slice(before).filter((line) => !line.startsWith('|t:|'));
     };
 
-    scene.update(view(), () => undefined, readFlags([...turn()], { priorityOf: movePriority }));
+    const lines = [...turn()];
+    scene.update(view(), () => undefined, readReplay(lines, readFlags(lines, { priorityOf: movePriority })));
     const me = scene.root.querySelector('.panel--me') as HTMLElement;
     expect(me.dataset['bracket']).toBe('up');
 
@@ -325,8 +327,10 @@ describe('the jiggle still reads the log’s order', () => {
      * same `TurnAction` the lunge does, so a turn cannot flash a chevron on one
      * panel while the lunge says the other side went first.
      */
-    const scene = source('src/ui/scene.ts');
-    const body = /function bracketMark\([\s\S]*?\n}/.exec(scene)?.[0] ?? '';
+    // The reading moved from the scene to `ui/replay.ts` with the per-move
+    // replay patch, and the scene is handed the answer on the replay.
+    const reader = source('src/ui/replay.ts');
+    const body = /function bracketOf\([\s\S]*?\n}/.exec(reader)?.[0] ?? '';
 
     expect(body).toContain('action.priority');
     expect(body).toContain('action.bracket');

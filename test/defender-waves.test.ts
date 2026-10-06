@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 import { greedyAiPolicy } from '../src/core/battle/ai';
 import { chooseDraftPick, chooseGymType } from '../src/core/defender/opening';
-import { waveLength } from '../src/core/defender/waves';
+import { rankLocale, waveLength } from '../src/core/defender/waves';
 import type { NodeSpec } from '../src/core/encounters';
 import {
   atGym,
@@ -28,7 +28,8 @@ import {
   type RunState,
 } from '../src/core/run';
 import type { Reward } from '../src/core/rewards';
-import { DEFENDER_BOSS_RELIC_IDS, DEFENDER_RANKS, DEFENDER_RELIC_IDS, DEFENDER_WAVE_LENGTH } from '../src/data/defender';
+import { DEFENDER_BOSS_RELIC_IDS, DEFENDER_RANK_LOCALES, DEFENDER_RANKS, DEFENDER_RELIC_IDS, DEFENDER_WAVE_LENGTH } from '../src/data/defender';
+import { LOCALE_IDS } from '../src/data/locales';
 import { defenderOpponentIvs, opponentTeamSize } from '../src/data/scaling';
 import { classesAtRank } from '../src/data/trainerClasses';
 import { DEFAULT_TUNING } from '../src/data/tuning';
@@ -89,6 +90,25 @@ describe('the ranks, as generated', () => {
           expect(node.acquisition).toBeNull();
         }
       }
+    }
+  });
+
+  it('sets each rank in its own region from the table, on the route and never on a node (the defender map backdrops patch)', () => {
+    // Every region once, so no two ranks share a painting.
+    expect(DEFENDER_RANK_LOCALES).toHaveLength(DEFENDER_RANKS);
+    expect(new Set(DEFENDER_RANK_LOCALES).size).toBe(DEFENDER_RANKS);
+    for (const locale of DEFENDER_RANK_LOCALES) expect(LOCALE_IDS).toContain(locale);
+    for (const seed of SEEDS) {
+      const run = createRun(seed, DEFAULT_TUNING, 'defender');
+      run.segments.forEach((rank, r) => {
+        // A lookup, not a draw: the same region on every seed.
+        expect(rank.routes[0]!.locale).toBe(DEFENDER_RANK_LOCALES[r]);
+        expect(rankLocale(r)).toBe(DEFENDER_RANK_LOCALES[r]);
+        // The route carries it and the question is never asked.
+        expect(rank.localeOffer).toEqual([]);
+      });
+      // Past the table's end the last region holds, as `waveLength` holds its last row.
+      expect(rankLocale(DEFENDER_RANKS + 3)).toBe(DEFENDER_RANK_LOCALES[DEFENDER_RANKS - 1]);
     }
   });
 

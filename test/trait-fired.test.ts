@@ -43,7 +43,7 @@ describe('the scene, handed a fire', () => {
     const session = createBattle({ teams: { p1: [mon('Snorlax', 'Thick Fat')], p2: [mon('Golem', 'Sturdy')] }, seed: 'FIRE-1' });
     const scene = createScene();
     scene.update(view(session), () => undefined);
-    scene.update(view(session), () => undefined, undefined, [], [{ side: 'p2', what: 'ability', slot: 2 }]);
+    scene.update(view(session), () => undefined, { steps: [], marks: [], fired: [{ side: 'p2', what: 'ability', slot: 2 }], bracket: null });
     const foe = scene.root.querySelector('.panel--foe .panel__traits') as HTMLElement;
     const me = scene.root.querySelector('.panel--me .panel__traits') as HTMLElement;
     expect(foe.dataset['fired']).toBe('true');
@@ -61,7 +61,7 @@ describe('the scene, handed a fire', () => {
     const slot = scene.root.querySelector('.panel--me .panel__item') as HTMLElement;
     const ghost = scene.root.querySelector('.panel--me .panel__item-ghost') as HTMLElement;
     expect(slot.firstElementChild).not.toBeNull();
-    scene.update(view(session), () => undefined, undefined, [], [{ side: 'p1', what: 'item', slot: 1 }]);
+    scene.update(view(session), () => undefined, { steps: [], marks: [], fired: [{ side: 'p1', what: 'item', slot: 1 }], bracket: null });
     expect(ghost.dataset['fired']).toBe('true');
     expect(ghost.firstElementChild?.className).toBe(slot.firstElementChild?.className);
     scene.update(view(session), () => undefined);
@@ -73,7 +73,7 @@ describe('the scene, handed a fire', () => {
     const session = createBattle({ teams: { p1: [mon('Snorlax', 'Thick Fat')], p2: [mon('Golem', 'Sturdy')] }, seed: 'FIRE-3' });
     const scene = createScene();
     scene.update(view(session), () => undefined);
-    scene.update(view(session), () => undefined, undefined, [], [{ side: 'p1', what: 'item', slot: 1 }]);
+    scene.update(view(session), () => undefined, { steps: [], marks: [], fired: [{ side: 'p1', what: 'item', slot: 1 }], bracket: null });
     const ghost = scene.root.querySelector('.panel--me .panel__item-ghost') as HTMLElement;
     expect(ghost.dataset['fired']).toBeUndefined();
   });

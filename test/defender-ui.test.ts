@@ -19,7 +19,8 @@ import { createBattle } from '../src/core/battle/driver';
 import { buildBattleUiView } from '../src/core/battle/view';
 import { abilityEffects } from '../src/data/abilityEffects';
 import { createScene } from '../src/ui/scene';
-import { DEFENDER_GYM_TYPES } from '../src/data/defender';
+import { DEFENDER_GYM_TYPES, DEFENDER_RANK_LOCALES } from '../src/data/defender';
+import { localeById } from '../src/data/locales';
 import { BADGE_COPY, CONSUMABLE_COPY } from '../src/data/defenderCopy';
 import { TRAINER_CLASS_NAMES } from '../src/data/trainerClassCopy';
 import { trainerClass } from '../src/data/trainerClasses';
@@ -132,7 +133,14 @@ describe('the door on the map (D101)', () => {
       const types = trainerClass(door.trainerClass!)!.types;
       const chips = [...card.querySelectorAll('.node__types .type')];
       expect(chips.length, `${door.trainerClass} type chips`).toBe(types.length);
+      // The class's own sprite in the kind's slot (the map sprites patch, D107).
+      const sprite = card.querySelector<HTMLImageElement>('.node__kind--trainer img.sprite--opponent');
+      expect(sprite?.src, `${door.trainerClass} sprite`).toContain(trainerClass(door.trainerClass!)!.sprite);
     });
+    // On every row, not only the one being chosen from: the class is named there too.
+    const later = [...map.root.querySelectorAll<HTMLElement>('.step--upcoming .node--trainer')];
+    expect(later.length).toBeGreaterThan(0);
+    for (const card of later) expect(card.querySelector('.node__kind--trainer img.sprite--opponent')).not.toBeNull();
 
     // A boss has no leader: no attacker challenger name anywhere on the map.
     const leader = createRun('UI-DOOR').segments[0]!.leader;
@@ -141,11 +149,40 @@ describe('the door on the map (D101)', () => {
     expect(map.root.querySelector('.screen__title')?.hasAttribute('data-tip')).toBe(false);
   });
 
-  it('leaves the attacker map with no class names', () => {
+  it('leaves the attacker map with no class names, and no sprite on a trainer not yet met', () => {
     const map = createRunMap();
-    const state = createRun('UI-DOOR');
+    const run = createRun('UI-DOOR');
+    const state = { ...run, localeChoices: run.localeChoices.map((_, index) => (index === 0 ? 0 : null)) };
     map.render(state, () => undefined);
     expect(map.root.querySelector('.node__name--class')).toBeNull();
+    // The record's sprite would say who is behind the door before the choice.
+    expect(map.root.querySelector('.node--trainer:not(.node--visited) .node__kind--trainer')).toBeNull();
+  });
+});
+
+describe('the rank\'s region on the map (the defender map backdrops patch)', () => {
+  it('stands the graph on the rank\'s map backdrop and names the region without its type chips', () => {
+    const state = drafted('UI-DOOR', 'Fire');
+    const map = createRunMap();
+    map.render(state, () => undefined);
+    const locale = state.segments[0]!.routes[0]!.locale;
+    expect(locale).toBe(DEFENDER_RANK_LOCALES[0]);
+    expect(map.root.querySelector<HTMLElement>('.map-graph')?.dataset['backdrop']).toBe(`map-backdrop:${locale}`);
+    const region = map.root.querySelector<HTMLElement>('.map__region');
+    expect(region?.hidden).toBe(false);
+    expect(region?.querySelector('.map__region-name')?.textContent).toBe(localeById(locale!).name);
+    // The chips say what a region's wild nodes hold; a door's challengers come from their class.
+    expect(region?.querySelectorAll('.type').length).toBe(0);
+  });
+
+  it('keeps the attacker heading\'s four type chips', () => {
+    const run = createRun('UI-DOOR');
+    const state = { ...run, localeChoices: run.localeChoices.map((_, index) => (index === 0 ? 0 : null)) };
+    const map = createRunMap();
+    map.render(state, () => undefined);
+    const region = map.root.querySelector<HTMLElement>('.map__region');
+    expect(region?.hidden).toBe(false);
+    expect(region?.querySelectorAll('.type').length).toBe(4);
   });
 });
 
