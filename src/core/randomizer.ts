@@ -509,7 +509,19 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * `RUN_LOG_VERSION` holds: the pages are `reward` entries.
  * `docs/generation.md` section 117.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-33';
+/*
+ * ## `-34`: the question marks come to Defender Mode. One step per rank from
+ * rank 1, before the intermission: its shape and identity on
+ * `defender/rank/<rank>/events` (`map`), its options on
+ * `defender/node/<id>/event` (`rewards`), an ambush's team on the node's own
+ * `randomizer` key and its seed on `battle`, its cards on `offer` and a
+ * bazaar's shelf on `shop`. New keys and new nodes; the doors, the intermission
+ * and the boss draw as before, and no attacker draw moves. `contentHash`
+ * moves for `data/defenderEvents.ts` and the `consumable` effect in
+ * `data/eventPools.ts`. `RUN_LOG_VERSION` is `-25` with the `eventPick` entry.
+ * `docs/generation.md` section 118.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-34';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

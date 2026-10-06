@@ -170,6 +170,7 @@ function isRunDecision(value: unknown): boolean {
     case 'node':
     case 'reward':
     case 'berry':
+    case 'eventPick':
     case 'target':
       return typeof decision.index === 'number';
     /*

@@ -973,6 +973,16 @@ export type RunDecision =
    */
   | { kind: 'trade'; accept: boolean }
   /**
+   * Which option a defender question mark was answered with, as an index into
+   * its `options`. **Defender Mode, 2026-10-06.** An index, unlike the
+   * attacker's `event` above, because a defender event has no gate: a
+   * state-gated option stays on the menu disabled rather than leaving it, so
+   * the list is the same length whatever the run holds and the index names
+   * the same button on every replay. Refused on replay if out of range or
+   * unpayable, as the attacker's is.
+   */
+  | { kind: 'eventPick'; index: number }
+  /**
    * What the player did with their items at this node boundary.
    *
    * **Stored as a value, and it is the second exception to the index rule.**

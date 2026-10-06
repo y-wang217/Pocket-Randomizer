@@ -147,6 +147,15 @@ export interface NodeSpec {
    */
   revenge?: { offers: readonly RewardOffer[] };
   /**
+   * A defender question mark's contents (`core/defender/events.ts`),
+   * **2026-10-06**: its shape, its identity and every option fully drawn. On a
+   * defender `event` node only; `event` below stays null there, since the
+   * attacker's instance is a different shape. `tier` stays null so the map
+   * shows the question mark and nothing else; an ambush's fight reads its
+   * tier from the shape (`fightTierOf`).
+   */
+  defenderEvent?: import('./defender/events').DefenderEventInstance;
+  /**
    * The locale this node's route runs through, or null for the gym.
    *
    * **Added by the event rejig, and it is plumbing rather than a new fact.**

@@ -527,8 +527,13 @@ describe('the version axes', () => {
      * And for its third change, from `d18681`: `data/defender.ts` gains the
      * Collector's slot and `data/trainerClasses.ts` the Collector.
      * `gymrun-randomizer-33` moves beside it. `docs/generation.md` section 117.
+     *
+     * And for its first change, from `714eea`: `data/defenderEvents.ts`, the
+     * question marks' table, and the `consumable` effect in
+     * `data/eventPools.ts`. `gymrun-randomizer-34` moves beside it.
+     * `docs/generation.md` section 118.
      */
-    expect(CONTENT_HASH).toBe('714eea9f64b747094cdc9689e4abe91d322ff80a85ef852693670ac08209f228');
+    expect(CONTENT_HASH).toBe('3a0597965aaf062fa161fc57dd2ae2f804de8c98a39b013348852e5bf240e02c');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

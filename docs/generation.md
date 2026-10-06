@@ -14682,7 +14682,7 @@ deletes rules the other three would otherwise have to work around.
 Three rules leave the lineage, with this note rather than a flag:
 
 - **The exempt slot.** `DEFENDER_BASE_EXEMPT_SLOTS`, `DEFENDER_OFF_TYPE_SLOTS`
-  and `core/defender/exempt.ts` are gone. Section 106.7's "one party slot
+  and the `exempt` module under `core/defender/` are gone. Section 106.7's "one party slot
   exempt from the type lock" and 106.8's "while a Stranger's Pass slot is
   free, a recruit draft's third option is the rank's off-type candidate" are
   both superseded.
@@ -14841,3 +14841,114 @@ takes every trade and walks through the Collector's door is paid one page per
 mon fielded and replays byte for byte. `test/defender-opening.test.ts` learns
 that the names table carries the Collector. The sim fixture and the visual
 baseline re-recorded for the stamp; the attacker golden holds.
+
+## 118. The question marks come to Defender Mode
+
+**2026-10-06**, the defender design message's first change, built last, on
+`claude/affectionate-hopper-0beolc`. Prompt
+[`spec/gymrun-patch-defender-events-trades-revenge-offtype.md`](spec/gymrun-patch-defender-events-trades-revenge-offtype.md):
+*"i see very few ? event nodes now. was that a real change?"* and *"make ?
+event nodes possible to have any number of results, not just acquire
+something for a price. e.g. battle, make a decision, get something special, a
+special store, or a rest spot. could be a free relic on rare occasions...
+mimic slay the spire events"*, with the ruling *"Dedicated ? step"*.
+`RANDOMIZER_VERSION` to `-34`, `RUN_LOG_VERSION` is `-25` (section 116's
+bump, widened to carry this change's decision too, one bump for the one
+message as Defender Mode v0's five decisions were one), `contentHash` from
+`714eea` to `3a0597`; `AI_VERSION` holds.
+
+### The answer to the question
+
+Not a real change: a defender run had **no** event nodes at all
+(`data/defender.ts`, "a defender run has no events"; `generateRank` emitted
+doors, an intermission and a boss). The attacker map's event weights have not
+moved since the first visible commit; what thinned its events was section
+100's battle floor, which overwrites extra drawn events before the event floor
+runs, and shorter runs. Recorded here and left alone: this section is about
+the mode the author was in.
+
+### One step per rank, six shapes
+
+Every rank from rank 1 has one question-mark step (`DEFENDER_EVENT_STEPS`),
+after its doors and before its intermission, a step of one node, never a
+choice. Its shape is drawn by the rank's weight table
+(`DEFENDER_EVENT_SHAPE_WEIGHTS`) and its identity by a run-wide picker
+(`DefenderEventPicker`: no repeat inside a run until a shape runs dry), both on
+`defender/rank/<rank>/events` on `map`; its options on
+`defender/node/<id>/event` on `rewards`, a purpose nothing else reads. Slay the
+Spire rolls a `?` room's kind on entry with pity counters; this game cannot
+draw at entry, so the shape is drawn at generation and the counters are the
+weight table.
+
+| shape | borrowed from | what it asks |
+|---|---|---|
+| dilemma | Big Fish, Living Wall | three things to take, each a drawn cost and grant |
+| gamble | Wheel of Change, The Joust | a wager with its odds on the button, won or lost by a roll made at generation; a way to leave |
+| ambush | Masked Bandits, Mysterious Sphere | a fight, free to press; win it for the node's three cards and the option's grant; or pay a stated price for a sure thing; or leave |
+| bazaar | Designer In-Spire, The Woman in Blue | nothing: the node carries a shelf of its own (`DEFENDER_BAZAAR_SHELF`, heals, berries, consumables) and the shop screen asks |
+| shrine | Shining Light, The Cleric | a free partial heal, or a full one for a stated price; or leave |
+| cache | Lab | something for nothing; the rare free relic, by the shape's smallest weight and a rank floor of 3 |
+
+Twelve events (`data/defenderEvents.ts`), two per shape, in `contentHash`;
+their words in `data/defenderEventCopy.ts`, excluded from it like every copy
+file (D12), under the attacker event copy's budgets
+(`test/defender-event-copy.test.ts`).
+
+### What is drawn, and what a pick means
+
+Per option, in option order: its cost, its grant, its loss, then the
+wager's roll (`generateDefenderEvent`), through the attacker's own resolver
+(`resolveEffects`, now exported with the relic table as a parameter, so a
+defender relic is drawn from `DEFENDER_RELIC_IDS`) into the attacker's
+`EventOutcome`, applied by the attacker's fold (`applyToll` then
+`applyEventOutcome`). One effect kind is added to the shared vocabulary,
+`consumable`, into the defender bag; no attacker pool uses it. An ambush's
+team is a hard untyped class team on the node's `randomizer` key, its seed on
+`battle` in pass 3 like every fight's, its cards on `offer` in pass 4; a
+bazaar's shelf on `shop`. Everything is drawn whatever the run looks like, and
+reading an option draws nothing (`test/defender-events.test.ts`).
+
+A pick is logged as `{ kind: 'eventPick', index }`. An index, unlike the
+attacker's archetype, because a defender event has no gate: a `pay` the run
+cannot afford stays on the menu, dimmed, by the Prices rule, so the list never
+shrinks and the index names the same button on every replay. It is **asked
+before the fight**, not after as the attacker's is, because an ambush's fight
+happens only if the fight is picked: `playNode` takes a `fight` flag, a
+declined ambush plays no battle and pays nothing, and a lost one ends the run
+as any fight does. The two refusals are the attacker's, in the attacker's
+shape: out of range, and `cannot pay`, named.
+
+### Three rules change
+
+- **"An event is a node with no battle in it"** is deleted for this mode,
+  with a dated note in `core/events.ts`'s `damageParty` header. Section 14's
+  Toll ruling stands in both modes: a `pay` option never contains a fight,
+  asserted over the table.
+- **`aiTierFor` and `nodePayout` read the fight, not the node.** An ambush
+  node's `tier` stays null so the map shows the question mark alone;
+  `tieredOpponentFor` reads `fightKindOf` and `fightTierOf` (a hard trainer),
+  and `nodePayout` pays nothing for an event kind, so an ambush's gold is the
+  option's `currency` grant.
+- **The intermission is no longer the only step of one.** The run loop plays
+  a question mark without a door question, as it does the intermission.
+
+**Defaults taken, recorded as deviations**: twelve events rather than a larger
+table; a wager's loss is drawn as the losing outcome's cost; the bench bot
+answers option 0 at every question mark, which on an ambush is the fight.
+
+### The UI
+
+Not yet drawn. The event screen mounts a `DefenderEventInstance` under D109
+(bible Rev 29) in the UI stage; until then the app refuses a defender run at
+its first question mark (*"needs a policy that answers
+chooseDefenderEvent"*), which is the headless-first order every stage has
+kept.
+
+### Tests
+
+`test/defender-events.test.ts` (the table, draw invariance, the steps, a
+played run with fights picked and declined, the unaffordable price refused by
+name), `test/defender-event-copy.test.ts`, `test/defender-waves.test.ts`
+reshaped for the steps. The sim fixture and the visual baseline re-recorded
+for the stamp; the attacker golden, `test/event-costs.test.ts` and
+`test/event-inventory.test.ts` hold.

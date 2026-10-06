@@ -37,6 +37,7 @@
 import type { AcquisitionDecision, AcquisitionOffer } from '../core/acquisition';
 import type { NodeSpec } from '../core/encounters';
 import type { ShopStock } from '../core/economy';
+import type { DefenderEventInstance } from '../core/defender/events';
 import type { EventInstance } from '../core/events';
 import type { EvolutionQuestion } from '../core/evolution';
 import { describeReward, type BerryPick, type RewardOffer } from '../core/rewards';
@@ -44,6 +45,7 @@ import { runMode, type RunPolicy, type RunState } from '../core/run';
 import type { BattleView, ItemPlan, PokemonSpec, PokemonState, RunDecision, RunLog } from '../core/types';
 import { consumableById } from '../data/consumables';
 import { TRAINER_CLASS_NAMES } from '../data/trainerClassCopy';
+import { defenderEventLabel } from '../data/defenderEventCopy';
 import { eventLabel } from '../data/eventCopy';
 import { itemName } from '../data/items';
 import { localeById, type LocaleId } from '../data/locales';
@@ -96,6 +98,7 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
   let pick: BerryPick | null = null;
   let stock: ShopStock | null = null;
   let event: EventInstance | null = null;
+  let defenderEvent: DefenderEventInstance | null = null;
   let acquisition: { offer: AcquisitionOffer; party: Names } | null = null;
   let evolution: EvolutionQuestion | null = null;
   let view: BattleView | null = null;
@@ -143,6 +146,8 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
         return DEFENDER_FEED_COPY.recruit(recruits[decision.index]?.species ?? '');
       case 'trade':
         return DEFENDER_FEED_COPY.trade(decision.accept);
+      case 'eventPick':
+        return FEED_COPY.event(defenderEvent ? defenderEventLabel(defenderEvent.eventId, decision.index) : '');
       case 'starter':
         return FEED_COPY.starter(starters[decision.index]?.species ?? '');
       case 'locale': {
@@ -212,7 +217,7 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
     }
   };
 
-  const { chooseGymType: askGymType, chooseDraftPick: askDraft, chooseDoor: askDoor, chooseRecruit: askRecruit } = inner;
+  const { chooseGymType: askGymType, chooseDraftPick: askDraft, chooseDoor: askDoor, chooseRecruit: askRecruit, chooseDefenderEvent: askDefenderEvent } = inner;
   const policy: RunPolicy = {
     ...inner,
     chooseStarter: (options) => {
@@ -245,6 +250,13 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
         seen(state);
         recruits = options;
         return askRecruit(options, state);
+      },
+    }),
+    ...(askDefenderEvent && {
+      chooseDefenderEvent: (next: DefenderEventInstance, state: RunState) => {
+        seen(state);
+        defenderEvent = next;
+        return askDefenderEvent(next, state);
       },
     }),
     chooseLocale: (options, state) => {

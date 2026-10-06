@@ -73,6 +73,14 @@ import { DEFENDER_RANKS } from '../data/defender';
 import { generateRank } from './defender/waves';
 import { DEFENDER_REVENGE_CLASS } from '../data/trainerClasses';
 import { badgesActive, battleBadgeFor } from './defender/badge';
+import {
+  applyDefenderEventPick,
+  DefenderEventPicker,
+  defenderOptionPayable,
+  fightKindOf,
+  fightTierOf,
+  type DefenderEventInstance,
+} from './defender/events';
 import { revengeNodeFor } from './defender/revenge';
 import { chooseRecruit, generateRecruits, recruitOptions } from './defender/recruit';
 import { resolveTrade } from './defender/trade';
@@ -460,16 +468,19 @@ import { DEFAULT_TUNING, type NodeKind, type Tuning } from '../data/tuning';
  * section 106.
  */
 /*
- * ## `-25`: a trade is taken or declined
+ * ## `-25`: a trade is taken or declined, and a question mark is answered
  *
- * **A decision is added**, `{ kind: 'trade', accept }`, recorded immediately
- * after the `reward` entry that picked a trade card. Picking the card is the
- * first step and forfeits the other two; this is the second, asked with the
- * offered mon revealed. A `-24` reader meets a kind it does not know, and a
- * `-24` log replayed here runs out of step at the first trade it picked. The
- * defender design message, change 2.
- * `docs/spec/gymrun-patch-defender-events-trades-revenge-offtype.md`,
- * `docs/generation.md` section 116.
+ * **Two decisions are added**, both the defender design message's.
+ * `{ kind: 'trade', accept }` is recorded immediately after the `reward`
+ * entry that picked a trade card: picking the card is the first step and
+ * forfeits the other two, this is the second, asked with the offered mon
+ * revealed (change 2, `docs/generation.md` section 116).
+ * `{ kind: 'eventPick', index }` is a defender question mark's option, asked
+ * before any fight it starts (change 1, section 118). A `-24` reader meets
+ * kinds it does not know, and a `-24` log replayed here runs out of step at
+ * the first of either. One bump for the one message, as Defender Mode v0's
+ * five decisions were one.
+ * `docs/spec/gymrun-patch-defender-events-trades-revenge-offtype.md`.
  */
 export const RUN_LOG_VERSION = `gymrun-run-25/${ENGINE_VERSION}`;
 
@@ -811,7 +822,9 @@ function createDefenderRun(seed: string, tuning: Tuning): RunState {
   // The opening first, then every rank, all at creation: the same order the
   // attacker draws its starters before its map, and for the same reason.
   const defender = createDefenderState(rng);
-  const segments = Array.from({ length: DEFENDER_RANKS }, (_, rank) => generateRank(rank, rng, tuning));
+  // One event picker across the ranks, so no question mark repeats in a run.
+  const picker = new DefenderEventPicker();
+  const segments = Array.from({ length: DEFENDER_RANKS }, (_, rank) => generateRank(rank, rng, tuning, picker));
   defender.recruits = generateRecruits(rng);
   return {
     seed,
@@ -1107,6 +1120,12 @@ export interface NodeResult {
    */
   extraRewards?: Reward[];
   /**
+   * Which option of a defender question mark was pressed (2026-10-06), as the
+   * `eventPick` decision recorded it. `resolveNode` folds it through
+   * `applyDefenderEventPick`, reading the fight's result for a `fight`.
+   */
+  eventPick?: number;
+  /**
    * The shelf as it was shown, with relic cards already collapsed.
    *
    * Present only when this node is a shop. `resolveNode` prefers it over
@@ -1373,6 +1392,21 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
       currency = base.currency;
       backpack = base.backpack;
     }
+  }
+
+  /*
+   * **A defender question mark's pick. 2026-10-06.** The same fold the
+   * attacker's event goes through, `applyToll` then `applyEventOutcome`, over
+   * the option the index names and the outcome its role and the fight's
+   * result select (`defenderOutcomeOf`). Before the wipe check for the reason
+   * the attacker's is, and onto `base` for the reason the attacker's is.
+   */
+  if (result.eventPick !== undefined && result.node.defenderEvent) {
+    const won = result.battle?.result.winner === 'p1';
+    base = applyDefenderEventPick({ ...base, party, currency, backpack }, result.node.defenderEvent, result.eventPick, won, state.tuning);
+    party = base.party;
+    currency = base.currency;
+    backpack = base.backpack;
   }
 
   const history: NodeVisit[] = [
@@ -1642,6 +1676,12 @@ export interface RunPolicy {
    * either way so the schema is one shape.
    */
   chooseTrade?: (card: Extract<Reward, { kind: 'trade' }>, state: RunState) => Promise<boolean>;
+  /**
+   * **Defender Mode, 2026-10-06.** Which option of a question mark, as an index
+   * into its `options`, asked before any fight the option might start. A
+   * defender run refuses a policy that lacks it at its first question mark.
+   */
+  chooseDefenderEvent?: (event: DefenderEventInstance, state: RunState) => Promise<number>;
   /**
    * Handed the run's party editor once, before the first question. **The
    * opening playtest QA, QA-001.**
@@ -2116,7 +2156,9 @@ export async function playRun(
        */
       const options = nodeOptions(state);
       const only = options.length === 1 ? options[0] : undefined;
-      if (only && only.kind === 'shop') {
+      // A question mark is a step of one too (2026-10-06): its question is
+      // which option, asked below, not whether to enter.
+      if (only && (only.kind === 'shop' || only.kind === 'event')) {
         node = only;
       } else {
         if (!policy.chooseDoor) throw new Error('A defender run needs a policy that answers chooseDoor');
@@ -2130,13 +2172,39 @@ export async function playRun(
       node = nextNode(state, choice);
     }
 
-    battling = node.encounter !== null;
+    /*
+     * **A defender question mark asks before the fight. 2026-10-06.** The
+     * attacker's event asks after `playNode` because an event there has no
+     * fight; an ambush does, and only if the player picks it. So the pick is
+     * taken here, logged as an index, refused if out of range or unaffordable
+     * (the same two refusals the attacker's event makes, in the same shape),
+     * and it decides whether `playNode` fights at all. A declined ambush plays
+     * no battle and `result.node` keeps its encounter for the record.
+     */
+    let fight = node.encounter !== null;
+    let eventPick: number | undefined;
+    if (node.defenderEvent && node.defenderEvent.options.length > 0) {
+      const event = node.defenderEvent;
+      if (!policy.chooseDefenderEvent) throw new Error('A defender run needs a policy that answers chooseDefenderEvent');
+      const index = await policy.chooseDefenderEvent(event, state);
+      record({ kind: 'eventPick', index });
+      const option = event.options[index];
+      if (!option) throw new RangeError(`Event option ${index} out of range on ${event.eventId} (${event.options.length} offered)`);
+      if (!defenderOptionPayable(state, option)) {
+        throw new RangeError(`Event option ${index} on ${event.eventId} charges ${option.toll ? describeToll(option.toll) : 'nothing'}, which this run cannot pay`);
+      }
+      eventPick = index;
+      fight = fight && option.role === 'fight';
+    }
+
+    battling = fight;
     let result: NodeResult;
     try {
-      result = await playNode(state, node, policy, record, opponentFor, options);
+      result = await playNode(state, node, policy, record, opponentFor, options, fight);
     } finally {
       battling = false;
     }
+    if (eventPick !== undefined) result.eventPick = eventPick;
 
     /*
      * **The fight is over, so say so.** First of the three projection points.
@@ -2809,7 +2877,8 @@ function maxNodes(state: RunState): number {
  * replayable when the opponent's choices are not in it.
  */
 export function tieredOpponentFor(node: NodeSpec, segment: number): Policy {
-  const tier = aiTierFor(node.kind, node.tier, segment);
+  // A defender ambush fights as a hard trainer though its node is an event (2026-10-06).
+  const tier = aiTierFor(fightKindOf(node), fightTierOf(node), segment);
   const encounter = node.encounter;
   // A node with no encounter never reaches here through `playNode`, and a
   // caller asking anyway gets the deterministic form rather than a throw.
@@ -2836,8 +2905,10 @@ async function playNode(
   record: (decision: RunDecision) => void,
   opponentFor: (node: NodeSpec, segment: number) => Policy,
   options: PlayRunOptions,
+  /** Whether to play the encounter at all: a declined defender ambush does not (2026-10-06). */
+  fight: boolean = node.encounter !== null,
 ): Promise<NodeResult> {
-  if (!node.encounter) return { node };
+  if (!node.encounter || !fight) return { node };
   const opponent = opponentFor(node, state.currentSegment);
 
   // Record the player's choices as they are made. Only the player's: the
@@ -3143,6 +3214,8 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
     chooseRecruit: async () => 0,
     // A picked trade is taken: the answer every policy gave before the question.
     chooseTrade: async () => true,
+    // The first option of a question mark, like every other scripted answer.
+    chooseDefenderEvent: async () => 0,
     /*
      * The first locale offered, like every other scripted answer here.
      *
@@ -3396,6 +3469,11 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy, mode: RunMode = '
       const decision = next('door');
       if (!decision) return live?.chooseDoor ? live.chooseDoor(options, state) : exhausted('door');
       return decision.kind === 'door' ? decision.index : exhausted('door');
+    },
+    chooseDefenderEvent: async (event, state) => {
+      const decision = next('eventPick');
+      if (!decision) return live?.chooseDefenderEvent ? live.chooseDefenderEvent(event, state) : exhausted('eventPick');
+      return decision.kind === 'eventPick' ? decision.index : exhausted('eventPick');
     },
     chooseTrade: async (card, state) => {
       const decision = next('trade');

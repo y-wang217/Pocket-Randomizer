@@ -176,8 +176,9 @@ describe('the version axes this patch moved', () => {
     // merge of Stage 6.0 onto Defender Mode (the four above renumbered then);
     // `-31` sixteen blank abilities leaving the pool;
     // `-32` the recruit draft drawing two typed mons and one off-type;
-    // `-33` the Collector's slot drawing its five extra pages.
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-33');
+    // `-33` the Collector's slot drawing its five extra pages;
+    // `-34` the question marks entering Defender Mode's ranks.
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-34');
   });
 });
 

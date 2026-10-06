@@ -109,9 +109,10 @@ describe('the run log version', () => {
      * with no battle effect leaving the pool, so every ability draw reads a
      * different name. `-32` is the defender recruit draft drawing two typed
      * mons and one off-type, under `defender/` keys only. `-33` is one
-     * defender door drawing five more offers for the Collector's pages.
+     * defender door drawing five more offers for the Collector's pages, and
+     * `-34` the question marks entering the ranks, on their own keys.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-33');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-34');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });
