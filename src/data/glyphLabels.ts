@@ -80,6 +80,10 @@ export const GLYPH_LABELS: Readonly<Record<string, string>> = {
   'field-psychic': 'Psychic',
   // The currency family, one mark. D54, drawn in 5.0/3.
   'currency-coin': 'Coins',
+  // The badge family, three marks. D100, Defender Mode v0.
+  'badge-flame': 'Fire badge',
+  'badge-eye': 'Psychic badge',
+  'badge-wing': 'Flying badge',
 
   'capability-cut': 'Cut',
   'capability-surf': 'Surf',
@@ -109,7 +113,7 @@ export const FAMILY_LABELS = {
  * The word for each node kind, where a surface names the kind: the glyph
  * sheet's label for the five kinds it draws, and *Challenger* for the boss,
  * whose mark is the challenger's own sprite rather than a sheet glyph since
- * D102 (checkpoint 7). `data/`, so the census and the copy audit read it.
+ * D106 (checkpoint 7). `data/`, so the census and the copy audit read it.
  */
 export const NODE_KIND_WORDS: Readonly<Record<'wild' | 'trainer' | 'rest' | 'gym' | 'shop' | 'event', string>> = {
   wild: GLYPH_LABELS['node-wild'] ?? 'Wild',

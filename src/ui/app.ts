@@ -23,6 +23,7 @@ import {
   localeOf,
   partyCapacity,
   playRun,
+  runMode,
   replayRunPolicy,
   type BattleReview,
   type RunPolicy,
@@ -33,7 +34,8 @@ import {
 } from '../core/run';
 import { previewEvolutions } from '../core/evolution';
 
-import type { Choice, ItemId, ItemPlan, PartyEdit, PokemonSpec, PokemonState, RunLog } from '../core/types';
+import type { Choice, ItemId, ItemPlan, PartyEdit, PokemonSpec, PokemonState, RunLog, RunMode } from '../core/types';
+import { DEFENDER_SCREEN_COPY } from './copy/defender';
 import { applyRelicPassives } from '../core/relics';
 import { applyItemPlan, arrivedItems, backpackCapacity, keepLayoutPlan, reconcileItemPlan } from '../core/items';
 import { DEFAULT_TUNING } from '../data/tuning';
@@ -61,6 +63,7 @@ import { describeMove } from '../core/battle/driver';
 import { replacementNeeded } from '../core/party';
 import { createPartyScreen, type PartyFocus } from './screens/party';
 import { createLocaleSelect } from './screens/locale-select';
+import { createGymSelect } from './screens/gym-select';
 import { createResultScreen } from './screens/result';
 import { createRouter, DRAWER_SURFACES, PARTY_EDIT_SURFACES, WRITABLE_TAB_SURFACES, type ScreenName } from './screens/router';
 import { createHeader } from './header';
@@ -87,6 +90,18 @@ import { gymForSegment } from '../data/gyms';
 import { itemLayoutOf, partyWithPlan } from './party-layout';
 import { clearItemDraft, clearRunLog, loadItemDraft, loadRunLog, saveItemDraft, saveRunLog } from './storage';
 import { applyMotion } from './theme/motion';
+
+
+/**
+ * A defender rank's boss as the pre-gym screen shows it: its team size and its
+ * level (bible Rev 25, D101). A boss team is drawn at one level
+ * (`generateBossTeam` pins the range to the column's maximum); the highest is
+ * read rather than the first so an empty team reads 0 instead of throwing.
+ */
+function bossOf(state: RunState): { size: number; level: number } {
+  const team = state.segments[state.currentSegment]?.gym.encounter?.team ?? [];
+  return { size: team.length, level: Math.max(0, ...team.map((spec) => spec.level)) };
+}
 
 /**
  * How this fight should end on the stage. **The battle animation run.**
@@ -156,6 +171,7 @@ export function mountApp(root: HTMLElement): void {
   onSettingsChange((next) => applyMotion(document.documentElement, next.battleSpeed));
 
   const starterScreen = createStarterSelect();
+  const gymSelectScreen = createGymSelect();
   const localeScreen = createLocaleSelect();
   const mapScreen = createRunMap();
   const battleScreen = createBattleScreen();
@@ -200,6 +216,7 @@ export function mountApp(root: HTMLElement): void {
   const router = createRouter(
     {
     starter: starterScreen.root,
+    'gym-select': gymSelectScreen.root,
     locale: localeScreen.root,
     map: mapScreen.root,
     battle: battleScreen.root,
@@ -217,7 +234,7 @@ export function mountApp(root: HTMLElement): void {
       // The opening painting behind the frame before the first region (D87).
       // `world` is declared below; the router announces its first screen only
       // after the app is assembled.
-      world.setOpening(name === 'starter' || name === 'locale');
+      world.setOpening(name === 'starter' || name === 'gym-select' || name === 'locale');
     },
   );
 
@@ -591,6 +608,13 @@ export function mountApp(root: HTMLElement): void {
     seedBar.collapse();
     seedBar.setSeed(seed);
     /*
+     * **The mode this run plays. Defender Mode v0.** A resume plays the saved
+     * log's own, whatever the bar shows, and the bar is moved to say so; a
+     * fresh run plays the bar's.
+     */
+    const mode: RunMode = resume?.mode ?? seedBar.mode();
+    seedBar.setMode(mode);
+    /*
      * **Resume is offered only for a save that is not the run on screen. The
      * opening playtest QA, the author's ruling: "hide it to make it not
      * ambiguous".**
@@ -609,6 +633,7 @@ export function mountApp(root: HTMLElement): void {
     stamps.update({ locale: null, segment: null, segments: 0, seed });
 
     const starterPick = createPending<number>();
+    const gymTypePick = createPending<number>();
     const localePick = createPending<number>();
     const nodePick = createPending<number>();
     const movePick = createPending<Choice>();
@@ -655,6 +680,7 @@ export function mountApp(root: HTMLElement): void {
 
     abandon = () => {
       starterPick.cancel();
+      gymTypePick.cancel();
       localePick.cancel();
       nodePick.cancel();
       movePick.cancel();
@@ -721,6 +747,35 @@ export function mountApp(root: HTMLElement): void {
         starterScreen.render(options, (index) => starterPick.submit(index));
         showScreen('starter');
         return starterPick.wait();
+      },
+      /*
+       * **Defender Mode v0's four questions, bible Rev 25.** The gym type on
+       * its own screen (D101); the draft and the recruit on the starter
+       * screen, unchanged but for the heading and the Fire flame (D100); a door
+       * on the map screen, which `onState` has already drawn with the rank's
+       * doors, exactly as `chooseNode` does.
+       */
+      chooseGymType: (options) => {
+        gymSelectScreen.render(options, (index) => gymTypePick.submit(index));
+        showScreen('gym-select');
+        return gymTypePick.wait();
+      },
+      chooseDraftPick: (options, state) => {
+        const gymType = state.defender?.gymType ?? '';
+        starterScreen.render(options, (index) => starterPick.submit(index), { title: DEFENDER_SCREEN_COPY.draft, gymType });
+        showScreen('starter');
+        return starterPick.wait();
+      },
+      chooseRecruit: (options, state) => {
+        const gymType = state.defender?.gymType ?? '';
+        starterScreen.render(options, (index) => starterPick.submit(index), { title: DEFENDER_SCREEN_COPY.recruit, gymType });
+        showScreen('starter');
+        return starterPick.wait();
+      },
+      chooseDoor: (options) => {
+        void options;
+        showScreen('map');
+        return nodePick.wait().then(flushedBefore);
       },
       chooseLocale: (options, state) => {
         localeScreen.render(
@@ -1094,7 +1149,7 @@ export function mountApp(root: HTMLElement): void {
      * 5.0/1.** Wrapped around the replay on a resume, so the feed sees the
      * logged questions too; it answers nothing itself.
      */
-    const feed = createDecisionFeed(resume ? replayRunPolicy(resume, policy) : policy);
+    const feed = createDecisionFeed(resume ? replayRunPolicy(resume, policy, mode) : policy);
 
     /*
      * The party the map screen is currently showing.
@@ -1178,7 +1233,12 @@ export function mountApp(root: HTMLElement): void {
         relics: decidedRelics ?? state.relics,
         tuning: state.tuning,
         // The Bag tab's readout, as run state holds it. Stage 5.0/1.
-        bag: { loose: state.backpack, capacity: backpackCapacity(partyCapacity(state), state.tuning), tms: state.tms },
+        bag: {
+          loose: state.backpack,
+          capacity: backpackCapacity(partyCapacity(state), state.tuning),
+          tms: state.tms,
+          consumables: state.consumables ?? [],
+        },
       };
     };
 
@@ -1338,6 +1398,7 @@ export function mountApp(root: HTMLElement): void {
           party: partyWithPlan(state.party, pendingPlan),
           holding: itemLayoutOf(state.party, pendingPlan),
           tuning: state.tuning,
+          ...(runMode(state) === 'defender' ? { boss: bossOf(state) } : {}),
         },
         {
           onLead: (slot) => {
@@ -1428,6 +1489,10 @@ export function mountApp(root: HTMLElement): void {
           party: betweenNodes ? state.party : (decidedParty ?? state.party),
           focus,
           canEditParty: betweenNodes,
+          // Defender Mode v0 (D102): usable wherever the run is not inside a
+          // battle node, which is between nodes and the intermission's shop.
+          consumables: state.consumables ?? [],
+          canConsume: betweenNodes || returnTo === 'shop',
           backpack: state.backpack,
           tms: state.tms,
           teachable: atTeachBoundary ? teachableNow(state) : new Set<string>(),
@@ -1465,6 +1530,11 @@ export function mountApp(root: HTMLElement): void {
           },
           onPlan: (plan) => {
             holdPlan(plan);
+          },
+          // A use changes HP and the list, never a slot, so the held plan stays.
+          onConsume: (id, slot) => {
+            editParty?.({ kind: 'consume', id, slot });
+            showParty(partyReturn, 'bag');
           },
           /*
            * Spending a TM: the same two screens, reached from here instead of
@@ -1669,6 +1739,7 @@ export function mountApp(root: HTMLElement): void {
         // The segment, so the panel can name who is playing this fight. The
         // same reading the node card made before the click.
         state.currentSegment,
+        runMode(state) === 'defender',
       );
       showScreen('battle');
     };
@@ -1690,6 +1761,7 @@ export function mountApp(root: HTMLElement): void {
        * battle panel already print.
        */
       const options = {
+        mode,
         onState,
         onBattle,
         onProjection,
@@ -1840,6 +1912,7 @@ export function mountApp(root: HTMLElement): void {
   } else void start(newSeed());
   if (saved && fromUrl?.kind !== 'foreign') {
     console.warn('GYMRUN: the saved run cannot be replayed on this build', describeVersionMismatch(versionMismatch(saved)!));
-    seedBar.warn(SEED_COPY.saveOutdated);
+    // Reported, not acted on: the new run has started, so the bar stays shut.
+    seedBar.warn(SEED_COPY.saveOutdated, { open: false });
   }
 }

@@ -400,9 +400,22 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * lists, so the same float picks a different entry: composition, this axis.
  * `contentHash` moves beside it for the tables.
  * `docs/spec/gymrun-patch-species-locked-pool.md`, `docs/generation.md` section 102.
+ *
+ * ## `-26`: Defender Mode v0's draws, merged onto `-25`
+ *
+ * Defender Mode v0 was built on `-23` and took `-24` for its own draws while
+ * main took `-24` and `-25` for the two changes above, so the two `-24`s are
+ * different builds and the merge is a composition neither was. The mode adds
+ * a set of draws that did not exist: the defender draft for all three gym
+ * types, the Fire badge's highlighted slot, class teams, the waves, doors,
+ * recruit drafts and trades. **No attacker draw moved**: every defender key
+ * starts `defender/`, and `test/attacker-generation-golden.test.ts` holds 200
+ * whole attacker maps byte-identical to `-25`'s, minted on main.
+ * `docs/spec/gymrun-defender-mode-v0-fun-test.md`, `docs/generation.md`
+ * section 106.
  */
 /*
- * ## `-26`: every trainer and gym is a record from the library
+ * ## `-27`: every trainer and gym is a record from the library
  *
  * Stage 6.0. A trainer or gym node now resolves to one `EncounterRecord` from
  * `data/encounters/` — a real trainer from a real game — before its members
@@ -416,10 +429,10 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * trainer and gym team in every seed. `contentHash` moves beside it for the
  * tables and for `data/gyms.ts` losing its eight names. `RUN_LOG_VERSION`
  * holds: no decision was added.
- * `docs/spec/gymrun-stage6.0-encounter-library.md`, `docs/generation.md` section 103.
+ * `docs/spec/gymrun-stage6.0-encounter-library.md`, `docs/generation.md` section 111.
  */
 /*
- * ## `-27`: the Champion Cup joins the library
+ * ## `-28`: the Champion Cup joins the library
  *
  * Stage 6.0, checkpoint 5. Twelve Sword and Shield records (Leon's three
  * rosters, Hop's three, Marnie, Bede and the four finals rematches) enter the
@@ -430,10 +443,10 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * party encoding compacted in the same checkpoint moves nothing: `index.ts`
  * decodes it into the records the library held before. `contentHash` moves
  * beside it for the tables. `RUN_LOG_VERSION` holds.
- * `docs/spec/gymrun-stage6.0-encounter-library.md`, `docs/generation.md` section 104.
+ * `docs/spec/gymrun-stage6.0-encounter-library.md`, `docs/generation.md` section 112.
  */
 /*
- * ## `-28`: the boss is a challenger, and a window is a cast
+ * ## `-29`: the boss is a challenger, and a window is a cast
  *
  * Stage 6.0, checkpoint 6. Three composition changes at once. The boss node
  * draws among rivals, protagonists, gym leaders and the Elite Four nearest
@@ -444,10 +457,10 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * leaders at `hard` and `elite`. Same count on every key. `contentHash` moves
  * beside it for `data/gyms.ts` and the library. `RUN_LOG_VERSION` holds: the
  * node choice and the lead choice are the same questions in the same order.
- * `docs/spec/gymrun-stage6.0-checkpoint6-challengers.md`, `docs/generation.md` section 105.
+ * `docs/spec/gymrun-stage6.0-checkpoint6-challengers.md`, `docs/generation.md` section 109.
  */
 /*
- * ## `-29`: the Gen 5 to 9 rivals join the challenger pool
+ * ## `-30`: the Gen 5 to 9 rivals join the challenger pool
  *
  * Stage 6.0, checkpoint 8. 282 records from Serebii's per-character pages
  * (Cheren, Bianca, Hugh, Brendan, May, Wally, Hau, Gladion, Trace, Hop,
@@ -457,9 +470,17 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * challenger wherever one entered, which is the regenerate rule the
  * generated files state. Same count on every key. `contentHash` moves beside
  * it for the tables. `RUN_LOG_VERSION` holds.
- * `docs/spec/gymrun-stage6.0-checkpoint8-gen5-9-rivals.md`, `docs/generation.md` section 107.
+ * `docs/spec/gymrun-stage6.0-checkpoint8-gen5-9-rivals.md`, `docs/generation.md` section 111.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-29';
+/*
+ * ## `-30`: the merge. Stage 6.0 (`-27` to `-30` above) onto Defender Mode
+ * v0's `-26`. This branch took `-26` to `-29` for the four notes above while
+ * main took `-26` for Defender Mode, so the four were renumbered at the
+ * merge (checkpoint 10) and the merged tree is `-30`, by the rule the `-26`
+ * note states: one string never names two schemas.
+ * `docs/spec/gymrun-stage6.0-checkpoint10-merge-main.md`, `docs/generation.md` section 113.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-30';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered
@@ -1306,4 +1327,143 @@ export function generateStarters(
     });
   }
   return picked;
+}
+
+// ---------------------------------------------------------------------------
+// Defender Mode v0
+// ---------------------------------------------------------------------------
+//
+// Additions only. Nothing above this line reads anything below it, and no
+// attacker draw moved when this block arrived:
+// `test/attacker-generation-golden.test.ts` holds that over 200 whole maps.
+
+/** Whether a species carries `type` in either slot. The type lock's one test. */
+export function speciesCarries(entry: Pick<SpeciesEntry, 'types'>, type: string): boolean {
+  return entry.types.includes(type);
+}
+
+/**
+ * `count` distinct mons carrying `type` in either slot, for the player's side
+ * of a defender run: a draft or a recruit draft.
+ *
+ * The species pool is the segment's own `normal`-tier distribution, stage
+ * gated at `level` and narrowed to the type, the way `gymSpeciesFor` narrows a
+ * gym's. `seen` is shared across calls by the caller, so a draft never offers
+ * the same species twice across its picks. No held item is drawn: a player's
+ * mon is not in the population that holds one, as a starter is not.
+ */
+export function generateTypedMons(
+  type: string,
+  segment: number,
+  level: number,
+  damaging: BandedMovePool,
+  count: number,
+  stream: RngStream,
+  seen: Set<string>,
+  /** The species band's tier. `hard` is a trade's "one quality step up". */
+  tier: Tier = 'normal',
+): PokemonSpec[] {
+  return defenderMons((entry) => speciesCarries(entry, type), `a ${type} defender mon`, segment, level, damaging, count, stream, seen, tier);
+}
+
+/**
+ * As `generateTypedMons`, but from the species that do **not** carry `type`:
+ * a recruit draft's off-type candidate, offered only to a run whose
+ * Stranger's Pass slot is free. Drawn whether or not it is offered.
+ */
+export function generateOffTypeMons(
+  type: string,
+  segment: number,
+  level: number,
+  damaging: BandedMovePool,
+  count: number,
+  stream: RngStream,
+  seen: Set<string>,
+): PokemonSpec[] {
+  return defenderMons((entry) => !speciesCarries(entry, type), `an off-${type} defender mon`, segment, level, damaging, count, stream, seen, 'normal');
+}
+
+function defenderMons(
+  admit: (entry: SpeciesEntry) => boolean,
+  what: string,
+  segment: number,
+  level: number,
+  damaging: BandedMovePool,
+  count: number,
+  stream: RngStream,
+  seen: Set<string>,
+  tier: Tier,
+): PokemonSpec[] {
+  const range = { min: level, max: level };
+  const pool = bandedSpeciesPool(speciesBandWeightsFor(segment, tier), range, admit, `${what} at segment ${segment}`);
+  return Array.from({ length: count }, () => rollSpec(pool, damaging, range, stream, undefined, seen));
+}
+
+/**
+ * A challenger's team for a defender door: a trainer narrowed to its class.
+ *
+ * `generateTrainerTeam` with two differences, and only two. The species pool
+ * admits a species carrying any one of `types` (every species, for an untyped
+ * class), and every member carries the rank's flat IV. Level, size, moves and
+ * held items are the trainer's own, from the same curves.
+ */
+export function generateClassTeam(
+  types: readonly string[],
+  segment: number,
+  tier: Tier,
+  ivs: number,
+  stream: RngStream,
+): TeamSpec {
+  const level = opponentLevel('trainer', segment, tier);
+  const pool = bandedSpeciesPool(
+    speciesBandWeightsFor(segment, tier),
+    level,
+    (entry) => types.length === 0 || types.some((type) => speciesCarries(entry, type)),
+    `a ${types.join('/') || 'untyped'} class at segment ${segment}`,
+  );
+  const damaging = damagingFor(segment, tier);
+  const size = opponentTeamSize('trainer', segment, tier);
+  const seen = new Set<string>();
+  return Array.from({ length: size }, () => ({
+    ...rollSpec(pool, damaging, level, stream, { kind: 'trainer', segment }, seen),
+    ivs,
+  }));
+}
+
+const DAMAGING_NAMES = new Set(DAMAGING_MOVES.map((move) => move.name));
+
+/**
+ * The Fire badge's highlighted slot for `spec`: one of its damaging slots,
+ * uniformly. **Always exactly one draw**, including for a mon with no damaging
+ * move (which gets no highlight), so the count never depends on the moveset.
+ */
+export function drawHighlightSlot(spec: PokemonSpec, stream: RngStream): number | undefined {
+  const slots = spec.moves.flatMap((move, slot) => (DAMAGING_NAMES.has(move) ? [slot] : []));
+  const roll = stream.nextInt(Math.max(1, slots.length));
+  return slots[roll];
+}
+
+/**
+ * A defender rank's boss. **Not type-locked** (report ruling R6): the gym's
+ * level column, the gym's team size (`opponentTeamSize('gym', …)`, the slot
+ * schedule) and the gym's move band bonus, over the segment's untyped pool,
+ * with the rank's flat IV. `generateGymTeam` with the type filter removed, and
+ * otherwise the same draws in the same order.
+ */
+export function generateBossTeam(segment: number, ivs: number, stream: RngStream): TeamSpec {
+  const tier: Tier = 'normal';
+  const level = opponentLevel('gym', segment, tier);
+  const pool = bandedSpeciesPool(
+    speciesBandWeightsFor(segment, tier),
+    { min: level.max, max: level.max },
+    () => true,
+    `a defender boss at segment ${segment}`,
+  );
+  const damaging = gymMovePool(segment);
+  const size = opponentTeamSize('gym', segment, tier);
+  const seen = new Set<string>();
+  return Array.from({ length: size }, () => ({
+    ...rollSpec(pool, damaging, level, stream, { kind: 'gym', segment }, seen),
+    ivs,
+  }));
 }

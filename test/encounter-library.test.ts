@@ -197,14 +197,14 @@ describe('the draw', () => {
   });
 
   it('names a challenger for every segment, twice over for the same seed', () => {
-    const leaders = (seed: string) => createRun(seed, DEFAULT_TUNING).segments.map((s) => `${s.leader}:${s.gymEncounter.id}`);
+    const leaders = (seed: string) => createRun(seed, DEFAULT_TUNING).segments.map((s) => `${s.leader}:${s.gymEncounter!.id}`);
     for (const seed of ['LIBRARY-A', 'LIBRARY-B', 'LIBRARY-C']) {
       const first = leaders(seed);
       expect(leaders(seed)).toEqual(first);
       expect(first).toHaveLength(8);
       const run = createRun(seed, DEFAULT_TUNING);
       run.segments.forEach((segment, index) => {
-        const record = encounterById(segment.gymEncounter.id)!;
+        const record = encounterById(segment.gymEncounter!.id)!;
         expect(segment.gym.label).toBe(`Challenger ${segment.gym.encounter!.opponent}`);
         expect(segment.gym.encounter?.opponent).toContain(record.trainer.name);
         expect(segment.gym.encounter?.source?.id).toBe(record.id);

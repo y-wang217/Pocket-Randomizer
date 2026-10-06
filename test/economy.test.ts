@@ -174,7 +174,7 @@ describe('shop and event nodes', () => {
         for (const node of nodesOf(segment)) {
           for (const item of node.shop?.items ?? []) {
             expect(item.price, `${node.id}`).toBeGreaterThan(0);
-            expect(sellable.has(item.reward.kind), `${node.id} sells a ${item.reward.kind}`).toBe(true);
+            expect((sellable as Set<string>).has(item.reward.kind), `${node.id} sells a ${item.reward.kind}`).toBe(true);
             // A shop that sold currency would be a rounding error with a screen.
             expect(item.reward.kind).not.toBe('currency');
             expect(item.reward.kind).not.toBe('species');

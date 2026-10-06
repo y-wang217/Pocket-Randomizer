@@ -1,7 +1,7 @@
 # GYMRUN Stage 6.0, checkpoint 8: the Gen 5 to 9 rivals
 
 Filed before any work, under [`README.md`](README.md) rule 1. Closes the
-open item section 105 of [`../generation.md`](../generation.md) named: the
+open item section 109 of [`../generation.md`](../generation.md) named: the
 library's challenger pool has no Gen 5 to 9 rival, because pokemondb's
 leader pages carry none.
 
@@ -28,4 +28,4 @@ leader pages carry none.
   parsed is recorded as a gap, not guessed.
 - No version axis is owed by the data alone; a record that enters a
   candidate window moves the record a seed draws, which is the regenerate
-  rule the tables state, so `RANDOMIZER_VERSION` moves to `-29` if any does.
+  rule the tables state, so `RANDOMIZER_VERSION` moves to `-30` if any does.

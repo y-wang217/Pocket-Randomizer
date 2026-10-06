@@ -53,7 +53,9 @@ describe('the versions block', () => {
     // nowhere else.
     expect(run.log.versions.contentHash).toMatch(/^[0-9a-f]{64}$/);
     expect(run.log.versions.aiVersion).toMatch(/^gymrun-ai-/);
-    expect(Object.keys(run.log).sort()).toEqual(['decisions', 'seed', 'versions']);
+    // `mode` from Defender Mode v0: an input like the seed, not an axis.
+    expect(Object.keys(run.log).sort()).toEqual(['decisions', 'mode', 'seed', 'versions']);
+    expect(run.log.mode).toBe('attacker');
   });
 
   it('names the four axes, schema first', () => {
@@ -99,8 +101,10 @@ describe('the versions block', () => {
      *
      * `-23` adds a decision, the berry pick a gym card opens.
      * `docs/generation.md` section 101.
+     * `-24` records the run's mode on the log and adds Defender Mode v0's
+     * decisions. `docs/generation.md` section 106.
      */
-    expect(RUN_LOG_VERSION.startsWith('gymrun-run-23/')).toBe(true);
+    expect(RUN_LOG_VERSION.startsWith('gymrun-run-24/')).toBe(true);
     expect(RUN_LOG_VERSION).not.toContain('gymrun-run-14/');
   });
 });
@@ -112,7 +116,7 @@ describe('the guard refuses each axis independently', () => {
     it(`refuses a log stale only on ${axis}, naming the axis and both values`, () => {
       const stale: RunLog = {
         seed: `STALE-${axis}`,
-        versions: { ...currentVersions(), [axis]: `other-${axis}` },
+        mode: 'attacker', versions: { ...currentVersions(), [axis]: `other-${axis}` },
         decisions,
       };
       expect(isReplayable(stale)).toBe(false);
@@ -131,7 +135,7 @@ describe('the guard refuses each axis independently', () => {
   }
 
   it('accepts a log recorded on this build', () => {
-    const current: RunLog = { seed: 'CURRENT', versions: currentVersions(), decisions };
+    const current: RunLog = { seed: 'CURRENT', mode: 'attacker', versions: currentVersions(), decisions };
     expect(isReplayable(current)).toBe(true);
     expect(versionMismatch(current)).toBeNull();
     expect(() => assertReplayable(current)).not.toThrow();
@@ -140,7 +144,7 @@ describe('the guard refuses each axis independently', () => {
   it('reports the first stale axis in order when several are stale', () => {
     const stale: RunLog = {
       seed: 'TWO-STALE',
-      versions: { ...currentVersions(), aiVersion: 'gymrun-ai-1', randomizerVersion: 'gymrun-randomizer-1' },
+      mode: 'attacker', versions: { ...currentVersions(), aiVersion: 'gymrun-ai-1', randomizerVersion: 'gymrun-randomizer-1' },
       decisions,
     };
     expect(versionMismatch(stale)?.axis).toBe('aiVersion');

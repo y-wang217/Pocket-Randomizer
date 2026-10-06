@@ -88,7 +88,7 @@ describe('the unspent item plan across a reload', () => {
     teaches: [{ move: 'Icy Wind', slot: 1, replaceSlot: 2 }],
     discardTms: [],
   };
-  const log = (decisions: RunDecision[]): RunLog => ({ seed: 'QA-008', versions: currentVersions(), decisions });
+  const log = (decisions: RunDecision[]): RunLog => ({ seed: 'QA-008', mode: 'attacker', versions: currentVersions(), decisions });
   const head: RunDecision[] = [
     { kind: 'starter', index: 0 },
     { kind: 'locale', index: 0 },

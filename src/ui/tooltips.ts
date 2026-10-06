@@ -82,6 +82,7 @@ import type { CapabilityBand } from '../core/capabilities';
 import type { Tier } from '../core/types';
 import { typeChip } from './chip';
 import { el } from './scene';
+import { renderBadgeTip, renderConsumableTip, renderTradeAskTip, renderTradeOfferTip } from './defender-tips';
 
 /** What a `data-tip` attribute can name. */
 type TipKind =
@@ -249,6 +250,11 @@ type TipKind =
    * carries a line per tier inside it, from `data/eventCopy.ts`.
    */
   | 'reward-tier'
+  /** Defender Mode v0 (bible Rev 25, D100 and D102): a badge mark, a consumable, a trade's two Pokemon. */
+  | 'badge'
+  | 'consumable'
+  | 'trade-offer'
+  | 'trade-ask'
   /**
    * The "pick a berry" card, whose face is a fan of berry sprites and whose
    * words are here. The berry gym reward patch. `berrypick:all` is the
@@ -300,6 +306,10 @@ const KINDS = [
   'capability-band',
   'tier',
   'reward-tier',
+  'badge',
+  'consumable',
+  'trade-offer',
+  'trade-ask',
   'berrypick',
 ] as const satisfies readonly TipKind[];
 
@@ -859,6 +869,14 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
       return renderCapabilityBand(id);
     case 'reward-tier':
       return renderRewardTier(id);
+    case 'badge':
+      return renderBadgeTip(id);
+    case 'consumable':
+      return renderConsumableTip(id);
+    case 'trade-offer':
+      return renderTradeOfferTip(id);
+    case 'trade-ask':
+      return renderTradeAskTip(id);
     case 'berrypick':
       return renderBerryPick();
   }
@@ -1198,7 +1216,7 @@ function renderRelic(id: string): HTMLElement | null {
   if (!relic) return null;
   const body = panel(relic.name);
   body.append(line(relicCopy(relic.id), 'tip__text'));
-  body.append(line(CAPABILITY_LABELS[relic.grants], 'tip__note'));
+  if (relic.grants) body.append(line(CAPABILITY_LABELS[relic.grants], 'tip__note'));
   return body;
 }
 

@@ -1,6 +1,6 @@
 /**
  * The next challenger, and how far off they are. **Stage 6.0 checkpoint 7,
- * D102.**
+ * D106.**
  *
  * One component in place of the eight-badge rail and the sidebar's pips: the
  * challenger's class and name, their trainer sprite at 16 where the record

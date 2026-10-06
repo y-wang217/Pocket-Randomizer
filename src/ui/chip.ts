@@ -337,7 +337,7 @@ export function nodeKindGlyph(kind: string, label: string, size: 24 | 16): HTMLE
 
 /**
  * The challenger's mark: the trainer's own sprite in the slot the badge mark
- * held. **Stage 6.0 checkpoint 7, D102.** The boss node on the map (24) and
+ * held. **Stage 6.0 checkpoint 7, D106.** The boss node on the map (24) and
  * the battle header (16) wear it; a record with no sprite on the CDN falls
  * back to the trainer kind's glyph, so the slot is never empty. Same wrapper
  * and tip as `nodeKindGlyph`, because it is the kind's mark.

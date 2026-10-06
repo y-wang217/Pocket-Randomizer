@@ -421,7 +421,7 @@ describe('6. version guard', () => {
   it('refuses to replay a log recorded on a different randomizer', () => {
     const stale: RunLog = {
       seed: 'GUARD',
-      versions: { ...currentVersions(), randomizerVersion: 'gymrun-randomizer-0' },
+      mode: 'attacker', versions: { ...currentVersions(), randomizerVersion: 'gymrun-randomizer-0' },
       decisions,
     };
     expect(isReplayable(stale)).toBe(false);
@@ -446,7 +446,7 @@ describe('6. version guard', () => {
   it('accepts a log recorded on this build', () => {
     const current: RunLog = {
       seed: 'GUARD-OK',
-      versions: currentVersions(),
+      mode: 'attacker', versions: currentVersions(),
       decisions,
     };
     expect(isReplayable(current)).toBe(true);

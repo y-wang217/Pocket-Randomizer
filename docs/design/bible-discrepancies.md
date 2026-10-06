@@ -93,9 +93,9 @@ which blocks everything.
 | D75 | 5.0/4 | Node positions from a hash of the node id, against "all randomness comes from core/rng.ts" | **2026-09-30**, option 1: a slot by option index, no hash |
 | D76 | 5.0/0, 5.0/1 | 5.0 lands on top of an open Tier 7: which face M7.1 tests, and which items it redoes | **2026-09-30**, option 1: 5.0 before M7.1 |
 | D77 | 5.0/4's census, then 5.0/3 or M7.2 | The map node card's current step prints an untiered node's hint and a shop's shelf in words: 7 against a budget of 1 | **2026-09-30**, option 1: the hint to inspect, the shelf a count and a coin amount |
-| D100 | Stage 6.0's player-facing half: the opponent's name, sprite and citation | Every opponent is a named trainer from a named game, and no rule says whether the battle header, the map node card or the summary may say so; D61 refuses the sprite | **2026-10-05**, option 1: class and name on the battle header with the sprite at 16, the citation on the summary, the map node card a kind |
-| D101 | Stage 6.0 checkpoint 6: the boss is a challenger with no type | Four surfaces show the gym's type as a chip, and the boss no longer has one | **2026-10-05**, by the author's directive: the chips come off, the surfaces read the challenger's class and name |
-| D102 | Stage 6.0 checkpoint 7: no badge, a progress bar to the next challenger | The eight-badge rail and the badge mark (D46, D72, D100) say the segment is a gym; the author's design says it is training toward a challenger | **2026-10-05**, option 1: one bar at four mounts and the locale screen, the badge retired, the challenger's sprite in its slot |
+| D104 | Stage 6.0's player-facing half: the opponent's name, sprite and citation | Every opponent is a named trainer from a named game, and no rule says whether the battle header, the map node card or the summary may say so; D61 refuses the sprite | **2026-10-05**, option 1: class and name on the battle header with the sprite at 16, the citation on the summary, the map node card a kind |
+| D105 | Stage 6.0 checkpoint 6: the boss is a challenger with no type | Four surfaces show the gym's type as a chip, and the boss no longer has one | **2026-10-05**, by the author's directive: the chips come off, the surfaces read the challenger's class and name |
+| D106 | Stage 6.0 checkpoint 7: no badge, a progress bar to the next challenger | The eight-badge rail and the badge mark (D46, D72, D104) say the segment is a gym; the author's design says it is training toward a challenger | **2026-10-05**, option 1: one bar at four mounts and the locale screen, the badge retired, the challenger's sprite in its slot |
 
 ## Rulings, 2026-09-19
 
@@ -4608,11 +4608,11 @@ filed by this stage's census, was ruled option 1 the same day and built in
 Stage 6.0 shipped its headless half at checkpoint 4 and put three questions
 to the author before the player-facing half, recorded in
 [`../spec/gymrun-stage6.0-encounter-library.md`](../spec/gymrun-stage6.0-encounter-library.md)
-under *Rulings taken at checkpoint 5*. The bible goes to Rev 25.
+under *Rulings taken at checkpoint 5*. The bible goes to Rev 26.
 
 | Row | Ruling | Where it lands |
 |---|---|---|
-| D100 | **Option 1.** The battle header's opponent slot reads the trainer's class and name with the trainer sprite at 16 beside it; the summary cites the game and the place under each visit's opponent; the map node card stays a kind. D61 is amended for the battle header alone. | Bible section 3, *Node kind*; section 4, *Battle screen header* and *Summary and graveyard*; section 5, *Battle screen header* and a new *Summary visit* row. `../generation.md` §104 |
+| D104 | **Option 1.** The battle header's opponent slot reads the trainer's class and name with the trainer sprite at 16 beside it; the summary cites the game and the place under each visit's opponent; the map node card stays a kind. D61 is amended for the battle header alone. | Bible section 3, *Node kind*; section 4, *Battle screen header* and *Summary and graveyard*; section 5, *Battle screen header* and a new *Summary visit* row. `../generation.md` §108 |
 
 Two more items were ruled in the same answer and have no row: the compact
 party encoding is built to claw back the bundle the library added, and the
@@ -4625,21 +4625,21 @@ gap.
 
 The author's two messages after checkpoint 5, filed verbatim as
 [`../spec/gymrun-stage6.0-checkpoint6-challengers.md`](../spec/gymrun-stage6.0-checkpoint6-challengers.md),
-and six answers taken by question in the same session. The bible goes to Rev 26.
+and six answers taken by question in the same session. The bible goes to Rev 27.
 
 | Row | Ruling | Where it lands |
 |---|---|---|
-| D101 | **The author's directive.** The boss is a challenger (a rival, a protagonist, a gym leader or an Elite Four member), read as the game's own class and name, and it has no type. Every type chip that described the gym comes off: pre-gym heading, map heading, map rail, locale rail. The node's kind word is *Challenger*. | Bible section 3, *Node kind*; section 4, *Pre-gym screen*; section 5, *Run Info screen* and *Locale card*. `../generation.md` §105 |
-| D102 | **Option 1**, ruled the same day (*"d102 option1 and go ahead checkpoint 7"*): one *Next challenger* bar at the rail's four mounts and the locale screen, the eight pips and the badge mark retired, the challenger's own sprite in the badge's slot on the boss node and the battle header. | Bible Rev 27: section 3, *Node* family and *Node kind*; section 4, *Next challenger* at 3; section 5, *Battle screen header*, *Next challenger*, *Map node card*, *Run Info screen*, *Locale card*; section 9's bet. `../generation.md` §106 |
+| D105 | **The author's directive.** The boss is a challenger (a rival, a protagonist, a gym leader or an Elite Four member), read as the game's own class and name, and it has no type. Every type chip that described the gym comes off: pre-gym heading, map heading, map rail, locale rail. The node's kind word is *Challenger*. | Bible section 3, *Node kind*; section 4, *Pre-gym screen*; section 5, *Run Info screen* and *Locale card*. `../generation.md` §109 |
+| D106 | **Option 1**, ruled the same day (*"d102 option1 and go ahead checkpoint 7"*): one *Next challenger* bar at the rail's four mounts and the locale screen, the eight pips and the badge mark retired, the challenger's own sprite in the badge's slot on the boss node and the battle header. | Bible Rev 28: section 3, *Node* family and *Node kind*; section 4, *Next challenger* at 3; section 5, *Battle screen header*, *Next challenger*, *Map node card*, *Run Info screen*, *Locale card*; section 9's bet. `../generation.md` §110 |
 
 ---
 
-## D100. Every opponent is a named trainer from a named game, and no rule says where that shows
+## D104. Every opponent is a named trainer from a named game, and no rule says where that shows
 
 **Filed 2026-10-05, by Stage 6.0 at its fourth checkpoint
 ([`../spec/gymrun-stage6.0-encounter-library.md`](../spec/gymrun-stage6.0-encounter-library.md)).
 Ruled 2026-10-05, option 1, by the author, and built at the fifth checkpoint
-the same day. Bible Rev 25.**
+the same day. Bible Rev 26.**
 
 Stage 6.0 makes every trainer and gym node a record from a library of real
 encounters: the trainer's name and class (`Youngster Joey`, `Leader Brock`),
@@ -4703,11 +4703,11 @@ opponent, and it keeps every pre-selection surface a kind. The playtest row
 for it is the author's directive, not a disconfirmer, and the bible's section
 10 process applies to the D61 amendment the sprite needs.
 
-## D101. The boss is a challenger, and four surfaces show a type it no longer has
+## D105. The boss is a challenger, and four surfaces show a type it no longer has
 
 **Filed and ruled 2026-10-05, by the author's directive at Stage 6.0's sixth
 checkpoint ([`../spec/gymrun-stage6.0-checkpoint6-challengers.md`](../spec/gymrun-stage6.0-checkpoint6-challengers.md)).
-Built the same day. Bible Rev 26.**
+Built the same day. Bible Rev 27.**
 
 *"the gym defender shouldn't be facing gyms as bosses. bosses should be more
 like 'this is an ace trainer at this stage' like the rival in red/blue or the
@@ -4723,16 +4723,16 @@ card's four chips stay: they are the area's wild types, the typed resource
 the author's design keeps. No option set was needed; the directive is the
 ruling, and the amendment is the one the directive implies.
 
-## D102. No badge: a progress bar that shrinks as the next challenger approaches
+## D106. No badge: a progress bar that shrinks as the next challenger approaches
 
-**Filed 2026-10-05, by the same checkpoint. Ruled option 1 the same day and built as checkpoint 7. Bible Rev 27.**
+**Filed 2026-10-05, by the same checkpoint. Ruled option 1 the same day and built as checkpoint 7. Bible Rev 28.**
 
 The author's second message: *"maps are training, and there's only a progress
 bar that shrinks as the 'next challenger approaches'. so there doesn't need
 to be a badge, just that you can go to an area to get the resources (typing)
 in the ones available in that area."* Today the segment is drawn as a gym:
 an eight-badge rail on the map heading, the map drawer, Run Info and the
-desktop sidebar (D46's badge mark, D72's rail, D100's "the gym node still
+desktop sidebar (D46's badge mark, D72's rail, D104's "the gym node still
 wears the badge mark"), a badge mark on the boss node and the battle header,
 and badge dots on the summary's route. A challenger has no badge to give.
 
@@ -4745,7 +4745,7 @@ and badge dots on the summary's route. A challenger has no badge to give.
    Run Info, sidebar) and on the locale screen in the rail's place. Eight
    small marks for the run's position stay only on the summary's route,
    which is an archive. The boss node and the battle header wear the
-   trainer's own sprite at 16 in the badge mark's slot (D100 already lets the
+   trainer's own sprite at 16 in the badge mark's slot (D104 already lets the
    header), and `glyphNode` loses the badge entry.
 2. **The bar beside the rail.** As 1 for the bar; the rail stays as eight
    numbered pips with the challengers' names and no badge glyph, so the run's

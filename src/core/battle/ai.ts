@@ -301,6 +301,11 @@ export const GREEDY_BASELINE: AiProfile = {
  */
 const UNKNOWN_ABILITY = '(unknown)';
 
+/** One IV on every stat, in the calc's terms. Defender Mode v0's flat IV. */
+function flatCalcIvs(iv: number): StatsTable {
+  return { hp: iv, atk: iv, def: iv, spa: iv, spd: iv, spe: iv };
+}
+
 function toCalcPokemon(active: ActiveView, revealed?: string | null, item?: string | null): Pokemon {
   const boosts: Partial<StatsTable> = {
     atk: active.statStages.atk,
@@ -312,7 +317,8 @@ function toCalcPokemon(active: ActiveView, revealed?: string | null, item?: stri
   return new Pokemon(gen, active.species, {
     level: active.level,
     nature: 'Serious',
-    ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+    // 31 unless a defender opponent's rank says otherwise; public either way.
+    ivs: flatCalcIvs(active.ivs ?? 31),
     evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
     boosts,
     curHP: Math.max(1, active.hp),
@@ -340,7 +346,7 @@ function toCalcSwitch(member: SwitchView): Pokemon {
   return new Pokemon(gen, member.species, {
     level: member.level,
     nature: 'Serious',
-    ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+    ivs: flatCalcIvs(member.ivs ?? 31),
     evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
     curHP: Math.max(1, member.hp),
     status: member.status ?? '',

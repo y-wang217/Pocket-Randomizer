@@ -113,6 +113,8 @@ describe('the recipient screen', () => {
     expect(members.every((card) => card.tagName === 'DIV'), 'a card is not a button').toBe(true);
     const controls = [...screen.root.querySelectorAll<HTMLButtonElement>('.target__choose')];
     expect(controls.length).toBe(ROSTER.length);
+    // Each control names the member it answers with (2026-10-05).
+    expect(controls.map((control) => control.querySelector('.copy__short')?.textContent)).toEqual(ROSTER.map((m) => `Teach it to ${m.species}`));
     controls[1]?.click();
     expect(picked).toEqual([1]);
   });
@@ -128,11 +130,13 @@ describe('the recipient screen', () => {
     expect(card?.querySelectorAll('.move--card').length).toBeGreaterThan(0);
   });
 
-  it('keeps the per-member line about the pairing, which the card does not replace', () => {
+  it('keeps the per-member line about the pairing off the default, which the card does not replace', () => {
     const { screen } = render({ kind: 'tutor', move: 'Ice Beam' });
-    const lines = [...screen.root.querySelectorAll('.target__effect')].map((line) => line.textContent);
-    expect(lines[0]).toContain('Knows four moves');
-    expect(lines[1]).toContain('Already knows Ice Beam');
+    const slots = [...screen.root.querySelectorAll('.target__slot')];
+    // Four moves is the default and draws no line: the replace screen behind
+    // the control asks which goes (2026-10-05, the teach screen text-load patch).
+    expect(slots[0]?.querySelector('.target__effect')).toBeNull();
+    expect(slots[1]?.querySelector('.target__effect')?.textContent).toContain('Already knows Ice Beam');
   });
 });
 

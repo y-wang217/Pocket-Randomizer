@@ -78,8 +78,10 @@ describe('the glyph sheet', () => {
    */
   // Thirteen since Stage 5.0/3: `currency`, ruled under D54 (Rev 15) and
   // first drawn for the shop price and the coins card (D66, Rev 17).
-  it('fills all thirteen families of section 2, and no fourteenth', () => {
-    expect(GLYPH_FAMILIES).toHaveLength(13);
+  // Fourteen since Defender Mode v0: `badge`, filed as D100 before any of it
+  // was built and ruled into Rev 25 (`docs/reports/defender-mode-v0-step7-bible.md`).
+  it('fills all fourteen families of section 2, and no fifteenth', () => {
+    expect(GLYPH_FAMILIES).toHaveLength(14);
     for (const family of GLYPH_FAMILIES) expect(glyphsOf(family), family).not.toHaveLength(0);
     const drawn = new Set(GLYPHS.map((glyph) => glyph.family));
     expect([...drawn].sort()).toEqual([...GLYPH_FAMILIES].sort());
@@ -102,7 +104,7 @@ describe('the glyph sheet', () => {
     ]);
     expect(glyphsOf('stat')).toHaveLength(6);
     // Section 2's node row, D46: one mark per kind, in the map's own order.
-    // No gym entry since D102 (checkpoint 7): the boss wears the challenger's own sprite.
+    // No gym entry since D106 (checkpoint 7): the boss wears the challenger's own sprite.
     expect(glyphsOf('node').map((glyph) => glyph.label)).toEqual(['Wild', 'Trainer', 'Rest', 'Shop', 'Event']);
     // Section 2's field row, D47: five weathers then four terrains, nine marks.
     expect(glyphsOf('field').map((glyph) => glyph.label)).toEqual(['Rain', 'Sun', 'Sand', 'Snow', 'Wind', 'Electric', 'Grassy', 'Misty', 'Psychic']);

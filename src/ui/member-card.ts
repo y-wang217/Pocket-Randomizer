@@ -187,7 +187,15 @@ export function memberCardContents(
   if (options.contribution) body.push(contributionRow(member));
   const fold = collapsible(card, body, spec.species, { readout: options.readout ?? false });
   fold.toggle.classList.add('party__member-toggle');
-  meta.append(fold.toggle);
+  /*
+   * **The fold control is a bar under the stat block, not a `+` on the meta
+   * line.** The teach screen text-load patch (2026-10-05): the author asked
+   * for *"a wider button beneath the stats row"*. It sits between the head and
+   * the body it opens, so the moves unfold under the thing that opened them,
+   * and it spans the card, so it is a target rather than a glyph to find.
+   * Still the glyph and no word: a word here would be one per card.
+   */
+  card.insertBefore(fold.toggle, fold.body);
 
   card.dataset['slot'] = options.index === undefined ? '' : String(options.index);
   return card;

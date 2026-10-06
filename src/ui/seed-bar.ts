@@ -37,6 +37,8 @@
 import { CONTENT_HASH } from '../core/contentHash';
 import { formatSeedString, parseSeedString, type ParsedSeed } from '../core/seedString';
 import { foreignSeedMessage, SEED_COPY } from '../data/seedCopy';
+import type { RunMode } from '../core/types';
+import { MODE_COPY } from './copy/defender';
 import { el } from './scene';
 
 export interface SeedBar {
@@ -64,8 +66,21 @@ export interface SeedBar {
    * died on still shows whatever it was asking — so it is where the player is
    * told, and the Start beside it is the way out. See
    * `docs/spec/gymrun-patch-carry-on-softlock.md`.
+   *
+   * Opens the bar unless `open` is false. A notice with something to do about
+   * it (Start is the way out of a failed run, or begins a linked seed) opens
+   * it; one that only reports, like the outdated save, sits in the collapsed
+   * bar for the Seed toggle to show, because the author found the bar open on
+   * load and asked for it shut (`docs/spec/gymrun-patch-teach-screen-text-load.md`).
    */
-  warn(message: string): void;
+  warn(message: string, options?: { open?: boolean }): void;
+  /**
+   * The run mode the next Start, New seed or replay plays. **Defender Mode v0,
+   * bible Rev 25, D101**: two controls, one word each, pressed state on the
+   * one in force. A resume plays the saved log's own mode, never this.
+   */
+  mode(): RunMode;
+  setMode(mode: RunMode): void;
 }
 
 export function createSeedBar(): SeedBar {
@@ -118,11 +133,32 @@ export function createSeedBar(): SeedBar {
   resume.hidden = true;
 
   /** The refusal, hidden until a foreign seed is submitted or arrives. */
+  // The mode choice: two controls, one word each (D101's budget of 2).
+  const modes = el('div', 'seedbar__modes');
+  modes.setAttribute('role', 'group');
+  modes.setAttribute('aria-label', MODE_COPY.label);
+  let current: RunMode = 'attacker';
+  const modeButtons = (['attacker', 'defender'] as const).map((mode) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'button button--small seedbar__mode';
+    button.dataset['mode'] = mode;
+    button.textContent = MODE_COPY[mode];
+    button.addEventListener('click', () => setMode(mode));
+    modes.append(button);
+    return button;
+  });
+  const setMode = (mode: RunMode): void => {
+    current = mode;
+    for (const button of modeButtons) button.setAttribute('aria-pressed', String(button.dataset['mode'] === mode));
+  };
+  setMode('attacker');
+
   const notice = el('p', 'seedbar__notice');
   notice.setAttribute('role', 'alert');
   notice.hidden = true;
 
-  root.append(label, input, apply, copy, reroll, resume, notice);
+  root.append(label, input, modes, apply, copy, reroll, resume, notice);
 
   const clearNotice = (): void => {
     notice.textContent = '';
@@ -189,12 +225,14 @@ export function createSeedBar(): SeedBar {
     onReroll: (handler) => reroll.addEventListener('click', () => handler()),
     onResume: (handler) => resume.addEventListener('click', () => handler()),
     refuse,
-    warn: (message) => {
+    mode: () => current,
+    setMode,
+    warn: (message, options = {}) => {
       notice.textContent = message;
       notice.hidden = false;
       // A notice in a collapsed bar is hidden on a phone mid-run, which is
       // where the resume notices are raised. The opening playtest QA.
-      setCollapsed(false);
+      if (options.open !== false) setCollapsed(false);
     },
   };
 }

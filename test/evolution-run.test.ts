@@ -96,7 +96,7 @@ function capturePolicy(branch = 0, forks: Fork[] = []): RunPolicy {
  * "widen the search" rather than passing vacuously when the range runs out.
  */
 /*
- * **Re-pinned 2026-10-05 at `-26`**: every trainer and gym is a record from
+ * **Re-pinned 2026-10-05 at `-27`**: every trainer and gym is a record from
  * the encounter library, so the two seeds above fork no longer. Found by
  * scanning the first thousand; `S49B-738` forks a Tyrogue three ways and the
  * other two fork two ways, so either test's floor is met by the first seed.

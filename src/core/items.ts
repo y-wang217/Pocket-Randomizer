@@ -153,8 +153,10 @@ export function needsItemPlan(state: {
 export function inventoryLoad(state: {
   backpack: readonly ItemId[];
   tms: readonly string[];
+  /** Defender Mode v0's healing items, the third list on the same capacity. */
+  consumables?: readonly string[];
 }): number {
-  return state.backpack.length + state.tms.length;
+  return state.backpack.length + state.tms.length + (state.consumables?.length ?? 0);
 }
 
 /**

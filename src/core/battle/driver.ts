@@ -23,7 +23,9 @@ import {
   opposingSide,
   type ActiveView,
   type BattleResult,
+  type BattleBadge,
   type BattleView,
+  type FoeIntent,
   type BoostName,
   type Choice,
   type BattleLog,
@@ -45,11 +47,22 @@ import {
   type SwitchView,
   type TeamSpec,
 } from '../types';
-import { GYMRUN_GEN, TURN_LIMIT, gymrunFormat } from './format';
+import {
+  GYMRUN_GEN,
+  TURN_LIMIT,
+  carriesBadge,
+  critChanceAt,
+  fifthSlotOf,
+  fireNextStage,
+  gymrunFormat,
+  installDefenderBadge,
+  speedModifierOf,
+} from './format';
+import { DEFENDER_BADGE } from '../../data/defender';
 import { bandOfMove } from '../../data/moveOverrides';
 import type { Policy } from './policy';
 import { readContribution } from './contribution';
-import { DISPLAY_STATS, statsAtLevel } from './stats';
+import { DISPLAY_STATS, GYMRUN_IV, statsAtLevel } from './stats';
 import { SPECIES_POOL } from '../../data/speciesPools';
 import { stageAllowedAt } from '../../data/evolution';
 import { isSpeciesBlacklisted } from '../../data/blacklists';
@@ -94,6 +107,31 @@ const VALID_STATUSES: readonly string[] = ['brn', 'par', 'slp', 'frz', 'psn', 't
  * means the AI's damage estimate of the opponent is exact rather than a guess,
  * which keeps Stage 0's AI honest without giving it hidden information.
  */
+function flatIvs(iv: number): PokemonSet['ivs'] {
+  return { hp: iv, atk: iv, def: iv, spa: iv, spd: iv, spe: iv };
+}
+
+/**
+ * The flat IV a sim Pokemon was built with, and the spread field a view
+ * carries for it: nothing at 31, so an attacker view is the object it always
+ * was, and `ivs` otherwise. **Defender Mode v0.** Read off the set the adapter
+ * built, so it cannot disagree with `toPokemonSet`.
+ */
+function ivOf(pokemon: SimPokemon): number {
+  return pokemon.set.ivs?.spe ?? GYMRUN_IV;
+}
+
+/** The Flying badge's Speed numerator, when `pokemon` carries it. Defender Mode v0. */
+function speedField(pokemon: SimPokemon): { speedModifier?: number } {
+  const numerator = speedModifierOf(pokemon);
+  return numerator === null ? {} : { speedModifier: numerator };
+}
+
+function ivField(pokemon: SimPokemon): { ivs?: number } {
+  const iv = ivOf(pokemon);
+  return iv === GYMRUN_IV ? {} : { ivs: iv };
+}
+
 export function toPokemonSet(spec: PokemonSpec): PokemonSet {
   return {
     name: spec.nickname ?? spec.species,
@@ -121,7 +159,12 @@ export function toPokemonSet(spec: PokemonSpec): PokemonSet {
      */
     gender: spec.gender ?? '',
     evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-    ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+    /*
+     * One flat IV on every stat: 31 unless the spec names another. **Defender
+     * Mode v0.** Only a defender opponent ever does (`PokemonSpec.ivs`), so
+     * every attacker set is the set it always was.
+     */
+    ivs: flatIvs(spec.ivs ?? GYMRUN_IV),
     level: spec.level,
     shiny: false,
     happiness: 255,
@@ -130,6 +173,19 @@ export function toPokemonSet(spec: PokemonSpec): PokemonSet {
 
 function toTeam(spec: TeamSpec): PokemonSet[] {
   return spec.map(toPokemonSet);
+}
+
+/**
+ * The Flying badge's fifth move, appended after a member's own moves.
+ * **Defender Mode v0.** The only path a fifth move takes into the sim:
+ * `toPokemonSet` still keeps four, so a spec can never carry one by accident.
+ */
+function withFifthMoves(sets: PokemonSet[], badge: BattleBadge | undefined): PokemonSet[] {
+  if (!badge) return sets;
+  return sets.map((set, index) => {
+    const fifth = badge.members[index]?.fifthMove;
+    return fifth ? { ...set, moves: [...set.moves, fifth] } : set;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -249,6 +305,7 @@ export function describeSpecCard(spec: PokemonSpec): SpecCard {
     spec.level,
     spec.item ?? '',
     spec.nickname ?? '',
+    spec.ivs ?? GYMRUN_IV,
   ]);
   const cached = vitalsCache.get(key);
   if (cached) return cached;
@@ -567,6 +624,8 @@ function toActiveView(pokemon: SimPokemon, revealAbility: boolean): ActiveView {
     // `stats.ts` computes from species and level (`test/stats.test.ts` holds
     // the two together), so reading it off the foe leaks nothing.
     baseSpeed: pokemon.storedStats.spe,
+    ...speedField(pokemon),
+    ...ivField(pokemon),
     ability: revealAbility ? Dex.forGen(GYMRUN_GEN).abilities.get(pokemon.ability).name : null,
     // Same rule as the ability, and for the same reason: an item the opponent
     // has not shown is not public information. `itemAware` reads its own side's
@@ -608,7 +667,9 @@ function toActiveFacts(pokemon: SimPokemon, own: boolean): ActiveFacts {
   const base = pokemon.species.baseStats;
   const level = pokemon.level;
 
-  const computed = statsAtLevel(base, level, pokemon.species.maxHP);
+  // The rank's IV for a defender opponent (`ivOf`), 31 for everyone else.
+  // Public either way: the rank table is data, so the computation stays exact.
+  const computed = statsAtLevel(base, level, pokemon.species.maxHP, ivOf(pokemon));
   const stats: Record<StatName, number> = own
     ? {
         atk: pokemon.storedStats.atk,
@@ -636,6 +697,8 @@ function toActiveFacts(pokemon: SimPokemon, own: boolean): ActiveFacts {
     status: readStatus(pokemon),
     stats,
     baseStats: { hp: base.hp, atk: base.atk, def: base.def, spa: base.spa, spd: base.spd, spe: base.spe },
+    ...ivField(pokemon),
+    ...speedField(pokemon),
     boosts: readStatStages(pokemon),
     volatiles: Object.keys(pokemon.volatiles),
     ability: ability?.exists ? { id: ability.id, name: ability.name } : null,
@@ -686,10 +749,21 @@ function readMoves(battle: Battle, side: SideId): MoveView[] {
   const active = request.active[0];
   if (!active) return [];
 
+  // Defender Mode v0: the badge's two readouts on the move list. Nothing for
+  // a Pokemon that does not carry the badge, which is every attacker Pokemon.
+  const mon = activeOf(battle, side);
+  const fire = carriesBadge(mon) ? fireNextStage(mon, DEFENDER_BADGE.fireCritStages) : null;
+  const fifth = carriesBadge(mon) ? fifthSlotOf(mon) : null;
+
   return active.moves.map((entry, index) => {
     const data = Dex.forGen(GYMRUN_GEN).moves.get(entry.id);
     const maxPp = entry.maxpp ?? 0;
+    const badge: Pick<MoveView, 'critChance' | 'badgeMove'> = {
+      ...(fire && entry.id === fire.highlight ? { critChance: critChanceAt(data.critRatio ?? 1, fire.stage) } : {}),
+      ...(fifth === index ? { badgeMove: true as const } : {}),
+    };
     return {
+      ...badge,
       slot: index + 1,
       id: entry.id,
       name: entry.move,
@@ -767,6 +841,7 @@ function readSwitches(battle: Battle, side: SideId): SwitchView[] {
       types: mon.getTypes(),
       ability: dex.abilities.get(mon.ability).name,
       moves: mon.moveSlots.map((slot) => slot.id),
+      ...ivField(mon),
       hp: mon.hp,
       maxHp: mon.maxhp,
       hpFraction: Math.max(0, Math.min(1, mon.hp / maxHp)),
@@ -898,6 +973,12 @@ export interface BattleSession {
    * the only thing that crosses a node boundary.
    */
   partyState(side: SideId): BattleMemberState[];
+  /**
+   * Hold the opponent's committed choice so the player's view can show it, or
+   * clear it with null. **Defender Mode v0, the Psychic badge.** The choice is
+   * the one the opponent's policy already returned; nothing is asked twice.
+   */
+  revealFoeIntent(choice: Choice | null): void;
   /** The replayable record of this battle. */
   toBattleLog(): BattleLog;
 }
@@ -929,6 +1010,11 @@ export interface BattleOptions {
    * currently exists, so nothing needs the other half.
    */
   carryOver?: readonly PokemonState[];
+  /**
+   * The player's gym badge in a Defender Mode v0 battle. Absent in attacker
+   * mode, which registers no handler, appends no move and reorders nothing.
+   */
+  badge?: BattleBadge;
 }
 
 /**
@@ -945,8 +1031,17 @@ export function createBattle(options: BattleOptions): BattleSession {
   // Deferred player setup, not the one-shot constructor form: see
   // `BattleOptions.carryOver` for why the gap between these two calls matters.
   const battle = new Battle({ format, formatid: format.id, seed: simSeed, strictChoices: true });
-  battle.setPlayer('p1', { name: 'Player', team: toTeam(options.teams.p1) });
+  battle.setPlayer('p1', { name: 'Player', team: withFifthMoves(toTeam(options.teams.p1), options.badge) });
   if (options.carryOver) applyCarryOver(battle, options.carryOver);
+  // After the carry-over, so the fifth slot's PP is the badge's and not what
+  // a carried member's four slots wrote; before p2, so before anything switches in.
+  if (options.badge) {
+    installDefenderBadge(battle, options.badge, {
+      fireCritStages: DEFENDER_BADGE.fireCritStages,
+      flyingSpeed: DEFENDER_BADGE.flyingSpeed,
+      fifthMovePp: DEFENDER_BADGE.fifthMovePp,
+    });
+  }
   battle.setPlayer('p2', { name: 'Opponent', team: toTeam(options.teams.p2) });
 
   /*
@@ -980,6 +1075,12 @@ export function createBattle(options: BattleOptions): BattleSession {
   const listeners = new Set<(update: BattleUpdate) => void>();
   let logCursor = 0;
   let result: BattleResult | null = null;
+  /*
+   * The opponent's committed action for this turn, held between the AI
+   * answering and the player being asked. **Defender Mode v0, the Psychic
+   * badge.** Only `runBattle` writes it, and only under that badge.
+   */
+  let intent: FoeIntent | null = null;
 
   /**
    * Split the newly produced protocol into per-side views.
@@ -1052,6 +1153,11 @@ export function createBattle(options: BattleOptions): BattleSession {
       // Copied rather than handed out live: a view is a snapshot, and a policy
       // holding one from two turns ago must not see it change under it.
       seen: { ...seenBy[side], moves: [...seenBy[side].moves] },
+      // Shown to the player only while its active Pokemon carries the badge,
+      // and never on a forced replacement: there is nothing pending to show.
+      ...(side === 'p1' && intent && awaiting && !forceSwitch && carriesBadge(activeOf(battle, 'p1'))
+        ? { foeIntent: intent }
+        : {}),
     };
   }
 
@@ -1097,12 +1203,19 @@ export function createBattle(options: BattleOptions): BattleSession {
        * would put a second lookup path in front of the same table.
        */
       explanation: describeMove(move.id),
+      // Defender Mode v0's two readouts, carried through to the battle screen.
+      ...(move.critChance === undefined ? {} : { critChance: move.critChance }),
+      ...(move.badgeMove ? { badgeMove: true as const } : {}),
     }));
 
     const forceSwitch =
       awaiting && !!request && 'forceSwitch' in request && Boolean(request.forceSwitch?.[0]);
+    // The Psychic badge's reveal, on the same condition the policy's view uses.
+    const shownIntent =
+      side === 'p1' && intent && awaiting && !forceSwitch && carriesBadge(activeOf(battle, 'p1')) ? intent : null;
 
     return {
+      ...(shownIntent ? { foeIntent: shownIntent } : {}),
       turn: battle.turn,
       ended: battle.ended,
       player: toActiveFacts(me, true),
@@ -1204,7 +1317,23 @@ export function createBattle(options: BattleOptions): BattleSession {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    partyState: (side) => readPartyState(submitted[side], options.teams[side]),
+    partyState: (side) => readPartyState(submitted[side], options.teams[side], !!options.badge),
+    revealFoeIntent(choice) {
+      if (!choice) {
+        intent = null;
+        return;
+      }
+      const view = buildView('p2');
+      if (choice.kind === 'move') {
+        const move = view.moves[choice.slot - 1];
+        intent = move
+          ? { kind: 'move', move: move.name, id: move.id, type: move.type, category: move.category, basePower: move.basePower }
+          : null;
+      } else {
+        const target = view.switches[choice.slot - 1];
+        intent = target ? { kind: 'switch', species: target.species, name: target.name } : null;
+      }
+    },
     toBattleLog: () => ({ seed: options.seed, version: ENGINE_VERSION, decisions: [...decisions] }),
   };
 
@@ -1253,15 +1382,18 @@ function applyCarryOver(battle: Battle, party: readonly PokemonState[]): void {
  * battle that switched still maps each spec to the Pokemon that was built from
  * it.
  */
-function readPartyState(order: readonly SimPokemon[], specs: TeamSpec): BattleMemberState[] {
+function readPartyState(order: readonly SimPokemon[], specs: TeamSpec, badged = false): BattleMemberState[] {
   return specs.map((spec, index) => {
     const mon = order[index];
     if (!mon) throw new Error(`No Pokemon at slot ${index} to read back`);
+    // A badge's fifth move belongs to the battle, not the Pokemon: it never
+    // reaches the party, so the next battle's slot starts fresh.
+    const slots = badged ? mon.moveSlots.slice(0, spec.moves.length) : mon.moveSlots;
     return {
       spec,
       maxHp: mon.maxhp,
       hp: mon.hp,
-      moves: mon.moveSlots.map((slot) => ({ id: slot.id, name: slot.move, pp: slot.pp, maxPp: slot.maxpp })),
+      moves: slots.map((slot) => ({ id: slot.id, name: slot.move, pp: slot.pp, maxPp: slot.maxpp })),
       status: readStatus(mon),
       fainted: mon.fainted,
     };
@@ -1683,6 +1815,8 @@ export async function runBattle(
     simSeed?: SimSeed;
     /** Player-side HP/PP/status carried in from an earlier node. */
     carryOver?: readonly PokemonState[];
+    /** The player's gym badge, Defender Mode v0. See `BattleOptions.badge`. */
+    badge?: BattleBadge;
     /**
      * Called once, synchronously, with the session that is about to be played.
      * The UI needs the session before the battle resolves so it can subscribe
@@ -1696,8 +1830,10 @@ export async function runBattle(
     seed,
     ...(options.simSeed ? { simSeed: options.simSeed } : {}),
     ...(options.carryOver ? { carryOver: options.carryOver } : {}),
+    ...(options.badge ? { badge: options.badge } : {}),
   });
   options.onStart?.(session);
+  const reveals = options.badge?.gymType === 'Psychic';
   const policies: Record<SideId, Policy> = { p1: policyA, p2: policyB };
 
   while (!session.ended) {
@@ -1707,10 +1843,33 @@ export async function runBattle(
     // Ask every waiting policy first, then submit in a fixed p1-before-p2
     // order. Policies may resolve in any order; submission order must not vary
     // or two runs of the same seed could diverge.
-    const chosen = await Promise.all(
-      pending.map(async (side) => [side, await policies[side](session.viewFor(side))] as const),
-    );
+    /*
+     * **The Psychic badge asks the opponent first.** Defender Mode v0. On a
+     * turn where both sides choose and the opponent is not replacing a faint,
+     * its policy answers before the player's view is built, and the answer is
+     * held for that view to show. The opponent reads only its own view and
+     * draws only on its own stream, so asking it first changes nothing it
+     * decides; submission order below is untouched, so the sim sees the same
+     * sequence. Every other battle takes the original path.
+     */
+    const revealing =
+      reveals && pending.includes('p1') && pending.includes('p2') && !session.viewFor('p2').forceSwitch;
+    let chosen: (readonly [SideId, Choice])[];
+    if (revealing) {
+      const foe = await policies.p2(session.viewFor('p2'));
+      session.revealFoeIntent(foe);
+      const mine = await policies.p1(session.viewFor('p1'));
+      chosen = [
+        ['p1', mine],
+        ['p2', foe],
+      ];
+    } else {
+      chosen = await Promise.all(
+        pending.map(async (side) => [side, await policies[side](session.viewFor(side))] as const),
+      );
+    }
     for (const [side, choice] of chosen) session.submit(side, choice);
+    if (revealing) session.revealFoeIntent(null);
   }
 
   const result = session.result ?? { winner: null, turns: session.turn, cause: 'turn-limit' as const };

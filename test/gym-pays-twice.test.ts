@@ -90,19 +90,24 @@ describe('the run log version', () => {
      * rests and shops, and a floor of battle-only steps — which moved
      * `contentHash` with it and left `RUN_LOG_VERSION` alone. The separation
      * once more, from the generator side.
+     *
+     * And to `-24` by Defender Mode v0, whose draws are all new keys, with
+     * `RUN_LOG_VERSION` moving beside it for the mode's own decisions.
      */
     /*
      * And to `-24` by the berry pick the gym pool deals, which is this file's
      * page 2 again and moved `RUN_LOG_VERSION` beside it for the pick's
      * answer: two axes, each for its own reason, which is still the separation.
-     * `-25` is the species-locked entries leaving the pools, not this file;
-     * `-26` is every trainer and gym drawn from the encounter library, and
-     * `-27` the library gaining the Champion Cup, which is the regenerate
-     * rule the generated tables state. `-28` is the boss drawn as a
-     * challenger from a cast rather than a leader of the gym's type; `-29`
-     * the Gen 5 to 9 rivals joining that cast.
+     * `-25` is the species-locked entries leaving the pools, not this file,
+     * and `-26` Defender Mode v0's draws merged onto it. `-27` is every
+     * trainer and gym drawn from the encounter library, and `-28` the library
+     * gaining the Champion Cup, which is the regenerate rule the generated
+     * tables state. `-29` is the boss drawn as a challenger from a cast rather
+     * than a leader of the gym's type; `-30` the Gen 5 to 9 rivals joining
+     * that cast, and the merge of Stage 6.0 onto Defender Mode, where the
+     * four were renumbered above main's `-26`.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-29');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-30');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

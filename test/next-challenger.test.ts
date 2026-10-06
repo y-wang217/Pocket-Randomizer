@@ -1,5 +1,5 @@
 /**
- * The next challenger, and how far off they are. **Stage 6.0 checkpoint 7, D102.**
+ * The next challenger, and how far off they are. **Stage 6.0 checkpoint 7, D106.**
  *
  * @vitest-environment jsdom
  *
@@ -75,12 +75,12 @@ describe('the bar', () => {
 describe('the badge mark', () => {
   it('is gone from the glyph sheet, and the boss wears the challenger’s sprite or the trainer mark', () => {
     expect(glyphNode('node-gym', { label: 'Challenger', size: 16 })).toBeNull();
-    const withSprite = challengerMark({ ...segment.gymEncounter, sprite: 'blue-gen1' }, 'Challenger', 24);
+    const withSprite = challengerMark({ ...segment.gymEncounter!, sprite: 'blue-gen1' }, 'Challenger', 24);
     const img = withSprite.querySelector<HTMLImageElement>('img.sprite--opponent')!;
     expect(img).not.toBeNull();
     expect(img.width).toBe(24);
     expect(withSprite.getAttribute('aria-label')).toBe('Challenger');
-    const without = challengerMark({ ...segment.gymEncounter, sprite: null }, 'Challenger', 16);
+    const without = challengerMark({ ...segment.gymEncounter!, sprite: null }, 'Challenger', 16);
     expect(without.querySelector('img')).toBeNull();
     expect(without.querySelector('svg, .glyph')).not.toBeNull();
   });

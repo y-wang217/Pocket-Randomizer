@@ -78,7 +78,7 @@ export interface LocaleSelectView {
   leader: string;
   /** The challenger's class and name, as the node's opponent reads (checkpoint 6). Falls back to the name. */
   challenger?: string;
-  /** The challenger's trainer sprite id, or null (checkpoint 7, D102). */
+  /** The challenger's trainer sprite id, or null (checkpoint 7, D106). */
   sprite?: string | null;
   /** The party as it stands, for the compact strip. */
   party: readonly PokemonState[];
@@ -116,7 +116,7 @@ export function createLocaleSelect(): LocaleSelect {
    * the region cards, which is the position R1 says carries the meaning. The
    * type chip went at checkpoint 6: a challenger has none, and the region
    * cards' own type chips are the typed fact the choice is about. Since
-   * checkpoint 7 (D102) the slot holds the next-challenger bar, full here
+   * checkpoint 7 (D106) the slot holds the next-challenger bar, full here
    * because no step has been walked.
    */
 

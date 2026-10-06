@@ -131,6 +131,12 @@ export interface NodeSpec {
   id: string;
   kind: NodeKind;
   /**
+   * The challenger's trainer class id, on a Defender Mode v0 door node only.
+   * `data/trainerClasses.ts` holds the class and `data/trainerClassCopy.ts`
+   * its name.
+   */
+  trainerClass?: string;
+  /**
    * The locale this node's route runs through, or null for the gym.
    *
    * **Added by the event rejig, and it is plumbing rather than a new fact.**
@@ -248,7 +254,11 @@ export interface Step {
  * differing from the first only in cases nobody would think to test.
  */
 export interface LocaleRoute {
-  locale: LocaleId;
+  /**
+   * Null on a Defender Mode v0 rank, which has one route and no locale: the
+   * mode switches locales off.
+   */
+  locale: LocaleId | null;
   steps: Step[];
 }
 
@@ -267,8 +277,8 @@ export interface Segment {
   leader: string;
   /** The slot: its segment and its number. The challenger is not in it; see `gymEncounter`. */
   gymDefinition: GymDefinition;
-  /** The challenger record the slot resolved to: name, class, sprite, game, place, citation. */
-  gymEncounter: EncounterRef;
+  /** The challenger record the slot resolved to: name, class, sprite, game, place, citation. Null on a Defender Mode rank, whose boss is the mode's own. */
+  gymEncounter: EncounterRef | null;
   /**
    * The locales this segment offers, in offer order. Two or three.
    *
@@ -1072,7 +1082,7 @@ function ensureKind(
  * trades rather than the same trade offered twice. See
  * `tuning.distinctTiersPerStep` for why that is the rule and not the option.
  */
-function assignTiers(
+export function assignTiers(
   kinds: readonly ChoosableKind[],
   segment: number,
   stream: RngStream,
@@ -1185,7 +1195,7 @@ const NON_BATTLE_LABELS: Record<'rest' | 'shop' | 'event', string> = {
 
 /**
  * What the log, the summary and the battle header call this opponent.
- * **Stage 6.0, D100.** A library trainer is its class and its name, `Leader
+ * **Stage 6.0, D104.** A library trainer is its class and its name, `Leader
  * Brock`, `Youngster Joey`; a wild node is its lead. The count-and-kind
  * reading (`Trainer (2)`) remains only for a trainer with no record, which
  * generation never produces and the fixtures sometimes do.

@@ -106,7 +106,7 @@ export function spriteFigure(species: string, options: FigureOptions = {}): HTML
  *
  * Class A, from the same CDN as the Pokemon, through `@pkmn/img`'s own avatar
  * path, so nothing raster ships. D61 kept trainer sprites to this one use
- * until D100 let the battle header wear the opponent's and D102 retired the
+ * until D104 let the battle header wear the opponent's and D106 retired the
  * badge mark for the challenger's own (`opponentImg`).
  *
  * Decorative, for the reason the stage's actors are: the node it stands on is
@@ -116,10 +116,10 @@ export function spriteFigure(species: string, options: FigureOptions = {}): HTML
 export const PLAYER_TRAINER = 'lucas';
 
 /**
- * The opponent's trainer sprite on the battle header. **Stage 6.0, D100.**
+ * The opponent's trainer sprite on the battle header. **Stage 6.0, D104.**
  *
  * The one surface besides the player marker that wears a trainer sprite,
- * amended into D61 by D100: the id is the library record's, verified against
+ * amended into D61 by D104: the id is the library record's, verified against
  * the CDN listing at import, in the game's own era (`brock-gen1rb`). Same
  * host and path as the marker, through `getAvatar`; 16 pixels, the size the
  * node glyph renders at in the same row (D46). Decorative, since the words

@@ -68,6 +68,34 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 **In flight: Stage 5.0, the visual redesign ([`spec/gymrun-stage5.0-visual-redesign.md`](spec/gymrun-stage5.0-visual-redesign.md)). 5.0/0, the spike and audit, is done on `claude/hopeful-shannon-kch3gw` and stopped for review.** The report is [`visual/reports/5.0-stage0-spike.md`](visual/reports/5.0-stage0-spike.md). It filed D50 to D76 in the discrepancy register. The author ruled D50 and D52 to D55 the same day ([`spec/gymrun-stage5.0-rulings-d50-d55.md`](spec/gymrun-stage5.0-rulings-d50-d55.md)); the bible is at **Rev 15** (one face and no density setting, tabs open screens, a mid-run Run Info screen, a `currency` family, and Run Progress as a decision feed replayed from the run log), recorded in [`generation.md` §87](generation.md). **5.0/1 is built and stopped for review**: one face with the density setting deleted, the shell nav with its read-only guard, the decision feed, Run Info and Settings screens, the desktop sidebar, the light palette and the asset manifest. Report [`visual/reports/5.0-stage1.md`](visual/reports/5.0-stage1.md), record [`generation.md` §87](generation.md). **D56 to D60 were ruled the same day** ([`spec/gymrun-stage5.0-rulings-d56-d60.md`](spec/gymrun-stage5.0-rulings-d56-d60.md)): the HP box is the panel restyled with every fact, the move button is the full move card, the header stays above the stage, D26's log handle stands with no Info button, and the World stays behind the frame while the painted backdrops live inside it. Bible **Rev 16**, [`generation.md` §88](generation.md). The author confirmed D60's reading and ruled D62 option 1 everywhere ([`spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md`](spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md)). **5.0/2, the battle screen, is built on `claude/wizardly-wright-cum8e0` and stopped for review**: the stage on its scene backdrop with platforms, the HP boxes and move buttons restyled with every fact kept, the header row with section 6's turn header built for the first time, the strip under the stage, and the bench behind a Switch button. The nine battle backdrops came forward from 5.0/5 into this stage at the author's request, converted from paintings at 224x136, with notes for the asset pipeline in the report. Report [`visual/reports/5.0-stage2.md`](visual/reports/5.0-stage2.md), record [`generation.md` §88](generation.md). WebKit and a real iPhone are the reviewer's. 5.0/0 and 5.0/1 merged as #77, 5.0/2 as #78. **5.0/3, the reward, result and shop cards, is built on `claude/stage-5.0-3-cards` and stopped for review**, after the author took every recommendation on D65 to D71 ([`spec/gymrun-stage5.0-rulings-d65-d71.md`](spec/gymrun-stage5.0-rulings-d65-d71.md), bible **Rev 17**): a card's face is its mark with the name and effect on the long press, a tap selects and the confirm band claims, the relic card carries its capability glyph, and the currency family is drawn. Report [`visual/reports/5.0-stage3.md`](visual/reports/5.0-stage3.md), record [`generation.md` §89](generation.md). No version axis moved; `contentHash` holds at `715122`. 5.0/4 (map) waits on D61, D63, D64, D72 and D75.
 
+**Also in flight: Defender Mode v0, a fun test.** Branch
+`claude/eager-turing-0059br`, prompt
+[`spec/gymrun-defender-mode-v0-fun-test.md`](spec/gymrun-defender-mode-v0-fun-test.md),
+pre-code report and rulings
+[`reports/defender-mode-v0-report.md`](reports/defender-mode-v0-report.md),
+record [`generation.md`](generation.md) section 106. A second run mode chosen
+at run creation: the player is the gym leader, drafts a Fire, Psychic or
+Flying roster locked to that type, and defends eight ranks of waves and bosses.
+Thrown away if it is not fun by hand. **All seven steps are built, and the mode
+is playable in the app**: choose *Defend* in the seed bar and start a run. Step
+7, the UI, was stopped before code on four bible amendments
+([`reports/defender-mode-v0-step7-bible.md`](reports/defender-mode-v0-step7-bible.md)),
+ruled as recommended into the design bible's Rev 25 (D100 to D103, the Badge
+glyph family the fourteenth), then built to it (`generation.md` 106.10, with
+`scripts/smoke-defender.mjs` playing it by clicking). In order: the mode on the log and its guard, gym select, the
+draft for all three types, the type lock, the opponent IV table and trainer
+classes; then eight ranks of doors, an intermission and an untyped boss, with a
+headless `playRun` to completion; then the Fire streak, the Psychic reveal and
+Flying's Speed and fifth move as format-level handlers; then Potions,
+trade cards, recruit drafts and the Stranger's Pass; then one benchmark row per
+gym type, mean bosses beaten Fire 2.55, Psychic 2.35, Flying 3.305 (200 seeds,
+`DEFENDER`, `balance.md` section 0). Built as `RANDOMIZER_VERSION` `-24`,
+`RUN_LOG_VERSION` `-23` and `contentHash` `564eda` on the branch; **merged onto
+main's berry pick and species-locked pools** as `-26`, `-24` and `b85ac9`,
+with `AI_VERSION` held (`generation.md` 106.11). Attacker generation is frozen
+by `test/attacker-generation-golden.test.ts`, re-minted on main's `-25`, and the
+sim fixture and visual baseline moved in their version stamps only.
+
 **Also in flight, reapplied onto this tree on 2026-10-02: the Toll price gate,
 and a ceiling on a region with a floor under its fights.** Branch
 `claude/t2-berry-inventory-gating-7gvcye`, prompts
@@ -425,7 +453,7 @@ M4.2 both moved the number by zero and said so rather than claiming a reduction.
 `claude/dazzling-noether-vb19k9`, prompt
 [`spec/gymrun-stage6.0-encounter-library.md`](spec/gymrun-stage6.0-encounter-library.md),
 research [`research/encounter-sources.md`](research/encounter-sources.md),
-record [`generation.md`](generation.md) section 103, measurement
+record [`generation.md`](generation.md) section 107, measurement
 [`balance.md`](balance.md) section 0. Every trainer and gym node is now a
 record from a library of 5,627 real encounters: nineteen games, Gen 1 to 4
 read from the pret decompilations at pinned revisions, Gen 5 to 9 from
@@ -435,44 +463,50 @@ levels and set moves, and a citation. A node spends one draw on its own key
 to pick among the records nearest its segment's cap (a gym among leaders of
 its type), fits the record to the curve and the slot count, and rolls the
 rest exactly as before. The eight fictional gym leaders retire; the Rock gym
-is Brock, Roxanne or Roark this seed. `RANDOMIZER_VERSION` to `-26`,
+is Brock, Roxanne or Roark this seed. `RANDOMIZER_VERSION` to `-27`,
 `contentHash` to `995fae`; `RUN_LOG_VERSION` and `AI_VERSION` hold. **Checkpoint
-5 built the player-facing half** on the author's ruling of D100 (option 1,
-bible **Rev 25**): the battle header reads the opponent's class and name
+5 built the player-facing half** on the author's ruling of D104 (option 1,
+bible **Rev 26**): the battle header reads the opponent's class and name
 (`Leader Brock`, `Youngster Joey`) with the record's trainer sprite at 16
 beside it, the summary cites the place and the game under every trainer and
 gym visit, and the map node card stays a kind. The same checkpoint read the
 Champion Cup from Serebii (Leon, Hop, Marnie, Bede and the finals rematches,
 twelve records; the library is 5,639) and compacted the tables to one party
-string per record, decoded at load. `RANDOMIZER_VERSION` to `-27` for the
+string per record, decoded at load. `RANDOMIZER_VERSION` to `-28` for the
 records that entered the candidate windows; `contentHash` to `5b7add`.
-Record [`generation.md`](generation.md) section 104. **Checkpoint 6
+Record [`generation.md`](generation.md) section 108. **Checkpoint 6
 redirected the stage on the author's two messages**, filed verbatim at
 [`spec/gymrun-stage6.0-checkpoint6-challengers.md`](spec/gymrun-stage6.0-checkpoint6-challengers.md):
 the boss of a segment is a **challenger**, a rival, a protagonist, a gym
 leader or an Elite Four member nearest the segment's cap, one record per
 name, with a mixed roster and the segment's fill, and it has no type. The
 gym's type retired from `data/gyms.ts` and from every chip that showed it
-(bible **Rev 26**, D101); the node reads `Challenger Rival Blue`; leaders
+(bible **Rev 27**, D105); the node reads `Challenger Rival Blue`; leaders
 appear on routes at `hard` and `elite`; rivals are challengers only.
-`RANDOMIZER_VERSION` to `-28`, `contentHash` to `16dc95`. The second
+`RANDOMIZER_VERSION` to `-29`, `contentHash` to `16dc95`. The second
 message, *maps are training, no badge, a progress bar to the next
-challenger*, was **D102**, ruled option 1 and **built as checkpoint 7**
-(bible **Rev 27**): one *Next challenger* bar, the challenger's class and
+challenger*, was **D106**, ruled option 1 and **built as checkpoint 7**
+(bible **Rev 28**): one *Next challenger* bar, the challenger's class and
 name with their sprite over the distance left to them, at the rail's four
 mounts and the locale screen; the eight-badge rail, the sidebar's pips and
 the badge glyph retired; the boss node and the battle title wear the
-challenger's own sprite. No draw moved: `RANDOMIZER_VERSION` holds at `-28`
+challenger's own sprite. No draw moved: `RANDOMIZER_VERSION` holds at `-29`
 and `contentHash` at `16dc95`. Record [`generation.md`](generation.md)
-section 106. **Checkpoint 8 added the Gen 5 to 9 rivals** from Serebii's
+section 110. **Checkpoint 8 added the Gen 5 to 9 rivals** from Serebii's
 per-character pages (282 records, set moves and items throughout, the
 library at 5,921); X and Y and Scarlet and Violet have no such page and stay
-a gap. `RANDOMIZER_VERSION` to `-29`, `contentHash` to `c4bf74`. Record
-[`generation.md`](generation.md) section 107. **Checkpoint 9 built the bundle
+a gap. `RANDOMIZER_VERSION` to `-30`, `contentHash` to `c4bf74`. Record
+[`generation.md`](generation.md) section 111. **Checkpoint 9 built the bundle
 seam**: the Gen 1 to 4 route trainers (4,839 records, four fifths of the
 library's bytes) are a chunk of their own, installed into a registry by the
 host before any run; `core/` throws before any draw without them. No draw
-moved. Record [`generation.md`](generation.md) section 108.
+moved. Record [`generation.md`](generation.md) section 112.
+**Checkpoint 10 opened the PR and merged `main`'s Defender Mode v0 into the
+branch**: both modes in one tree, no draw moved on either side, and this
+branch's numbers moved above main's (randomizer `-27` to `-30`, the merged
+tree at `-30`; `RUN_LOG_VERSION` to main's `-24`; bible Rev 26 to 28; D104 to
+D106; sections 107 to 112). Record [`generation.md`](generation.md) section
+113, the renumbering table and the composition.
 
 **In flight: no species-locked ability or move.** Branch
 `claude/species-locked-pool`, prompt
@@ -1374,10 +1408,10 @@ rule; report and screenshots in
 
 One line each. The analysis lives where the pointer goes, not here.
 
-0. ~~**D102 is open: no badge, a progress bar that shrinks as the next
+0. ~~**D106 is open: no badge, a progress bar that shrinks as the next
    challenger approaches.**~~ **Closed 2026-10-05, same branch**: ruled
-   option 1 and built as Stage 6.0 checkpoint 7, bible Rev 27.
-   `generation.md` section 106.
+   option 1 and built as Stage 6.0 checkpoint 7, bible Rev 28.
+   `generation.md` section 110.
 
 0. ~~**The library has no Gen 5 to 9 rival.**~~ **Closed 2026-10-05, same
    branch**, for eight of ten games: Cheren, Bianca, Hugh, Brendan, May,
@@ -1387,12 +1421,12 @@ One line each. The analysis lives where the pointer goes, not here.
    for either under any slug tried, so Calem, Serena, Shauna, Tierno,
    Trevor, Nemona, Arven and Penny are not challengers. A hand-curated table
    with Bulbapedia citations is the way left, and Bulbapedia cannot be read
-   from this container. `generation.md` section 107.
+   from this container. `generation.md` section 111.
 
 0. ~~**The route trainers could leave the main chunk.**~~ **Closed 2026-10-05,
    same branch**: built as Stage 6.0 checkpoint 9, the registry in
    `data/encounters/index.ts` filled by the host before any run, the route
-   half a chunk of its own. `generation.md` section 108.
+   half a chunk of its own. `generation.md` section 112.
 
 00. **An evolution fork may still be out of reach, and the measurement that
     said so is stale.** A fork needs a branching species in the party at a gym

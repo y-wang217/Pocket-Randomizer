@@ -8,7 +8,7 @@
  * a step chain was the entire map. From Stage 2 an eight-gym rail stood here,
  * because "Volta's Gym" means nothing on its own and "gym 3 of 8" means
  * everything; the rail named each leader's type until checkpoint 6, when the
- * boss became a challenger with none. Checkpoint 7 (D102) replaced the rail
+ * boss became a challenger with none. Checkpoint 7 (D106) replaced the rail
  * with one bar: the challenger's class and name over the distance left to
  * them, since the map is training and the run's position is the heading's
  * `Challenger n of 8`.
@@ -46,8 +46,10 @@
 import type { NodeSpec, Segment } from '../../core/encounters';
 import type { LocaleId } from '../../data/locales';
 import type { NodeVisit, RunState } from '../../core/run';
-import { localeOf, stepsOf } from '../../core/run';
+import { localeOf, runMode, stepsOf } from '../../core/run';
 import { nextChallengerOf, renderNextChallenger } from '../next-challenger';
+import { trainerClass } from '../../data/trainerClasses';
+import { TRAINER_CLASS_NAMES } from '../../data/trainerClassCopy';
 import { localeById } from '../../data/locales';
 import { resolveCapability, type CapabilityContext } from '../../core/capabilities';
 // The two label tables the event screen prints too, from one file (4.8.0.2).
@@ -174,10 +176,15 @@ export function createRunMap(): RunMap {
  */
 export function renderHeading(state: RunState, segment: Segment): HTMLElement[] {
   const team = segment.gym.encounter?.team.length ?? 1;
+  /*
+   * **A defender rank's boss has no leader, no type and no blurb** (report
+   * ruling R6); since D106 neither does an attacker's heading, which reads
+   * the position alone in both modes, with the next-challenger bar beside it.
+   */
 
   const title = el('h2', 'screen__title');
   // The run's position. Who the challenger is, and how far off, is the
-  // `next-challenger` component's (D102), mounted beside this on every surface.
+  // `next-challenger` component's (D106), mounted beside this on every surface.
   title.textContent = `Challenger ${state.currentSegment + 1} of ${state.segments.length}`;
 
   const subtitle = el('p', 'screen__blurb');
@@ -431,6 +438,7 @@ function renderStepRow(
         full: phase === 'current',
         visit: walked === option ? plan.visits[step.index] : undefined,
         passed: phase === 'done' && walked !== option,
+        defender: runMode(state) === 'defender',
         onChoose: choose ? () => choose(option) : undefined,
       });
       element.style.setProperty('--x', `${slotX(locale, step.index, step.options.length, option)}%`);
@@ -455,6 +463,7 @@ function renderGymRow(state: RunState, segment: Segment, plan: Plan): HTMLElemen
     full: false,
     visit: plan.gymVisit,
     passed: false,
+    defender: runMode(state) === 'defender',
   });
   element.style.setProperty('--x', '50%');
   element.querySelector('.node__mark')?.setAttribute('data-anchor', 'gym');
@@ -512,7 +521,9 @@ function nodeDetailText(node: NodeSpec, segment: number, visit?: NodeVisit): str
 function visitText(node: NodeSpec, visit: NodeVisit): string {
   if (!visit.result) return 'restored';
   const turns = `${visit.result.turns} turn${visit.result.turns === 1 ? '' : 's'}`;
-  return node.encounter ? `${node.encounter.opponent} · ${turns}` : turns;
+  if (!node.encounter) return turns;
+  const who = node.trainerClass ? (TRAINER_CLASS_NAMES[node.trainerClass] ?? node.trainerClass) : node.encounter.opponent;
+  return `${who} · ${turns}`;
 }
 
 /**
@@ -536,6 +547,8 @@ interface NodeOptions {
   visit: NodeVisit | undefined;
   /** A node on a walked step that was not the one taken. */
   passed: boolean;
+  /** A defender run: a gym is a boss with no leader, a trainer has a class. */
+  defender: boolean;
   onChoose?: () => void;
 }
 
@@ -562,7 +575,7 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
   const mark = el('span', 'node__mark');
   const label = el('span', 'node__label');
   if (phase === 'current') label.dataset['tutorial'] = 'kinds';
-  // The boss wears the challenger's own sprite in the kind's slot (D102).
+  // The boss wears the challenger's own sprite in the kind's slot (D106).
   const kind = node.kind === 'gym' ? challengerMark(node.encounter?.source ?? null, kindWord(node.kind), 24) : nodeKindGlyph(node.kind, kindWord(node.kind), 24);
   const said = [nodeDetailText(node, segment, options.visit), ...(phase === 'upcoming' ? laterFacts(node, run) : [])]
     .filter(Boolean)
@@ -575,7 +588,23 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
   if (node.kind === 'gym') {
     const size = node.encounter?.team.length ?? 0;
     const name = el('span', 'node__name');
-    name.textContent = `${node.encounter?.source?.name ?? ''}${size > 1 ? ` · ${size} Pokemon` : ''}`;
+    // A defender boss has no leader: its team size, bare, as on the pre-gym
+    // screen (D101). An attacker boss is its challenger's name.
+    name.textContent = options.defender ? String(size) : `${node.encounter?.source?.name ?? ''}${size > 1 ? ` · ${size} Pokemon` : ''}`;
+    element.append(name);
+  }
+
+  /*
+   * **A defender door's challenger: the class name beside the trainer mark.
+   * Bible Rev 25, D101.** Identity, as a gym's leader name is (D46), and on
+   * every row, since a walked door is named by who was behind it. Its types
+   * are type chips on the step being chosen from only; an untyped class shows
+   * none.
+   */
+  const challenger = node.trainerClass ? trainerClass(node.trainerClass) : null;
+  if (options.defender && node.trainerClass) {
+    const name = el('span', 'node__name node__name--class');
+    name.textContent = TRAINER_CLASS_NAMES[node.trainerClass] ?? node.trainerClass;
     element.append(name);
   }
 
@@ -615,6 +644,11 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
     requirement.dataset['detail'] = RARITY_LABELS[node.event.rarity];
     gate.append(requirement, capabilityBandChevron(band, BAND_LABELS[band]));
     facts.append(gate);
+  }
+  if (options.full && challenger && challenger.types.length > 0) {
+    const types = el('span', 'node__types');
+    types.replaceChildren(...challenger.types.map(typeChip));
+    facts.append(types);
   }
   if (facts.childElementCount > 0) element.append(facts);
 

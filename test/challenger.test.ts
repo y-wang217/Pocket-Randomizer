@@ -40,7 +40,7 @@ describe('the segment', () => {
         expect(segment.gymDefinition).not.toHaveProperty('type');
       });
       // The same seed, the same eight.
-      expect(createRun(seed, DEFAULT_TUNING).segments.map((s) => s.gymEncounter.id)).toEqual(run.segments.map((s) => s.gymEncounter.id));
+      expect(createRun(seed, DEFAULT_TUNING).segments.map((s) => s.gymEncounter!.id)).toEqual(run.segments.map((s) => s.gymEncounter!.id));
     }
   });
 
@@ -48,7 +48,7 @@ describe('the segment', () => {
     const roles = new Set<string>();
     for (let seed = 0; seed < 20; seed++) {
       for (const segment of createRun(`CAST-${seed}`, DEFAULT_TUNING).segments) {
-        roles.add(encounterById(segment.gymEncounter.id)!.role);
+        roles.add(encounterById(segment.gymEncounter!.id)!.role);
       }
     }
     expect(roles.size).toBeGreaterThan(1);
@@ -56,8 +56,9 @@ describe('the segment', () => {
 
   it('keeps the lead question on the log schema it had', () => {
     // A logged decision neither added nor removed: the challenger changes the
-    // opponent, not the questions.
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-23/gymrun-0.3.0');
+    // opponent, not the questions. `-23` when this was written; `-24` is
+    // Defender Mode's (a run log says which mode it is), merged at checkpoint 10.
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-24/gymrun-0.3.0');
   });
 });
 

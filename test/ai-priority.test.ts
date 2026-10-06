@@ -272,7 +272,7 @@ describe('the version axes', () => {
     expect(AI_VERSION).toBe('gymrun-ai-7-tiers-reach-the-app');
     const prePatch: RunLog = {
       seed: 'PRE-PRIORITY',
-      versions: { ...currentVersions(), aiVersion: 'gymrun-ai-2-switching' },
+      mode: 'attacker', versions: { ...currentVersions(), aiVersion: 'gymrun-ai-2-switching' },
       decisions: [],
     };
     expect(isReplayable(prePatch)).toBe(false);
@@ -331,8 +331,10 @@ describe('the version axes', () => {
      *
      * `-23` is the berry gym reward patch: a berry pick is a logged decision.
      * `docs/generation.md` section 101.
+     * `-24` is Defender Mode v0 merged onto it: the log records its mode, and
+     * the mode brings its own decisions. `docs/generation.md` section 106.
      */
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-23/gymrun-0.3.0');
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-24/gymrun-0.3.0');
     /*
      * Pinned literally, as the Branch 1 value was: a hash nobody can read off
      * the tree by eye is exactly the kind that moves without anyone noticing.
@@ -473,31 +475,44 @@ describe('the version axes', () => {
      *
      * And at checkpoint 4, from `933311`: `data/gyms.ts` loses its eight
      * names and `data/encounters/library.ts` arrives, and this time
-     * `gymrun-randomizer-26` moves beside it, because every trainer and gym
-     * node now resolves to a record. `docs/generation.md` section 103.
+     * `gymrun-randomizer-27` (as `-26` on the branch, renumbered at the
+     * merge) moves beside it, because every trainer and gym node now resolves
+     * to a record. `docs/generation.md` section 107.
      *
      * And at checkpoint 5, from `995fae`: the tables carry each party as one
      * string, the Champion Cup joins Sword and Shield, the captains and
      * Bede gain their places, and `GAME_LABEL` moves under `data/`.
-     * `gymrun-randomizer-27` moves beside it for the twelve records that
-     * entered the candidate windows. `docs/generation.md` section 104.
+     * `gymrun-randomizer-28` moves beside it for the twelve records that
+     * entered the candidate windows. `docs/generation.md` section 108.
      *
      * And at checkpoint 6, from `5b7add`: `data/gyms.ts` loses its types,
      * the library's candidate rules cast a challenger, and the glyph label
-     * and coach mark read it. `gymrun-randomizer-28` moves beside it.
-     * `docs/generation.md` section 105.
+     * and coach mark read it. `gymrun-randomizer-29` moves beside it.
+     * `docs/generation.md` section 109.
      *
      * And at checkpoint 8, from `16dc95`: the Gen 5 to 9 rivals enter eight
-     * tables from Serebii. `gymrun-randomizer-29` moves beside it.
-     * `docs/generation.md` section 107.
+     * tables from Serebii. `gymrun-randomizer-30` moves beside it.
+     * `docs/generation.md` section 111.
      *
      * And at checkpoint 9, from `c4bf74`: the nine Gen 1 to 4 files split
      * into bosses and routes, eighteen files for the same records, and the
      * registry in `index.ts`. **No randomizer axis moves**: the held-item
      * digest and the sim fixture are byte-identical but for this hash, which
-     * is the evidence the seam moved no draw. `docs/generation.md` section 108.
+     * is the evidence the seam moved no draw. `docs/generation.md` section 112.
+     *
+     * And for Defender Mode v0, merged onto `1ba856` on main while this branch
+     * ran: three new hashed tables
+     * (`defender.ts`, `trainerClasses.ts`, and the IV rows in `scaling.ts`),
+     * the defender relic list, the badge numbers, the consumables, the trade
+     * numbers and the Stranger's Pass, with `gymrun-randomizer-26` and
+     * `gymrun-run-24` beside it. No attacker number moved;
+     * `test/attacker-generation-golden.test.ts` is the proof.
+     * `docs/generation.md` section 106.
+     *
+     * And at checkpoint 10, the merge of the two: both sets of tables in one
+     * tree, `gymrun-randomizer-30` beside it. `docs/generation.md` section 113.
      */
-    expect(CONTENT_HASH).toBe('22ebcb59bd2606f513ab2608ce7e05fdf1cbc55c9462e4538ab144e005eec324');
+    expect(CONTENT_HASH).toBe('998fc2965108d1b16f4beb0122f38476aaeae2b108ee20ff5258034d63529f4c');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

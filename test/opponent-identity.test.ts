@@ -1,5 +1,5 @@
 /**
- * Who the opponent is, where it shows. **Stage 6.0, D100.**
+ * Who the opponent is, where it shows. **Stage 6.0, D104.**
  *
  * @vitest-environment jsdom
  *
@@ -100,7 +100,7 @@ describe('the battle header', () => {
     const brock: EncounterRef = { ...JOEY, id: 'rby/brock-1', name: 'Brock', class: 'Leader', sprite: 'brock-gen1rb', game: 'rby', place: 'Pewter City Gym', role: 'gym' };
     const { root, detach } = mount(nodeFor('gym', foe, brock, 'Leader Brock'), foe);
     expect(root.querySelector('.screen__title')?.textContent).toContain('Brock');
-    // D102: the title wears the challenger's sprite in the kind's slot, so the detail line does not.
+    // D106: the title wears the challenger's sprite in the kind's slot, so the detail line does not.
     expect(root.querySelector('.screen__title img.sprite--opponent')).not.toBeNull();
     const detail = root.querySelector<HTMLElement>('.battle__detail-text')!;
     expect(detail.textContent).toMatch(/^Leader · /);

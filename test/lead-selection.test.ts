@@ -241,7 +241,7 @@ describe('a whole run', () => {
         const lead = state.party[0];
         if (!lead) return;
         // By nickname, which an evolution keeps and a species name does not:
-        // from `-26` this seed's lead evolves on the gym it clears.
+        // from `-27` this seed's lead evolves on the gym it clears.
         seen.push({ segment: state.currentSegment, position: state.position, lead: lead.spec.nickname ?? lead.spec.species });
       },
     });
@@ -320,7 +320,7 @@ describe('the version guard', () => {
      */
     const stale: RunLog = {
       seed: 'PRE-LEAD',
-      versions: { ...currentVersions(), runLog: 'gymrun-run-10/gymrun-0.3.0' },
+      mode: 'attacker', versions: { ...currentVersions(), runLog: 'gymrun-run-10/gymrun-0.3.0' },
       decisions: [],
     };
 

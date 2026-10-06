@@ -22,7 +22,7 @@
  * Nothing here draws or changes what the sim resolves. Views for the policy,
  * not inputs to the battle.
  */
-import { applyParalysis, applyStage } from './stats';
+import { applyParalysis, applySimModifier, applyStage } from './stats';
 import type { ActiveView, BattleView, SpeedView } from '../types';
 
 /** The three answers to "do I act before the foe this turn?". */
@@ -31,7 +31,13 @@ export type TurnOrder = 'first' | 'second' | 'unknown';
 /** Speed after stages, then paralysis, in that order — the engine's order too. */
 export function effectiveSpeed(active: ActiveView): number {
   const staged = applyStage(active.baseSpeed, active.statStages.spe);
-  return active.status === 'par' ? applyParalysis(staged) : staged;
+  /*
+   * The Flying badge, between the stage and paralysis, which is where the sim
+   * applies it: paralysis runs last in `ModifySpe` and finalises every
+   * modifier before it halves. Absent on every attacker view.
+   */
+  const modified = active.speedModifier === undefined ? staged : applySimModifier(staged, active.speedModifier);
+  return active.status === 'par' ? applyParalysis(modified) : modified;
 }
 
 /** Both sides, for `BattleView.speed`. */

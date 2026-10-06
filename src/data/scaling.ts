@@ -1113,3 +1113,31 @@ export function encounterPower(team: TeamSpec): number {
 export function specPower(spec: PokemonSpec): number {
   return spec.level * (BST_BY_SPECIES.get(spec.species) ?? 1);
 }
+
+/**
+ * Every IV a player's mon carries in Defender Mode. **Defender Mode v0.**
+ *
+ * The same 31 every Pokemon in attacker mode carries, written down here rather
+ * than as a spec field: a spec with no `ivs` is a 31 spec (`PokemonSpec.ivs`).
+ */
+export const DEFENDER_PLAYER_IVS = 31;
+
+/**
+ * The flat IV every opponent carries in Defender Mode, bosses included, by
+ * rank. **Defender Mode v0, and it reverses the build spec's line on IVs.**
+ *
+ * `pokerun-build-spec.md` lists IVs among what stays out through Stage 5; the
+ * defender prompt asks for this table and says to record the reversal, which
+ * `docs/generation.md` does. One number per rank applied to every stat, so a
+ * challenger's stats remain a function of species, level and rank: public
+ * information, as the one-spread rule made them in attacker mode.
+ *
+ * Attacker mode never reads this. Its opponents carry no `ivs` and stay at 31.
+ */
+export const DEFENDER_OPPONENT_IVS: readonly number[] = [0, 5, 10, 14, 18, 24, 26, 28];
+
+/** The opponent IV at `rank`, clamped to the table's ends. */
+export function defenderOpponentIvs(rank: number): number {
+  const index = Math.max(0, Math.min(DEFENDER_OPPONENT_IVS.length - 1, Math.floor(rank)));
+  return DEFENDER_OPPONENT_IVS[index] ?? DEFENDER_PLAYER_IVS;
+}

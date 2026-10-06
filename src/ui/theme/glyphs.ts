@@ -285,7 +285,7 @@ export const GLYPHS: readonly Glyph[] = [
   { id: 'node-wild', family: 'node', label: labelOf('node-wild'), art: path('M12 3.5a4.2 4.2 0 0 1 4.1 3.3 4 4 0 0 1 4.4 4 4 4 0 0 1-2.4 3.7c.3 2-1.2 3.7-3.2 3.7h-1.6V21h-2.6v-2.8H9.1c-2 0-3.5-1.7-3.2-3.7A4 4 0 0 1 3.5 10.8a4 4 0 0 1 4.4-4A4.2 4.2 0 0 1 12 3.5z') },
   { id: 'node-trainer', family: 'node', label: labelOf('node-trainer'), art: path('M12 2.5a4.6 4.6 0 0 1 4.6 4.6v1.2A4.6 4.6 0 0 1 12 12.9a4.6 4.6 0 0 1-4.6-4.6V7.1A4.6 4.6 0 0 1 12 2.5zM3 21.5c0-4.3 3.6-7.4 9-7.4s9 3.1 9 7.4z') },
   { id: 'node-rest', family: 'node', label: labelOf('node-rest'), art: path('M12 2.5l10.5 18.5h-21zm0 9.2l-3.4 6.3h6.8z', 'evenodd') },
-  // No `node-gym` entry since D102 (checkpoint 7): the boss wears the challenger's own sprite, `ui/chip.ts` `challengerMark`.
+  // No `node-gym` entry since D106 (checkpoint 7): the boss wears the challenger's own sprite, `ui/chip.ts` `challengerMark`.
   { id: 'node-shop', family: 'node', label: labelOf('node-shop'), art: path('M8.5 8.5V7a3.5 3.5 0 0 1 7 0v1.5h3.2l1.3 13H4l1.3-13zm2.2 0h2.6V7a1.3 1.3 0 0 0-2.6 0z', 'evenodd') },
   { id: 'node-event', family: 'node', label: labelOf('node-event'), art: path('M12 2.5c3.6 0 6.2 2.3 6.2 5.5 0 2.3-1.3 3.6-2.6 4.6-1.1.8-1.7 1.4-1.7 2.6v.6h-3.6v-.9c0-2.2 1-3.4 2.4-4.4 1.1-.8 1.7-1.4 1.7-2.4 0-1.2-1-2.1-2.4-2.1-1.5 0-2.5 1-2.6 2.5H5.7c.1-3.6 2.7-6 6.3-6zM10.1 17.7h3.8v3.8h-3.8z') },
 
@@ -325,6 +325,16 @@ export const GLYPHS: readonly Glyph[] = [
    * category ring.
    */
   { id: 'currency-coin', family: 'currency', label: labelOf('currency-coin'), art: path('M4 6.5a8 3.5 0 1 0 16 0 8 3.5 0 1 0-16 0zM4 9.2v2.8c0 1.9 3.6 3.5 8 3.5s8-1.6 8-3.5V9.2c-1.3 1.6-4.4 2.7-8 2.7s-6.7-1.1-8-2.7zm0 5.5v2.8c0 1.9 3.6 3.5 8 3.5s8-1.6 8-3.5v-2.8c-1.3 1.6-4.4 2.7-8 2.7s-6.7-1.1-8-2.7z') },
+
+  /*
+   * The badge family. **D100, Defender Mode v0.** Three marks, one per gym
+   * type. A flame with an inner tongue, an almond eye with a pupil, a single
+   * swept wing of three feathers. The eye is filled where `field-psychic`'s is
+   * an outline over a bar, so the two do not read as one mark on one surface.
+   */
+  { id: 'badge-flame', family: 'badge', label: labelOf('badge-flame'), art: path('M12 2.5c.6 3.2 2.6 4.9 4.3 6.8 1.6 1.8 2.7 3.8 2.7 6.2a7 7 0 0 1-14 0c0-2.6 1.3-4.6 2.9-6.1.2 1.6.9 2.8 2 3.4-.4-3.9.6-7.4 2.1-10.3zm0 11c-1.5 1.3-2.4 2.6-2.4 4a2.4 2.4 0 0 0 4.8 0c0-1.4-.9-2.7-2.4-4z') },
+  { id: 'badge-eye', family: 'badge', label: labelOf('badge-eye'), art: path('M12 5c5 0 8.8 3.4 10.5 7-1.7 3.6-5.5 7-10.5 7S3.2 15.6 1.5 12C3.2 8.4 7 5 12 5zm0 3.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6zm0 2.2a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2z') },
+  { id: 'badge-wing', family: 'badge', label: labelOf('badge-wing'), art: path('M3 19.5c2.6-7.6 8.2-13.2 18-15-1.2 2.8-3 4.8-5.4 6.1 1.6.2 3-.1 4.4-.8-1.5 2.6-3.8 4.2-6.8 4.8 1.2.4 2.4.4 3.7.1-2.9 3-7.1 4.6-12.4 4.8zm2.2-1.8c3.6-1.4 6.6-3.8 9-7.2-3.6 1.6-6.6 4-9 7.2z') },
 ];
 
 /** The glyphs of one family, in sheet order. */

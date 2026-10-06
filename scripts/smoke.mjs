@@ -560,7 +560,7 @@ async function playRun(label) {
         if (log?.decisions?.length > 0) sawSavedLog = true;
       }
 
-      // The bar empties as the segment is walked (D102); the smallest remaining count seen is the proof it moved.
+      // The bar empties as the segment is walked (D106); the smallest remaining count seen is the proof it moved.
       railHigh = Math.max(railHigh, await page.locator('.next-challenger__bar').count());
 
       const node = await chooseNode();

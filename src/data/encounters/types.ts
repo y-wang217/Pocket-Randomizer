@@ -36,7 +36,7 @@ export type GameId =
   | 'bdsp'
   | 'sv';
 
-/** The games as a player reads them, for the summary's citation line (D100). */
+/** The games as a player reads them, for the summary's citation line (D104). */
 export const GAME_LABEL: Readonly<Record<GameId, string>> = {
   rby: 'Red and Blue',
   yellow: 'Yellow',

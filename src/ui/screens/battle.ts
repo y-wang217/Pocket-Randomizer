@@ -63,6 +63,11 @@ export interface BattleScreen {
      * them would be a fact about nothing.
      */
     segment?: number,
+    /**
+     * A defender run's boss, which has no leader to name (ruling R6): the
+     * gym mark alone. **Defender Mode v0.**
+     */
+    leaderless?: boolean,
   ): () => void;
   /**
    * Play the end of the fight and park until it has been seen.
@@ -167,7 +172,7 @@ export function createBattleScreen(): BattleScreen {
     root,
     outro: (kind) => scene.outro(kind),
     cancel: () => scene.cancel(),
-    attach(session, node, reveal, onChoose, segment) {
+    attach(session, node, reveal, onChoose, segment, leaderless = false) {
       /*
        * **The kind is the node's mark, at 16. Patch 4.10.1, D46.**
        *
@@ -178,11 +183,12 @@ export function createBattleScreen(): BattleScreen {
        * leader's name beside the badge; the other kinds carry the mark alone,
        * because the detail line below already names who is in the fight.
        */
-      // A challenger wears its own sprite in the kind's slot (D102) and its
-      // name beside it; the other kinds wear the kind's mark alone.
+      // A challenger wears its own sprite in the kind's slot (D106) and its
+      // name beside it; the other kinds wear the kind's mark alone, and so
+      // does a Defender Mode boss, which has no name (`leaderless`).
       const kindLabel = NODE_KIND_WORDS[node.kind] ?? node.kind;
       title.replaceChildren(node.kind === 'gym' ? challengerMark(node.encounter?.source ?? null, kindLabel, 16) : nodeKindGlyph(node.kind, kindLabel, 16));
-      if (node.kind === 'gym') {
+      if (node.kind === 'gym' && !leaderless) {
         title.append(document.createTextNode(node.encounter?.source?.name ?? node.label));
       }
       /*
@@ -206,13 +212,13 @@ export function createBattleScreen(): BattleScreen {
        */
       const tier = segment === undefined || !node.encounter ? null : aiTierFor(node.kind, node.tier, segment);
       /*
-       * Who the opponent is. **Stage 6.0, D100.** The record's class and
+       * Who the opponent is. **Stage 6.0, D104.** The record's class and
        * name (`Youngster Joey`), which `core/` already wrote into `opponent`.
        * A gym's title carries the name beside the badge, so its detail line
        * reads the class alone (`Leader · Ace`): one fact, one channel (R3).
        * The trainer sprite sits before the words at 16, where the record has
        * one; nothing where it does not. On a challenger the title already
-       * wears it (D102), so the detail line does not: one mark, one channel.
+       * wears it (D106), so the detail line does not: one mark, one channel.
        */
       const source = node.encounter?.source ?? null;
       const opponent =

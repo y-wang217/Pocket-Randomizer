@@ -40,9 +40,11 @@ import { stow } from './items';
 import { recoverParty } from './party';
 import type { RngStream } from './rng';
 import type { RunState } from './run';
-import type { Tier } from './types';
+import type { PokemonSpec, Tier } from './types';
+import { applyTrade } from './defender/trade';
 import { RELIC_IDS, relicById, type RelicId } from '../data/relics';
 import { itemById } from '../data/items';
+import { consumableById } from '../data/consumables';
 import { GYM_MOVE_ENTRY, gymRewardEntriesFor, rewardEntriesFor, type RewardEntry } from '../data/rewardPools';
 import { currencyScaleFor } from '../data/shop';
 import { rewardMoveBands } from '../data/scaling';
@@ -90,6 +92,26 @@ export type Reward =
    * states apart without a second type.
    */
   | { kind: 'relic'; relic: RelicId; alternates: readonly RelicId[]; fallback: Reward }
+  /** **Defender Mode v0.** One out-of-battle healing item, by id. */
+  | { kind: 'consumable'; id: string }
+  /**
+   * **Defender Mode v0.** A trade: the requester's mon for one of the party's.
+   *
+   * Drawn abstract, like a relic card, because what it offers and whom it
+   * wants both depend on play. `offers` holds one mon per gym type, all drawn
+   * at generation, and `selector` is one value drawn there too. Resolved when
+   * the offer is shown (`core/defender/trade.ts` `resolveTrade`): `offered` is
+   * the gym type's mon and `requested` the acquisition index of the member the
+   * selector lands on. A card with both set is resolved; `applyReward` takes
+   * only a resolved one.
+   */
+  | {
+      kind: 'trade';
+      offers: Readonly<Record<string, PokemonSpec>>;
+      selector: number;
+      offered?: PokemonSpec;
+      requested?: number;
+    }
   /**
    * A berry of the player's choosing, and the answer once it is given.
    *
@@ -299,9 +321,20 @@ export function generateRewardOffer(
   segment: number,
   stream: RngStream,
   tuning: Tuning,
+  /**
+   * The relics a relic card may shuffle. **Defender Mode v0**, which offers
+   * its own list (`DEFENDER_RELIC_IDS`); every attacker caller passes nothing
+   * and shuffles `RELIC_IDS` exactly as before.
+   */
+  relics: readonly RelicId[] = RELIC_IDS,
+  /**
+   * Entries added to the tier's own pool. **Defender Mode v0**, whose door
+   * offers can carry a consumable; every attacker caller passes nothing.
+   */
+  extra: readonly RewardEntry[] = [],
 ): RewardOffer {
   void tuning;
-  const pool = rewardEntriesFor(tier, segment);
+  const pool = extra.length > 0 ? [...rewardEntriesFor(tier, segment), ...extra] : rewardEntriesFor(tier, segment);
 
   const options: Reward[] = [];
   const taken = newOfferDraw();
@@ -325,7 +358,7 @@ export function generateRewardOffer(
     if (!entry) break;
     remaining = remaining.filter((candidate) => candidate !== entry);
 
-    const reward = resolveRewardEntry(entry, segment, tier, stream, taken, pool);
+    const reward = resolveRewardEntry(entry, segment, tier, stream, taken, pool, relics);
     if (reward) options.push(reward);
   }
 
@@ -394,6 +427,8 @@ export function generateGymRewardOffer(
   segment: number,
   stream: RngStream,
   tuning: Tuning,
+  /** As `generateRewardOffer`'s: the defender relic list, or `RELIC_IDS`. */
+  relics: readonly RelicId[] = RELIC_IDS,
 ): { moveOffer: RewardOffer; offer: RewardOffer } {
   void tuning;
 
@@ -461,7 +496,7 @@ export function generateGymRewardOffer(
      */
     const entry = pickWeighted(drawable(pool, taken), stream);
     if (!entry) break;
-    const reward = resolveRewardEntry(entry, segment, 'elite', stream, taken, pool);
+    const reward = resolveRewardEntry(entry, segment, 'elite', stream, taken, pool, relics);
     if (reward) options.push(reward);
   }
 
@@ -524,6 +559,7 @@ export function resolveRewardEntry(
   stream: RngStream,
   taken: OfferDraw,
   pool: readonly RewardEntry[] = [],
+  relics: readonly RelicId[] = RELIC_IDS,
 ): Reward | null {
   taken.kinds.add(entry.kind);
   switch (entry.kind) {
@@ -543,7 +579,7 @@ export function resolveRewardEntry(
        * in full anyway costs nothing: the shuffle is the same shuffle and the
        * draw count is the same draw count.
        */
-      const order = shuffledRelics(RELIC_IDS, stream);
+      const order = shuffledRelics(relics, stream);
       /*
        * **The fallback excludes the fungible kinds as well as relics**, and
        * that one filter is both halves of the R19 item-1a ask.
@@ -623,6 +659,15 @@ export function resolveRewardEntry(
     }
     case 'heal':
       return { kind: 'heal', fraction: entry.fraction };
+    case 'consumable': {
+      // Distinct within an offer, on the item set: a consumable id never
+      // collides with a held item's.
+      const available = entry.ids.filter((id) => !taken.items.has(id));
+      if (available.length === 0) return null;
+      const id = stream.pick(available);
+      taken.items.add(id);
+      return { kind: 'consumable', id };
+    }
     case 'berryPick': {
       /*
        * No draw. The card is the whole table and the player is the resolver,
@@ -827,6 +872,13 @@ export function applyReward(state: RunState, choice: Reward): RunState {
     case 'relic':
       return grantRelic(state, choice.relic);
 
+    // Defender Mode v0. Into its own list, beside the TMs, under the same
+    // shared capacity; used between battles by a party edit.
+    case 'consumable':
+      return { ...state, consumables: [...(state.consumables ?? []), choice.id] };
+
+    case 'trade':
+      return applyTrade(state, choice);
     case 'berryPick': {
       /*
        * The chosen berry, into the backpack as an item card's berry would go.
@@ -923,6 +975,10 @@ export function describeReward(reward: Reward): string {
       return `Technique: ${reward.move}`;
     case 'heal':
       return reward.fraction >= 1 ? 'Full restore' : `Restore ${Math.round(reward.fraction * 100)}%`;
+    case 'consumable':
+      return consumableById(reward.id)?.name ?? reward.id;
+    case 'trade':
+      return reward.offered ? `Trade for ${reward.offered.species}` : 'Trade';
     case 'berryPick':
       // The card's own label until it is answered, then the berry's name: the
       // decision feed prints the card at the `reward` entry and the berry at

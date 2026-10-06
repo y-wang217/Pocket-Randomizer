@@ -44,11 +44,11 @@ Four questions were put to the author before any work and answered on
 Three questions were put to the author after checkpoint 4 shipped the headless
 half, and answered the same day.
 
-1. **D100, option 1.** The battle header's opponent slot reads the trainer's
+1. **D104, option 1.** The battle header's opponent slot reads the trainer's
    class and name (`Leader Brock`, `Youngster Joey`) with the trainer sprite
    beside it at 16 pixels; the summary cites the game and the place under each
    visit's opponent; map node cards keep showing a kind and nothing more. D61
-   is amended for the battle header alone. Bible Rev 25.
+   is amended for the battle header alone. Bible Rev 26.
 2. **The compact party encoding is built**, to claw back the 189 kB gzipped the
    library added to the bundle at checkpoint 4. The generated files carry one
    string per party; `index.ts` decodes at load; no draw moves.

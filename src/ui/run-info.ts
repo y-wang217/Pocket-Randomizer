@@ -29,7 +29,7 @@ import { formatBuildStamp } from './stamps';
  * The feed as a list, newest first, with a heading wherever the segment
  * changes. `limit` keeps the newest that many entries, for the sidebar.
  */
-export function renderFeed(entries: readonly FeedEntry[], leaderOf: (segment: number) => string, limit?: number): HTMLElement {
+export function renderFeed(entries: readonly FeedEntry[], limit?: number): HTMLElement {
   const list = el('ol', 'feed');
   list.setAttribute('aria-label', FEED_COPY.heading);
   if (entries.length === 0) {
@@ -44,7 +44,7 @@ export function renderFeed(entries: readonly FeedEntry[], leaderOf: (segment: nu
     if (entry.segment !== segment) {
       segment = entry.segment;
       const heading = el('li', 'feed__segment');
-      heading.textContent = FEED_COPY.segment(entry.segment, leaderOf(entry.segment));
+      heading.textContent = FEED_COPY.segment(entry.segment, entry.leader);
       list.append(heading);
     }
     const row = el('li', 'feed__entry');
@@ -91,7 +91,7 @@ export function createRunInfo(): RunInfo {
       heading.replaceChildren(...(segment ? renderHeading(view.state, segment) : []));
       rail.replaceChildren(renderNextChallenger(nextChallengerOf(view.state)));
       facts.replaceChildren(...fact(RUN_INFO_COPY.seed, formatSeedString(view.state.seed)), ...fact(RUN_INFO_COPY.build, formatBuildStamp()));
-      feed.replaceChildren(renderFeed(view.entries, (index) => view.state.segments[index]?.leader ?? ''));
+      feed.replaceChildren(renderFeed(view.entries));
       overlay.open(opener);
     },
   };

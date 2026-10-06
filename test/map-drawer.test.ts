@@ -91,7 +91,7 @@ describe('the map overlay itself', () => {
      */
     const map = createMapDrawer();
     map.open(state);
-    // The eight-gym rail stood here until D102 (checkpoint 7); one bar now.
+    // The eight-gym rail stood here until D106 (checkpoint 7); one bar now.
     const bar = map.root.querySelector<HTMLElement>('.next-challenger__bar');
     expect(bar).not.toBeNull();
     expect(map.root.querySelector('.next-challenger__who')?.textContent).toBe(state.segments[state.currentSegment]!.gym.encounter!.opponent);

@@ -47,7 +47,7 @@ changes what is built.
 
 Ruling 1 of the stage ("gyms draw canonical leaders of the gym's type, per
 seed") is superseded by rulings 1 and 3 here. It is not edited there; the
-dated note is in [`../generation.md`](../generation.md) section 105.
+dated note is in [`../generation.md`](../generation.md) section 109.
 
 ## What this checkpoint builds, and what it files
 
@@ -59,7 +59,7 @@ Filed, not built: the second message's map as training, with no badge and a
 progress bar that shrinks as the next challenger approaches. That replaces
 the eight-badge rail at four call sites and the badge mark on the node, the
 battle header and the summary; section 5 of the bible has no row for it and
-D46, D72 and D100 put the badge where it is. It is **D102** in
+D46, D72 and D104 put the badge where it is. It is **D106** in
 [`../design/bible-discrepancies.md`](../design/bible-discrepancies.md), with
 options, for checkpoint 7 after the ruling. Until then the badge mark stays
 as the untyped kind glyph.

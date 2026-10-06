@@ -560,7 +560,7 @@ describe('the version guard', () => {
   it('refuses a Stage 3 log by name rather than replaying it as something else', () => {
     const stale: RunLog = {
       seed: 'STAGE3',
-      versions: { ...currentVersions(), runLog: 'gymrun-run-5/gymrun-0.1.0', randomizerVersion: 'gymrun-randomizer-4' },
+      mode: 'attacker', versions: { ...currentVersions(), runLog: 'gymrun-run-5/gymrun-0.1.0', randomizerVersion: 'gymrun-randomizer-4' },
       decisions: [],
     };
     // Thrown synchronously, before `playRun` is entered: `replayRunPolicy`
@@ -590,7 +590,7 @@ describe('the version guard', () => {
   it('refuses a Stage 4.5 log by name, naming both versions', () => {
     const stale: RunLog = {
       seed: 'STAGE45',
-      versions: { ...currentVersions(), runLog: 'gymrun-run-6/gymrun-0.2.0' },
+      mode: 'attacker', versions: { ...currentVersions(), runLog: 'gymrun-run-6/gymrun-0.2.0' },
       decisions: [],
     };
     expect(() => replayRun(stale)).toThrow(/gymrun-run-6\/gymrun-0\.2\.0/);

@@ -146,7 +146,7 @@ export function roleOf(row: RawEncounter): TrainerRole {
 }
 
 /**
- * The class a player reads beside the name (D100: `Leader Brock`, `Rival
+ * The class a player reads beside the name (D104: `Leader Brock`, `Rival
  * Blue`). The Game Boy games give each boss a class that *is* the boss
  * (`BROCK`, `LORELEI`), Red and Blue call the three rival fights `RIVAL1` to
  * `RIVAL3` and the Champion fight is the third, and Ruby's class table has

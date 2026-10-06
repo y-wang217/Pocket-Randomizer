@@ -34,7 +34,9 @@
 import type { PokemonState, ItemId } from '../../core/types';
 import type { GymDefinition } from '../../data/gyms';
 import type { Tuning } from '../../data/tuning';
-import { el } from '../scene';
+import { el, levelAria, levelText } from '../scene';
+import { challengerMark } from '../chip';
+import { NODE_KIND_WORDS } from '../../data/glyphLabels';
 import { memberCardContents } from '../member-card';
 
 /**
@@ -67,6 +69,13 @@ export interface PreGymView {
   party: readonly PokemonState[];
   holding: readonly (ItemId | null)[];
   tuning: Tuning;
+  /**
+   * A defender rank's boss, which has no leader and no type (ruling R6).
+   * **Bible Rev 25, D101**: the team size, bare, beside the gym mark, and the
+   * level as the party row writes one, in place of the leader name and the
+   * type chip. Absent in an attacker run.
+   */
+  boss?: { size: number; level: number };
 }
 
 export interface PreGymScreen {
@@ -190,10 +199,25 @@ export function createPreGymScreen(): PreGymScreen {
        *
        * Section 4: *"Pre-gym screen | 4 | the challenger's class and name,
        * 'Choose lead'."* The name is a proper noun and free, the class is the
-       * counted word (D101); `'s gym` was the one word on the line before,
+       * counted word (D105); `'s gym` was the one word on the line before,
        * on a screen that is only ever reached by walking into the boss.
        */
-      title.textContent = view.challenger ?? view.leader;
+      if (view.boss) {
+        // D101 (Defender Mode): the kind's mark and the team size, then the
+        // level. The badge mark retired with D106, so the mark is the
+        // challenger mark's fallback, the trainer head. No tip: a boss has
+        // no blurb to open.
+        const size = el('span', 'pre-gym__size');
+        size.textContent = String(view.boss.size);
+        title.replaceChildren(challengerMark(null, NODE_KIND_WORDS.gym, 24), size);
+        const level = el('span', 'panel__level');
+        level.textContent = levelText(view.boss.level);
+        level.setAttribute('aria-label', levelAria(view.boss.level));
+        heading.replaceChildren(title, level);
+      } else {
+        title.textContent = view.challenger ?? view.leader;
+        heading.replaceChildren(title);
+      }
 
       manage.onclick = () => handlers.onManageParty();
 

@@ -45,6 +45,7 @@ import { moveChoice, type PokemonState, type TeamSpec } from '../core/types';
 import type { AcquisitionOffer } from '../core/acquisition';
 import type { RewardOffer } from '../core/rewards';
 import { gymForSegment } from '../data/gyms';
+import { gymTypeOptions } from '../core/defender/opening';
 import { DEFAULT_TUNING } from '../data/tuning';
 import { createDrawer } from './drawer';
 import { createMapDrawer } from './map-drawer';
@@ -62,6 +63,7 @@ import { createBattleScreen } from './screens/battle';
 import { createEventScreen } from './screens/event';
 import { createItemTargetScreen } from './screens/item-target';
 import { createLocaleSelect } from './screens/locale-select';
+import { createGymSelect } from './screens/gym-select';
 import { createMoveReplaceScreen } from './screens/move-replace';
 import { createPartyScreen } from './screens/party';
 import { createPreGymScreen } from './screens/pre-gym';
@@ -123,6 +125,7 @@ async function main(): Promise<void> {
 
   // The shell, in the app's order. See `app.ts` for why each piece is where it is.
   const starterScreen = createStarterSelect();
+  const gymSelectScreen = createGymSelect();
   const localeScreen = createLocaleSelect();
   const mapScreen = createRunMap();
   const battleScreen = createBattleScreen();
@@ -141,6 +144,7 @@ async function main(): Promise<void> {
   const router = createRouter(
     {
       starter: starterScreen.root,
+      'gym-select': gymSelectScreen.root,
       locale: localeScreen.root,
       map: mapScreen.root,
       battle: battleScreen.root,
@@ -156,7 +160,7 @@ async function main(): Promise<void> {
     (name) => {
       shell.dataset['screen'] = name;
       // As the app does: the opening painting before the first region (D87).
-      world.setOpening(name === 'starter' || name === 'locale');
+      world.setOpening(name === 'starter' || name === 'gym-select' || name === 'locale');
     },
   );
   const seedBar = createSeedBar();
@@ -207,6 +211,13 @@ async function main(): Promise<void> {
       applyLocale(null);
       stamp(null);
       show('starter');
+      break;
+    }
+    case 'gym-select': {
+      gymSelectScreen.render(gymTypeOptions(), noop);
+      applyLocale(null);
+      stamp(null);
+      show('gym-select');
       break;
     }
     case 'locale': {

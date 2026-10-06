@@ -3,8 +3,8 @@
 Filed before any work, under [`README.md`](README.md) rule 1. Closes the
 open item [`../README.md`](../README.md) section 5 has carried since
 checkpoint 5: the library costs about 180 kB gzipped on the wire, above the
-~150 kB line [`../generation.md`](../generation.md) section 103 set, and the
-compact encoding (section 104) did not move it.
+~150 kB line [`../generation.md`](../generation.md) section 107 set, and the
+compact encoding (section 108) did not move it.
 
 ---
 
