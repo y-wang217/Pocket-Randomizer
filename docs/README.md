@@ -96,6 +96,16 @@ with `AI_VERSION` held (`generation.md` 106.11). Attacker generation is frozen
 by `test/attacker-generation-golden.test.ts`, re-minted on main's `-25`, and the
 sim fixture and visual baseline moved in their version stamps only.
 
+**Also in flight: four Defender Mode design changes**, on
+`claude/affectionate-hopper-0beolc`, prompt
+[`spec/gymrun-patch-defender-events-trades-revenge-offtype.md`](spec/gymrun-patch-defender-events-trades-revenge-offtype.md),
+record [`generation.md`](generation.md) sections 115 to 118 (section 114 is
+the blank-abilities patch on the same branch). A dedicated ? step per rank
+with six Slay the Spire shapes, the trade card gone blind with a reveal step,
+the Collector fielding the traded-away mons, and off-type recruits with the
+badge off until the Stranger's Pass. D107 to D110 filed and ruled; the UI
+waits on bible Rev 29.
+
 **Also in flight, reapplied onto this tree on 2026-10-02: the Toll price gate,
 and a ceiling on a region with a floor under its fights.** Branch
 `claude/t2-berry-inventory-gating-7gvcye`, prompts
