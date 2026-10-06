@@ -14609,3 +14609,77 @@ Chromium leg **192 of 196**: the four vertical-budget cases that compare to one
 machine's font stack, which fail on every tree in this container; the three
 contrast cases sections 109 to 112 also recorded are gone, main having
 moved them.
+
+## 114. A defender rank stands on a painted map
+
+**2026-10-06**, on `claude/eager-galileo-8vqf47`, from `main` at `22fb781`.
+Prompt [`spec/gymrun-patch-defender-map-backdrops.md`](spec/gymrun-patch-defender-map-backdrops.md),
+the author's *"the defender maps are empty. fix that"*, filed verbatim before
+any work. `contentHash` from `998fc2` to **`76dc8f`**; `RANDOMIZER_VERSION`,
+`RUN_LOG_VERSION` and `AI_VERSION` hold.
+
+### What was empty
+
+Reproduced in the built bundle with `scripts/smoke-defender.mjs`. The map drew
+its doors, its intermission, its boss, its edges and the trainer; what it drew
+them on was the flat placeholder tint, with no region line above it. A rank's
+one route carried `locale: null` (section 106.5), so `localeOf` answered null
+for the whole run: the graph asked the manifest for no backdrop, the heading's
+region line stayed hidden, and `data-locale` was never written, which left the
+World behind the frame and the battle backdrop behind every door fight at
+their placeholders too. The attacker's map is a painting with a route on it;
+the defender's was the route alone.
+
+### The region is a lookup, not a draw
+
+`DEFENDER_RANK_LOCALES` in `data/defender.ts`: eight regions, one per rank,
+every region once, climbing from the shore to the summit. `generateRank`
+writes `rankLocale(rank)` onto the rank's route, clamped to the table's ends
+the way `waveLength` is. Nothing is drawn and no stream is read, so the draw
+composition is unchanged and `RANDOMIZER_VERSION` holds; the table is data,
+so `contentHash` moves, and `test/fixtures/sim-report.json` re-minted on its
+stamp alone (the three attacker runs byte for byte). No decision is added:
+`localeChoices` was already `0` for every rank, so the locale question is
+never asked and `RUN_LOG_VERSION` holds.
+
+The door nodes keep `locale: null`. A node's locale is what an event or a wild
+draw reads, and a rank has neither; `test/defender-waves.test.ts` still holds
+that, and now also holds the route's region against the table on every seed.
+
+### What follows without a defender branch
+
+Because the route carries the region, every surface that reads `localeOf`
+paints it: the map graph's backdrop (D60's *Scene backdrop*), the World
+behind the frame, the battle backdrop behind each door fight (the boss keeps
+the gym's), the footer stamp, the sidebar's *where* line, the summary's route
+band and the decision feed. None of those files changed.
+
+### The one presentation decision
+
+The heading's region line shows the region's name and not its four type
+chips in a defender run (`ui/screens/run-map.ts` `renderHeading`, shared with
+the map drawer so the two cannot differ). The chips say what a region's wild
+nodes hold; a door's challengers come from their trainer class, and a chip row
+above them would be a claim about the fight that the fight does not honour.
+The bible's *Scene backdrop* row (D60) already says the locale's map backdrop
+stands behind the map, and the heading's region line has no row of its own,
+so no amendment is filed; this note is the record. `test/defender-ui.test.ts`
+holds the backdrop key, the name and the absent chips, and holds the attacker
+heading's four chips beside them.
+
+### Not built here
+
+The same message asked two questions: the smallest lift for looping music,
+and for the beats of a turn to be shown move by move so that a swap that
+faints in the same turn is seen. Both were answered as an assessment in the
+session and are carried as open items in [`README.md`](README.md) section 5.
+
+### Gates
+
+`npm run types`, `npm run lint` and `npm run hedge` clean; the sim fixture,
+the visual baseline and the hash pin in `test/ai-priority.test.ts` moved on
+their stamps alone; `npm run test:unit` **2,187 of 2,187** after those three
+re-recordings (the first pass failed exactly those four pins and one named
+path in a README line); `npm run build` and `scripts/smoke-defender.mjs`
+against it, whose `stats/defender-map.png` shows rank 1 on the Shore painting
+with the region named in the heading, the sidebar and the footer stamp.

@@ -511,8 +511,14 @@ describe('the version axes', () => {
      *
      * And at checkpoint 10, the merge of the two: both sets of tables in one
      * tree, `gymrun-randomizer-30` beside it. `docs/generation.md` section 113.
+     *
+     * And for the defender map backdrops patch, from `998fc2`: one new table,
+     * `DEFENDER_RANK_LOCALES` in `defender.ts`, the region each rank is set
+     * in. A lookup and not a draw, so no randomizer axis moves; the sim
+     * fixture and the visual baseline are byte-identical but for this hash.
+     * `docs/generation.md` section 114.
      */
-    expect(CONTENT_HASH).toBe('998fc2965108d1b16f4beb0122f38476aaeae2b108ee20ff5258034d63529f4c');
+    expect(CONTENT_HASH).toBe('76dc8f3dac61ae176d7419e7026fb3736c44caa8779bbfb5b0b26b7789687890');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

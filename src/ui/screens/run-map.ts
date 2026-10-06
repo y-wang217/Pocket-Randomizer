@@ -211,7 +211,14 @@ export function renderHeading(state: RunState, segment: Segment): HTMLElement[] 
     const definition = localeById(locale);
     const label = el('span', 'map__region-name');
     label.textContent = definition.name;
-    region.replaceChildren(label, ...definition.types.map(typeChip));
+    /*
+     * **A defender rank's region carries its name and not its types.** The
+     * defender map backdrops patch. The four chips say what the region's wild
+     * nodes hold, and a door's challengers come from their trainer class, not
+     * the region (`core/defender/waves.ts`): a chip row here would be a claim
+     * about the fight that the fight does not honour. The name is the place.
+     */
+    region.replaceChildren(label, ...(runMode(state) === 'defender' ? [] : definition.types.map(typeChip)));
   }
 
   return [title, subtitle, region];
