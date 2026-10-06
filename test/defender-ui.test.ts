@@ -26,10 +26,11 @@ import { trainerClass } from '../src/data/trainerClasses';
 import { DEFENDER_FEED_COPY, DEFENDER_SCREEN_COPY, MODE_COPY } from '../src/ui/copy/defender';
 import { createSeedBar } from '../src/ui/seed-bar';
 import { createDecisionFeed } from '../src/ui/decision-feed';
-import { renderBadgeTip, renderConsumableTip, renderTradeAskTip, renderTradeOfferTip } from '../src/ui/defender-tips';
+import { registerTradeOffer, renderBadgeTip, renderConsumableTip, renderTradeAskTip, renderTradeOfferTip } from '../src/ui/defender-tips';
 import { createGymSelect } from '../src/ui/screens/gym-select';
 import { createPartyScreen } from '../src/ui/screens/party';
 import { createPreGymScreen } from '../src/ui/screens/pre-gym';
+import { createResultScreen } from '../src/ui/screens/result';
 import { renderRewardCard } from '../src/ui/screens/reward';
 import { createRunMap } from '../src/ui/screens/run-map';
 import { createStarterSelect } from '../src/ui/screens/starter-select';
@@ -191,27 +192,82 @@ describe('the reward card faces (D102)', () => {
     expect(tip?.textContent).toContain(CONSUMABLE_COPY['superpotion']);
   });
 
-  it('draws a trade as two sprites and two species names, each opening its own card', () => {
+  /*
+   * **Bible Rev 29, D107 (2026-10-06).** The card no longer shows the offered
+   * mon: a question mark where its sprite was, the exchange mark, and the
+   * member asked for, named, with its party row on the press. Nothing on the
+   * card reveals the offer; that is the reveal step's job (D108, below).
+   */
+  it('draws a trade as a question mark, the exchange mark and the member asked for, with no way to the offered mon', () => {
     const state = drafted('UI-TRADE', 'Flying');
     const asked = state.party[1]!;
     const offered = highlighted('UI-TRADE-OFFER', 'Flying');
     const trade: Reward = { kind: 'trade', offers: { Flying: offered }, selector: 0, offered, requested: asked.acquired! };
     const card = renderRewardCard(trade, state, () => undefined);
 
-    const sides = [...card.querySelectorAll<HTMLElement>('.reward__trade-side')];
-    expect(sides.map((side) => side.querySelector('.reward__trade-name')?.textContent)).toEqual([offered.species, asked.spec.species]);
-    expect(sides.map((side) => side.querySelector('img.sprite')?.getAttribute('alt'))).toEqual([offered.species, asked.spec.species]);
-    expect(card.getAttribute('aria-label')).toBe(DEFENDER_SCREEN_COPY.tradeLabel(offered.species, asked.spec.species));
+    const mystery = card.querySelector<HTMLElement>('.reward__trade-side--offer .sprite--mystery');
+    expect(mystery).not.toBeNull();
+    // The question mark is CSS content, so the card has no word at rest (D107's 0).
+    expect(mystery?.textContent).toBe('');
+    expect(mystery?.getAttribute('role')).toBe('img');
+    expect(mystery?.getAttribute('aria-label')).toBe(DEFENDER_SCREEN_COPY.tradeUnrevealed);
+    expect(card.querySelector('.reward__trade-side--offer img')).toBeNull();
+    expect(card.querySelector('[data-tip^="trade-offer:"]')).toBeNull();
+    expect(card.textContent).not.toContain(offered.species);
 
-    const [offerTip, askTip] = sides.map((side) => side.dataset['tip']!);
-    expect(offerTip).toMatch(/^trade-offer:/);
-    expect(askTip).toMatch(/^trade-ask:/);
-    // The offered mon's starter card, with its moves; the member's party row.
-    const offer = renderTradeOfferTip(offerTip!.slice('trade-offer:'.length));
-    expect(offer?.querySelector('.starter')).not.toBeNull();
+    const mark = card.querySelector<HTMLElement>('.reward__trade-mark [data-glyph="exchange-arrows"], .reward__trade-mark .glyph');
+    expect(mark, 'the exchange mark is drawn between the slots').not.toBeNull();
+
+    const ask = card.querySelector<HTMLElement>('.reward__trade-side--ask');
+    expect(ask?.querySelector('.reward__trade-name')?.textContent).toBe(asked.spec.species);
+    expect(ask?.querySelector('img.sprite')?.getAttribute('alt')).toBe(asked.spec.species);
+    expect(ask?.dataset['tip']).toMatch(/^trade-ask:/);
+    expect(renderTradeAskTip(ask!.dataset['tip']!.slice('trade-ask:'.length))?.textContent).toContain(asked.spec.species);
+    expect(card.getAttribute('aria-label')).toBe(DEFENDER_SCREEN_COPY.tradeMystery(asked.spec.species));
+    // The offered mon's inspect card still exists for the reveal step.
+    const offer = renderTradeOfferTip(registerTradeOffer(offered, 'Flying'));
     expect(offer?.querySelectorAll('.starter__moves .move').length).toBe(offered.moves.length);
-    const ask = renderTradeAskTip(askTip!.slice('trade-ask:'.length));
-    expect(ask?.textContent).toContain(asked.spec.species);
+  });
+
+  /*
+   * **D108.** The reveal, in the cards' place on the result screen: the
+   * offered mon as its starter card, the mark, the member's row; Take through
+   * the band, Decline straight out, each reaching the run exactly once.
+   */
+  it('reveals the offered mon on the result screen after the pick, and takes or declines once', () => {
+    const state = drafted('UI-TRADE', 'Flying');
+    const asked = state.party[1]!;
+    const offered = highlighted('UI-TRADE-OFFER', 'Flying');
+    const trade = { kind: 'trade', offers: { Flying: offered }, selector: 0, offered, requested: asked.acquired! } as Extract<Reward, { kind: 'trade' }>;
+    const screen = createResultScreen();
+    document.body.replaceChildren(screen.root);
+
+    const decisions: boolean[] = [];
+    screen.render(null, null, state, () => undefined, null, null, null, { card: trade, onDecide: (accept: boolean) => decisions.push(accept) });
+    const reveal = screen.root.querySelector<HTMLElement>('.trade-reveal');
+    expect(reveal).not.toBeNull();
+    expect(reveal?.querySelector('.starter')).not.toBeNull();
+    expect(reveal?.textContent).toContain(offered.species);
+    expect(reveal?.textContent).toContain(asked.spec.species);
+    expect(reveal?.querySelector('.reward__trade-mark')).not.toBeNull();
+    expect(screen.root.querySelector('.result__heading')?.textContent).toBe(DEFENDER_SCREEN_COPY.tradeRevealTitle);
+    // No other continue while the question is open.
+    expect(screen.root.querySelector('.result__actions .button')).toBeNull();
+
+    // Decline: straight out, once.
+    reveal!.querySelector<HTMLButtonElement>('.trade-reveal__decline')!.click();
+    reveal!.querySelector<HTMLButtonElement>('.trade-reveal__decline')!.click();
+    expect(decisions).toEqual([false]);
+
+    // Take: through the band's commit.
+    decisions.length = 0;
+    screen.render(null, null, state, () => undefined, null, null, null, { card: trade, onDecide: (accept: boolean) => decisions.push(accept) });
+    screen.root.querySelector<HTMLButtonElement>('.trade-reveal__take')!.click();
+    const band = document.querySelector<HTMLElement>('.confirm-band');
+    expect(band).not.toBeNull();
+    expect(band?.querySelector('.starter')).not.toBeNull();
+    band!.querySelector<HTMLButtonElement>('.primary-action')!.click();
+    expect(decisions).toEqual([true]);
   });
 });
 

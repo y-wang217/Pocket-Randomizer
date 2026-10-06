@@ -19,8 +19,16 @@ export const DEFENDER_SCREEN_COPY = {
   /** The draft and recruit screens' instruction, in the starter screen's slot. */
   draft: 'Draft one',
   recruit: 'Recruit one',
-  /** The trade card's accessible name: offered for asked. Never painted. */
+  /** The reveal step's accessible name for the pair: offered for asked. Never painted. */
   tradeLabel: (offered: string, asked: string): string => `${offered} for ${asked}`,
+  /** The trade card's accessible name at rest (D107): the member asked for, the other side not yet shown. */
+  tradeMystery: (asked: string): string => `Trade: ${asked} for a Pokemon not yet shown`,
+  /** The unrevealed slot's accessible name (D107). Never painted: the slot draws a question mark. */
+  tradeUnrevealed: 'Not yet shown',
+  /** The reveal step (D108): the question, and its two controls. Five words, the row's budget. */
+  tradeRevealTitle: 'Take the trade?',
+  tradeTake: 'Take',
+  tradeDecline: 'Decline',
   /** A consumable's use refused in the Bag. */
   useRefused: (reason: string): string => `Not used: ${reason}`,
 } as const;

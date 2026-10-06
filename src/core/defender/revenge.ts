@@ -37,7 +37,8 @@ export function revengeTeam(tradedAway: readonly PokemonSpec[], rank: number): T
   const level = opponentLevel('trainer', rank, DEFENDER_REVENGE.tier).max;
   const ivs = defenderOpponentIvs(rank);
   return tradedAway.slice(-DEFENDER_REVENGE.maxTeam).map((spec) => {
-    const { item: _item, ...rest } = spec;
+    const { item, ...rest } = spec;
+    void item;
     return { ...rest, level, ivs };
   });
 }

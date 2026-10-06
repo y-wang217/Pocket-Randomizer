@@ -335,6 +335,13 @@ export const GLYPHS: readonly Glyph[] = [
   { id: 'badge-flame', family: 'badge', label: labelOf('badge-flame'), art: path('M12 2.5c.6 3.2 2.6 4.9 4.3 6.8 1.6 1.8 2.7 3.8 2.7 6.2a7 7 0 0 1-14 0c0-2.6 1.3-4.6 2.9-6.1.2 1.6.9 2.8 2 3.4-.4-3.9.6-7.4 2.1-10.3zm0 11c-1.5 1.3-2.4 2.6-2.4 4a2.4 2.4 0 0 0 4.8 0c0-1.4-.9-2.7-2.4-4z') },
   { id: 'badge-eye', family: 'badge', label: labelOf('badge-eye'), art: path('M12 5c5 0 8.8 3.4 10.5 7-1.7 3.6-5.5 7-10.5 7S3.2 15.6 1.5 12C3.2 8.4 7 5 12 5zm0 3.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6zm0 2.2a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2z') },
   { id: 'badge-wing', family: 'badge', label: labelOf('badge-wing'), art: path('M3 19.5c2.6-7.6 8.2-13.2 18-15-1.2 2.8-3 4.8-5.4 6.1 1.6.2 3-.1 4.4-.8-1.5 2.6-3.8 4.2-6.8 4.8 1.2.4 2.4.4 3.7.1-2.9 3-7.1 4.6-12.4 4.8zm2.2-1.8c3.6-1.4 6.6-3.8 9-7.2-3.6 1.6-6.6 4-9 7.2z') },
+
+  /*
+   * The exchange family. **D107, 2026-10-06.** One mark: two arrows turning
+   * about the centre, the top one clockwise, each with a head thick enough to
+   * read at 16px. Between a trade's two slots on the card and on the reveal.
+   */
+  { id: 'exchange-arrows', family: 'exchange', label: labelOf('exchange-arrows'), art: path('M12 3.2c3.2 0 6 1.7 7.6 4.3l1.6-1.6V12h-6.1l2.3-2.3A6.3 6.3 0 0 0 12 5.8a6.2 6.2 0 0 0-4.4 1.8L5.8 5.8A8.7 8.7 0 0 1 12 3.2zm0 17.6a8.8 8.8 0 0 1-7.6-4.3L2.8 18.1V12h6.1l-2.3 2.3a6.3 6.3 0 0 0 5.4 3.9 6.2 6.2 0 0 0 4.4-1.8l1.8 1.8a8.7 8.7 0 0 1-6.2 2.6z') },
 ];
 
 /** The glyphs of one family, in sheet order. */

@@ -60,6 +60,7 @@
  * consumed — and the reward a seed pays out would quietly become a function of
  * play. Keying does not touch that argument; it is about *when*, not *where*.
  */
+import type { DefenderEventInstance } from './defender/events';
 import {
   generateGymEncounter,
   generateStarters,
@@ -154,7 +155,7 @@ export interface NodeSpec {
    * shows the question mark and nothing else; an ambush's fight reads its
    * tier from the shape (`fightTierOf`).
    */
-  defenderEvent?: import('./defender/events').DefenderEventInstance;
+  defenderEvent?: DefenderEventInstance;
   /**
    * The locale this node's route runs through, or null for the gym.
    *

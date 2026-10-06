@@ -113,7 +113,9 @@ import {
 } from '../src/ui/copy/screens';
 import { FEED_COPY } from '../src/ui/copy/feed';
 import { DEFENDER_FEED_COPY, DEFENDER_SCREEN_COPY, MODE_COPY } from '../src/ui/copy/defender';
-import { BADGE_COPY, BADGE_SCOPE, CONSUMABLE_COPY, CONSUMABLE_RULE } from '../src/data/defenderCopy';
+import { BADGE_COPY, BADGE_OFF_COPY, BADGE_SCOPE, CONSUMABLE_COPY, CONSUMABLE_RULE } from '../src/data/defenderCopy';
+import { DEFENDER_EVENTS } from '../src/data/defenderEvents';
+import { DEFENDER_EVENT_HINTS, DEFENDER_EVENT_HOOKS, DEFENDER_EVENT_LABELS } from '../src/data/defenderEventCopy';
 import { TRAINER_CLASS_NAMES } from '../src/data/trainerClassCopy';
 import { OUTCOME_WORDS, TIER_ROWS } from '../src/ui/copy/summary';
 import * as hpCopy from '../src/core/hpCopy';
@@ -589,6 +591,13 @@ section({
     { key: 'draft', text: DEFENDER_SCREEN_COPY.draft },
     { key: 'recruit', text: DEFENDER_SCREEN_COPY.recruit },
     { key: 'trade label', text: DEFENDER_SCREEN_COPY.tradeLabel('Vulpix', 'Ponyta') },
+    { key: 'trade mystery', text: DEFENDER_SCREEN_COPY.tradeMystery('Ponyta') },
+    { key: 'trade unrevealed', text: DEFENDER_SCREEN_COPY.tradeUnrevealed },
+    { key: 'trade reveal · title', text: DEFENDER_SCREEN_COPY.tradeRevealTitle },
+    { key: 'trade reveal · take', text: DEFENDER_SCREEN_COPY.tradeTake },
+    { key: 'trade reveal · decline', text: DEFENDER_SCREEN_COPY.tradeDecline },
+    { key: 'feed · trade taken', text: DEFENDER_FEED_COPY.trade(true) },
+    { key: 'feed · trade declined', text: DEFENDER_FEED_COPY.trade(false) },
     { key: 'use refused', text: DEFENDER_SCREEN_COPY.useRefused('Ponyta is already at full HP') },
     { key: 'feed · gym type', text: DEFENDER_FEED_COPY.gymType('Fire') },
     { key: 'feed · draft', text: DEFENDER_FEED_COPY.draft('Vulpix') },
@@ -609,10 +618,22 @@ section({
       { key: `badge.${type} · effect`, text: copy.effect },
     ]),
     { key: 'badge scope', text: BADGE_SCOPE },
+    { key: 'badge off', text: BADGE_OFF_COPY },
     ...Object.entries(CONSUMABLE_COPY).map(([id, text]) => ({ key: `consumable.${id}`, text })),
     { key: 'consumable rule', text: CONSUMABLE_RULE },
     ...Object.entries(TRAINER_CLASS_NAMES).map(([id, text]) => ({ key: `class.${id}`, text })),
   ],
+});
+
+section({
+  title: 'Defender Mode, the question marks',
+  where: 'The event screen in a defender run: the hook over the buttons, each option\'s label and hint. Bible Rev 29, D109.',
+  source: 'src/data/defenderEventCopy.ts',
+  rows: DEFENDER_EVENTS.flatMap((event) => [
+    { key: `${event.id} · hook`, text: DEFENDER_EVENT_HOOKS[event.id] ?? '' },
+    ...(DEFENDER_EVENT_LABELS[event.id] ?? []).map((text, index) => ({ key: `${event.id} · label ${index}`, text })),
+    ...(DEFENDER_EVENT_HINTS[event.id] ?? []).map((text, index) => ({ key: `${event.id} · hint ${index}`, text })),
+  ]),
 });
 
 section({

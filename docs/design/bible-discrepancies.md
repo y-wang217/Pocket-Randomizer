@@ -4774,7 +4774,7 @@ behind them is headless and may proceed; the UI waits for Rev 29.
 
 ## D107. The trade card shows a mon it has not revealed, and an arrow nobody has drawn
 
-**Filed 2026-10-06. Ruled the same day: option 2.**
+**Filed 2026-10-06. Ruled the same day: option 2. Bible Rev 29.**
 
 The author: *"trades don't look like trades. the trade should be a 'trade'
 offer with a questionmark mystery sprite icon, with the mons and a rotating
@@ -4812,7 +4812,7 @@ as "nothing".
 
 ## D108. A second step the trade never had
 
-**Filed 2026-10-06. Ruled the same day: option 1.**
+**Filed 2026-10-06. Ruled the same day: option 1. Bible Rev 29.**
 
 Picking the trade card is today the whole decision: the reward entry, and
 the swap is applied. The author's flow has two steps, the pick and then the
@@ -4841,7 +4841,7 @@ bet that the step reads as a second chance rather than as a reroll.
 
 ## D109. An event screen with odds, a fight button, and no capability on it
 
-**Filed 2026-10-06. Ruled the same day: option 1.**
+**Filed 2026-10-06. Ruled the same day: option 1. Bible Rev 29.**
 
 Defender ? nodes mount the event screen (D33's component: the label, the
 hint, the reward-tier pips, the Toll's price; the requirement and the band
@@ -4869,7 +4869,7 @@ choice* row that it mounts in both modes.
 
 ## D110. The badge can be off, and the roster says it is only ever on or absent
 
-**Filed 2026-10-06. Ruled the same day: option 1.**
+**Filed 2026-10-06. Ruled the same day: option 1. Bible Rev 29.**
 
 The author: *"make passives (gym badge the player holds) disabled once you
 add a non-typed mon, which the relic that allows non-typed mons reenables"*.

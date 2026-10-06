@@ -149,6 +149,9 @@ on any member under half HP. **The test of this mode is by hand.**
 | `randomizer-24` · `run-23` · `564eda` | `ai-7-tiers-reach-the-app` | DEFENDER | 200 | Fire | **2.55** | 0.0% | 94.3 / 93.8 / 81.8 / 53.5 / 76.9 / 85.7 / 100 / – | 0.98 | 0.82 |
 | `randomizer-24` · `run-23` · `564eda` | `ai-7-tiers-reach-the-app` | DEFENDER | 200 | Psychic | **2.35** | 0.0% | 95.9 / 88.2 / 73.0 / 51.6 / 57.7 / 57.1 / 100 / – | 0.93 | 0.97 |
 | `randomizer-24` · `run-23` · `564eda` | `ai-7-tiers-reach-the-app` | DEFENDER | 200 | Flying | **3.305** | 0.5% | 96.4 / 95.7 / 86.0 / 71.6 / 74.6 / 57.6 / 66.7 / 50.0 | 1.37 | 1.38 |
+| `randomizer-34` · `run-25` · `3a0597` | `ai-7-tiers-reach-the-app` | DEFENDER | 200 | Fire | **2.615** | 1.0% | 95.3 / 96.6 / 78.9 / 68.9 / 85.0 / 63.6 / 100 / 100 | 1.03 | 1.01 |
+| `randomizer-34` · `run-25` · `3a0597` | `ai-7-tiers-reach-the-app` | DEFENDER | 200 | Psychic | **2.455** | 0.5% | 97.0 / 89.3 / 79.6 / 65.6 / 62.5 / 61.5 / 66.7 / 100 | 0.95 | 1.08 |
+| `randomizer-34` · `run-25` · `3a0597` | `ai-7-tiers-reach-the-app` | DEFENDER | 200 | Flying | **3.04** | 1.0% | 96.5 / 92.7 / 88.7 / 60.6 / 78.6 / 56.0 / 85.7 / 100 | 1.21 | 1.38 |
 
 **Recorded, not chased.** Three readings worth carrying, none of them a gate:
 
@@ -167,6 +170,20 @@ on any member under half HP. **The test of this mode is by hand.**
   opponent does and this bot does not read it (`generation.md` section 106.6).
 
 Report `sim-reports/benchmarks/2026-10-05T00-52-24-356Z-defender-v0-gymrun-randomizer-24-200.json`.
+
+**2026-10-06, the four design changes** (`generation.md` sections 115 to
+118), the `randomizer-34` rows. **Recorded, not chased**, and read down the
+prefix only: the same bot, a different map. What the bot now meets that it did
+not: one question mark per rank from rank 1, which it answers with option 0
+(on an ambush, the fight; on a shrine, the free heal; on a gamble, the
+wager), and a three-option recruit draft whose first option is typed, so it
+never puts the badge out and never meets the Collector, since it never
+trades. Fire 2.55 to 2.615 and Psychic 2.35 to 2.455 moved up a little,
+Flying 3.305 to 3.04 down; boss 4 is still every type's cliff (68.9 / 65.6 /
+60.6). The rows measure the question marks and the recruit draft, not the
+blind trade, the badge-off rule or the Collector, which this bot never
+reaches; those three are tested by hand, as the mode is. Report
+`sim-reports/benchmarks/2026-10-06T16-47-43-581Z-defender-v0-gymrun-randomizer-34-200.json`.
 
 ### What still gates, absolutely
 

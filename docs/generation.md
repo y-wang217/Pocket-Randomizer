@@ -14936,13 +14936,56 @@ shape: out of range, and `cannot pay`, named.
 table; a wager's loss is drawn as the losing outcome's cost; the bench bot
 answers option 0 at every question mark, which on an ambush is the fight.
 
-### The UI
+### The UI, under bible Rev 29
 
-Not yet drawn. The event screen mounts a `DefenderEventInstance` under D109
-(bible Rev 29) in the UI stage; until then the app refuses a defender run at
-its first question mark (*"needs a policy that answers
-chooseDefenderEvent"*), which is the headless-first order every stage has
-kept.
+Built after the four cores, UI last as every stage. D107 to D110 were filed
+before any of it and ruled the same day; Rev 29 records them.
+
+- **D109, the question mark.** `ui/screens/event.ts` gains `renderDefender`:
+  the same component with the requirement pair absent, a `pay`'s price named
+  against the bag and dimmed when unpayable, a `wager`'s odds as a bare
+  percentage, a `fight`'s trainer mark and tier word, the tier pips on
+  everything that pays. A fight resolves on the press, the battle frame being
+  its reveal; every other role holds the screen for its outcome lines and a
+  *Carry on*. `app.ts` wires `chooseDefenderEvent` beside `chooseEventOption`.
+- **D107, the card.** `ui/screens/reward.ts`'s trade face is a question mark
+  where the offered sprite was (text, not a glyph: the Ability row's
+  precedent), the **Exchange** family's one glyph (the fifteenth family,
+  `data/glyphFamilies.ts`, `exchange-arrows`), and the member asked for with
+  its name and its party-row press. The offered slot carries no press.
+- **D108, the reveal.** `ui/screens/result.ts` gains a `TradePrompt` in the
+  cards' place where the berry pick mounts: the offered mon's starter card,
+  the mark, the asked member's row; *Take* opens the confirm band with the
+  pair and commits, *Decline* leaves. `app.ts` wires `chooseTrade` beside
+  `chooseBerry`. `scripts/smoke-defender.mjs` now takes the trade card where
+  one is dealt, so the reveal is driven in the app.
+- **D110, the badge off.** The recruit screen (`starter-select.ts`) dims every
+  typed card's flame while `badgesActive` is false and puts the gym's badge
+  mark, dimmed, on an off-type candidate's card, with a `badge-off:` press
+  that says why (`BADGE_OFF_COPY`). **Deviation**: in a battle the marks are
+  absent rather than dimmed, because a battle under no badge has no badge data
+  to draw a mark from (`createBattle` installs none), and the Team screen draws
+  no flame today for there to be a dim one of. The bible row says dimmed; the
+  recruit card, where the decision is made, is where it is.
+- **The Collector on the map.** `run-map.ts` reads each step's doors through
+  `revengeNodeFor`, the reading `nodeOptions` makes, so the slot shows the
+  Collector's class once a trade has happened (section 117's note closed).
+
+`docs/copy.md` regenerated with the new strings; `npm run hedge` clean.
+
+**A gallery surface is added**, `result-trade` (`DEFENDER_SURFACES` in
+`ui/gallery-surfaces.ts`): the first door offer the defender map deals a trade
+on, resolved against the opened party, on the result screen's cards-only
+shape. It exists because the family walk
+(`test/visual-exposure-labels.test.ts`) paints every family through the
+gallery's surfaces and no attacker fixture can deal a trade, so without it the
+Exchange family was painted by no surface at all. The census is re-recorded
+with it; the question mark is the stylesheet's content rather than a text
+node, so the trade card reads 0 words as D107 says, and the one word the
+census now attributes to the reward card component, *HP*, is the restore
+card's own face, within its budget of 8, on a card the attacker's `SMOKE24`
+fixtures never dealt. The census also records main's own *Lead* control on
+the party screen ([y-wang217/Pocket-Randomizer#98](https://github.com/y-wang217/Pocket-Randomizer/pull/98)), which no census had been run since.
 
 ### Tests
 

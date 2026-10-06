@@ -58,15 +58,26 @@ import {
 } from '../../core/events';
 import { tierRangeOf, tierWeightsFor, type EventArchetype } from '../../data/eventPools';
 import { capabilityHolders, resolveCapability } from '../../core/capabilities';
+import { defenderOptionPayable, defenderOutcomeOf, type DefenderEventInstance } from '../../core/defender/events';
 import type { RunState } from '../../core/run';
+import { DEFENDER_AMBUSH } from '../../data/defenderEvents';
+import { DEFENDER_EVENT_HINTS, DEFENDER_EVENT_HOOKS, defenderEventLabel } from '../../data/defenderEventCopy';
 import { BAND_LABELS, CAPABILITY_LABELS, PRICE_UNPAYABLE, TOLL_PAID_PREFIX, eventHook, eventLabel, eventHint } from '../../data/eventCopy';
-import { capabilityBandChevron, capabilityChip, capabilityGlyph, rewardTierPips } from '../chip';
+import { NODE_KIND_WORDS } from '../../data/glyphLabels';
+import { capabilityBandChevron, capabilityChip, capabilityGlyph, nodeKindGlyph, rewardTierPips, tierChip } from '../chip';
 import { el } from '../scene';
 import { spriteFigure } from '../sprites';
 
 export interface EventScreen {
   root: HTMLElement;
   render(event: EventInstance, state: RunState, onDone: (archetype: EventArchetype) => void): void;
+  /**
+   * A defender question mark (bible Rev 29, D109): the same component with
+   * the requirement pair absent, a wager's odds and a fight's trainer mark.
+   * `onDone` is the option's index. A `fight` resolves on the press, since
+   * the fight follows; every other role holds the screen open for its reveal.
+   */
+  renderDefender(event: DefenderEventInstance, state: RunState, onDone: (index: number) => void): void;
 }
 
 export function createEventScreen(): EventScreen {
@@ -294,6 +305,102 @@ export function createEventScreen(): EventScreen {
           outcome,
           carry,
         );
+        result.hidden = false;
+        carry.focus();
+      }
+    },
+
+    renderDefender(event, state, onDone) {
+      // No requirement pair: a defender run has no capabilities (D109).
+      gate.replaceChildren();
+      prompt.textContent = DEFENDER_EVENT_HOOKS[event.eventId] ?? '';
+      result.hidden = true;
+      result.replaceChildren();
+
+      const buttons = event.options.map((option, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `event__choice event__choice--${option.role}`;
+
+        const label = el('span', 'event__choice-label');
+        label.textContent = defenderEventLabel(event.eventId, index);
+        const hint = el('span', 'event__choice-hint');
+        hint.textContent = DEFENDER_EVENT_HINTS[event.eventId]?.[index] ?? '';
+
+        /*
+         * The attribute row (D109): the price, named against the bag, on a
+         * `pay`; the odds as a bare percentage on a `wager`, in the chevron's
+         * slot; the trainer mark and the tier word on a `fight`, the map node
+         * card's own pair; the tier pips on everything that pays. No
+         * recommendation, no highlight, no expected value.
+         */
+        const attributes = el('span', 'event__choice-attributes');
+        if (option.toll) attributes.append(capabilityChip(`Costs ${describePrice(option.toll, state.backpack)}`));
+        if (option.odds !== null) {
+          const odds = el('span', 'event__odds');
+          odds.textContent = `${Math.round(option.odds * 100)}%`;
+          odds.setAttribute('aria-label', `${Math.round(option.odds * 100)}% to win`);
+          attributes.append(odds);
+        }
+        if (option.role === 'fight') {
+          attributes.append(nodeKindGlyph('trainer', NODE_KIND_WORDS.trainer, 16), tierChip(DEFENDER_AMBUSH.tier));
+        }
+        if (option.tier) attributes.append(rewardTierPips(option.tier, option.tier, `Reward ${option.tier}`));
+
+        // The price gate, as the attacker's: dimmed, says so, cannot be pressed.
+        if (!defenderOptionPayable(state, option)) {
+          button.disabled = true;
+          button.classList.add('event__choice--unpayable');
+          attributes.append(capabilityChip(PRICE_UNPAYABLE));
+        }
+
+        button.append(label, hint, attributes);
+        button.addEventListener('click', () => reveal(index));
+        return button;
+      });
+      choices.replaceChildren(...buttons);
+
+      function reveal(index: number): void {
+        const option = event.options[index];
+        if (!option) return;
+        for (const [i, button] of buttons.entries()) {
+          button.disabled = true;
+          button.classList.toggle('event__choice--taken', i === index);
+        }
+        // A fight follows the press: the battle screen is the reveal.
+        if (option.role === 'fight') {
+          onDone(index);
+          return;
+        }
+
+        // What the role pays, from the drawn roll, collapsed against the held relics.
+        const drawn = defenderOutcomeOf(option, false);
+        const paid = drawn ? concreteOutcome(drawn, state.relics) : null;
+        const lines: HTMLElement[] = [];
+        if (option.toll) {
+          const price = el('p', 'event__outcome event__outcome--bad');
+          price.textContent = `${TOLL_PAID_PREFIX}: ${describePrice(option.toll, state.backpack)}`;
+          lines.push(price);
+        }
+        if (paid) {
+          const cost = describeCost(paid);
+          if (cost) {
+            const costLine = el('p', 'event__outcome event__outcome--bad');
+            costLine.textContent = cost;
+            lines.push(costLine);
+          }
+          const outcome = el('p', `event__outcome event__outcome--${toneOf(paid)}`);
+          outcome.textContent = describeOutcome(paid);
+          lines.push(outcome);
+        }
+
+        const carry = document.createElement('button');
+        carry.type = 'button';
+        carry.className = 'button primary-action';
+        carry.textContent = 'Carry on';
+        carry.addEventListener('click', () => onDone(index));
+
+        result.replaceChildren(...lines, carry);
         result.hidden = false;
         carry.focus();
       }

@@ -50,6 +50,7 @@ export const SEEN_EVERY_INTRO = Number.MAX_SAFE_INTEGER;
  * appear in every driven run, and the height gates say so on the first run.
  */
 export const EXPOSED_FAMILIES = [
+  'exchange',
   'type',
   'category',
   'band',

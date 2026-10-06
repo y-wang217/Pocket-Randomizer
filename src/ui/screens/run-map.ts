@@ -47,6 +47,7 @@ import type { NodeSpec, Segment } from '../../core/encounters';
 import type { LocaleId } from '../../data/locales';
 import type { NodeVisit, RunState } from '../../core/run';
 import { localeOf, runMode, stepsOf } from '../../core/run';
+import { revengeNodeFor } from '../../core/defender/revenge';
 import { nextChallengerOf, renderNextChallenger } from '../next-challenger';
 import { trainerClass } from '../../data/trainerClasses';
 import { TRAINER_CLASS_NAMES } from '../../data/trainerClassCopy';
@@ -432,8 +433,11 @@ function renderStepRow(
   if (phase === 'current') nodes.dataset['tutorial'] = 'options';
   const choose = phase === 'current' ? onChoose : undefined;
   nodes.append(
-    ...step.options.map((node, option) => {
+    ...step.options.map((drawn, option) => {
       const walked = plan.taken[index];
+      // The Collector is a reading of the drawn door against the run
+      // (section 117), the one `nodeOptions` makes; the map reads it too.
+      const node = runMode(state) === 'defender' ? revengeNodeFor(drawn, state) : drawn;
       const element = renderNode(node, phase, segment.index, state, {
         full: phase === 'current',
         visit: walked === option ? plan.visits[step.index] : undefined,

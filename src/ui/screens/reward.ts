@@ -51,7 +51,9 @@ import { CAPABILITY_LABELS } from '../../data/eventCopy';
 import { NATIVE, placeholderIcon, relicIcon } from '../assets/manifest';
 import { consumableById } from '../../data/consumables';
 import { DEFENDER_SCREEN_COPY } from '../copy/defender';
-import { registerTradeAsk, registerTradeOffer } from '../defender-tips';
+import { registerTradeAsk } from '../defender-tips';
+import { glyphNode } from '../theme/glyph';
+import { GLYPH_LABELS } from '../../data/glyphLabels';
 import { spriteImg } from '../sprites';
 import { openBand } from '../band';
 import { createBar } from '../bar';
@@ -280,32 +282,38 @@ export function renderRewardCard(
     }
 
     /*
-     * **A trade is two sprites in fixed slots, each with its species name.
-     * Bible Rev 25, D102.** The offered mon on the left, the member asked for
-     * on the right; species are proper nouns, so the budget is 0. C2: the
-     * offered mon's press opens its starter card and the member's its party
-     * row, through the `trade-offer:` and `trade-ask:` tips.
+     * **A trade is a mon not yet shown, the exchange mark, and the member
+     * asked for. Bible Rev 29, D107** (two revealed sprites under D102 until
+     * 2026-10-06). The offered slot draws a question mark where a sprite
+     * would be, the Ability row's "held-and-unknown is not none" precedent,
+     * and carries no press: showing the mon is the reveal step's job (D108),
+     * once the pick has cost the other two cards. The member asked for is
+     * named, as a price must be, and its press opens its party row through
+     * the `trade-ask:` tip. The mark between them is the exchange family's
+     * one glyph. Budget 0: a proper noun and two marks.
      */
     case 'trade': {
-      const offered = reward.offered;
       const asked = state.party.find((member) => member.acquired === reward.requested);
-      if (!offered || !asked) break;
-      const gymType = state.defender?.gymType ?? null;
-      const side = (species: string, tip: string, which: 'offer' | 'ask'): HTMLElement => {
-        const holder = el('span', `reward__trade-side reward__trade-side--${which}`);
-        holder.dataset['tip'] = tip;
-        holder.tabIndex = 0;
-        holder.setAttribute('role', 'button');
-        const name = el('span', 'reward__trade-name');
-        name.textContent = species;
-        holder.append(spriteImg(species), name);
-        return holder;
-      };
-      card.setAttribute('aria-label', DEFENDER_SCREEN_COPY.tradeLabel(offered.species, asked.spec.species));
-      card.append(
-        side(offered.species, `trade-offer:${registerTradeOffer(offered, gymType)}`, 'offer'),
-        side(asked.spec.species, `trade-ask:${registerTradeAsk(asked)}`, 'ask'),
-      );
+      if (!asked) break;
+      const mystery = el('span', 'reward__trade-side reward__trade-side--offer');
+      // The question mark is the stylesheet's content, not a text node: a
+      // mark the census does not count, with the slot's accessible name here.
+      const unknown = el('span', 'sprite sprite--mystery');
+      unknown.setAttribute('role', 'img');
+      unknown.setAttribute('aria-label', DEFENDER_SCREEN_COPY.tradeUnrevealed);
+      mystery.append(unknown);
+      const mark = el('span', 'reward__trade-mark');
+      const arrows = glyphNode('exchange-arrows', { label: GLYPH_LABELS['exchange-arrows'] ?? '' });
+      if (arrows) mark.append(arrows);
+      const ask = el('span', 'reward__trade-side reward__trade-side--ask');
+      ask.dataset['tip'] = `trade-ask:${registerTradeAsk(asked)}`;
+      ask.tabIndex = 0;
+      ask.setAttribute('role', 'button');
+      const name = el('span', 'reward__trade-name');
+      name.textContent = asked.spec.species;
+      ask.append(spriteImg(asked.spec.species), name);
+      card.setAttribute('aria-label', DEFENDER_SCREEN_COPY.tradeMystery(asked.spec.species));
+      card.append(mystery, mark, ask);
       break;
     }
 

@@ -84,6 +84,14 @@ export const GLYPH_FAMILIES = [
    * it and never counts an exposure to it.
    */
   'badge',
+  /**
+   * **The fifteenth, added 2026-10-06 under D107.** One mark, two arrows
+   * turning, between a defender trade's two slots: the member asked for and
+   * the mon not yet shown. It encodes what the card *is*, which is why it is
+   * a glyph and not a control's icon (D54). Drawn on the card and on the
+   * reveal step (D108), and nowhere else.
+   */
+  'exchange',
 ] as const;
 
 export type GlyphFamily = (typeof GLYPH_FAMILIES)[number];

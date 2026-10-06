@@ -35,6 +35,7 @@ import {
 import { previewEvolutions } from '../core/evolution';
 
 import type { Choice, ItemId, ItemPlan, PartyEdit, PokemonSpec, PokemonState, RunLog, RunMode } from '../core/types';
+import { badgesActive } from '../core/defender/badge';
 import { DEFENDER_SCREEN_COPY } from './copy/defender';
 import { applyRelicPassives } from '../core/relics';
 import { applyItemPlan, arrivedItems, backpackCapacity, keepLayoutPlan, reconcileItemPlan } from '../core/items';
@@ -644,6 +645,8 @@ export function mountApp(root: HTMLElement): void {
     const acquirePick = createPending<AcquisitionDecision>();
     const shopBasket = createPending<number[]>();
     const eventPick = createPending<EventArchetype>();
+    const defenderEventPick = createPending<number>();
+    const tradeDecision = createPending<boolean>();
     const leadPick = createPending<number>();
     const evolvePick = createPending<number>();
     const berryPick = createPending<number>();
@@ -768,7 +771,9 @@ export function mountApp(root: HTMLElement): void {
       },
       chooseRecruit: (options, state) => {
         const gymType = state.defender?.gymType ?? '';
-        starterScreen.render(options, (index) => starterPick.submit(index), { title: DEFENDER_SCREEN_COPY.recruit, gymType });
+        // The badge's state rides along (D110): a card dims its mark while the
+        // badge is off, and an off-type candidate wears the dimmed mark.
+        starterScreen.render(options, (index) => starterPick.submit(index), { title: DEFENDER_SCREEN_COPY.recruit, gymType, badgeLit: badgesActive(state) });
         showScreen('starter');
         return starterPick.wait();
       },
@@ -939,6 +944,19 @@ export function mountApp(root: HTMLElement): void {
         return berryPick.wait();
       },
       /*
+       * The trade reveal, on the same screen, in the cards' place (bible Rev
+       * 29, D108). `playRun` asks it right after the trade card is picked, so
+       * the result the card came from is still `lastReview`.
+       */
+      chooseTrade: (card, state) => {
+        resultScreen.render(lastReview, null, state, () => undefined, null, null, null, {
+          card,
+          onDecide: (accept) => tradeDecision.submit(accept),
+        });
+        showScreen('result');
+        return tradeDecision.wait();
+      },
+      /*
        * Required by `RunPolicy` and unreachable from `playRun` while
        * `reviewBattle` is implemented above, because the two are one question
        * and `playRun` asks the richer form when it is offered.
@@ -1075,6 +1093,12 @@ export function mountApp(root: HTMLElement): void {
         eventScreen.render(event, state, (archetype) => eventPick.submit(archetype));
         showScreen('event');
         return eventPick.wait();
+      },
+      // A defender question mark, on the same screen (bible Rev 29, D109).
+      chooseDefenderEvent: (event, state) => {
+        eventScreen.renderDefender(event, state, (index) => defenderEventPick.submit(index));
+        showScreen('event');
+        return defenderEventPick.wait();
       },
       /*
        * `chooseMoveRecipient` and `chooseMoveToReplace` were wired here and are

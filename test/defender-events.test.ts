@@ -76,10 +76,17 @@ describe('the table', () => {
         // Odds and a loss on `wager` and nowhere else.
         expect(option.odds !== undefined, `${event.id} ${option.role} odds`).toBe(option.role === 'wager');
         expect(option.lose !== undefined, `${event.id} ${option.role} lose`).toBe(option.role === 'wager');
-        if (option.odds !== undefined) expect(option.odds).toBeGreaterThan(0), expect(option.odds).toBeLessThan(1);
+        if (option.odds !== undefined) {
+          expect(option.odds).toBeGreaterThan(0);
+          expect(option.odds).toBeLessThan(1);
+        }
         // Leaving pays nothing and wears no pips; everything else pays something.
-        if (option.role === 'leave') expect(option.grant).toHaveLength(0), expect(option.tier).toBeNull();
-        else expect(option.grant.length, `${event.id} ${option.role} grant`).toBeGreaterThan(0);
+        if (option.role === 'leave') {
+          expect(option.grant).toHaveLength(0);
+          expect(option.tier).toBeNull();
+        } else {
+          expect(option.grant.length, `${event.id} ${option.role} grant`).toBeGreaterThan(0);
+        }
         // No price is a relic, and a fight is only on an ambush.
         if (option.role === 'fight') expect(event.shape).toBe('ambush');
       }

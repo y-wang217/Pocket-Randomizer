@@ -14,7 +14,7 @@
  * registers each here and carries the key; the registry holds the last few
  * hundred, which is more than any screen draws.
  */
-import { BADGE_COPY, BADGE_SCOPE, CONSUMABLE_COPY, CONSUMABLE_RULE } from '../data/defenderCopy';
+import { BADGE_COPY, BADGE_OFF_COPY, BADGE_SCOPE, CONSUMABLE_COPY, CONSUMABLE_RULE } from '../data/defenderCopy';
 import { consumableById } from '../data/consumables';
 import type { PokemonSpec, PokemonState } from '../core/types';
 import { DEFAULT_TUNING } from '../data/tuning';
@@ -63,6 +63,15 @@ export function renderBadgeTip(type: string): HTMLElement | null {
   if (!copy) return null;
   const body = panel(copy.name);
   body.append(line(copy.effect, 'tip__text'), line(BADGE_SCOPE, 'tip__note'));
+  return body;
+}
+
+/** A dimmed badge mark's inspect (D110): the badge, why it is off, what it does when lit. */
+export function renderBadgeOffTip(type: string): HTMLElement | null {
+  const copy = BADGE_COPY[type];
+  if (!copy) return null;
+  const body = panel(copy.name);
+  body.append(line(BADGE_OFF_COPY, 'tip__text'), line(copy.effect, 'tip__note'));
   return body;
 }
 
