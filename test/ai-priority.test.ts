@@ -523,8 +523,12 @@ describe('the version axes', () => {
      * `data/defender.ts` loses the exempt slot and gains the recruit draft's
      * shape. `gymrun-randomizer-32` moves beside it. `docs/generation.md`
      * section 115.
+     *
+     * And for its third change, from `d18681`: `data/defender.ts` gains the
+     * Collector's slot and `data/trainerClasses.ts` the Collector.
+     * `gymrun-randomizer-33` moves beside it. `docs/generation.md` section 117.
      */
-    expect(CONTENT_HASH).toBe('d186818bd0d9004419c2b9f83a487c62d4a105206fa12a3eb98ba62946cd40b3');
+    expect(CONTENT_HASH).toBe('714eea9f64b747094cdc9689e4abe91d322ff80a85ef852693670ac08209f228');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

@@ -137,6 +137,16 @@ export interface NodeSpec {
    */
   trainerClass?: string;
   /**
+   * The Collector's extra pages, on the one defender door slot that can become
+   * the fight against the traded-away mons (`DEFENDER_REVENGE`,
+   * `core/defender/revenge.ts`). **2026-10-06.** `maxTeam - 1` three-card
+   * offers beyond `reward`, drawn at generation whether or not the Collector
+   * ever stands here; a win pays one page per mon fielded. Absent everywhere
+   * else. The node's own class, tier and team are the door's as drawn: the
+   * substitution is a reading at `run.nodeOptions`, never written here.
+   */
+  revenge?: { offers: readonly RewardOffer[] };
+  /**
    * The locale this node's route runs through, or null for the gym.
    *
    * **Added by the event rejig, and it is plumbing rather than a new fact.**

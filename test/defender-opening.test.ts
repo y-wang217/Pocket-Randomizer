@@ -35,7 +35,7 @@ import { DAMAGING_MOVES } from '../src/data/movePools';
 import { defenderOpponentIvs, DEFENDER_OPPONENT_IVS, starterLevel } from '../src/data/scaling';
 import { typesOfSpecies } from '../src/data/speciesTypes';
 import { TRAINER_CLASS_NAMES } from '../src/data/trainerClassCopy';
-import { classesAtRank, TRAINER_CLASSES } from '../src/data/trainerClasses';
+import { classesAtRank, DEFENDER_REVENGE_CLASS, TRAINER_CLASSES } from '../src/data/trainerClasses';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
 const SEEDS = Array.from({ length: 60 }, (_, i) => `DEFENDER-${i}`);
@@ -281,8 +281,9 @@ describe('trainer classes', () => {
     for (const entry of classesAtRank(0)) expect(entry.types).toHaveLength(1);
     for (const entry of classesAtRank(DEFENDER_RANKS - 1)) expect(entry.types).toEqual([]);
     expect(new Set(TRAINER_CLASSES.map((entry) => entry.id)).size).toBe(TRAINER_CLASSES.length);
-    // Every class has a name to show at the door, and every name a class.
-    expect(Object.keys(TRAINER_CLASS_NAMES).sort()).toEqual(TRAINER_CLASSES.map((entry) => entry.id).sort());
+    // Every class has a name to show at the door, and every name a class. The
+    // Collector is named too, and stays out of the door draw (2026-10-06).
+    expect(Object.keys(TRAINER_CLASS_NAMES).sort()).toEqual([...TRAINER_CLASSES, DEFENDER_REVENGE_CLASS].map((entry) => entry.id).sort());
   });
 
   it('draws two different classes at every door, both eligible at the rank', () => {

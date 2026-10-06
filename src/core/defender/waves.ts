@@ -34,6 +34,7 @@ import {
   DEFENDER_BOSS_RELIC_IDS,
   DEFENDER_CONSUMABLE_ENTRY,
   DEFENDER_RELIC_IDS,
+  DEFENDER_REVENGE,
   DEFENDER_WAVE_LENGTH,
 } from '../../data/defender';
 import { defenderOpponentIvs } from '../../data/scaling';
@@ -62,6 +63,15 @@ export function intermissionNodeId(rank: number): string {
 
 export function bossNodeId(rank: number): string {
   return `r${rank}-boss`;
+}
+
+/**
+ * The Collector's slot in `rank`, or null for every other rank: the last
+ * door's `DEFENDER_REVENGE.side`. One slot in the run (2026-10-06).
+ */
+export function revengeNodeId(rank: number): string | null {
+  if (rank !== DEFENDER_REVENGE.rank) return null;
+  return doorNodeId(rank, waveLength(rank) - 1, DEFENDER_REVENGE.side);
 }
 
 /** How many doors rank `rank` has. Clamped to the table's ends. */
@@ -136,19 +146,26 @@ export function generateRank(rank: number, rng: Rng, tuning: Tuning): Segment {
   // --- pass 4: what each node pays -------------------------------------------
   for (const node of steps.flatMap((step) => step.options)) {
     if (node.tier) {
-      const offer = generateRewardOffer(
-        node.id,
-        node.tier,
-        rank,
-        rng.rewards.at(defenderNodeRewardKey(node.id, 'offer')),
-        tuning,
-        DEFENDER_RELIC_IDS,
-        [DEFENDER_CONSUMABLE_ENTRY],
-      );
+      const offerStream = rng.rewards.at(defenderNodeRewardKey(node.id, 'offer'));
+      const offer = generateRewardOffer(node.id, node.tier, rank, offerStream, tuning, DEFENDER_RELIC_IDS, [DEFENDER_CONSUMABLE_ENTRY]);
       // At most one trade per offer, and it takes the last card. Drawn on its
       // own key whether or not it is carried (`drawTrade`).
       const trade = drawTrade(node.id, rank, rng);
       node.reward = trade ? { ...offer, options: [...offer.options.slice(0, -1), trade] } : offer;
+      /*
+       * The Collector's slot (2026-10-06): the extra pages a win over the
+       * traded-away mons pays, one per mon beyond the first, drawn here on the
+       * same stream after the door's own offer, at the Collector's tier and
+       * with no trade card. Drawn whether or not a trade ever happens, so a
+       * run that never trades and one that does draw the same map.
+       */
+      if (node.id === revengeNodeId(rank)) {
+        node.revenge = {
+          offers: Array.from({ length: DEFENDER_REVENGE.maxTeam - 1 }, () =>
+            generateRewardOffer(node.id, DEFENDER_REVENGE.tier, rank, offerStream, tuning, DEFENDER_RELIC_IDS, [DEFENDER_CONSUMABLE_ENTRY]),
+          ),
+        };
+      }
     } else if (node.kind === 'shop') {
       node.shop = generateShopStock(node.id, rank, rng.rewards.at(defenderNodeRewardKey(node.id, 'shop')), tuning);
     }

@@ -108,9 +108,10 @@ describe('the run log version', () => {
      * four were renumbered above main's `-26`. `-31` is sixteen abilities
      * with no battle effect leaving the pool, so every ability draw reads a
      * different name. `-32` is the defender recruit draft drawing two typed
-     * mons and one off-type, under `defender/` keys only.
+     * mons and one off-type, under `defender/` keys only. `-33` is one
+     * defender door drawing five more offers for the Collector's pages.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-32');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-33');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });

@@ -498,7 +498,18 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * `contentHash` moves for `data/defender.ts`. `RUN_LOG_VERSION` holds.
  * `docs/generation.md` section 115.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-32';
+/*
+ * ## `-33`: the Collector's slot draws its extra pages. The defender design
+ * message's third change: rank 6's last door, side 1, draws five more
+ * three-card offers after its own, on the same `defender/node/<id>/offer`
+ * key, so a win over the traded-away mons can pay one page per mon fielded.
+ * One node in the run; no other draw moves and no attacker draw moves. The
+ * Collector itself is a reading of that slot at `nodeOptions`, never a draw.
+ * `contentHash` moves for `data/defender.ts` and `data/trainerClasses.ts`.
+ * `RUN_LOG_VERSION` holds: the pages are `reward` entries.
+ * `docs/generation.md` section 117.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-33';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

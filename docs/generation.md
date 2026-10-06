@@ -14776,3 +14776,68 @@ seeds with `chooseTrade` answering `false` and asserts the party, the bag and
 `tradedAway` untouched at every node that picked a trade, and the run and its
 log replaying identically. `test/storage.test.ts`, `test/decision-feed.test.ts`
 and the three version pins moved to `run-25`.
+
+## 117. The Collector: the fight against everything you traded away
+
+**2026-10-06**, the defender design message's third change, on
+`claude/affectionate-hopper-0beolc`. Prompt
+[`spec/gymrun-patch-defender-events-trades-revenge-offtype.md`](spec/gymrun-patch-defender-events-trades-revenge-offtype.md):
+*"there should be a special fight that contains all the mons you traded
+away"*, and the rulings *"the special door in a later rank is nice... beat him
+to get a reward per mon traded away"* and *"Rank 7's last door"*.
+`RANDOMIZER_VERSION` to `-33`, `contentHash` from `d18681` to `714eea`;
+`RUN_LOG_VERSION` and `AI_VERSION` hold.
+
+### A reading, not a draw
+
+The slot is `DEFENDER_REVENGE` in `data/defender.ts`: rank index 6's last
+door, side 1. It is drawn exactly as every door is, a class, a tier, a team,
+a sim seed and an offer, and it draws one thing more: five further three-card
+offers on its own `offer` key after the first (`NodeSpec.revenge`), at the
+Collector's `hard` tier and with no trade card among them. That is the only
+draw this change adds, and it is made whether or not a trade ever happens, so
+a run that never trades and one that does draw the same map.
+
+The Collector is `core/defender/revenge.ts`'s reading of that slot against
+the run: once `DefenderRunState.tradedAway` holds anything, `revengeNodeFor`
+returns the node with the Collector's class (`DEFENDER_REVENGE_CLASS`, kept out
+of `TRAINER_CLASSES` so `drawDoorClasses` never draws it), the `hard` tier, and
+a team of the six most recently traded mons as they left, at the rank's
+hard-tier trainer level with the rank's flat IV and holding nothing, since
+the item went to the bag when the trade was taken. The slot's sim seed, offer
+and pages are untouched. The reading happens in `run.nodeOptions`, where the
+fight, the map and the replay all take their options, so `segments` is never
+written and `test/defender-waves.test.ts`'s "the same map whatever the gym
+type" still holds by identity. A team that is a function of player decisions
+consumes no RNG: the decisions are inputs.
+
+### One page per mon
+
+A win over the Collector pays the node's own offer first, as every door
+does, and then one further page per mon fielded beyond the first, each a
+`reward` entry asked in page order (`NodeResult.extraRewards`, applied after
+`reward` through the same `applyReward`). A relic taken on one page is held
+against the next, so two pages cannot hand over the same relic. The live
+player sees each further page as cards alone, the result screen's existing
+fallback. `nodePayout` pays the `hard` tier's gold, and the AI plays the
+`hard` tier, both read off the node the reading returned.
+
+**Defaults taken, recorded as deviations**: the team is capped at six, the
+most recent; the first page is the door's own offer at its drawn tier, the
+rest at `hard`. The bench bot takes door 0 and never trades, so it never meets
+the Collector.
+
+The map's run-map screen draws a step from `segments` directly and so still
+shows the drawn door's class on the Collector's slot until the UI stage reads
+through `revengeNodeFor` (section 118's UI note).
+
+### Tests
+
+`test/defender-revenge.test.ts`: one slot per run on every seed, drawn as a
+door of its rank with five pages of three; the reading is the same object
+while nothing has been traded and the Collector once something has, capped,
+at the rank, with the slot's own seed, offer and pages; a played run that
+takes every trade and walks through the Collector's door is paid one page per
+mon fielded and replays byte for byte. `test/defender-opening.test.ts` learns
+that the names table carries the Collector. The sim fixture and the visual
+baseline re-recorded for the stamp; the attacker golden holds.

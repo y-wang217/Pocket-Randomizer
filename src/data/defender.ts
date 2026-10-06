@@ -133,5 +133,17 @@ export const DEFENDER_CONSUMABLE_ENTRY = {
  */
 export const DEFENDER_OFF_TYPE_RELIC = 'strangers-pass';
 
+/**
+ * The Collector's door. **2026-10-06.** One door slot in the run, `rank`'s
+ * last door step on `side`, becomes a hard-tier trainer fielding the mons the
+ * run traded away (`DefenderRunState.tradedAway`), the most recent `maxTeam`
+ * of them, once any trade has happened; an ordinary door until then. Beating
+ * it pays one three-card offer per mon fielded, so the slot draws `maxTeam`
+ * offers at generation whether or not the Collector ever stands there. The
+ * rulings: *"the special door in a later rank"*, *"a reward per mon traded
+ * away"*, *"Rank 7's last door"*. The rank index is zero-based.
+ */
+export const DEFENDER_REVENGE = { rank: 6, side: 1, tier: 'hard', maxTeam: 6 } as const;
+
 /** The boss page's relic list: the defender list plus the off-type relic. */
 export const DEFENDER_BOSS_RELIC_IDS: readonly RelicId[] = [...DEFENDER_RELIC_IDS, DEFENDER_OFF_TYPE_RELIC];

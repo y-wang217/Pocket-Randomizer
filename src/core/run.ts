@@ -71,7 +71,9 @@ import {
 } from './defender/opening';
 import { DEFENDER_RANKS } from '../data/defender';
 import { generateRank } from './defender/waves';
+import { DEFENDER_REVENGE_CLASS } from '../data/trainerClasses';
 import { badgesActive, battleBadgeFor } from './defender/badge';
+import { revengeNodeFor } from './defender/revenge';
 import { chooseRecruit, generateRecruits, recruitOptions } from './defender/recruit';
 import { resolveTrade } from './defender/trade';
 import { useConsumable } from './defender/consumables';
@@ -909,7 +911,15 @@ export function atGym(state: RunState): boolean {
  */
 export function nodeOptions(state: RunState): NodeSpec[] {
   if (state.outcome || needsLocale(state) || atGym(state)) return [];
-  return stepsOf(state)[state.position]?.options ?? [];
+  const options = stepsOf(state)[state.position]?.options ?? [];
+  /*
+   * **The Collector is a reading, not a write (2026-10-06).** In a defender
+   * run the one slot drawn with extra pages becomes the fight against the
+   * traded-away mons once a trade has happened. Read here, where the fight,
+   * the map and the replay all take their options, so `segments` stays what
+   * the seed drew and the same object on every gym type.
+   */
+  return state.defender ? options.map((node) => revengeNodeFor(node, state)) : options;
 }
 
 /** The node that will be played next, choice or not. */
@@ -1089,6 +1099,13 @@ export interface NodeResult {
    * the same value before anything downstream can tell them apart.
    */
   reward?: Reward;
+  /**
+   * The Collector's further pages, one card each, in the order they were
+   * asked (2026-10-06). Present only on a win over the Collector, who pays one
+   * three-card offer per mon fielded; `reward` is the first page, these the
+   * rest. Applied after `reward`, in order, through the same `applyReward`.
+   */
+  extraRewards?: Reward[];
   /**
    * The shelf as it was shown, with relic cards already collapsed.
    *
@@ -1588,6 +1605,7 @@ export function resolveNode(state: RunState, result: NodeResult): RunState {
    * a different run from the same log.
    */
   if (result.reward) advanced = applyReward(advanced, result.reward);
+  for (const page of result.extraRewards ?? []) advanced = applyReward(advanced, page);
   return advanced;
 }
 
@@ -2581,6 +2599,30 @@ export async function playRun(
       } else {
         result.reward = choice;
       }
+    }
+
+    /*
+     * **The Collector's further pages. Defender Mode, 2026-10-06.** A win over
+     * the traded-away mons pays one three-card offer per mon fielded: the
+     * node's own offer above is the first, and these are the rest, drawn on
+     * the slot at generation (`NodeSpec.revenge`). Each is a `reward` entry
+     * like any card, asked in page order; a relic taken on one page is held
+     * against the next, so two pages cannot hand over the same relic. The
+     * live player sees each as cards alone, the result screen's fallback.
+     */
+    if (won && result.node.revenge && result.node.trainerClass === DEFENDER_REVENGE_CLASS.id) {
+      const fielded = result.node.encounter?.team.length ?? 1;
+      const taken: Reward[] = [];
+      for (const page of result.node.revenge.offers.slice(0, Math.max(0, fielded - 1))) {
+        const heldSoFar = [result.reward, ...taken].flatMap((card) => (card?.kind === 'relic' ? [card.relic] : []));
+        const resolvedPage = resolveOffer(page, [...state.relics, ...shownPass, ...heldSoFar]);
+        const index = await policy.chooseReward(resolvedPage, state);
+        record({ kind: 'reward', index });
+        const card = resolvedPage.options[index];
+        if (!card) throw new RangeError(`Reward choice ${index} out of range (${resolvedPage.options.length} offered)`);
+        taken.push(card);
+      }
+      if (taken.length > 0) result.extraRewards = taken;
     }
 
     const beforeNode = state;
