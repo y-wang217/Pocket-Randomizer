@@ -88,7 +88,12 @@ export function applyTrade(state: RunState, card: TradeCard): RunState {
     ...state,
     party,
     backpack: leaving.item ? stow(state.backpack, leaving.item) : state.backpack,
-    defender: { ...defender, acquisitions: defender.acquisitions + 1 },
+    defender: {
+      ...defender,
+      acquisitions: defender.acquisitions + 1,
+      // The leaving member, as it left: the Collector fields it later.
+      tradedAway: [...defender.tradedAway, leaving.spec],
+    },
   };
 }
 

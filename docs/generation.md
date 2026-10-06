@@ -14728,3 +14728,51 @@ off-type recruits joining, the Pass lighting the badge, and, over a played
 run, that a battle carries a crit chance exactly while `badgesActive` holds.
 `npm run types`, the sim fixture and the visual baseline re-recorded for the
 stamp; the attacker golden holds.
+
+## 116. The blind trade: a pick, then a reveal, then yes or no
+
+**2026-10-06**, the defender design message's second change, on
+`claude/affectionate-hopper-0beolc`. Prompt
+[`spec/gymrun-patch-defender-events-trades-revenge-offtype.md`](spec/gymrun-patch-defender-events-trades-revenge-offtype.md):
+*"the trade should be a 'trade' offer with a questionmark mystery sprite
+icon, with the mons and a rotating two arrows"*, and the rulings *"mon
+received is a mystery. you choose that option to discard the others. then you
+choose to take the trade or not"* and *"Revealed, then Take/Decline"*.
+`RUN_LOG_VERSION` to `-25`; `RANDOMIZER_VERSION`, `contentHash` and
+`AI_VERSION` hold. **This section is the headless half.** How the card and the
+reveal are shown is D107 and D108 (bible Rev 29), built with the UI stage.
+
+### What moves
+
+- **A decision is added**, `{ kind: 'trade', accept }`, recorded immediately
+  after the `reward` entry that picked a trade card, in the log and in play,
+  positionally, as the berry pick's `berry` entry follows its card. It is the
+  third value-shaped decision after `acquisition` and `items`, for the same
+  reason: the input is yes or no, and there is nothing derived in it to drift.
+  `isRunDecision` in `ui/storage.ts` admits it, and the decision feed reads
+  *Trade · taken* or *Trade · declined*.
+- **A question is added**, `RunPolicy.chooseTrade`, asked with the card
+  resolved (`offered` and `requested` set). It is optional: a policy without
+  it takes every trade it picks, which is what every policy did before the
+  question existed, and the answer is logged either way so the log is one
+  shape. `scriptedRunPolicy` answers `true`; the replay cursor reads the entry.
+- **Declining pays nothing from the cards.** The pick already forfeited the
+  other two, so `result.reward` stays unset and `resolveNode` has nothing to
+  apply; the node's gold payout lands as it always did.
+- **The leaving member is kept**: `DefenderRunState.tradedAway` holds the
+  spec each trade sent away, in trade order, written by `applyTrade`. It is
+  what the Collector fields (section 117). State a replay rebuilds, never a
+  draw.
+
+Nothing in `drawTrade` moves: the three offered mons and the selector are
+drawn as before, so no randomizer axis moves and the attacker golden holds.
+The sim fixture and the visual baseline are re-recorded for the stamp.
+
+### Tests
+
+`test/defender-economy.test.ts`: the swap test also asserts a `trade` entry
+per taken card and `tradedAway` growing by one; a new decline test plays four
+seeds with `chooseTrade` answering `false` and asserts the party, the bag and
+`tradedAway` untouched at every node that picked a trade, and the run and its
+log replaying identically. `test/storage.test.ts`, `test/decision-feed.test.ts`
+and the three version pins moved to `run-25`.

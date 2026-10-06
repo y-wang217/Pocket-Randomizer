@@ -333,8 +333,10 @@ describe('the version axes', () => {
      * `docs/generation.md` section 101.
      * `-24` is Defender Mode v0 merged onto it: the log records its mode, and
      * the mode brings its own decisions. `docs/generation.md` section 106.
+     * `-25` is a picked trade taken or declined, a decision after the card.
+     * `docs/generation.md` section 116.
      */
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-24/gymrun-0.3.0');
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-25/gymrun-0.3.0');
     /*
      * Pinned literally, as the Branch 1 value was: a hash nobody can read off
      * the tree by eye is exactly the kind that moves without anyone noticing.

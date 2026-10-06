@@ -194,6 +194,9 @@ function isRunDecision(value: unknown): boolean {
         decision.archetype === 'toll' ||
         decision.archetype === 'attune'
       );
+    // The trade's second step: a yes or no, the third value-shaped decision.
+    case 'trade':
+      return typeof decision.accept === 'boolean';
     case 'battle': {
       const choice = decision.choice as { kind?: unknown; slot?: unknown } | undefined;
       return (choice?.kind === 'move' || choice?.kind === 'switch') && typeof choice.slot === 'number';

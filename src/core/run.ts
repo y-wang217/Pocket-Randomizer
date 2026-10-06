@@ -457,7 +457,19 @@ import { DEFAULT_TUNING, type NodeKind, type Tuning } from '../data/tuning';
  * `docs/spec/gymrun-defender-mode-v0-fun-test.md`, `docs/generation.md`
  * section 106.
  */
-export const RUN_LOG_VERSION = `gymrun-run-24/${ENGINE_VERSION}`;
+/*
+ * ## `-25`: a trade is taken or declined
+ *
+ * **A decision is added**, `{ kind: 'trade', accept }`, recorded immediately
+ * after the `reward` entry that picked a trade card. Picking the card is the
+ * first step and forfeits the other two; this is the second, asked with the
+ * offered mon revealed. A `-24` reader meets a kind it does not know, and a
+ * `-24` log replayed here runs out of step at the first trade it picked. The
+ * defender design message, change 2.
+ * `docs/spec/gymrun-patch-defender-events-trades-revenge-offtype.md`,
+ * `docs/generation.md` section 116.
+ */
+export const RUN_LOG_VERSION = `gymrun-run-25/${ENGINE_VERSION}`;
 
 /**
  * The node kinds at which a **stored** TM may be spent. **Rest and shop only.**
@@ -1605,6 +1617,14 @@ export interface RunPolicy {
   /** **Defender Mode v0.** Which recruit joins when a slot unlocks. */
   chooseRecruit?: (options: readonly PokemonSpec[], state: RunState) => Promise<number>;
   /**
+   * **Defender Mode, 2026-10-06.** Whether a picked trade card is taken, asked
+   * after the pick with the card resolved (`offered` and `requested` set).
+   * Optional: a policy without it takes every trade it picks, which is what
+   * every policy did before the question existed, and the answer is logged
+   * either way so the schema is one shape.
+   */
+  chooseTrade?: (card: Extract<Reward, { kind: 'trade' }>, state: RunState) => Promise<boolean>;
+  /**
    * Handed the run's party editor once, before the first question. **The
    * opening playtest QA, QA-001.**
    *
@@ -2544,6 +2564,20 @@ export async function playRun(
         }
         record({ kind: 'berry', index: berryIndex });
         result.reward = { ...choice, picked };
+      } else if (choice.kind === 'trade') {
+        /*
+         * **The trade's second step. Defender Mode, 2026-10-06.** The pick
+         * forfeited the other two cards; now, with the offered mon revealed,
+         * the player takes the trade or walks. A `trade` entry follows the
+         * `reward` entry, positionally, as `berry` does. Declining leaves
+         * `result.reward` unset, so the node pays nothing from its cards and
+         * `resolveNode` has nothing to apply. Asked here rather than inside
+         * `applyReward` so the answer is a logged decision and not a branch
+         * inside a reducer.
+         */
+        const accept = policy.chooseTrade ? await policy.chooseTrade(choice, state) : true;
+        record({ kind: 'trade', accept });
+        if (accept) result.reward = choice;
       } else {
         result.reward = choice;
       }
@@ -3065,6 +3099,8 @@ export function scriptedRunPolicy(battle: Policy): RunPolicy {
     chooseDraftPick: async () => 0,
     chooseDoor: async () => 0,
     chooseRecruit: async () => 0,
+    // A picked trade is taken: the answer every policy gave before the question.
+    chooseTrade: async () => true,
     /*
      * The first locale offered, like every other scripted answer here.
      *
@@ -3318,6 +3354,11 @@ export function replayRunPolicy(log: RunLog, live?: RunPolicy, mode: RunMode = '
       const decision = next('door');
       if (!decision) return live?.chooseDoor ? live.chooseDoor(options, state) : exhausted('door');
       return decision.kind === 'door' ? decision.index : exhausted('door');
+    },
+    chooseTrade: async (card, state) => {
+      const decision = next('trade');
+      if (!decision) return live?.chooseTrade ? live.chooseTrade(card, state) : exhausted('trade');
+      return decision.kind === 'trade' ? decision.accept : exhausted('trade');
     },
     chooseLocale: async (options, state) => {
       const decision = next('locale');

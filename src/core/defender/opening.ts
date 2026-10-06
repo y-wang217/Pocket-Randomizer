@@ -34,9 +34,16 @@ export interface DefenderRunState {
   acquisitions: number;
   /** Whether a resolved offer has already shown the off-type relic. Step 5. */
   offTypeOffered: boolean;
+  /**
+   * Every member a trade sent away, as the spec it left with, in trade order.
+   * **2026-10-06.** Written by `applyTrade` and read by nothing a trade needs:
+   * it is the Collector's team (`revenge.ts`), and it is state a replay
+   * rebuilds, never a draw.
+   */
+  tradedAway: readonly PokemonSpec[];
 }
 
-/** One rank's recruit draft for one gym type: three typed mons, one off-type. */
+/** One rank's recruit draft for one gym type: two typed mons, one off-type (`DEFENDER_RECRUIT`). */
 export interface RecruitOffer {
   typed: readonly PokemonSpec[];
   offType: PokemonSpec;
@@ -52,6 +59,7 @@ export function createDefenderState(rng: Rng): DefenderRunState {
     recruits: [],
     acquisitions: 0,
     offTypeOffered: false,
+    tradedAway: [],
   };
 }
 

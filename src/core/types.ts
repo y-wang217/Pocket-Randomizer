@@ -962,6 +962,17 @@ export type RunDecision =
       decision: { kind: 'decline' } | { kind: 'accept' } | { kind: 'release'; slot: number };
     }
   /**
+   * Whether a trade card, once picked, was taken. **Defender Mode, 2026-10-06.**
+   *
+   * Recorded immediately after the `reward` entry that picked the card, and
+   * only then: picking the card forfeits the offer's other two, and this is
+   * the second step, asked once the mon on offer is revealed. A value rather
+   * than an index for `acquisition`'s reason: the input *is* yes or no, and
+   * there is nothing derived in it to drift. `false` leaves the node paying
+   * nothing from its cards.
+   */
+  | { kind: 'trade'; accept: boolean }
+  /**
    * What the player did with their items at this node boundary.
    *
    * **Stored as a value, and it is the second exception to the index rule.**

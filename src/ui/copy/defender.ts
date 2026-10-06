@@ -32,4 +32,6 @@ export const DEFENDER_FEED_COPY = {
   door: (trainerClass: string): string => `Door · ${trainerClass}`,
   recruit: (species: string): string => `Recruit · ${species}`,
   consume: (item: string, member: string): string => `Used · ${item} on ${member}`,
+  /** The trade's second step (2026-10-06): taken, or walked away from. */
+  trade: (accepted: boolean): string => (accepted ? 'Trade · taken' : 'Trade · declined'),
 } as const;

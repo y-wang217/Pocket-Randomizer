@@ -184,8 +184,43 @@ describe('trades (prompt test 7)', () => {
       const run = await playRun(seed, policy, DEFAULT_TUNING, { mode: 'defender', opponent: passive, onNodeResolved });
       const replayed = await replayRun(run.log, DEFAULT_TUNING, { mode: 'defender', opponent: passive });
       expect(replayed.state).toEqual(run.state);
+      // Every taken trade left a `trade` entry behind its card, and the member it sent away is kept.
+      const taken = run.log.decisions.filter((d) => d.kind === 'trade');
+      expect(taken.every((d) => d.kind === 'trade' && d.accept)).toBe(true);
+      expect(run.state.defender!.tradedAway).toHaveLength(taken.length);
     }
     expect(checked).toBeGreaterThan(0);
+  }, 240_000);
+
+  /*
+   * **The second step, 2026-10-06.** Picking the card forfeits the other two;
+   * the trade itself is then taken or declined, and a decline pays nothing.
+   */
+  it('declines: the party is untouched, the other two cards are gone, nothing is sent away, and it replays', async () => {
+    let declined = 0;
+    const policy: RunPolicy = {
+      ...scriptedRunPolicy(greedyAiPolicy),
+      chooseReward: async (offer) => Math.max(0, offer.options.findIndex((card) => card.kind === 'trade')),
+      chooseTrade: async () => false,
+    };
+    for (const seed of ['ECON-SWAP-0', 'ECON-SWAP-1', 'ECON-SWAP-2', 'ECON-SWAP-3']) {
+      const onNodeResolved = (before: RunState, after: RunState, result: NodeResult): void => {
+        const picked = result.node.reward?.options.some((card) => card.kind === 'trade');
+        if (!picked || result.reward !== undefined) return;
+        declined++;
+        expect(after.party.map((member) => member.spec)).toEqual(before.party.map((member) => member.spec));
+        expect(after.backpack).toEqual(before.backpack);
+        expect(after.defender!.tradedAway).toEqual(before.defender!.tradedAway);
+      };
+      const run = await playRun(seed, policy, DEFAULT_TUNING, { mode: 'defender', opponent: passive, onNodeResolved });
+      const trades = run.log.decisions.filter((d) => d.kind === 'trade');
+      expect(trades.every((d) => d.kind === 'trade' && !d.accept)).toBe(true);
+      expect(run.state.defender!.tradedAway).toEqual([]);
+      const replayed = await replayRun(run.log, DEFAULT_TUNING, { mode: 'defender', opponent: passive });
+      expect(replayed.state).toEqual(run.state);
+      expect(JSON.stringify(replayed.log)).toBe(JSON.stringify(run.log));
+    }
+    expect(declined).toBeGreaterThan(0);
   }, 240_000);
 });
 

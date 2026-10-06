@@ -141,6 +141,8 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
       }
       case 'recruit':
         return DEFENDER_FEED_COPY.recruit(recruits[decision.index]?.species ?? '');
+      case 'trade':
+        return DEFENDER_FEED_COPY.trade(decision.accept);
       case 'starter':
         return FEED_COPY.starter(starters[decision.index]?.species ?? '');
       case 'locale': {
