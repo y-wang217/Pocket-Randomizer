@@ -171,6 +171,29 @@ describe('the gym held-item ladder', () => {
    * `gymrun-randomizer-25`: the ability and move pools each lost their
    * species-locked entries, so the same float picks a different ability or
    * move on every team that drew near one.
+   *
+   * **Re-recorded 2026-10-05**, from `aa380896c804ea42`, with
+   * `gymrun-randomizer-27`: every trainer team is a record from the encounter
+   * library, picked by one draw that this harness spends on the same stream
+   * (a run keys it separately), with the record's species, levels and set
+   * moves overlaid on the rolled slots. Wild teams did not move; the digest
+   * covers both, so it moves once.
+   *
+   * **Re-recorded 2026-10-05**, from `702a7887c22c2a2f`, with
+   * `gymrun-randomizer-28`: twelve Champion Cup records joined the library
+   * and entered candidate windows, so the same pick draw lands on a
+   * different record wherever one entered. Wild teams did not move.
+   *
+   * **Re-recorded 2026-10-05**, from `2459bb59723d1708`, with
+   * `gymrun-randomizer-29`: every window keeps one record per trainer
+   * name, rivals leave the route windows and leaders enter them at `hard`
+   * and `elite`, so the same pick lands on a different record at every
+   * trainer node. Wild teams did not move.
+   *
+   * **Re-recorded 2026-10-05**, from `021d1ac5804761f9`, with
+   * `gymrun-randomizer-30`: the Gen 5 to 9 rivals join the library, and
+   * among them Bede's and Marnie's later fights as gym leaders, which enter
+   * the route windows at `hard` and `elite`. Wild teams did not move.
    */
   it('generates trainer and wild teams byte-identically to before the ladder existed', () => {
     const records: string[] = [];
@@ -191,7 +214,7 @@ describe('the gym held-item ladder', () => {
       }
     }
     const digest = createHash('sha256').update(records.join('\n')).digest('hex').slice(0, 16);
-    expect(digest).toBe('aa380896c804ea42');
+    expect(digest).toBe('96ac96497a3b5b51');
   });
 
   it('spends the same two draws on a gym member as on any other opponent', () => {
@@ -209,8 +232,10 @@ describe('the gym held-item ladder', () => {
      */
     const segment = 3;
     const size = opponentTeamSize('gym', segment, 'normal');
-    const gymDraws = cost(segment, (s) => generateGymTeam(GYMS[segment]!, segment, s));
-    const trainerDraws = cost(segment, (s) => generateTrainerTeam(segment, 'normal', s));
+    // The record pick is one draw on its own key (Stage 6.0), so it is kept
+    // off the stream being counted, as `core/encounters.ts` keeps it.
+    const gymDraws = cost(segment, (s) => generateGymTeam(GYMS[segment]!, segment, s, at('pick-gym')));
+    const trainerDraws = cost(segment, (s) => generateTrainerTeam(segment, 'normal', s, at('pick-trainer')));
     const trainerSize = opponentTeamSize('trainer', segment, 'normal');
     expect(gymDraws / size).toBe(trainerDraws / trainerSize);
   });

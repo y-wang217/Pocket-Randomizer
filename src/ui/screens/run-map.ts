@@ -4,13 +4,14 @@
  *
  * Three decisions worth naming.
  *
- * **The whole eight-gym rail is on screen, always.** Stage 1 had one segment and
- * a step chain was the entire map. Eight segments without a rail is a game where
- * the player cannot tell whether they are doing well — "Volta's Gym" means
- * nothing on its own, and "gym 3 of 8, five to go" means everything. The rail
- * also names each leader's type from the start, because a run is planned around
- * type matchups and hiding them would make planning guesswork rather than
- * knowledge.
+ * **The next challenger is on screen, always.** Stage 1 had one segment and
+ * a step chain was the entire map. From Stage 2 an eight-gym rail stood here,
+ * because "Volta's Gym" means nothing on its own and "gym 3 of 8" means
+ * everything; the rail named each leader's type until checkpoint 6, when the
+ * boss became a challenger with none. Checkpoint 7 (D106) replaced the rail
+ * with one bar: the challenger's class and name over the distance left to
+ * them, since the map is training and the run's position is the heading's
+ * `Challenger n of 8`.
  *
  * **Upcoming steps are shown.** The map reveals node *kinds* for every step, not
  * just the current one. It never reveals contents — what a wild node contains is
@@ -45,7 +46,8 @@
 import type { NodeSpec, Segment } from '../../core/encounters';
 import type { LocaleId } from '../../data/locales';
 import type { NodeVisit, RunState } from '../../core/run';
-import { gymsCleared, localeOf, runMode, stepsOf } from '../../core/run';
+import { localeOf, runMode, stepsOf } from '../../core/run';
+import { nextChallengerOf, renderNextChallenger } from '../next-challenger';
 import { trainerClass } from '../../data/trainerClasses';
 import { TRAINER_CLASS_NAMES } from '../../data/trainerClassCopy';
 import { localeById } from '../../data/locales';
@@ -53,11 +55,10 @@ import { resolveCapability, type CapabilityContext } from '../../core/capabiliti
 // The two label tables the event screen prints too, from one file (4.8.0.2).
 import { BAND_LABELS, CAPABILITY_LABELS, RARITY_LABELS } from '../../data/eventCopy';
 import { nodePayout } from '../../core/economy';
-import { GYMS, gymForSegment } from '../../data/gyms';
-import { GLYPH_LABELS } from '../../data/glyphLabels';
+import { NODE_KIND_WORDS } from '../../data/glyphLabels';
 import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
 import { applyBackdrop } from '../assets/manifest';
-import { capabilityBandChevron, capabilityGlyph, currencyAmount, nodeKindGlyph, tierPips } from '../chip';
+import { capabilityBandChevron, capabilityGlyph, challengerMark, currencyAmount, nodeKindGlyph, tierPips } from '../chip';
 import { slotX } from '../map-layout';
 import { trainerImg } from '../sprites';
 import { el } from '../scene';
@@ -70,7 +71,7 @@ import { typeChip } from './starter-select';
  * screen reader and R7's exposure label say for it. Read from the glyph
  * label table so the two cannot drift.
  */
-const kindWord = (kind: NodeSpec['kind']): string => GLYPH_LABELS[`node-${kind}`] ?? kind;
+const kindWord = (kind: NodeSpec['kind']): string => NODE_KIND_WORDS[kind] ?? kind;
 
 /**
  * The leader's name, for a gym node's face. The node's own `label` is
@@ -79,7 +80,6 @@ const kindWord = (kind: NodeSpec['kind']): string => GLYPH_LABELS[`node-${kind}`
  * double render. The name comes from the gym table, not from trimming the
  * string.
  */
-const gymLeaderName = (segment: number): string => gymForSegment(segment).leader;
 
 export interface RunMap {
   root: HTMLElement;
@@ -120,7 +120,7 @@ function scrollToCurrentStep(chain: HTMLElement): void {
 export function createRunMap(): RunMap {
   const root = el('section', 'screen screen--map');
 
-  const rail = el('ol', 'rail');
+  const rail = el('div', 'map__next');
 
   const heading = el('div', 'map__heading');
 
@@ -137,7 +137,7 @@ export function createRunMap(): RunMap {
       const segment = state.segments[state.currentSegment];
       if (!segment) return;
 
-      rail.replaceChildren(...renderRail(state));
+      rail.replaceChildren(renderNextChallenger(nextChallengerOf(state)));
       // The heading is shared with the map overlay and Run Info; the wallet is
       // this screen's own, appended after it.
       heading.replaceChildren(...renderHeading(state, segment), wallet);
@@ -158,14 +158,7 @@ export function createRunMap(): RunMap {
 }
 
 /**
- * The eight-gym rail.
- *
- * Cleared gyms are marked from `gymsCleared` rather than from the segment index,
- * because those are different numbers the moment a run ends at a gym: you are
- * *at* segment 3 having cleared 2.
- */
-/**
- * The segment heading: which gym, who leads it, what type, how big, how far.
+ * The segment heading: which challenger of the eight, and how big its team.
  *
  * **Extracted when the map overlay arrived, and exported rather than copied.**
  * `ui/map-drawer.ts` shows the same readout from every decision surface, and
@@ -182,37 +175,25 @@ export function createRunMap(): RunMap {
  * treatment, it writes to the screen's root, and the overlay wants none of it.
  */
 export function renderHeading(state: RunState, segment: Segment): HTMLElement[] {
-  const gym = segment.gymDefinition;
   const team = segment.gym.encounter?.team.length ?? 1;
   /*
    * **A defender rank's boss has no leader, no type and no blurb** (report
-   * ruling R6), so the heading drops all three, as D101's pre-gym variant
-   * does, and keeps the number, the team size and the distance.
+   * ruling R6); since D106 neither does an attacker's heading, which reads
+   * the position alone in both modes, with the next-challenger bar beside it.
    */
-  const defender = runMode(state) === 'defender';
 
   const title = el('h2', 'screen__title');
-  title.textContent = `Gym ${state.currentSegment + 1} of ${state.segments.length}${defender ? '' : ` — ${gym.leader}`}`;
-  if (!defender) {
-    // The leader's blurb, on tap. Pocket hides the flavour line under the
-    // heading and the title says it instead (`ui/tooltips.ts`, `gym:`).
-    title.dataset['tip'] = `gym:${state.currentSegment}`;
-    title.tabIndex = 0;
-    title.setAttribute('role', 'button');
-  }
+  // The run's position. Who the challenger is, and how far off, is the
+  // `next-challenger` component's (D106), mounted beside this on every surface.
+  title.textContent = `Challenger ${state.currentSegment + 1} of ${state.segments.length}`;
 
   const subtitle = el('p', 'screen__blurb');
   subtitle.replaceChildren(
-    ...(defender ? [] : [typeChip(gym.type)]),
-    // The gym's team size is public and the level band is not. Size changes
-    // how the fight is *approached* — a solo Pokemon against three has to
-    // budget PP — so hiding it would hide the decision rather than create one.
-    document.createTextNode(`${defender ? '' : ' · '}${team} Pokemon · ${stepsOf(state).length} steps before the gym`),
+    // The challenger's team size is public and the level band is not. Size
+    // changes how the fight is *approached* — a solo Pokemon against three has
+    // to budget PP — so hiding it would hide the decision rather than create one.
+    document.createTextNode(`${team} Pokemon`),
   );
-
-  const blurb = el('p', 'map__blurb');
-  blurb.textContent = gym.blurb;
-  blurb.hidden = gym.blurb === '';
 
   /*
    * The region the segment is being walked through, above the step chain.
@@ -233,43 +214,7 @@ export function renderHeading(state: RunState, segment: Segment): HTMLElement[] 
     region.replaceChildren(label, ...definition.types.map(typeChip));
   }
 
-  return [title, subtitle, blurb, region];
-}
-
-/**
- * The eight-gym rail. Exported for the map overlay, for `renderHeading`'s
- * reason: one implementation, so one set of facts.
- */
-export function renderRail(state: RunState): HTMLElement[] {
-  const cleared = gymsCleared(state);
-
-  // A defender run's ranks carry no leader and no type (ruling R6): the
-  // number and its phase alone, one per rank.
-  if (runMode(state) === 'defender') {
-    return state.segments.map((_, index) => {
-      const phase = index < cleared ? 'done' : index === state.currentSegment ? 'current' : 'upcoming';
-      const item = el('li', `rail__gym rail__gym--${phase}`);
-      const number = el('span', 'rail__number');
-      number.textContent = phase === 'done' ? '✓' : String(index + 1);
-      item.append(number);
-      return item;
-    });
-  }
-
-  return GYMS.map((gym, index) => {
-    const phase = index < cleared ? 'done' : index === state.currentSegment ? 'current' : 'upcoming';
-    const item = el('li', `rail__gym rail__gym--${phase}`);
-
-    const number = el('span', 'rail__number');
-    number.textContent = phase === 'done' ? '✓' : String(index + 1);
-
-    const label = el('span', 'rail__label');
-    label.textContent = gym.leader;
-
-    item.append(number, label, typeChip(gym.type));
-    item.title = `${gym.leader} — ${gym.type}. ${gym.blurb}`;
-    return item;
-  });
+  return [title, subtitle, region];
 }
 
 /**
@@ -630,7 +575,8 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
   const mark = el('span', 'node__mark');
   const label = el('span', 'node__label');
   if (phase === 'current') label.dataset['tutorial'] = 'kinds';
-  const kind = nodeKindGlyph(node.kind, kindWord(node.kind), 24);
+  // The boss wears the challenger's own sprite in the kind's slot (D106).
+  const kind = node.kind === 'gym' ? challengerMark(node.encounter?.source ?? null, kindWord(node.kind), 24) : nodeKindGlyph(node.kind, kindWord(node.kind), 24);
   const said = [nodeDetailText(node, segment, options.visit), ...(phase === 'upcoming' ? laterFacts(node, run) : [])]
     .filter(Boolean)
     .join(' · ');
@@ -643,8 +589,8 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
     const size = node.encounter?.team.length ?? 0;
     const name = el('span', 'node__name');
     // A defender boss has no leader: its team size, bare, as on the pre-gym
-    // screen (D101).
-    name.textContent = options.defender ? String(size) : `${gymLeaderName(segment)}${size > 1 ? ` · ${size} Pokemon` : ''}`;
+    // screen (D101). An attacker boss is its challenger's name.
+    name.textContent = options.defender ? String(size) : `${node.encounter?.source?.name ?? ''}${size > 1 ? ` · ${size} Pokemon` : ''}`;
     element.append(name);
   }
 

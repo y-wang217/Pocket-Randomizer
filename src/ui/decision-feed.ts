@@ -41,7 +41,6 @@ import type { EventInstance } from '../core/events';
 import type { EvolutionQuestion } from '../core/evolution';
 import { describeReward, type BerryPick, type RewardOffer } from '../core/rewards';
 import { runMode, type RunPolicy, type RunState } from '../core/run';
-import { gymForSegment } from '../data/gyms';
 import type { BattleView, ItemPlan, PokemonSpec, PokemonState, RunDecision, RunLog } from '../core/types';
 import { consumableById } from '../data/consumables';
 import { TRAINER_CLASS_NAMES } from '../data/trainerClassCopy';
@@ -88,6 +87,7 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
    */
   let segment = 0;
   let defender = false;
+  let leaderName = '';
   let party: Names = [];
   let starters: readonly { species: string }[] = [];
   let locales: readonly LocaleId[] = [];
@@ -109,6 +109,7 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
     if (!state) return;
     segment = state.currentSegment;
     defender = runMode(state) === 'defender';
+    leaderName = state.segments[state.currentSegment]?.leader ?? '';
     party = namesOf(state.party);
   };
 
@@ -316,7 +317,7 @@ export function createDecisionFeed(inner: RunPolicy): DecisionFeed {
     record(log) {
       for (let index = entries.length; index < log.decisions.length; index++) {
         const decision = log.decisions[index] as RunDecision;
-        entries.push({ index, kind: decision.kind, segment, leader: defender ? '' : gymForSegment(segment).leader, text: line(decision) });
+        entries.push({ index, kind: decision.kind, segment, leader: defender ? '' : leaderName, text: line(decision) });
       }
       for (const listener of listeners) listener(entries);
     },

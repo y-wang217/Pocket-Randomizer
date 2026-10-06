@@ -113,6 +113,19 @@ export const SEED_KEY = 'seed';
  * recorded map moved, which is the property the keyed refactor was built to buy and
  * the first time a stage has spent it on something this broad.
  */
+/**
+ * Which library record a trainer or gym node is, on `randomizer`. **Stage 6.0.**
+ *
+ * One draw per node, its own key. The team's member draws stay on `nodeKey`,
+ * so a library edit that changes which record a node resolves to moves the
+ * canonical members and nothing else: the rolled fill, the abilities, the
+ * genders and the held items beside them are drawn exactly where they were.
+ * A key names a thing that draws; this one names the pick.
+ */
+export function encounterKey(nodeId: string): string {
+  return `node/${nodeId}/encounter`;
+}
+
 export function nicknameKey(id: string): string {
   return `nickname/${id}`;
 }

@@ -21,7 +21,8 @@ import { RUN_INFO_COPY } from './copy/screens';
 import type { FeedEntry } from './decision-feed';
 import { el } from './dom';
 import { createOverlay, type Overlay } from './overlay';
-import { renderHeading, renderRail } from './screens/run-map';
+import { renderHeading } from './screens/run-map';
+import { nextChallengerOf, renderNextChallenger } from './next-challenger';
 import { formatBuildStamp } from './stamps';
 
 /**
@@ -88,7 +89,7 @@ export function createRunInfo(): RunInfo {
     open(view, opener) {
       const segment = view.state.segments[view.state.currentSegment];
       heading.replaceChildren(...(segment ? renderHeading(view.state, segment) : []));
-      rail.replaceChildren(...renderRail(view.state));
+      rail.replaceChildren(renderNextChallenger(nextChallengerOf(view.state)));
       facts.replaceChildren(...fact(RUN_INFO_COPY.seed, formatSeedString(view.state.seed)), ...fact(RUN_INFO_COPY.build, formatBuildStamp()));
       feed.replaceChildren(renderFeed(view.entries));
       overlay.open(opener);

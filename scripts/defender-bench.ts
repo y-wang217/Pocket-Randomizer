@@ -18,6 +18,8 @@ import { join } from 'node:path';
 
 import { AI_VERSION } from '../src/core/battle/ai';
 import { CONTENT_HASH } from '../src/core/contentHash';
+// The encounter library's route tables, installed before any run (Stage 6.0 checkpoint 9).
+import '../src/data/encounters/full';
 import { defenderBenchPolicy } from '../src/core/defender/bench';
 import { RANDOMIZER_VERSION } from '../src/core/randomizer';
 import { gymsCleared, playRun, RUN_LOG_VERSION } from '../src/core/run';

@@ -167,9 +167,14 @@ describe('the version axes this patch moved', () => {
      * draws, all under `defender/` keys; no attacker draw moved.
      */
     // And `-24` the berry pick the gym pool deals, resolved with no draw;
-    // `-25` the species-locked abilities and moves out of the pools.
-    // `-26` Defender Mode v0's draws, merged onto `-25`.
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-26');
+    // `-25` the species-locked abilities and moves out of the pools;
+    // `-26` Defender Mode v0's draws, merged onto `-25`;
+    // `-27` every trainer and gym a record from the encounter library;
+    // `-28` the Champion Cup joining it, which reorders the candidate windows;
+    // `-29` the boss a challenger, one record per name in every window;
+    // `-30` the Gen 5 to 9 rivals entering the challenger windows, and the
+    // merge of Stage 6.0 onto Defender Mode (the four above renumbered then).
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-30');
   });
 });
 

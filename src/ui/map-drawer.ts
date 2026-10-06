@@ -67,7 +67,8 @@
 import type { RunState } from '../core/run';
 import { createOverlay } from './overlay';
 import { el } from './dom';
-import { createMapGraph, renderHeading, renderRail } from './screens/run-map';
+import { createMapGraph, renderHeading } from './screens/run-map';
+import { nextChallengerOf, renderNextChallenger } from './next-challenger';
 
 export interface MapDrawer {
   /** The overlay itself, mounted once at the app root and toggled. */
@@ -139,7 +140,7 @@ export function createMapDrawer(): MapDrawer {
       const segment = state.segments[state.currentSegment];
       if (!segment) return;
 
-      rail.replaceChildren(...renderRail(state));
+      rail.replaceChildren(renderNextChallenger(nextChallengerOf(state)));
       heading.replaceChildren(...renderHeading(state, segment));
       // No `onChoose`. See the header: this is what makes it a readout.
       graph.render(state, segment);

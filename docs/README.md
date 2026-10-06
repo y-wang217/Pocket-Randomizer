@@ -449,6 +449,65 @@ condition an item exists for cannot measure that item**, which is why M4.1 and
 M4.2 both moved the number by zero and said so rather than claiming a reduction.
 
 
+**In flight: Stage 6.0, the encounter library.** Branch
+`claude/dazzling-noether-vb19k9`, prompt
+[`spec/gymrun-stage6.0-encounter-library.md`](spec/gymrun-stage6.0-encounter-library.md),
+research [`research/encounter-sources.md`](research/encounter-sources.md),
+record [`generation.md`](generation.md) section 107, measurement
+[`balance.md`](balance.md) section 0. Every trainer and gym node is now a
+record from a library of 5,627 real encounters: nineteen games, Gen 1 to 4
+read from the pret decompilations at pinned revisions, Gen 5 to 9 from
+pokemondb's roster pages on a pinned date, each with the trainer's name,
+class, a verified Showdown sprite id, the place, the party at its canonical
+levels and set moves, and a citation. A node spends one draw on its own key
+to pick among the records nearest its segment's cap (a gym among leaders of
+its type), fits the record to the curve and the slot count, and rolls the
+rest exactly as before. The eight fictional gym leaders retire; the Rock gym
+is Brock, Roxanne or Roark this seed. `RANDOMIZER_VERSION` to `-27`,
+`contentHash` to `995fae`; `RUN_LOG_VERSION` and `AI_VERSION` hold. **Checkpoint
+5 built the player-facing half** on the author's ruling of D104 (option 1,
+bible **Rev 26**): the battle header reads the opponent's class and name
+(`Leader Brock`, `Youngster Joey`) with the record's trainer sprite at 16
+beside it, the summary cites the place and the game under every trainer and
+gym visit, and the map node card stays a kind. The same checkpoint read the
+Champion Cup from Serebii (Leon, Hop, Marnie, Bede and the finals rematches,
+twelve records; the library is 5,639) and compacted the tables to one party
+string per record, decoded at load. `RANDOMIZER_VERSION` to `-28` for the
+records that entered the candidate windows; `contentHash` to `5b7add`.
+Record [`generation.md`](generation.md) section 108. **Checkpoint 6
+redirected the stage on the author's two messages**, filed verbatim at
+[`spec/gymrun-stage6.0-checkpoint6-challengers.md`](spec/gymrun-stage6.0-checkpoint6-challengers.md):
+the boss of a segment is a **challenger**, a rival, a protagonist, a gym
+leader or an Elite Four member nearest the segment's cap, one record per
+name, with a mixed roster and the segment's fill, and it has no type. The
+gym's type retired from `data/gyms.ts` and from every chip that showed it
+(bible **Rev 27**, D105); the node reads `Challenger Rival Blue`; leaders
+appear on routes at `hard` and `elite`; rivals are challengers only.
+`RANDOMIZER_VERSION` to `-29`, `contentHash` to `16dc95`. The second
+message, *maps are training, no badge, a progress bar to the next
+challenger*, was **D106**, ruled option 1 and **built as checkpoint 7**
+(bible **Rev 28**): one *Next challenger* bar, the challenger's class and
+name with their sprite over the distance left to them, at the rail's four
+mounts and the locale screen; the eight-badge rail, the sidebar's pips and
+the badge glyph retired; the boss node and the battle title wear the
+challenger's own sprite. No draw moved: `RANDOMIZER_VERSION` holds at `-29`
+and `contentHash` at `16dc95`. Record [`generation.md`](generation.md)
+section 110. **Checkpoint 8 added the Gen 5 to 9 rivals** from Serebii's
+per-character pages (282 records, set moves and items throughout, the
+library at 5,921); X and Y and Scarlet and Violet have no such page and stay
+a gap. `RANDOMIZER_VERSION` to `-30`, `contentHash` to `c4bf74`. Record
+[`generation.md`](generation.md) section 111. **Checkpoint 9 built the bundle
+seam**: the Gen 1 to 4 route trainers (4,839 records, four fifths of the
+library's bytes) are a chunk of their own, installed into a registry by the
+host before any run; `core/` throws before any draw without them. No draw
+moved. Record [`generation.md`](generation.md) section 112.
+**Checkpoint 10 opened the PR and merged `main`'s Defender Mode v0 into the
+branch**: both modes in one tree, no draw moved on either side, and this
+branch's numbers moved above main's (randomizer `-27` to `-30`, the merged
+tree at `-30`; `RUN_LOG_VERSION` to main's `-24`; bible Rev 26 to 28; D104 to
+D106; sections 107 to 112). Record [`generation.md`](generation.md) section
+113, the renumbering table and the composition.
+
 **In flight: no species-locked ability or move.** Branch
 `claude/species-locked-pool`, prompt
 [`spec/gymrun-patch-species-locked-pool.md`](spec/gymrun-patch-species-locked-pool.md),
@@ -1348,6 +1407,26 @@ rule; report and screenshots in
 ## 5. Open items
 
 One line each. The analysis lives where the pointer goes, not here.
+
+0. ~~**D106 is open: no badge, a progress bar that shrinks as the next
+   challenger approaches.**~~ **Closed 2026-10-05, same branch**: ruled
+   option 1 and built as Stage 6.0 checkpoint 7, bible Rev 28.
+   `generation.md` section 110.
+
+0. ~~**The library has no Gen 5 to 9 rival.**~~ **Closed 2026-10-05, same
+   branch**, for eight of ten games: Cheren, Bianca, Hugh, Brendan, May,
+   Wally, Hau, Gladion, Trace, Hop, Marnie, Bede and Barry from Serebii's
+   per-character pages, with set moves and items, as Stage 6.0 checkpoint 8.
+   **X and Y and Scarlet and Violet stay a gap**: Serebii has no rival page
+   for either under any slug tried, so Calem, Serena, Shauna, Tierno,
+   Trevor, Nemona, Arven and Penny are not challengers. A hand-curated table
+   with Bulbapedia citations is the way left, and Bulbapedia cannot be read
+   from this container. `generation.md` section 111.
+
+0. ~~**The route trainers could leave the main chunk.**~~ **Closed 2026-10-05,
+   same branch**: built as Stage 6.0 checkpoint 9, the registry in
+   `data/encounters/index.ts` filled by the host before any run, the route
+   half a chunk of its own. `generation.md` section 112.
 
 00. **An evolution fork may still be out of reach, and the measurement that
     said so is stale.** A fork needs a branching species in the party at a gym

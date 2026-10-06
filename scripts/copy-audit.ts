@@ -61,7 +61,6 @@ import { RELICS } from '../src/data/relics';
 import { ITEMS } from '../src/data/items';
 import { itemCopy, relicCopy } from '../src/data/itemCopy';
 import { LOCALES } from '../src/data/locales';
-import { GYMS } from '../src/data/gyms';
 import { EVENTS } from '../src/data/events';
 import { EVENT_ARCHETYPES } from '../src/data/eventPools';
 import {
@@ -210,17 +209,6 @@ section({
   rows: LOCALES.flatMap((locale) => [
     { key: `${locale.id} · name`, text: locale.name },
     { key: `${locale.id} · blurb`, text: locale.blurb },
-  ]),
-});
-
-section({
-  title: 'Gym leaders',
-  where: 'The gym rail in the header, the pre-gym screen, and the locale screen.',
-  source: 'src/data/gyms.ts',
-  note: 'The type and the gym number are facts the screen computes, not copy. The leader\u2019s name and the one line under it are.',
-  rows: GYMS.flatMap((gym) => [
-    { key: `${gym.id} · leader`, text: gym.leader },
-    { key: `${gym.id} · blurb`, text: gym.blurb },
   ]),
 });
 

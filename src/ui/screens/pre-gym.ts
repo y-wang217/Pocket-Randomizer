@@ -19,12 +19,13 @@
  *
  * ## Part 4, and this is the screen it matters most on
  *
- * The leader's type is on screen. The party is on screen. **Nothing connects
- * them.** No card is marked, ordered, highlighted, scored or annotated by
- * matchup, and the member cards are rendered in party order rather than in any
- * order this screen chose. Working out the relationship is the decision, and a
- * screen that did it for the player would have removed the only reason it
- * exists.
+ * The challenger's class and name are on screen. The party is on screen.
+ * **Nothing connects them.** No card is marked, ordered, highlighted, scored
+ * or annotated by matchup, and the member cards are rendered in party order
+ * rather than in any order this screen chose. Working out what the name
+ * recalls is the decision, and a screen that did it for the player would have
+ * removed the only reason it exists. Until checkpoint 6 the gym's type sat
+ * beside the name; a challenger has none (ruling 3), so the chip is gone.
  *
  * Item assignment is not here either — a link to the party screen instead. A
  * second write path for party state, on the last screen before the hardest
@@ -34,10 +35,9 @@ import type { PokemonState, ItemId } from '../../core/types';
 import type { GymDefinition } from '../../data/gyms';
 import type { Tuning } from '../../data/tuning';
 import { el, levelAria, levelText } from '../scene';
-import { nodeKindGlyph } from '../chip';
-import { GLYPH_LABELS } from '../../data/glyphLabels';
+import { challengerMark } from '../chip';
+import { NODE_KIND_WORDS } from '../../data/glyphLabels';
 import { memberCardContents } from '../member-card';
-import { typeChip } from './starter-select';
 
 /**
  * The slot the screen confirms when the player changes nothing.
@@ -60,6 +60,10 @@ export function defaultLeadSlot(party: readonly PokemonState[]): number {
 
 export interface PreGymView {
   gym: GymDefinition;
+  /** The challenger this seed drew for the slot, by name. Stage 6.0. */
+  leader: string;
+  /** The challenger's class and name, `Rival Blue`, as the node's opponent reads (checkpoint 6). Falls back to the name. */
+  challenger?: string;
   /** 0-based, so the header can say "gym 4 of 8". */
   segment: number;
   party: readonly PokemonState[];
@@ -108,12 +112,9 @@ export function createPreGymScreen(): PreGymScreen {
    * `display` rule, which `test/visual-inline-box.test.ts` catches and
    * `ui/overlay.ts` documents three times.
    */
-  const leaderType = el('span', 'pre-gym__type');
-  leaderType.dataset['tutorial'] = 'gym-type';
   heading.dataset['tutorial'] = 'gym-counter';
-  heading.append(title, leaderType);
+  heading.append(title);
 
-  const blurb = el('p', 'screen__blurb');
 
   /*
    * **The `gym-lead` coach mark moved to the members, and it had to.**
@@ -187,7 +188,7 @@ export function createPreGymScreen(): PreGymScreen {
    * words against a ceiling of four, and the deviation is recorded in
    * `docs/generation.md` §68 rather than the record edited.
    */
-  root.append(heading, blurb, members, actions);
+  root.append(heading, members, actions);
 
   return {
     root,
@@ -196,37 +197,26 @@ export function createPreGymScreen(): PreGymScreen {
       /*
        * **The leader's name, and not the word after it. M5.3.**
        *
-       * Section 4: *"Pre-gym screen | 4 | Gym leader name, type chip, 'Choose
-       * lead'."* A leader's name is a proper noun and free; `'s gym` was the
-       * one word on the line the counting rule could see, on a screen that is
-       * only ever reached by walking into a gym.
+       * Section 4: *"Pre-gym screen | 4 | the challenger's class and name,
+       * 'Choose lead'."* The name is a proper noun and free, the class is the
+       * counted word (D105); `'s gym` was the one word on the line before,
+       * on a screen that is only ever reached by walking into the boss.
        */
       if (view.boss) {
-        // D101: the gym mark and the team size, then the level. No tip: a
-        // boss has no blurb to open.
+        // D101 (Defender Mode): the kind's mark and the team size, then the
+        // level. The badge mark retired with D106, so the mark is the
+        // challenger mark's fallback, the trainer head. No tip: a boss has
+        // no blurb to open.
         const size = el('span', 'pre-gym__size');
         size.textContent = String(view.boss.size);
-        title.replaceChildren(nodeKindGlyph('gym', GLYPH_LABELS['node-gym'] ?? 'gym', 24), size);
-        delete title.dataset['tip'];
-        title.removeAttribute('tabindex');
-        title.removeAttribute('role');
+        title.replaceChildren(challengerMark(null, NODE_KIND_WORDS.gym, 24), size);
         const level = el('span', 'panel__level');
         level.textContent = levelText(view.boss.level);
         level.setAttribute('aria-label', levelAria(view.boss.level));
-        leaderType.replaceChildren(level);
-        blurb.textContent = '';
-        blurb.hidden = true;
+        heading.replaceChildren(title, level);
       } else {
-        title.textContent = view.gym.leader;
-        // The leader's blurb, on tap, for Pocket. Same tip the map's title carries.
-        title.dataset['tip'] = `gym:${view.segment}`;
-        title.tabIndex = 0;
-        title.setAttribute('role', 'button');
-        leaderType.replaceChildren(typeChip(view.gym.type));
-        // The leader's own blurb, from `data/gyms.ts`. Flavour that says how the
-        // leader plays, written where every other gym string is written.
-        blurb.textContent = view.gym.blurb;
-        blurb.hidden = false;
+        title.textContent = view.challenger ?? view.leader;
+        heading.replaceChildren(title);
       }
 
       manage.onclick = () => handlers.onManageParty();

@@ -1745,12 +1745,12 @@ export interface RunPolicy {
    * previously just another node the player walked into, and this is the one
    * decision that belongs in front of it.
    *
-   * Takes the `GymDefinition` because the leader's type is the whole of what
-   * makes one lead better than another here, and takes the state like every
-   * other question on this interface. What it does *not* do is annotate,
-   * order, or mark the party by matchup — the leader's type is on screen, the
-   * party is on screen, and connecting them is the decision. See the Part 4
-   * editorial rule.
+   * Takes the `GymDefinition` (the slot: a segment and a number) and the state
+   * like every other question on this interface. The challenger's class and
+   * name are on screen and its team is not (checkpoint 6: a challenger has no
+   * type, so there is no type to read), so the choice is a bet on the party
+   * and what the name recalls. What it does *not* do is annotate, order, or
+   * mark the party by matchup. See the Part 4 editorial rule.
    *
    * The answer is applied with `party.setLead`, which is a reorder. Returning
    * the slot of a fainted member is refused rather than clamped.

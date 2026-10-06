@@ -105,7 +105,8 @@ export function generateRank(rank: number, rng: Rng, tuning: Tuning): Segment {
           ...emptyNode(id, 'trainer', 'Trainer battle'),
           trainerClass: trainerClass.id,
           tier,
-          encounter: { team, opponent: trainerClass.id, simSeed: PLACEHOLDER_SEED },
+          // A class team is generated, not cited: no library record (checkpoint 5).
+          encounter: { team, opponent: trainerClass.id, source: null, simSeed: PLACEHOLDER_SEED },
         };
       }),
     });
@@ -120,6 +121,7 @@ export function generateRank(rank: number, rng: Rng, tuning: Tuning): Segment {
     encounter: {
       team: generateBossTeam(rank, ivs, rng.randomizer.at(defenderNodeKey(bossNodeId(rank)))),
       opponent: 'boss',
+      source: null,
       simSeed: PLACEHOLDER_SEED,
     },
   };
@@ -162,8 +164,10 @@ export function generateRank(rank: number, rng: Rng, tuning: Tuning): Segment {
     index: rank,
     eventRefills: 0,
     leader: '',
-    type: '',
-    gymDefinition: { id: `defender-boss-${rank}`, leader: '', type: '', segment: rank, blurb: '' },
+    // A defender boss is the mode's own, not a library record (ruling R6), so
+    // the slot is bare and the challenger ref is null.
+    gymDefinition: { id: `defender-boss-${rank}`, segment: rank },
+    gymEncounter: null,
     localeOffer: [],
     routes: [{ locale: null, steps }],
     gym: boss,

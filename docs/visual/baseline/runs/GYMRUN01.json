@@ -2,8 +2,8 @@
   "seed": "GYMRUN01",
   "versions": {
     "runLog": "gymrun-run-24/gymrun-0.3.0",
-    "contentHash": "b85ac93912caa3e508f0d1451b13d0ec9d3c92cdf6bc6be007cf654f3fbf2cc6",
-    "randomizer": "gymrun-randomizer-26",
+    "contentHash": "998fc2965108d1b16f4beb0122f38476aaeae2b108ee20ff5258034d63529f4c",
+    "randomizer": "gymrun-randomizer-30",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -11,11 +11,11 @@
   "gymsCleared": 1,
   "causeOfDeath": {
     "segment": 1,
-    "leader": "Marina",
+    "leader": "Brendan",
     "kind": "trainer",
     "species": "Dusk",
     "bySpecies": "Buneary",
-    "byMove": "Disarming Voice",
+    "byMove": "Fury Swipes",
     "indirect": null
   },
   "currency": 70,
@@ -30,7 +30,7 @@
       "ability": "Minus",
       "moves": [
         "Draining Kiss 16/16",
-        "Upper Hand 20/24",
+        "Upper Hand 18/24",
         "Force Palm 16/16",
         "Poison Fang 24/24"
       ],
@@ -43,8 +43,8 @@
       "level": 20,
       "ability": "Hospitality",
       "moves": [
-        "Rock Throw 18/24",
-        "Frost Breath 13/16",
+        "Rock Throw 20/24",
+        "Frost Breath 16/16",
         "False Swipe 64/64",
         "Agility 48/48"
       ],
@@ -70,11 +70,21 @@
       "kind": "trainer",
       "label": "Trainer battle",
       "tier": "normal",
-      "opponent": "Trainer's Surskit",
-      "turns": 4,
+      "opponent": "Pokéfan Kaleb",
+      "turns": 5,
       "winner": "p1",
-      "hpAfter": 62,
-      "casualties": []
+      "hpAfter": 25,
+      "casualties": [
+        {
+          "side": "p1",
+          "name": "Cedar",
+          "level": 15,
+          "species": "Snubbull",
+          "bySpecies": "Plusle",
+          "byMove": "Frost Breath",
+          "indirect": null
+        }
+      ]
     },
     {
       "segment": 0,
@@ -84,7 +94,7 @@
       "opponent": "Wild Toedscool",
       "turns": 3,
       "winner": "p1",
-      "hpAfter": 28,
+      "hpAfter": 15,
       "casualties": [
         {
           "side": "p1",
@@ -105,7 +115,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 75,
+      "hpAfter": 62,
       "casualties": []
     },
     {
@@ -116,18 +126,18 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 75,
+      "hpAfter": 62,
       "casualties": []
     },
     {
       "segment": 0,
       "kind": "gym",
-      "label": "Garnet's Gym",
+      "label": "Challenger Leader Brock",
       "tier": null,
-      "opponent": "Garnet (Rock)",
+      "opponent": "Leader Brock",
       "turns": 5,
       "winner": "p1",
-      "hpAfter": 46,
+      "hpAfter": 52,
       "casualties": []
     },
     {
@@ -135,8 +145,8 @@
       "kind": "trainer",
       "label": "Trainer battle",
       "tier": "hard",
-      "opponent": "Trainer (2)",
-      "turns": 16,
+      "opponent": "Bug Catcher Elijah",
+      "turns": 13,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
@@ -146,7 +156,7 @@
           "level": 20,
           "species": "Snubbull",
           "bySpecies": "Buneary",
-          "byMove": "Tackle",
+          "byMove": "Fury Swipes",
           "indirect": null
         },
         {
@@ -155,7 +165,7 @@
           "level": 20,
           "species": "Nosepass",
           "bySpecies": "Buneary",
-          "byMove": "Disarming Voice",
+          "byMove": "Fury Swipes",
           "indirect": null
         }
       ]
@@ -166,9 +176,9 @@
     "mode": "attacker",
     "versions": {
       "runLog": "gymrun-run-24/gymrun-0.3.0",
-      "contentHash": "b85ac93912caa3e508f0d1451b13d0ec9d3c92cdf6bc6be007cf654f3fbf2cc6",
+      "contentHash": "998fc2965108d1b16f4beb0122f38476aaeae2b108ee20ff5258034d63529f4c",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-26"
+      "randomizerVersion": "gymrun-randomizer-30"
     },
     "decisions": [
       {
@@ -229,14 +239,28 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 3
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 2
         }
       },
       {
@@ -384,21 +408,21 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 1
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 1
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 1
         }
       },
       {
@@ -443,48 +467,6 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
           "slot": 1
         }
       },
@@ -540,6 +522,20 @@
       {
         "kind": "battle",
         "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
           "kind": "switch",
           "slot": 2
         }
@@ -549,6 +545,13 @@
         "choice": {
           "kind": "move",
           "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
         }
       }
     ]

@@ -2,8 +2,8 @@
   "seed": "RESULT-1",
   "versions": {
     "runLog": "gymrun-run-24/gymrun-0.3.0",
-    "contentHash": "b85ac93912caa3e508f0d1451b13d0ec9d3c92cdf6bc6be007cf654f3fbf2cc6",
-    "randomizer": "gymrun-randomizer-26",
+    "contentHash": "998fc2965108d1b16f4beb0122f38476aaeae2b108ee20ff5258034d63529f4c",
+    "randomizer": "gymrun-randomizer-30",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -11,15 +11,17 @@
   "gymsCleared": 1,
   "causeOfDeath": {
     "segment": 1,
-    "leader": "Marina",
-    "kind": "wild",
-    "species": "Verbena",
-    "bySpecies": "Gligar",
-    "byMove": "Scorching Sands",
+    "leader": "Brendan",
+    "kind": "gym",
+    "species": "Cedar",
+    "bySpecies": "Wingull",
+    "byMove": "Gust",
     "indirect": null
   },
-  "currency": 92,
-  "backpack": [],
+  "currency": 152,
+  "backpack": [
+    "shellbell"
+  ],
   "relics": [
     "abyssal-lens"
   ],
@@ -29,9 +31,9 @@
       "level": 20,
       "ability": "Tera Shell",
       "moves": [
-        "Trailblaze 27/32",
+        "Trailblaze 25/32",
         "Thief 40/40",
-        "Shadow Claw 24/24",
+        "Shadow Claw 22/24",
         "Psycho Cut 32/32"
       ],
       "item": "miracleseed",
@@ -43,10 +45,10 @@
       "level": 20,
       "ability": "Adaptability",
       "moves": [
-        "Vine Whip 38/40",
-        "Quick Attack 44/48",
+        "Vine Whip 39/40",
+        "Quick Attack 46/48",
         "Snore 24/24",
-        "Temper Flare 16/16"
+        "Temper Flare 15/16"
       ],
       "item": "mysticwater",
       "hp": "0/62",
@@ -125,10 +127,10 @@
     {
       "segment": 0,
       "kind": "gym",
-      "label": "Garnet's Gym",
+      "label": "Challenger Leader Brock",
       "tier": null,
-      "opponent": "Garnet (Rock)",
-      "turns": 2,
+      "opponent": "Leader Brock",
+      "turns": 3,
       "winner": "p1",
       "hpAfter": 83,
       "casualties": []
@@ -160,11 +162,21 @@
       "kind": "trainer",
       "label": "Trainer battle",
       "tier": "normal",
-      "opponent": "Trainer (2)",
-      "turns": 5,
+      "opponent": "Hiker Lucas",
+      "turns": 4,
       "winner": "p1",
-      "hpAfter": 90,
-      "casualties": []
+      "hpAfter": 70,
+      "casualties": [
+        {
+          "side": "p1",
+          "name": "Cedar",
+          "level": 20,
+          "species": "Pumpkaboo",
+          "bySpecies": "Numel",
+          "byMove": "Temper Flare",
+          "indirect": null
+        }
+      ]
     },
     {
       "segment": 1,
@@ -172,9 +184,9 @@
       "label": "Wild encounter",
       "tier": "hard",
       "opponent": "Wild Lickitung",
-      "turns": 8,
-      "winner": "p2",
-      "hpAfter": 0,
+      "turns": 5,
+      "winner": "p1",
+      "hpAfter": 38,
       "casualties": [
         {
           "side": "p1",
@@ -184,23 +196,55 @@
           "bySpecies": "Lickitung",
           "byMove": "Shadow Claw",
           "indirect": null
+        }
+      ]
+    },
+    {
+      "segment": 1,
+      "kind": "event",
+      "label": "Something happens",
+      "tier": null,
+      "opponent": null,
+      "turns": null,
+      "winner": null,
+      "hpAfter": 66,
+      "casualties": []
+    },
+    {
+      "segment": 1,
+      "kind": "gym",
+      "label": "Challenger Pokemon Trainer Brendan",
+      "tier": null,
+      "opponent": "Pokemon Trainer Brendan",
+      "turns": 7,
+      "winner": "p2",
+      "hpAfter": 0,
+      "casualties": [
+        {
+          "side": "p1",
+          "name": "Verbena",
+          "level": 20,
+          "species": "Omanyte",
+          "bySpecies": "Grovyle",
+          "byMove": "Trop Kick",
+          "indirect": null
         },
         {
           "side": "p1",
           "name": "Gale",
           "level": 20,
           "species": "Skiddo",
-          "bySpecies": "Gligar",
-          "byMove": "Confusion",
+          "bySpecies": "Grovyle",
+          "byMove": "Breaking Swipe",
           "indirect": null
         },
         {
           "side": "p1",
-          "name": "Verbena",
+          "name": "Cedar",
           "level": 20,
-          "species": "Omanyte",
-          "bySpecies": "Gligar",
-          "byMove": "Scorching Sands",
+          "species": "Pumpkaboo",
+          "bySpecies": "Wingull",
+          "byMove": "Gust",
           "indirect": null
         }
       ]
@@ -211,9 +255,9 @@
     "mode": "attacker",
     "versions": {
       "runLog": "gymrun-run-24/gymrun-0.3.0",
-      "contentHash": "b85ac93912caa3e508f0d1451b13d0ec9d3c92cdf6bc6be007cf654f3fbf2cc6",
+      "contentHash": "998fc2965108d1b16f4beb0122f38476aaeae2b108ee20ff5258034d63529f4c",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-26"
+      "randomizerVersion": "gymrun-randomizer-30"
     },
     "decisions": [
       {
@@ -388,6 +432,13 @@
         }
       },
       {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
         "kind": "reward",
         "index": 0
       },
@@ -494,15 +545,22 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "switch",
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
           "slot": 3
         }
       },
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
-          "slot": 1
+          "kind": "switch",
+          "slot": 2
         }
       },
       {
@@ -516,14 +574,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
+          "slot": 2
         }
       },
       {
@@ -559,6 +610,102 @@
       {
         "kind": "battle",
         "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "acquisition",
+        "decision": {
+          "kind": "decline"
+        }
+      },
+      {
+        "kind": "reward",
+        "index": 0
+      },
+      {
+        "kind": "items",
+        "plan": {
+          "assignments": [],
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
+        }
+      },
+      {
+        "kind": "node",
+        "index": 0
+      },
+      {
+        "kind": "event",
+        "archetype": "safe"
+      },
+      {
+        "kind": "items",
+        "plan": {
+          "assignments": [],
+          "discards": [],
+          "teaches": [],
+          "discardTms": []
+        }
+      },
+      {
+        "kind": "lead",
+        "index": 0
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
           "kind": "switch",
           "slot": 2
         }
@@ -567,35 +714,7 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 2
+          "slot": 4
         }
       },
       {
@@ -616,7 +735,14 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 3
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 3
         }
       }
     ]

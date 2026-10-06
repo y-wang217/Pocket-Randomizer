@@ -2,8 +2,8 @@
   "seed": "SMOKE24",
   "versions": {
     "runLog": "gymrun-run-24/gymrun-0.3.0",
-    "contentHash": "b85ac93912caa3e508f0d1451b13d0ec9d3c92cdf6bc6be007cf654f3fbf2cc6",
-    "randomizer": "gymrun-randomizer-26",
+    "contentHash": "998fc2965108d1b16f4beb0122f38476aaeae2b108ee20ff5258034d63529f4c",
+    "randomizer": "gymrun-randomizer-30",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -11,7 +11,7 @@
   "gymsCleared": 0,
   "causeOfDeath": {
     "segment": 0,
-    "leader": "Garnet",
+    "leader": "Roark",
     "kind": "wild",
     "species": "Mire",
     "bySpecies": "Oricorio",
@@ -28,8 +28,8 @@
       "ability": "Rough Skin",
       "moves": [
         "Sand Tomb 24/24",
-        "Razor Leaf 39/40",
-        "Bulldoze 28/32",
+        "Razor Leaf 38/40",
+        "Bulldoze 30/32",
         "Mud Shot 24/24"
       ],
       "item": "passhoberry",
@@ -79,10 +79,10 @@
       "kind": "trainer",
       "label": "Trainer battle",
       "tier": "normal",
-      "opponent": "Trainer's Bagon",
-      "turns": 4,
+      "opponent": "Pokéfan Isabel",
+      "turns": 2,
       "winner": "p1",
-      "hpAfter": 58,
+      "hpAfter": 62,
       "casualties": []
     },
     {
@@ -93,7 +93,7 @@
       "opponent": null,
       "turns": null,
       "winner": null,
-      "hpAfter": 58,
+      "hpAfter": 62,
       "casualties": []
     },
     {
@@ -102,7 +102,7 @@
       "label": "Wild encounter",
       "tier": "hard",
       "opponent": "Wild Oricorio",
-      "turns": 5,
+      "turns": 6,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
@@ -132,9 +132,9 @@
     "mode": "attacker",
     "versions": {
       "runLog": "gymrun-run-24/gymrun-0.3.0",
-      "contentHash": "b85ac93912caa3e508f0d1451b13d0ec9d3c92cdf6bc6be007cf654f3fbf2cc6",
+      "contentHash": "998fc2965108d1b16f4beb0122f38476aaeae2b108ee20ff5258034d63529f4c",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-26"
+      "randomizerVersion": "gymrun-randomizer-30"
     },
     "decisions": [
       {
@@ -226,20 +226,6 @@
         }
       },
       {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
-      },
-      {
         "kind": "reward",
         "index": 0
       },
@@ -309,6 +295,13 @@
         "kind": "battle",
         "choice": {
           "kind": "switch",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
           "slot": 2
         }
       },

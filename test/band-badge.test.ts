@@ -199,7 +199,7 @@ describe('the band badge renders on every surface that renders a move', () => {
     const screen = createPreGymScreen();
     const members = party();
     screen.render(
-      { gym: gymForSegment(0), segment: 0, party: members, holding: members.map(() => null), tuning: DEFAULT_TUNING },
+      { gym: gymForSegment(0), leader: 'Brock', segment: 0, party: members, holding: members.map(() => null), tuning: DEFAULT_TUNING },
       { onLead: () => undefined, onManageParty: () => undefined },
     );
     bandsOn(screen.root, 'pre-gym screen');

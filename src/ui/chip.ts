@@ -21,6 +21,8 @@
  */
 import type { FieldKind } from '../core/battle/view';
 import { el } from './dom';
+import { opponentImg } from './sprites';
+import type { EncounterRef } from '../core/types';
 import { categoryGlyphId, glyphNode, markFamily, typeGlyphId } from './theme/glyph';
 import { BAND_PIPS } from '../data/bandInfo';
 import {
@@ -328,6 +330,27 @@ export function nodeKindGlyph(kind: string, label: string, size: 24 | 16): HTMLE
   const node = build('node', 'node__kind', '', { tip: `node:${kind}` });
   const mark = glyphNode(`node-${kind}`, { label, size });
   if (mark) node.append(mark);
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  return node;
+}
+
+/**
+ * The challenger's mark: the trainer's own sprite in the slot the badge mark
+ * held. **Stage 6.0 checkpoint 7, D106.** The boss node on the map (24) and
+ * the battle header (16) wear it; a record with no sprite on the CDN falls
+ * back to the trainer kind's glyph, so the slot is never empty. Same wrapper
+ * and tip as `nodeKindGlyph`, because it is the kind's mark.
+ */
+export function challengerMark(source: EncounterRef | null, label: string, size: 24 | 16): HTMLElement {
+  const node = build('node', 'node__kind node__kind--challenger', '', { tip: 'node:gym' });
+  const sprite = source?.sprite ?? null;
+  if (sprite) {
+    node.append(opponentImg(sprite, size));
+  } else {
+    const mark = glyphNode('node-trainer', { label, size });
+    if (mark) node.append(mark);
+  }
   node.setAttribute('role', 'img');
   node.setAttribute('aria-label', label);
   return node;

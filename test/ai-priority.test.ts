@@ -463,15 +463,56 @@ describe('the version axes', () => {
      * out of `data/abilities.ts` and three out of `data/movePools.ts`, with
      * `gymrun-randomizer-25` beside it. `docs/generation.md` section 102.
      *
-     * And for Defender Mode v0, merged onto that: three new hashed tables
+     * And from `1ba856` for Stage 6.0's encounter library, checkpoints 1 to
+     * 3: the record type and nineteen generated tables under
+     * `data/encounters/` (nine Gen 1 to 4 games from the pret decompilations
+     * at `39088c`, ten Gen 5 to 9 games from pokemondb's roster pages at
+     * `933311`), hashed because they are data. No randomizer axis moved beside
+     * those two checkpoints, because nothing under `core/` read the tables
+     * yet; the hash moving ahead of the draws was the honest order, since a
+     * seed string minted then already named the library its next release
+     * would draw from.
+     *
+     * And at checkpoint 4, from `933311`: `data/gyms.ts` loses its eight
+     * names and `data/encounters/library.ts` arrives, and this time
+     * `gymrun-randomizer-27` (as `-26` on the branch, renumbered at the
+     * merge) moves beside it, because every trainer and gym node now resolves
+     * to a record. `docs/generation.md` section 107.
+     *
+     * And at checkpoint 5, from `995fae`: the tables carry each party as one
+     * string, the Champion Cup joins Sword and Shield, the captains and
+     * Bede gain their places, and `GAME_LABEL` moves under `data/`.
+     * `gymrun-randomizer-28` moves beside it for the twelve records that
+     * entered the candidate windows. `docs/generation.md` section 108.
+     *
+     * And at checkpoint 6, from `5b7add`: `data/gyms.ts` loses its types,
+     * the library's candidate rules cast a challenger, and the glyph label
+     * and coach mark read it. `gymrun-randomizer-29` moves beside it.
+     * `docs/generation.md` section 109.
+     *
+     * And at checkpoint 8, from `16dc95`: the Gen 5 to 9 rivals enter eight
+     * tables from Serebii. `gymrun-randomizer-30` moves beside it.
+     * `docs/generation.md` section 111.
+     *
+     * And at checkpoint 9, from `c4bf74`: the nine Gen 1 to 4 files split
+     * into bosses and routes, eighteen files for the same records, and the
+     * registry in `index.ts`. **No randomizer axis moves**: the held-item
+     * digest and the sim fixture are byte-identical but for this hash, which
+     * is the evidence the seam moved no draw. `docs/generation.md` section 112.
+     *
+     * And for Defender Mode v0, merged onto `1ba856` on main while this branch
+     * ran: three new hashed tables
      * (`defender.ts`, `trainerClasses.ts`, and the IV rows in `scaling.ts`),
      * the defender relic list, the badge numbers, the consumables, the trade
      * numbers and the Stranger's Pass, with `gymrun-randomizer-26` and
      * `gymrun-run-24` beside it. No attacker number moved;
      * `test/attacker-generation-golden.test.ts` is the proof.
      * `docs/generation.md` section 106.
+     *
+     * And at checkpoint 10, the merge of the two: both sets of tables in one
+     * tree, `gymrun-randomizer-30` beside it. `docs/generation.md` section 113.
      */
-    expect(CONTENT_HASH).toBe('b85ac93912caa3e508f0d1451b13d0ec9d3c92cdf6bc6be007cf654f3fbf2cc6');
+    expect(CONTENT_HASH).toBe('998fc2965108d1b16f4beb0122f38476aaeae2b108ee20ff5258034d63529f4c');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

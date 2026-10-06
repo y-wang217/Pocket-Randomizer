@@ -289,17 +289,20 @@ describe('4. moveset validity', () => {
 // 5. Gym identity
 // ---------------------------------------------------------------------------
 
-describe('5. gym identity', () => {
-  it('gives every gym member the type of its leader, across many seeds', () => {
+describe('5. challenger identity', () => {
+  it('fields a team of pool species with no repeats, across many seeds', () => {
+    // Until checkpoint 6 this held every member to the gym's type. A
+    // challenger has none (ruling 3): the record's canonical members and the
+    // segment's rolled fill are the team, and what is left to hold is that
+    // every member is a pool species and no species is fielded twice.
     for (const gym of GYMS) {
       for (let seed = 0; seed < 60; seed++) {
         const team = generateGymTeam(gym, gym.segment, createRng(`GYM-${gym.id}-${seed}`).randomizer.at('test'));
         expect(team.length).toBeGreaterThan(0);
         for (const member of team) {
-          const entry = speciesByName.get(member.species);
-          expect(entry, `${member.species} is not in the pool`).toBeDefined();
-          expect(entry?.types, `${gym.leader} fielded ${member.species}`).toContain(gym.type);
+          expect(speciesByName.get(member.species), `${member.species} is not in the pool`).toBeDefined();
         }
+        expect(new Set(team.map((member) => member.species)).size).toBe(team.length);
       }
     }
   });
@@ -323,10 +326,10 @@ describe('5. gym identity', () => {
      */
     for (const gym of GYMS) {
       const expected = opponentTeamSize('gym', gym.segment, 'normal');
-      expect(expected, `${gym.leader}`).toBeGreaterThanOrEqual(expectedPartySize(gym.segment));
+      expect(expected, `${gym.id}`).toBeGreaterThanOrEqual(expectedPartySize(gym.segment));
       for (let seed = 0; seed < 5; seed++) {
         const team = generateGymTeam(gym, gym.segment, createRng(`SIZE-${gym.id}-${seed}`).randomizer.at('test'));
-        expect(team, `${gym.leader}`).toHaveLength(expected);
+        expect(team, `${gym.id}`).toHaveLength(expected);
       }
     }
 
@@ -398,8 +401,11 @@ describe('5. gym identity', () => {
         const entry = speciesByName.get(member.species);
         expect(entry?.band, `${member.species} at gym 1`).toBeLessThanOrEqual(1);
         expect(entry?.bst ?? 0, `${member.species} at gym 1`).toBeLessThanOrEqual(420);
-        // Stage 4.9: and nothing evolved, by the stage gate.
-        expect(entry?.evoLevel, `${member.species} at gym 1 is an evolved form`).toBeNull();
+        // Stage 4.9: and nothing evolved past what its level allows, by the
+        // stage gate. (Until checkpoint 6 this read "nothing evolved", which
+        // held by accident of the Rock pool; a challenger's canonical Kakuna
+        // at 11 is what the gate permits.)
+        expect(entry?.evoLevel === null || entry!.evoLevel <= member.level, `${member.species} at gym 1 is an evolved form its level cannot carry`).toBe(true);
       }
     }
   });

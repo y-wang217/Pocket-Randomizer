@@ -197,7 +197,7 @@ describe('the party surfaces', () => {
     const screen = createPreGymScreen();
     const members = party();
     screen.render(
-      { gym: gymForSegment(0), segment: 0, party: members, holding: members.map(() => null), tuning: DEFAULT_TUNING },
+      { gym: gymForSegment(0), leader: 'Brock', segment: 0, party: members, holding: members.map(() => null), tuning: DEFAULT_TUNING },
       { onLead: () => undefined, onManageParty: () => undefined },
     );
     expect(texts(screen.root, '.panel__name')).toEqual(['Snorlax', 'Gengar']);
@@ -316,8 +316,8 @@ describe('the result screens and the share text', () => {
     };
     const text = shareText(view);
     expect(text).toContain('· Charmander, Lv40');
-    expect(text).toContain('· Weepinbell, Lv31, fell at Gym 3 to Arcanine, Flare Blitz.');
+    expect(text).toContain('· Weepinbell, Lv31, fell at challenger 3 to Arcanine, Flare Blitz.');
     expect(text).not.toContain('Bramble');
-    expect(deathLine(view.deaths[0]!)).toBe('Weepinbell, Lv31, fell at Gym 3 to Arcanine, Flare Blitz.');
+    expect(deathLine(view.deaths[0]!)).toBe('Weepinbell, Lv31, fell at challenger 3 to Arcanine, Flare Blitz.');
   });
 });

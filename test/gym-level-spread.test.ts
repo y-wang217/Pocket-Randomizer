@@ -128,10 +128,11 @@ describe('the table may not advertise a band the code cannot draw', () => {
    * silently, which is right for a thin pool and wrong for a row that names a
    * band it can never fill.
    */
-  it('has a non-empty gym pool for every band carrying weight', () => {
+  it('has a non-empty challenger pool for every band carrying weight', () => {
     for (let segment = 0; segment < SEGMENT_COUNT; segment++) {
-      const gym = gymFor(segment);
-      // The pool is built at the ceiling, which is what makes this hold.
+      // The fill is the segment's own pool since checkpoint 6 (a challenger
+      // has no type). The pool is built at the ceiling, which is what makes
+      // this hold.
       const gate = opponentLevel('gym', segment, 'normal').max;
       const weights = speciesBandWeightsFor(segment, 'normal');
       for (const [band, weight] of Object.entries(weights)) {
@@ -140,12 +141,11 @@ describe('the table may not advertise a band the code cannot draw', () => {
           (entry) =>
             entry.band === Number(band) &&
             stageAllowedAt(entry, gate) &&
-            !isSpeciesBlacklisted(entry.id) &&
-            entry.types.includes(gym.type),
+            !isSpeciesBlacklisted(entry.id),
         );
         expect(
           pool.length,
-          `segment ${segment} (${gym.type}) carries weight ${weight} for band ${band} and can draw none`,
+          `segment ${segment} carries weight ${weight} for band ${band} and can draw none`,
         ).toBeGreaterThan(0);
       }
     }

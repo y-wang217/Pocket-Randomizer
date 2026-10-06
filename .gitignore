@@ -21,3 +21,6 @@ dist-gallery/
 # Screenshots a browser test writes when a floor fails, for the workflow to
 # upload. Evidence for one run, never a record.
 visual-failures/
+
+# Fetched encounter sources (scripts/import-encounters/fetch.ts). Pinned by sha, never committed.
+scratch/

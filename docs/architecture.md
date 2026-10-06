@@ -90,9 +90,11 @@ ui/                   A thin DOM layer. Fourteen screens and a router.
 `ui/` can be replaced wholesale without touching `core/`; `data/` was replaced
 by a randomizer's tables in Stage 2 without touching either.
 
-`data/` is a leaf that `core/` reads, and its only import is `core/types.ts`
-for the shape of the values it holds — a type-only import, so there is no
-runtime cycle. `Tuning` is the exception to "read freely": it is *passed into*
+`data/` is a leaf that `core/` reads. Its imports of `core/` are type-only
+(`core/types.ts`, for the shape of the values it holds), so there is no
+runtime cycle; `data/encounters/library.ts` reads five sibling tables under
+`data/` and nothing above. One slot in it is mutable, and it is the host's,
+not `core/`'s: the encounter registry below. `Tuning` is the exception to "read freely": it is *passed into*
 generation and the run state machine, never imported from inside a function.
 The simulator sweeps those values programmatically, which only works if every
 one of them is reachable from a value the caller controls. `npm run sim -- --set
@@ -378,6 +380,25 @@ They are on the member rather than in a slot-keyed side table because **party
 slots move**: a release deletes one, an acquisition appends one, and Stage 4.7's
 lead selection reorders them deliberately. Anything keyed by slot index follows
 the wrong Pokemon the first time any of those happens, and does it silently.
+
+### The encounter registry, and who fills it
+
+**Stage 6.0 checkpoint 9.** Four fifths of the encounter library's bytes are
+Gen 1 to 4 route trainers that only route nodes draw. They live in nine
+route files beside their games' boss files under `src/data/encounters/`
+(`rby-routes.ts` and its siblings), which `src/data/encounters/index.ts`
+never imports: the
+main chunk carries the bosses, rivals, leaders and Elite Four, and the host
+installs the rest through `installRouteTables` by importing
+`data/encounters/full` (every Node entry, statically, and the test setup) or
+awaiting the one dynamic import in `ui/app.ts` before the first run. Until
+the install, `allEncounters`, `encounterById` and `encounterCandidates`
+throw, so `createRun` throws before its first draw: a seed is never read
+against half the library, and the install is idempotent and refuses a
+different set. `core/` has no side effect here; it reads a registry the host
+filled, and the one mutable slot is `data/`'s. `test/encounter-registry.test.ts`
+holds all of it, and `build-config/content-hash.ts` hashes both halves by its
+default rule, so the hash moves when either does.
 
 ### Where the Stage 4.7 labels are computed, and why in three places
 

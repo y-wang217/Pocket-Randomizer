@@ -65,7 +65,6 @@ export const GLYPH_LABELS: Readonly<Record<string, string>> = {
   'node-wild': 'Wild',
   'node-trainer': 'Trainer',
   'node-rest': 'Rest',
-  'node-gym': 'Gym',
   'node-shop': 'Shop',
   'node-event': 'Event',
   // The field family, nine marks. Stage 4.11 Tier 2, D47. Present tense: the
@@ -109,3 +108,18 @@ export const FAMILY_LABELS = {
   status: 'Condition',
   effectiveness: 'Effectiveness',
 } as const;
+
+/**
+ * The word for each node kind, where a surface names the kind: the glyph
+ * sheet's label for the five kinds it draws, and *Challenger* for the boss,
+ * whose mark is the challenger's own sprite rather than a sheet glyph since
+ * D106 (checkpoint 7). `data/`, so the census and the copy audit read it.
+ */
+export const NODE_KIND_WORDS: Readonly<Record<'wild' | 'trainer' | 'rest' | 'gym' | 'shop' | 'event', string>> = {
+  wild: GLYPH_LABELS['node-wild'] ?? 'Wild',
+  trainer: GLYPH_LABELS['node-trainer'] ?? 'Trainer',
+  rest: GLYPH_LABELS['node-rest'] ?? 'Rest',
+  gym: 'Challenger',
+  shop: GLYPH_LABELS['node-shop'] ?? 'Shop',
+  event: GLYPH_LABELS['node-event'] ?? 'Event',
+};

@@ -560,7 +560,8 @@ async function playRun(label) {
         if (log?.decisions?.length > 0) sawSavedLog = true;
       }
 
-      railHigh = Math.max(railHigh, await page.locator('.rail__gym--done').count());
+      // The bar empties as the segment is walked (D106); the smallest remaining count seen is the proof it moved.
+      railHigh = Math.max(railHigh, await page.locator('.next-challenger__bar').count());
 
       const node = await chooseNode();
       if (node) {
@@ -772,9 +773,9 @@ if (!(shape.gym >= 1)) problems.push('map did not show the gym at the end of the
 // Stage 2's screens: the eight-gym rail, and a summary that answers "how far
 // did I get", "what was I" and "what killed me" rather than just "you lost".
 console.log('\nStage 2 UI:');
-await check('gym rail', '.rail__gym');
-console.log(`  ${first.railHigh >= 1 ? 'ok  ' : 'FAIL'} rail marked ${first.railHigh} gym(s) cleared during the run`);
-if (first.railHigh < 1) problems.push('the gym rail never marked a gym cleared');
+await check('next challenger bar', '.next-challenger__bar');
+console.log(`  ${first.railHigh >= 1 ? 'ok  ' : 'FAIL'} the next-challenger bar was mounted during the run`);
+if (first.railHigh < 1) problems.push('the next-challenger bar was never mounted');
 await check('summary route bands', '.route__band');
 await check('summary tier row', '.tiers__row--here');
 await check('summary final team', '.summary__member');

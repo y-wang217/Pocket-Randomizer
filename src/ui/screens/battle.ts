@@ -21,9 +21,8 @@ import type { NodeSpec } from '../../core/encounters';
 import type { Choice } from '../../core/types';
 import { abilityEffects } from '../../data/abilityEffects';
 import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
-import { GLYPH_LABELS } from '../../data/glyphLabels';
-import { gymForSegment } from '../../data/gyms';
-import { nodeKindGlyph } from '../chip';
+import { GLYPH_LABELS, NODE_KIND_WORDS } from '../../data/glyphLabels';
+import { challengerMark, nodeKindGlyph } from '../chip';
 import { createBattleLog, type BattleLogView } from '../battle-log';
 import { createSpeciesIndex } from '../species-index';
 import { createFlagStrip, type FlagStrip } from '../flag-strip';
@@ -35,6 +34,7 @@ import { applyField } from '../theme/field';
 import { currentLocale } from '../theme/locale';
 import { applyBackdrop } from '../assets/manifest';
 import { LOCALE_IDS, type LocaleId } from '../../data/locales';
+import { opponentImg } from '../sprites';
 
 /**
  * The one lookup the flag reader cannot have, supplied by the adapter.
@@ -183,11 +183,13 @@ export function createBattleScreen(): BattleScreen {
        * leader's name beside the badge; the other kinds carry the mark alone,
        * because the detail line below already names who is in the fight.
        */
-      title.replaceChildren(nodeKindGlyph(node.kind, GLYPH_LABELS[`node-${node.kind}`] ?? node.kind, 16));
-      // The leader's name from the gym table, not the node's `"<Leader>'s Gym"`
-      // label, which `core/` keeps for the log and which would double the mark.
+      // A challenger wears its own sprite in the kind's slot (D106) and its
+      // name beside it; the other kinds wear the kind's mark alone, and so
+      // does a Defender Mode boss, which has no name (`leaderless`).
+      const kindLabel = NODE_KIND_WORDS[node.kind] ?? node.kind;
+      title.replaceChildren(node.kind === 'gym' ? challengerMark(node.encounter?.source ?? null, kindLabel, 16) : nodeKindGlyph(node.kind, kindLabel, 16));
       if (node.kind === 'gym' && !leaderless) {
-        title.append(document.createTextNode(segment === undefined ? node.label : gymForSegment(segment).leader));
+        title.append(document.createTextNode(node.encounter?.source?.name ?? node.label));
       }
       /*
        * **The team size came off this header**, and it had to.
@@ -209,12 +211,22 @@ export function createBattleScreen(): BattleScreen {
        * it does not rate the fight.
        */
       const tier = segment === undefined || !node.encounter ? null : aiTierFor(node.kind, node.tier, segment);
-      detailText.textContent = [
-        node.encounter?.opponent ?? '',
-        ...(tier ? [AI_TIER_LABEL[tier]] : []),
-      ]
+      /*
+       * Who the opponent is. **Stage 6.0, D104.** The record's class and
+       * name (`Youngster Joey`), which `core/` already wrote into `opponent`.
+       * A gym's title carries the name beside the badge, so its detail line
+       * reads the class alone (`Leader · Ace`): one fact, one channel (R3).
+       * The trainer sprite sits before the words at 16, where the record has
+       * one; nothing where it does not. On a challenger the title already
+       * wears it (D106), so the detail line does not: one mark, one channel.
+       */
+      const source = node.encounter?.source ?? null;
+      const opponent =
+        node.kind === 'gym' && source ? source.class : (node.encounter?.opponent ?? '');
+      const words = [opponent, ...(tier ? [AI_TIER_LABEL[tier]] : [])]
         .filter((part) => part.length > 0)
         .join(' · ');
+      detailText.replaceChildren(...(source?.sprite && node.kind !== 'gym' ? [opponentImg(source.sprite)] : []), document.createTextNode(words));
       field.replaceChildren();
       /*
        * The scene backdrop. **Stage 5.0/2, D60.** The gym's at a gym, the

@@ -134,8 +134,9 @@ describe('the door on the map (D101)', () => {
       expect(chips.length, `${door.trainerClass} type chips`).toBe(types.length);
     });
 
-    // A boss has no leader: no attacker leader name anywhere on the map.
-    const leader = createRun('UI-DOOR').segments[0]!.gymDefinition.leader;
+    // A boss has no leader: no attacker challenger name anywhere on the map.
+    const leader = createRun('UI-DOOR').segments[0]!.leader;
+    expect(leader).not.toBe('');
     expect(map.root.textContent).not.toContain(leader);
     expect(map.root.querySelector('.screen__title')?.hasAttribute('data-tip')).toBe(false);
   });
@@ -157,6 +158,7 @@ describe('the pre-gym screen for a defender boss (D101)', () => {
     screen.render(
       {
         gym: segment.gymDefinition,
+        leader: '',
         segment: 0,
         party: state.party,
         holding: state.party.map(() => null),
@@ -168,8 +170,11 @@ describe('the pre-gym screen for a defender boss (D101)', () => {
     const title = screen.root.querySelector('.screen__title')!;
     expect(title.querySelector('[data-tip="node:gym"]')).not.toBeNull();
     expect(title.querySelector('.pre-gym__size')?.textContent).toBe(String(team.length));
-    expect(screen.root.querySelector('.pre-gym__type .panel__level')?.textContent).toContain(String(team[0]!.level));
-    expect(screen.root.querySelector('.pre-gym__type .type')).toBeNull();
+    // The type chip's slot left the heading with D105 (the challenger has no
+    // type), so the level sits beside the title in its place.
+    expect(screen.root.querySelector('.pre-gym__header .panel__level')?.textContent).toContain(String(team[0]!.level));
+    expect(screen.root.querySelector('.pre-gym__header .type')).toBeNull();
+    expect(screen.root.querySelector('.pre-gym__type')).toBeNull();
   });
 });
 

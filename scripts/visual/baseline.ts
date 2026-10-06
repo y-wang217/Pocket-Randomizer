@@ -21,6 +21,8 @@
  * RESULT seeds are the result-screen suite's, kept because they are short.
  */
 
+// The route half of the encounter library, before any run (checkpoint 9).
+import '../../src/data/encounters/full';
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync, existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
 

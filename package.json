@@ -22,6 +22,7 @@
     "sim": "vite-node scripts/sim.ts",
     "sim:defender": "vite-node scripts/defender-bench.ts",
     "gen:pools": "vite-node scripts/gen-pools.ts",
+    "gen:encounters": "vite-node scripts/import-encounters/index.ts",
     "content-hash": "vite-node scripts/content-hash.ts",
     "copy-audit": "vite-node scripts/copy-audit.ts",
     "census": "vite-node scripts/visual/census.ts --write",

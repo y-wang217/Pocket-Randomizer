@@ -240,7 +240,9 @@ describe('a whole run', () => {
       onState: (state) => {
         const lead = state.party[0];
         if (!lead) return;
-        seen.push({ segment: state.currentSegment, position: state.position, lead: lead.spec.species });
+        // By nickname, which an evolution keeps and a species name does not:
+        // from `-27` this seed's lead evolves on the gym it clears.
+        seen.push({ segment: state.currentSegment, position: state.position, lead: lead.spec.nickname ?? lead.spec.species });
       },
     });
 
@@ -358,7 +360,7 @@ describe('the gym the question is asked about', () => {
           {
             ...scriptedRunPolicy(greedyAiPolicy),
             chooseLead: async (_party, gym, state) => {
-              seen.push({ segment: state.currentSegment, leader: gym.leader });
+              seen.push({ segment: state.currentSegment, leader: gym.id });
               return 0;
             },
           },
@@ -371,7 +373,7 @@ describe('the gym the question is asked about', () => {
 
     expect(seen.length).toBeGreaterThan(0);
     for (const entry of seen) {
-      expect(entry.leader).toBe(GYMS[entry.segment]?.leader);
+      expect(entry.leader).toBe(GYMS[entry.segment]?.id);
     }
   }, 120_000);
 });

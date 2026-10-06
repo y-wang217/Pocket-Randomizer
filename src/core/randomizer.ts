@@ -46,12 +46,11 @@
  * `RANDOMIZER_VERSION` exists to make loud rather than silent.
  */
 import type { RngStream } from './rng';
-import type { Gender, PokemonSpec, TeamSpec, Tier } from './types';
+import type { EncounterRef, Gender, PokemonSpec, TeamSpec, Tier } from './types';
 import {
   isAbilityBlacklisted,
   isMoveBlacklisted,
   isSpeciesBlacklisted,
-  toId,
 } from '../data/blacklists';
 import { ABILITY_POOL } from '../data/abilities';
 import type { GymDefinition } from '../data/gyms';
@@ -72,6 +71,8 @@ import {
 import { bandOf, impactOf, MAX_MOVE_BAND, MIN_MOVE_BAND } from '../data/moveOverrides';
 import { SPECIES_POOL, type SpeciesEntry } from '../data/speciesPools';
 import { stageAllowedAt } from '../data/evolution';
+import { encounterCandidates, fitParty, type PlayableMember } from '../data/encounters/library';
+import type { EncounterRecord } from '../data/encounters/types';
 import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
 
 /**
@@ -413,7 +414,73 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * `docs/spec/gymrun-defender-mode-v0-fun-test.md`, `docs/generation.md`
  * section 106.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-26';
+/*
+ * ## `-27`: every trainer and gym is a record from the library
+ *
+ * Stage 6.0. A trainer or gym node now resolves to one `EncounterRecord` from
+ * `data/encounters/` — a real trainer from a real game — before its members
+ * are rolled. The pick is **one draw on a new key**, `encounterKey(id)`, so it
+ * moves nothing on `nodeKey`; but the members change anyway, because a slot
+ * that has a canonical member overlays it after its draws (species, level,
+ * the set moves, the held item where the table admits it), and the slots
+ * beyond the fitted party roll with `seen` already carrying the canonical
+ * species. Same count on `nodeKey` as before — species 2, level 1, ability 1,
+ * moves 14, gender 1, item 2 per member — different composition on every
+ * trainer and gym team in every seed. `contentHash` moves beside it for the
+ * tables and for `data/gyms.ts` losing its eight names. `RUN_LOG_VERSION`
+ * holds: no decision was added.
+ * `docs/spec/gymrun-stage6.0-encounter-library.md`, `docs/generation.md` section 111.
+ */
+/*
+ * ## `-28`: the Champion Cup joins the library
+ *
+ * Stage 6.0, checkpoint 5. Twelve Sword and Shield records (Leon's three
+ * rosters, Hop's three, Marnie, Bede and the four finals rematches) enter the
+ * tables, and a Game Boy boss's class reads as the role word. A record that
+ * enters a candidate window shifts every record behind it, so the same draw
+ * on `encounterKey` picks a different record wherever one entered: the
+ * regenerate rule the generated files state. Same count on every key. The
+ * party encoding compacted in the same checkpoint moves nothing: `index.ts`
+ * decodes it into the records the library held before. `contentHash` moves
+ * beside it for the tables. `RUN_LOG_VERSION` holds.
+ * `docs/spec/gymrun-stage6.0-encounter-library.md`, `docs/generation.md` section 112.
+ */
+/*
+ * ## `-29`: the boss is a challenger, and a window is a cast
+ *
+ * Stage 6.0, checkpoint 6. Three composition changes at once. The boss node
+ * draws among rivals, protagonists, gym leaders and the Elite Four nearest
+ * the cap instead of the leaders of the gym's type, and its rolled fill is
+ * the segment's pool rather than the type's. Every candidate window keeps one
+ * record per trainer name, so the same draw on `encounterKey` lands on a
+ * different record at every node. Route windows lose the rivals and gain the
+ * leaders at `hard` and `elite`. Same count on every key. `contentHash` moves
+ * beside it for `data/gyms.ts` and the library. `RUN_LOG_VERSION` holds: the
+ * node choice and the lead choice are the same questions in the same order.
+ * `docs/spec/gymrun-stage6.0-checkpoint6-challengers.md`, `docs/generation.md` section 109.
+ */
+/*
+ * ## `-30`: the Gen 5 to 9 rivals join the challenger pool
+ *
+ * Stage 6.0, checkpoint 8. 282 records from Serebii's per-character pages
+ * (Cheren, Bianca, Hugh, Brendan, May, Wally, Hau, Gladion, Trace, Hop,
+ * Marnie, Bede, Barry: every rival fight with its set moves and items) enter
+ * the tables. A record that enters a candidate window shifts the records
+ * behind it, so the same draw on `encounterKey` lands on a different
+ * challenger wherever one entered, which is the regenerate rule the
+ * generated files state. Same count on every key. `contentHash` moves beside
+ * it for the tables. `RUN_LOG_VERSION` holds.
+ * `docs/spec/gymrun-stage6.0-checkpoint8-gen5-9-rivals.md`, `docs/generation.md` section 111.
+ */
+/*
+ * ## `-30`: the merge. Stage 6.0 (`-27` to `-30` above) onto Defender Mode
+ * v0's `-26`. This branch took `-26` to `-29` for the four notes above while
+ * main took `-26` for Defender Mode, so the four were renumbered at the
+ * merge (checkpoint 10) and the merged tree is `-30`, by the rule the `-26`
+ * note states: one string never names two schemas.
+ * `docs/spec/gymrun-stage6.0-checkpoint10-merge-main.md`, `docs/generation.md` section 113.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-30';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered
@@ -509,18 +576,6 @@ function wildSpeciesFor(segment: number, tier: Tier, level: { min: number; max: 
     level,
     (entry) => !locale || localeAdmits(locale, entry.types),
     `a wild ${locale ?? 'encounter'} at segment ${segment}`,
-  );
-}
-
-/** A gym's pool: its own type, its own restrictions, the segment's own distribution. */
-function gymSpeciesFor(gym: GymDefinition, segment: number, level: { min: number; max: number }): BandedSpeciesPool {
-  const allow = gym.allow ? new Set(gym.allow.map(toId)) : null;
-  const deny = gym.deny ? new Set(gym.deny.map(toId)) : null;
-  return bandedSpeciesPool(
-    speciesBandWeightsFor(segment, 'normal'),
-    level,
-    (entry) => entry.types.includes(gym.type) && (!allow || allow.has(entry.id)) && (!deny || !deny.has(entry.id)),
-    `a ${gym.type} gym at segment ${segment}`,
   );
 }
 
@@ -970,14 +1025,37 @@ function rollSpec(
   stream: RngStream,
   holding?: { kind: BattleKind; segment: number },
   seen: Set<string> = new Set(),
+  overlay: PlayableMember | null = null,
 ): PokemonSpec {
-  const entry = rollSpecies(pool, stream, seen);
+  /*
+   * **A canonical member spends every draw a rolled one does, and then
+   * overrides what the record says.** Stage 6.0. The species, the level and
+   * the moveset are all drawn below exactly as they were, and discarded where
+   * the record has a value: that is what keeps the count on this stream a
+   * function of the slot count alone, so a library edit that hands a node a
+   * different record cannot move the ability, the gender or the held item
+   * drawn for the slot beside it. The rolled species is drawn with `seen`
+   * already holding every canonical species, so a rolled fill slot never
+   * repeats one.
+   */
+  const rolled = rollSpecies(pool, stream, seen);
+  const entry = overlay?.entry ?? rolled;
   seen.add(entry.id);
+  const rolledLevel = levelFor(rolled, level, stream);
+  const ability = rollAbility(stream);
+  const rolledMoves = rollMoveset(entry, damaging, stream);
+  // A set move stays only where this node could have drawn it: a damaging
+  // move inside the node's band window, or a status move the pool carries.
+  // The band ladder is the difficulty curve and a record does not get to
+  // climb it; the rolled moveset fills whatever the filter took.
+  const admitted = overlay
+    ? overlay.moves.filter((name) => damaging.all.some((move) => move.name === name) || STATUS_AVAILABLE.some((move) => move.name === name))
+    : [];
   const spec: PokemonSpec = {
     species: entry.species,
-    level: levelFor(entry, level, stream),
-    ability: rollAbility(stream),
-    moves: rollMoveset(entry, damaging, stream),
+    level: overlay?.level ?? rolledLevel,
+    ability,
+    moves: overlay ? overlayMoves(admitted, rolledMoves) : rolledMoves,
     gender: rollGender(entry, stream),
   };
   /*
@@ -992,8 +1070,46 @@ function rollSpec(
    * nobody asked.
    */
   if (!holding) return spec;
-  const item = rollHeldItem(holding.kind, holding.segment, stream);
+  const rolledItem = rollHeldItem(holding.kind, holding.segment, stream);
+  // The record's item, where the table for this kind and segment lists it;
+  // the roll otherwise. A gym's item ladder and a trainer's berry list are
+  // still the only things deciding what an opponent may hold.
+  const canonicalItem =
+    overlay?.item && heldItemPoolFor(holding.kind, holding.segment).some((entry) => entry.id === overlay.item)
+      ? overlay.item
+      : undefined;
+  const item = canonicalItem ?? rolledItem;
   return item ? { ...spec, item } : spec;
+}
+
+/** The record's set moves first, the rolled moveset filling the rest to the slot count, no repeats. */
+function overlayMoves(canonical: readonly string[], rolled: readonly string[]): string[] {
+  const moves: string[] = [];
+  for (const move of [...canonical, ...rolled]) {
+    if (moves.length >= MOVESET.slots) break;
+    if (!moves.includes(move)) moves.push(move);
+  }
+  return moves;
+}
+
+/** What the node records about the trainer it drew. */
+function refOf(record: EncounterRecord): EncounterRef {
+  return {
+    id: record.id,
+    name: record.trainer.name,
+    class: record.trainer.class,
+    sprite: record.trainer.sprite,
+    game: record.game,
+    place: record.place,
+    role: record.role,
+    cite: record.cite,
+  };
+}
+
+/** A team and who it belongs to. */
+export interface GeneratedEncounter {
+  team: TeamSpec;
+  source: EncounterRef;
 }
 
 // ---------------------------------------------------------------------------
@@ -1022,27 +1138,53 @@ export function generateWildMon(
   });
 }
 
-/** A trainer's team. Size comes from the curve, which is a function of PARTY_SIZE. */
-export function generateTrainerTeam(segment: number, tier: Tier, stream: RngStream): TeamSpec {
+/**
+ * A trainer: a record from the library, fitted to the curve. **Stage 6.0.**
+ *
+ * `pick` is the node's `encounterKey` stream and spends exactly one draw, the
+ * index into the segment's candidate list. `stream` is the node's `nodeKey`
+ * stream and spends what it always spent. Size and level come from the curve;
+ * the record decides who fills the first slots and the pool fills the rest.
+ */
+export function generateTrainerEncounter(segment: number, tier: Tier, stream: RngStream, pick: RngStream): GeneratedEncounter {
   const level = opponentLevel('trainer', segment, tier);
   const pool = speciesFor(segment, tier, level);
   const damaging = damagingFor(segment, tier);
   const size = opponentTeamSize('trainer', segment, tier);
-  const seen = new Set<string>();
+  const candidates = encounterCandidates('trainer', segment, tier);
+  const record = candidates[pick.nextInt(candidates.length)]!;
+  const fitted = fitParty(record, level, size);
+  const seen = new Set<string>(fitted.map((member) => member.entry.id));
 
-  return Array.from({ length: size }, () =>
-    rollSpec(pool, damaging, level, stream, { kind: 'trainer', segment }, seen),
+  const team = Array.from({ length: size }, (_, slot) =>
+    rollSpec(pool, damaging, level, stream, { kind: 'trainer', segment }, seen, fitted[slot] ?? null),
   );
+  return { team, source: refOf(record) };
 }
 
 /**
- * A gym leader's team: every member of the leader's type.
+ * A trainer's team. Size comes from the curve, which is a function of PARTY_SIZE.
  *
- * No `tier` parameter, and that is deliberate rather than an oversight. A gym
- * is the segment's difficulty statement; letting a node tier modify it would
- * mean two dials on the same number, and the report could not tell them apart.
+ * `pick` defaults to `stream` for a caller that hands one stream, in which
+ * case the record pick is that stream's first draw. A run never does that:
+ * `core/encounters.ts` keys the pick separately, which is what lets a library
+ * edit move the record without moving the rolls beside it.
  */
-export function generateGymTeam(gym: GymDefinition, segment: number, stream: RngStream): TeamSpec {
+export function generateTrainerTeam(segment: number, tier: Tier, stream: RngStream, pick: RngStream = stream): TeamSpec {
+  return generateTrainerEncounter(segment, tier, stream, pick).team;
+}
+
+/**
+ * A challenger's team: a record from the library, fitted to the curve, with
+ * the segment's pool filling the slots the record does not.
+ *
+ * No `tier` parameter, and that is deliberate rather than an oversight. A
+ * challenger is the segment's difficulty statement; letting a node tier
+ * modify it would mean two dials on the same number, and the report could not
+ * tell them apart. `gym` is the slot, a segment and a number; nothing in it
+ * shapes the team.
+ */
+export function generateGymEncounter(_gym: GymDefinition, segment: number, stream: RngStream, pick: RngStream): GeneratedEncounter {
   const tier: Tier = 'normal';
   const level = opponentLevel('gym', segment, tier);
   /*
@@ -1063,7 +1205,7 @@ export function generateGymTeam(gym: GymDefinition, segment: number, stream: Rng
    * 2026-09-18, so the floor and the ceiling were the same number and this line
    * asks what it always asked.
    */
-  const pool = gymSpeciesFor(gym, segment, { min: level.max, max: level.max });
+  const pool = speciesFor(segment, tier, { min: level.max, max: level.max });
   /*
    * The one place a move pool is not the segment's own: a gym leader draws one
    * band higher (`GYM_MOVE_BAND_BONUS`). That is the difficulty spike, and it
@@ -1083,9 +1225,31 @@ export function generateGymTeam(gym: GymDefinition, segment: number, stream: Rng
    * spent; only the table changed. `HELD_ITEM_RATE`'s gym column now climbs to
    * 1.0 and `heldItemPoolFor` widens with the segment, and nothing here moved.
    */
-  return Array.from({ length: size }, () =>
-    rollSpec(pool, damaging, level, stream, { kind: 'gym', segment }, seen),
+  /*
+   * **The challenger is a record. Stage 6.0, checkpoint 6.** One draw on
+   * `pick` chooses among the challengers nearest this segment's cap, one per
+   * name (a rival, a protagonist, a gym leader or an Elite Four member), and
+   * the record's party, fitted to the range and the slot count, overlays the
+   * first slots. A leader's canonical roster is one type on its own; a
+   * rival's is mixed; the fill is the segment's pool either way, because the
+   * challenger has no type and the player plans against the area, not the
+   * boss (ruling 3). Until checkpoint 6 the gym had a type, the candidates
+   * were its leaders and the fill was filtered to it.
+   */
+  const candidates = encounterCandidates('gym', segment);
+  const record = candidates[pick.nextInt(candidates.length)]!;
+  const fitted = fitParty(record, level, size);
+  for (const member of fitted) seen.add(member.entry.id);
+
+  const team = Array.from({ length: size }, (_, slot) =>
+    rollSpec(pool, damaging, level, stream, { kind: 'gym', segment }, seen, fitted[slot] ?? null),
   );
+  return { team, source: refOf(record) };
+}
+
+/** A challenger's team alone. `pick` defaults as on `generateTrainerTeam`. */
+export function generateGymTeam(gym: GymDefinition, segment: number, stream: RngStream, pick: RngStream = stream): TeamSpec {
+  return generateGymEncounter(gym, segment, stream, pick).team;
 }
 
 /**

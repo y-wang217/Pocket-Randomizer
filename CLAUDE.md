@@ -21,6 +21,10 @@ carries the argument.
   `core/types.ts`.
 - Every balance or copy number a tuning pass would touch lives in `data/`. If
   tuning requires editing logic, the split is wrong.
+- The encounter library's route tables are installed by the host before any
+  run (`data/encounters/full` under Node, the one dynamic import in `ui/app.ts`
+  in the app). `core/` never fetches them, and a run generated without them
+  throws before any draw. Asserted by `test/encounter-registry.test.ts`.
 
 Argument: [`docs/architecture.md`](docs/architecture.md).
 

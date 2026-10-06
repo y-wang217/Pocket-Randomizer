@@ -83,7 +83,7 @@ describe('the map overlay itself', () => {
     expect(map.root.hidden).toBe(false);
   });
 
-  it('shows the whole eight-gym rail, not just the current segment', () => {
+  it('shows the next challenger and the distance to them', () => {
     /*
      * The rail is why this is a readout about *the run* rather than about the
      * next three steps. `run-map.ts` states the reason: "Volta's Gym" means
@@ -91,14 +91,17 @@ describe('the map overlay itself', () => {
      */
     const map = createMapDrawer();
     map.open(state);
-    expect(map.root.querySelectorAll('.rail__gym')).toHaveLength(state.segments.length);
+    // The eight-gym rail stood here until D106 (checkpoint 7); one bar now.
+    const bar = map.root.querySelector<HTMLElement>('.next-challenger__bar');
+    expect(bar).not.toBeNull();
+    expect(map.root.querySelector('.next-challenger__who')?.textContent).toBe(state.segments[state.currentSegment]!.gym.encounter!.opponent);
   });
 
   it('shows the segment heading and the committed route', () => {
     const map = createMapDrawer();
     map.open(state);
 
-    expect(map.root.querySelector('.screen__title')?.textContent ?? '').toMatch(/Gym 1 of 8/);
+    expect(map.root.querySelector('.screen__title')?.textContent ?? '').toMatch(/Challenger 1 of 8/);
     expect(map.root.querySelectorAll('.step').length).toBeGreaterThan(1);
     // The gym caps the chain, so there is always one more row than steps.
     expect(map.root.querySelectorAll('.node').length).toBeGreaterThan(1);
@@ -254,7 +257,7 @@ describe('every decision surface', () => {
         const screen = createPreGymScreen();
         const party = partyOf(state);
         screen.render(
-          { gym: gymForSegment(0), segment: 0, party, holding: party.map(() => null), tuning: state.tuning },
+          { gym: gymForSegment(0), leader: 'Brock', segment: 0, party, holding: party.map(() => null), tuning: state.tuning },
           {
             onLead: () => {
               submitted++;

@@ -209,21 +209,10 @@ describe('the curve can be drawn from', () => {
     }
   });
 
-  it('gives every gym its own type inside its own segment bands', () => {
-    // The one data dependency that would turn a gym into a lie. `gymSpeciesFor`
-    // widens to every band rather than throwing if this fails, so without this
-    // test the failure mode is a silently off-curve gym rather than a crash.
-    for (const gym of GYMS) {
-      const bands = new Set(speciesBandsFor(gym.segment, 'normal'));
-      const available = SPECIES_POOL.filter(
-        (entry) => bands.has(entry.band) && entry.types.includes(gym.type),
-      );
-      expect(available.length, `${gym.leader} (${gym.type}) at segment ${gym.segment}`).toBeGreaterThan(3);
-    }
-  });
-
-  it('names a type the dex recognises for every gym', () => {
-    const known = new Set(dex.types.all().map((type) => type.name));
-    for (const gym of GYMS) expect(known.has(gym.type), `${gym.leader}: ${gym.type}`).toBe(true);
+  it('caps every segment with one challenger slot, in order', () => {
+    // The table lost its types at checkpoint 6 (a challenger has none); what
+    // is left to hold is that eight slots cap eight segments, once each.
+    expect(GYMS.map((gym) => gym.segment)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+    expect(new Set(GYMS.map((gym) => gym.id)).size).toBe(8);
   });
 });

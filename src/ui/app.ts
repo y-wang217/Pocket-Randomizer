@@ -131,6 +131,16 @@ export function outroFor(review: BattleReview): OutroKind {
 }
 
 
+/**
+ * The route half of the encounter library, fetched as a chunk of its own.
+ * **Stage 6.0 checkpoint 9, the bundle seam.** The import starts the moment
+ * the app module is evaluated, in parallel with the first paint, and
+ * `start()` awaits it before the first run: `core/` throws before any draw
+ * if a run is generated without it, so there is no path by which a seed is
+ * read against half the library. The only dynamic import in `src/`.
+ */
+const encounterLibrary = import('../data/encounters/full');
+
 export function mountApp(root: HTMLElement): void {
   const settings = initSettings();
   /*
@@ -588,6 +598,9 @@ export function mountApp(root: HTMLElement): void {
 
   async function start(seed: string, resume?: RunLog): Promise<void> {
     abandon?.();
+    // The route tables, before the first run (checkpoint 9). A no-op after
+    // the first await; the chunk is fetched once.
+    await encounterLibrary;
 
     setPhase('running');
     // Every run begins with the phone's space reclaimed; the toggle brings
@@ -774,6 +787,9 @@ export function mountApp(root: HTMLElement): void {
             // and probably interesting game, and a bigger change than this
             // patch. See the header on `locale-select.ts`.
             gym: gymForSegment(state.currentSegment),
+            leader: state.segments[state.currentSegment]?.leader ?? '',
+            challenger: state.segments[state.currentSegment]?.gym.encounter?.opponent ?? '',
+            sprite: state.segments[state.currentSegment]?.gym.encounter?.source?.sprite ?? null,
             party: state.party,
           },
           (index) => localePick.submit(index),
@@ -1369,6 +1385,8 @@ export function mountApp(root: HTMLElement): void {
       preGymScreen.render(
         {
           gym: pendingGym,
+          leader: state.segments[state.currentSegment]?.leader ?? '',
+          challenger: state.segments[state.currentSegment]?.gym.encounter?.opponent ?? '',
           segment: state.currentSegment,
           /*
            * Both halves of the plan, for the reason `readDrawer` gives: the

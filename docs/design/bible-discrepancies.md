@@ -93,6 +93,9 @@ which blocks everything.
 | D75 | 5.0/4 | Node positions from a hash of the node id, against "all randomness comes from core/rng.ts" | **2026-09-30**, option 1: a slot by option index, no hash |
 | D76 | 5.0/0, 5.0/1 | 5.0 lands on top of an open Tier 7: which face M7.1 tests, and which items it redoes | **2026-09-30**, option 1: 5.0 before M7.1 |
 | D77 | 5.0/4's census, then 5.0/3 or M7.2 | The map node card's current step prints an untiered node's hint and a shop's shelf in words: 7 against a budget of 1 | **2026-09-30**, option 1: the hint to inspect, the shelf a count and a coin amount |
+| D104 | Stage 6.0's player-facing half: the opponent's name, sprite and citation | Every opponent is a named trainer from a named game, and no rule says whether the battle header, the map node card or the summary may say so; D61 refuses the sprite | **2026-10-05**, option 1: class and name on the battle header with the sprite at 16, the citation on the summary, the map node card a kind |
+| D105 | Stage 6.0 checkpoint 6: the boss is a challenger with no type | Four surfaces show the gym's type as a chip, and the boss no longer has one | **2026-10-05**, by the author's directive: the chips come off, the surfaces read the challenger's class and name |
+| D106 | Stage 6.0 checkpoint 7: no badge, a progress bar to the next challenger | The eight-badge rail and the badge mark (D46, D72, D104) say the segment is a gym; the author's design says it is training toward a challenger | **2026-10-05**, option 1: one bar at four mounts and the locale screen, the badge retired, the challenger's sprite in its slot |
 
 ## Rulings, 2026-09-19
 
@@ -4597,3 +4600,166 @@ with no confirm. 5.0/4 runs before 5.0/3.
 D65 to D71 were ruled for 5.0/3, which merged first (the section above). D77,
 filed by this stage's census, was ruled option 1 the same day and built in
 5.0/4.
+
+---
+
+## Rulings, 2026-10-05, closing Stage 6.0
+
+Stage 6.0 shipped its headless half at checkpoint 4 and put three questions
+to the author before the player-facing half, recorded in
+[`../spec/gymrun-stage6.0-encounter-library.md`](../spec/gymrun-stage6.0-encounter-library.md)
+under *Rulings taken at checkpoint 5*. The bible goes to Rev 26.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D104 | **Option 1.** The battle header's opponent slot reads the trainer's class and name with the trainer sprite at 16 beside it; the summary cites the game and the place under each visit's opponent; the map node card stays a kind. D61 is amended for the battle header alone. | Bible section 3, *Node kind*; section 4, *Battle screen header* and *Summary and graveyard*; section 5, *Battle screen header* and a new *Summary visit* row. `../generation.md` §108 |
+
+Two more items were ruled in the same answer and have no row: the compact
+party encoding is built to claw back the bundle the library added, and the
+Champion Cup is read from Serebii to close the library's Leon, Hop and Marnie
+gap.
+
+---
+
+## Rulings, 2026-10-05, redirecting Stage 6.0 at checkpoint 6
+
+The author's two messages after checkpoint 5, filed verbatim as
+[`../spec/gymrun-stage6.0-checkpoint6-challengers.md`](../spec/gymrun-stage6.0-checkpoint6-challengers.md),
+and six answers taken by question in the same session. The bible goes to Rev 27.
+
+| Row | Ruling | Where it lands |
+|---|---|---|
+| D105 | **The author's directive.** The boss is a challenger (a rival, a protagonist, a gym leader or an Elite Four member), read as the game's own class and name, and it has no type. Every type chip that described the gym comes off: pre-gym heading, map heading, map rail, locale rail. The node's kind word is *Challenger*. | Bible section 3, *Node kind*; section 4, *Pre-gym screen*; section 5, *Run Info screen* and *Locale card*. `../generation.md` §109 |
+| D106 | **Option 1**, ruled the same day (*"d102 option1 and go ahead checkpoint 7"*): one *Next challenger* bar at the rail's four mounts and the locale screen, the eight pips and the badge mark retired, the challenger's own sprite in the badge's slot on the boss node and the battle header. | Bible Rev 28: section 3, *Node* family and *Node kind*; section 4, *Next challenger* at 3; section 5, *Battle screen header*, *Next challenger*, *Map node card*, *Run Info screen*, *Locale card*; section 9's bet. `../generation.md` §110 |
+
+---
+
+## D104. Every opponent is a named trainer from a named game, and no rule says where that shows
+
+**Filed 2026-10-05, by Stage 6.0 at its fourth checkpoint
+([`../spec/gymrun-stage6.0-encounter-library.md`](../spec/gymrun-stage6.0-encounter-library.md)).
+Ruled 2026-10-05, option 1, by the author, and built at the fifth checkpoint
+the same day. Bible Rev 26.**
+
+Stage 6.0 makes every trainer and gym node a record from a library of real
+encounters: the trainer's name and class (`Youngster Joey`, `Leader Brock`),
+a Showdown trainer sprite id of the right era (`brock-gen1rb`), the game and
+the place (`Red and Blue`, `Pewter City Gym`), and the row the record was
+read from. `core/encounters.ts` carries all of it on `EncounterSpec.source`
+and `Segment.gymEncounter`. The author's brief asks for it to be shown
+(*"would be fun to actually cite which trainer is from which game"*), and the
+ruling at filing was headless first: build the library, file this, stop.
+
+What a screen shows today is unchanged in kind. A gym has always been named
+by its leader on the map heading, the rail, the pre-gym screen, the locale
+rail, the battle header and the summary; those slots now carry the drawn
+leader's name (Brock, Roxanne, Roark) where they carried a fictional one, by
+the same rule that put a proper noun there (section 4, pre-gym row: *"A
+leader's name is a proper noun and free"*). The eight blurbs retired with the
+eight fictional leaders; the slot that held them is gone, and the gym tooltip
+(`gym:`) with it. A trainer node still reads `Trainer battle` on the map and
+`Trainer (2)` in the battle header's opponent slot.
+
+Three things the library could show have no rule:
+
+- **The opponent's identity on a trainer node.** The battle header's opponent
+  slot (section 4: *"Battle screen header | 3 | Opponent, AI tier, and section
+  6's turn header"*) reads `Trainer (2)` or `Trainer's Rattata`. The record
+  says `Youngster Joey`. A class word is a word the counting rule can see; a
+  name is a proper noun and free. The map node card names a gym's leader
+  beside its mark (section 5) and names nothing on a trainer, by the rule
+  that *"naming them would reveal what a node contains before it is chosen"*
+  (`run-map.ts`). A trainer's name reveals a game's roster to a player who
+  knows it, which is the nostalgia the brief wants and is also, strictly, a
+  forecast.
+- **The trainer sprite.** D61 (option 1, 2026-09-30) keeps trainer sprites to
+  the player marker: *"the gym node wears the badge mark, never its leader's
+  sprite."* That ruling was made when no leader had a sprite. Every one of
+  5,627 records now has a verified one, drawn in its game's own style.
+- **The citation.** `Pewter City Gym, Red and Blue` is a fact about the
+  record and not about the board. Nothing in section 4 budgets it anywhere.
+  It is the line the brief asks for by name.
+
+**Options.**
+
+1. **Identity on the battle header only, after the fight starts.** The
+   opponent slot reads `Youngster Joey` or `Leader Brock`, class and name,
+   in place of `Trainer (2)`; the map node card stays a kind. The sprite
+   rides the header beside the name at 16, which is the size the node glyph
+   already renders at there (D46), and D61 is amended to say the header may
+   wear it. The citation is the summary's: each visit row gains the game and
+   the place under the opponent, where the run is already over and nothing
+   is a forecast. C1 holds, since a name and a game are attributes.
+2. **Identity on the battle header and the map node card, sprite nowhere.**
+   As 1 for the header; the map node card's walked state names the trainer
+   it was, under the long press that already shows the opponent. D61 stands.
+3. **Nothing new.** The gym's leader name is the whole of it, which is what
+   the ruling at filing built. The library is a generator and a log, and the
+   summary cites nothing.
+
+**Recommendation: 1.** It is the smallest reading of the brief that shows
+the citation at all, it puts the name where the header already budgets an
+opponent, and it keeps every pre-selection surface a kind. The playtest row
+for it is the author's directive, not a disconfirmer, and the bible's section
+10 process applies to the D61 amendment the sprite needs.
+
+## D105. The boss is a challenger, and four surfaces show a type it no longer has
+
+**Filed and ruled 2026-10-05, by the author's directive at Stage 6.0's sixth
+checkpoint ([`../spec/gymrun-stage6.0-checkpoint6-challengers.md`](../spec/gymrun-stage6.0-checkpoint6-challengers.md)).
+Built the same day. Bible Rev 27.**
+
+*"the gym defender shouldn't be facing gyms as bosses. bosses should be more
+like 'this is an ace trainer at this stage' like the rival in red/blue or the
+main character in any of the games"*, and, asked what becomes of the gym's
+type, *"the challenger is agnostic of the training"*. The boss of a segment
+is drawn from rivals, protagonists, gym leaders and the Elite Four, one
+record per name nearest the segment's cap; its team is the record's with the
+segment's pool filling the rest; it has no type. The pre-gym heading, the map
+heading, the map rail and the locale rail each carried a type chip that
+described the gym's team, and a chip that describes nothing is a lie, so each
+comes off and reads the challenger's class and name instead. The locale
+card's four chips stay: they are the area's wild types, the typed resource
+the author's design keeps. No option set was needed; the directive is the
+ruling, and the amendment is the one the directive implies.
+
+## D106. No badge: a progress bar that shrinks as the next challenger approaches
+
+**Filed 2026-10-05, by the same checkpoint. Ruled option 1 the same day and built as checkpoint 7. Bible Rev 28.**
+
+The author's second message: *"maps are training, and there's only a progress
+bar that shrinks as the 'next challenger approaches'. so there doesn't need
+to be a badge, just that you can go to an area to get the resources (typing)
+in the ones available in that area."* Today the segment is drawn as a gym:
+an eight-badge rail on the map heading, the map drawer, Run Info and the
+desktop sidebar (D46's badge mark, D72's rail, D104's "the gym node still
+wears the badge mark"), a badge mark on the boss node and the battle header,
+and badge dots on the summary's route. A challenger has no badge to give.
+
+**Options.**
+
+1. **One bar, four mounts, the badge mark retired.** A *Next challenger*
+   component: the challenger's class and name over a bar that empties as the
+   segment's steps are walked (steps remaining over the segment's length,
+   read off the run), mounted where the rail is today (map heading, drawer,
+   Run Info, sidebar) and on the locale screen in the rail's place. Eight
+   small marks for the run's position stay only on the summary's route,
+   which is an archive. The boss node and the battle header wear the
+   trainer's own sprite at 16 in the badge mark's slot (D104 already lets the
+   header), and `glyphNode` loses the badge entry.
+2. **The bar beside the rail.** As 1 for the bar; the rail stays as eight
+   numbered pips with the challengers' names and no badge glyph, so the run's
+   position is still read at a glance everywhere the rail mounts.
+3. **The rail as is, renamed.** No bar; the rail's badge glyph becomes the
+   kind glyph for *Challenger* and nothing else moves. The smallest change,
+   and not what the author described.
+
+**Recommendation: 1.** It is the author's description. The bar is one
+component in section 5 with one fact (steps to the challenger) and the
+challenger's name, which section 4 can budget at 2 (*Next challenger*); the
+run's position the rail gave is the segment number the heading already
+carries. The amendment touches section 3's *Node kind* row (the badge entry),
+section 4's new budget row, section 5's *Map heading*, *Run Info screen*,
+*Locale card* and *Battle screen header* rows, and section 9's bet that the
+bar reads as approach rather than as a timer.
+

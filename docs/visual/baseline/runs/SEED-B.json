@@ -2,8 +2,8 @@
   "seed": "SEED-B",
   "versions": {
     "runLog": "gymrun-run-24/gymrun-0.3.0",
-    "contentHash": "b85ac93912caa3e508f0d1451b13d0ec9d3c92cdf6bc6be007cf654f3fbf2cc6",
-    "randomizer": "gymrun-randomizer-26",
+    "contentHash": "998fc2965108d1b16f4beb0122f38476aaeae2b108ee20ff5258034d63529f4c",
+    "randomizer": "gymrun-randomizer-30",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -11,10 +11,10 @@
   "gymsCleared": 0,
   "causeOfDeath": {
     "segment": 0,
-    "leader": "Garnet",
+    "leader": "Roark",
     "kind": "gym",
     "species": "Fennel",
-    "bySpecies": "Aron",
+    "bySpecies": "Cranidos",
     "byMove": "Smack Down",
     "indirect": null
   },
@@ -41,9 +41,9 @@
       "level": 15,
       "ability": "Mirror Armor",
       "moves": [
-        "Swift 32/32",
+        "Swift 29/32",
         "Pounce 32/32",
-        "Brutal Swing 26/32",
+        "Brutal Swing 29/32",
         "Spore 24/24"
       ],
       "item": "silkscarf",
@@ -120,9 +120,9 @@
     {
       "segment": 0,
       "kind": "gym",
-      "label": "Garnet's Gym",
+      "label": "Challenger Leader Roark",
       "tier": null,
-      "opponent": "Garnet (Rock)",
+      "opponent": "Leader Roark",
       "turns": 6,
       "winner": "p2",
       "hpAfter": 0,
@@ -132,8 +132,8 @@
           "name": "Umber",
           "level": 15,
           "species": "Cutiefly",
-          "bySpecies": "Nacli",
-          "byMove": "Rock Throw",
+          "bySpecies": "Onix",
+          "byMove": "Triple Axel",
           "indirect": null
         },
         {
@@ -141,7 +141,7 @@
           "name": "Fennel",
           "level": 15,
           "species": "Rattata",
-          "bySpecies": "Aron",
+          "bySpecies": "Cranidos",
           "byMove": "Smack Down",
           "indirect": null
         }
@@ -153,9 +153,9 @@
     "mode": "attacker",
     "versions": {
       "runLog": "gymrun-run-24/gymrun-0.3.0",
-      "contentHash": "b85ac93912caa3e508f0d1451b13d0ec9d3c92cdf6bc6be007cf654f3fbf2cc6",
+      "contentHash": "998fc2965108d1b16f4beb0122f38476aaeae2b108ee20ff5258034d63529f4c",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-26"
+      "randomizerVersion": "gymrun-randomizer-30"
     },
     "decisions": [
       {
@@ -401,21 +401,21 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 1
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 1
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
-          "slot": 3
+          "slot": 1
         }
       },
       {

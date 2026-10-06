@@ -115,7 +115,10 @@ describe('what the projection says, at each of the three moments', () => {
   }, 120_000);
 
   /*
-   * The two seeds in `PROJ-0`..`PROJ-399` that reach a relic card at all.
+   * The first two seeds in `PROJ-0`..`PROJ-399` that reach a relic card at
+   * all. Re-scanned at Stage 6.0 checkpoint 6 (`PROJ-231` and `PROJ-354`
+   * stopped reaching one once the boss became a challenger); four of the
+   * first sixty qualify on this tree.
    *
    * That ratio is not a typo and is worth the sentence: under the scripted
    * baseline on this tree most runs die inside two nodes, so an elite pool —
@@ -123,7 +126,7 @@ describe('what the projection says, at each of the three moments', () => {
    * longer and sees them far more often. The case takes the relic whenever one
    * is offered rather than the baseline's card 0, for the same reason.
    */
-  const RELIC_SEEDS = ['PROJ-231', 'PROJ-354'];
+  const RELIC_SEEDS = ['PROJ-31', 'PROJ-34'];
 
   it('carries a relic the moment the card is taken, not when the node ends', async () => {
     /*
