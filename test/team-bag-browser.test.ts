@@ -87,13 +87,13 @@ describe('the Team screen', () => {
   it('starts in party order, sorts by a stat when asked, and goes back', async () => {
     const { page, close } = await open('focus=team');
     const slots = (): Promise<(string | null)[]> =>
-      page.locator('.screen--party .party--manage > .party__member').evaluateAll((cards) => cards.map((card) => card.getAttribute('data-slot')));
+      page.locator('.screen--party .party--manage .party__member').evaluateAll((cards) => cards.map((card) => card.getAttribute('data-slot')));
     expect(await slots()).toEqual(['0', '1', '2', '3', '4', '5']);
     expect(await page.locator('.party__sort-key[data-sort="party"]').getAttribute('aria-pressed')).toBe('true');
 
     await page.locator('.party__sort-key[data-sort="spe"]').click();
     const speeds = await page
-      .locator('.screen--party .party--manage > .party__member')
+      .locator('.screen--party .party--manage .party__member')
       .evaluateAll((cards) => cards.map((card) => Number(card.querySelector('.stat[data-row="spe"] .stat__value')?.textContent)));
     expect(speeds).toEqual([...speeds].sort((a, b) => b - a));
     // No member is marked: the sort is the only thing that moved.

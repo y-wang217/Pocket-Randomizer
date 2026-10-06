@@ -89,4 +89,39 @@ describe('the party screen', () => {
     screen.render({ ...view, party }, handlers);
     expect(held()).toEqual(['Squirtle:Sitrus Berry', 'Bulbasaur:Leftovers', 'Charmander:Nothing held']);
   });
+
+  /*
+   * **The party lead at rest patch, 2026-10-06.** Lead was drawn into the
+   * card's fold under the four move cards, and the author found no way to
+   * change the lead. It is at rest now, outside the party row component;
+   * Release stays in the fold.
+   */
+  it('draws Lead at rest under each card, outside the fold, and Release inside it', () => {
+    const screen = createPartyScreen();
+    const party = [member('Bulbasaur'), member('Charmander'), member('Squirtle')];
+    const reorders: [number, number][] = [];
+    screen.render(
+      { party, backpack: [], tms: [], teachable: new Set([]), relics: [], tuning: DEFAULT_TUNING, slots: THREE_UP, backTo: 'Back to the map', plan: null },
+      { ...handlers, onReorder: (from, to) => reorders.push([from, to]) },
+    );
+    const leads = [...screen.root.querySelectorAll<HTMLButtonElement>('.party--manage .party__lead')];
+    expect(leads.map((lead) => lead.textContent)).toEqual(['Lead', 'Lead', 'Lead']);
+    expect(leads.every((lead) => !lead.closest('.collapse__body') && !lead.closest('.party__member'))).toBe(true);
+    expect(leads.map((lead) => lead.disabled)).toEqual([true, false, false]);
+    leads[2]?.click();
+    expect(reorders).toEqual([[2, 0]]);
+
+    const releases = [...screen.root.querySelectorAll('.party--manage .party__actions .button--danger')];
+    expect(releases).toHaveLength(3);
+    expect(releases.every((release) => release.closest('.collapse__body'))).toBe(true);
+  });
+
+  it('draws no Lead while a node resolves', () => {
+    const screen = createPartyScreen();
+    screen.render(
+      { party: [member('Bulbasaur'), member('Charmander')], backpack: [], tms: [], teachable: new Set([]), relics: [], tuning: DEFAULT_TUNING, slots: THREE_UP, backTo: 'Back', plan: null, canEditParty: false },
+      handlers,
+    );
+    expect(screen.root.querySelectorAll('.party__lead, .party__actions')).toHaveLength(0);
+  });
 });

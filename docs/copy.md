@@ -1201,9 +1201,9 @@ Found by grep, not by import: a string assigned straight to `textContent`, `titl
 | `src/ui/screens/party.ts` line 618 | TMs |  |
 | `src/ui/screens/party.ts` line 641 | Teach |  |
 | `src/ui/screens/party.ts` line 649 | Discard |  |
-| `src/ui/screens/party.ts` line 726 | Lead |  |
-| `src/ui/screens/party.ts` line 735 | Release |  |
-| `src/ui/screens/party.ts` line 1003 | Backpack |  |
+| `src/ui/screens/party.ts` line 736 | Lead |  |
+| `src/ui/screens/party.ts` line 748 | Release |  |
+| `src/ui/screens/party.ts` line 1017 | Backpack |  |
 | `src/ui/screens/acquisition.ts` line 206 | Take it |  |
 | `src/ui/screens/locale-select.ts` line 149 | Choose a region |  |
 | `src/ui/screens/move-replace.ts` line 67 | Learning |  |
