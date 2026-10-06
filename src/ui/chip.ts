@@ -357,6 +357,27 @@ export function challengerMark(source: EncounterRef | null, label: string, size:
 }
 
 /**
+ * A trainer's mark: their own sprite in the slot the node kind's glyph held.
+ * **The map sprites patch, bible Rev 29, D107.** A defender door's class
+ * sprite on every row, and a walked attacker trainer's record sprite; the
+ * boss keeps `challengerMark`. A sprite the CDN does not have falls back to
+ * the trainer kind's glyph, so the slot is never empty. Same wrapper and tip
+ * as `nodeKindGlyph`, because it is the kind's mark.
+ */
+export function trainerMark(sprite: string | null, label: string, size: 24 | 16): HTMLElement {
+  const node = build('node', 'node__kind node__kind--challenger node__kind--trainer', '', { tip: 'node:trainer' });
+  if (sprite) {
+    node.append(opponentImg(sprite, size));
+  } else {
+    const mark = glyphNode('node-trainer', { label, size });
+    if (mark) node.append(mark);
+  }
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  return node;
+}
+
+/**
  * The state of the board, as its mark. **Stage 4.11 Tier 2, D47.**
  *
  * One builder for the weather and the terrain, because they are one family

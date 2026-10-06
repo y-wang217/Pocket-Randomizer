@@ -58,7 +58,7 @@ import { nodePayout } from '../../core/economy';
 import { NODE_KIND_WORDS } from '../../data/glyphLabels';
 import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
 import { applyBackdrop } from '../assets/manifest';
-import { capabilityBandChevron, capabilityGlyph, challengerMark, currencyAmount, nodeKindGlyph, tierPips } from '../chip';
+import { capabilityBandChevron, capabilityGlyph, challengerMark, currencyAmount, nodeKindGlyph, tierPips, trainerMark } from '../chip';
 import { slotX } from '../map-layout';
 import { trainerImg } from '../sprites';
 import { el } from '../scene';
@@ -582,8 +582,24 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
   const mark = el('span', 'node__mark');
   const label = el('span', 'node__label');
   if (phase === 'current') label.dataset['tutorial'] = 'kinds';
-  // The boss wears the challenger's own sprite in the kind's slot (D106).
-  const kind = node.kind === 'gym' ? challengerMark(node.encounter?.source ?? null, kindWord(node.kind), 24) : nodeKindGlyph(node.kind, kindWord(node.kind), 24);
+  /*
+   * The boss wears the challenger's own sprite in the kind's slot (D106), and
+   * **a trainer wears theirs where the player already knows who it is**
+   * (the map sprites patch, D107): a defender door's class on every row,
+   * since D101 names the class there, and an attacker's route trainer once
+   * walked, since the visit names them. An unwalked attacker trainer keeps
+   * the glyph: the record's sprite would say which class is behind the door
+   * before the choice, and the map reveals a node's kind, never its contents.
+   */
+  const challenger = node.trainerClass ? trainerClass(node.trainerClass) : null;
+  const trainerSprite =
+    node.kind === 'trainer' ? (options.defender ? (challenger?.sprite ?? null) : options.visit ? (node.encounter?.source?.sprite ?? null) : null) : null;
+  const kind =
+    node.kind === 'gym'
+      ? challengerMark(node.encounter?.source ?? null, kindWord(node.kind), 24)
+      : trainerSprite
+        ? trainerMark(trainerSprite, kindWord(node.kind), 24)
+        : nodeKindGlyph(node.kind, kindWord(node.kind), 24);
   const said = [nodeDetailText(node, segment, options.visit), ...(phase === 'upcoming' ? laterFacts(node, run) : [])]
     .filter(Boolean)
     .join(' · ');
@@ -608,7 +624,6 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
    * are type chips on the step being chosen from only; an untyped class shows
    * none.
    */
-  const challenger = node.trainerClass ? trainerClass(node.trainerClass) : null;
   if (options.defender && node.trainerClass) {
     const name = el('span', 'node__name node__name--class');
     name.textContent = TRAINER_CLASS_NAMES[node.trainerClass] ?? node.trainerClass;

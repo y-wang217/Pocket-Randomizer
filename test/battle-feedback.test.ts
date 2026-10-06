@@ -22,7 +22,7 @@
  * browser then does with a percentage is the browser's business and the smoke
  * script's.
  */
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createBattle, movePriority } from '../src/core/battle/driver';
 import { readFlags, type FlagDeps, type FlaggedTurn } from '../src/core/battle/flags';
@@ -31,7 +31,9 @@ import { moveChoice, type TeamSpec } from '../src/core/types';
 import { abilityEffects } from '../src/data/abilityEffects';
 import { OPPONENT_TEAM, PLAYER_TEAM } from '../src/data/mons';
 import { createFlagStrip, type FlagStrip } from '../src/ui/flag-strip';
+import { readReplay, type BodyState, type TurnReplay } from '../src/ui/replay';
 import { createScene, type Scene } from '../src/ui/scene';
+import { beatMs } from '../src/ui/theme/motion';
 import { resetSettings } from '../src/ui/settings';
 
 /** The same adapter lookup `ui/screens/battle.ts` supplies in the app. */
@@ -39,7 +41,18 @@ const FLAGS: FlagDeps = { priorityOf: movePriority };
 
 beforeEach(() => {
   resetSettings();
+  // The steps of a turn are paced on timers (`ui/replay.ts`); the clock is driven by hand here.
+  vi.useFakeTimers();
 });
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+/** Let `beats` beats of the turn pass. */
+function advance(beats: number): void {
+  vi.advanceTimersByTime(beats * beatMs());
+}
 
 /** A real view off a real battle, which is what the scene is written against. */
 function baseView(seed = 'FEEDBACK01'): BattleUiView {
@@ -79,25 +92,26 @@ const NOOP = (): undefined => undefined;
 /**
  * Play exactly one turn and hand the scene the reading of it.
  *
- * Deliberately the same two calls `ui/screens/battle.ts` makes in the app —
- * one `readFlags` over the batch, then `scene.update(view, onChoose, turns)` —
- * so what is asserted below is the wiring that actually ships and not a
- * rehearsal of it. `slot` picks which move both sides use.
+ * Deliberately the same calls `ui/screens/battle.ts` makes in the app — the
+ * opening draw, then one `readFlags` over the batch, `readReplay` over it, and
+ * `scene.update(view, onChoose, replay)` — so what is asserted below is the
+ * wiring that actually ships and not a rehearsal of it. `slot` picks which
+ * move both sides use. The first step is drawn on return; the rest are on the
+ * clock (`advance`).
  */
-function playOneTurn(p1: TeamSpec, p2: TeamSpec, slot: number, seed: string): { scene: Scene; turns: FlaggedTurn[] } {
+function playOneTurn(p1: TeamSpec, p2: TeamSpec, slot: number, seed: string): { scene: Scene; turns: FlaggedTurn[]; replay: TurnReplay } {
   const session = createBattle({ teams: { p1, p2 }, seed });
+  const view = (): BattleUiView => buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects);
+  const scene = createScene();
+  scene.update(view(), NOOP);
   const before = session.protocolFor('p1').length;
   for (const side of ['p1', 'p2'] as const) session.submit(side, moveChoice(slot));
 
   const batch = session.protocolFor('p1').slice(before).filter((line) => !line.startsWith('|t:|'));
   const turns = readFlags(batch, FLAGS);
-  const scene = createScene();
-  scene.update(
-    buildBattleUiView(session.factsFor('p1'), { ability: true, item: true, teamSize: true }, abilityEffects),
-    NOOP,
-    turns,
-  );
-  return { scene, turns };
+  const replay = readReplay(batch, turns);
+  scene.update(view(), NOOP, replay);
+  return { scene, turns, replay };
 }
 
 describe('the HP chunk and its shadow', () => {
@@ -245,25 +259,30 @@ describe('the turn order lunge', () => {
     return beatsOf(scene, 'acted');
   }
 
-  it('moves the actors in the order the log numbers the actions', () => {
+  it('moves the actors in the order the log numbers the actions, one step at a time', () => {
     // The player is slow and uses a priority move, so p1 resolves first
     // despite losing the Speed tie by a hundred points.
     const { scene, turns } = playOneTurn(SLOW, FAST, 1, 'JIGGLE01');
 
-    // The log's own ordinals, off the same reading the jiggle was given.
     /*
-     * The log's own ordinals, off the same reading the jiggle was given. Note
-     * the group carries no turn number: an incremental batch opens mid-turn
-     * and closes with the `|turn|` that starts the *next* one, which is why
-     * the jiggle keys off "the last group with actions" and never off a
-     * number.
+     * The log's own ordinals, off the same reading the steps were built from.
+     * Note the group carries no turn number: an incremental batch opens
+     * mid-turn and closes with the `|turn|` that starts the *next* one, which
+     * is why the replay keys off "the last group with actions" and never off
+     * a number.
      */
     const order = turns.flatMap((turn) => turn.actions.map((each) => each.action.side));
     expect(order[0]).toBe('p1');
     expect(order[1]).toBe('p2');
 
-    // And the actors agree, because they were placed from that same list.
-    expect(nudges(scene)).toEqual({ me: '1', foe: '2' });
+    // The first actor lunges on the frame the view arrives, alone.
+    expect(nudges(scene)).toEqual({ me: '1', foe: undefined });
+    // Two beats on, the second, alone: the first's beat is cleared with its step.
+    advance(2);
+    expect(nudges(scene)).toEqual({ me: undefined, foe: '1' });
+    // And the view itself last, with no lunge at all.
+    advance(2);
+    expect(nudges(scene)).toEqual({ me: undefined, foe: undefined });
   });
 
   it('moves the other way round when the bracket is not in play', () => {
@@ -272,7 +291,9 @@ describe('the turn order lunge', () => {
     const { scene, turns } = playOneTurn(SLOW, FAST, 2, 'JIGGLE01');
     const order = turns.flatMap((turn) => turn.actions.map((each) => each.action.side));
     expect(order[0]).toBe('p2');
-    expect(nudges(scene)).toEqual({ me: '2', foe: '1' });
+    expect(nudges(scene)).toEqual({ me: undefined, foe: '1' });
+    advance(2);
+    expect(nudges(scene)).toEqual({ me: '1', foe: undefined });
   });
 
   it('does not move on the opening draw, because an arrival is not a turn', () => {
@@ -281,28 +302,42 @@ describe('the turn order lunge', () => {
     expect(nudges(scene)).toEqual({ me: undefined, foe: undefined });
   });
 
-  it('places a side by its first action, so the sequence never exceeds two', () => {
+  it('gives a replacement switch after a faint a step of its own, after both moves', () => {
     const scene = createScene();
+    scene.update(baseView(), NOOP);
     // A replacement switch after a faint is a third action on a side that has
-    // already moved. It must not re-place an actor that has already lunged.
-    scene.update(baseView(), NOOP, [
-      {
-        turn: 3,
-        actions: [
-          { action: { kind: 'move', side: 'p2', actor: 'A', move: 'Tackle', order: 1, priority: false, bracket: 0 }, flags: [] },
-          { action: { kind: 'move', side: 'p1', actor: 'B', move: 'Tackle', order: 2, priority: false, bracket: 0 }, flags: [] },
-          { action: { kind: 'switch', side: 'p1', actor: 'C', from: null, order: 3 }, flags: [] },
-        ],
-        residual: [],
-      },
-    ]);
-    expect(nudges(scene)).toEqual({ me: '2', foe: '1' });
+    // already moved. It is its own step, two beats after the second move.
+    const replay = readReplay(
+      [],
+      [
+        {
+          turn: 3,
+          actions: [
+            { action: { kind: 'move', side: 'p2', actor: 'A', move: 'Tackle', order: 1, priority: false, bracket: 0 }, flags: [] },
+            { action: { kind: 'move', side: 'p1', actor: 'B', move: 'Tackle', order: 2, priority: false, bracket: 0 }, flags: [] },
+            { action: { kind: 'switch', side: 'p1', actor: 'C', from: null, order: 3 }, flags: [] },
+          ],
+          residual: [],
+        },
+      ],
+    );
+    expect(replay.steps.map((step) => `${step.side}:${step.kind}`)).toEqual(['p2:move', 'p1:move', 'p1:switch']);
+    scene.update(baseView(), NOOP, replay);
+    expect(nudges(scene)).toEqual({ me: undefined, foe: '1' });
+    advance(2);
+    expect(nudges(scene)).toEqual({ me: '1', foe: undefined });
+    // A switch is a swap beat, not a lunge.
+    advance(2);
+    expect(nudges(scene)).toEqual({ me: undefined, foe: undefined });
   });
 
-  it('clears the lunge on a tap, like every other transition', () => {
+  it('clears the lunge on a tap, lands on the final view, and draws no later step', () => {
     const { scene } = playOneTurn(SLOW, FAST, 1, 'JIGGLE01');
     expect(nudges(scene).me).toBe('1');
     scene.root.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true }));
+    expect(nudges(scene)).toEqual({ me: undefined, foe: undefined });
+    // The steps that were still to come are gone with the tap.
+    advance(4);
     expect(nudges(scene)).toEqual({ me: undefined, foe: undefined });
   });
 });
@@ -325,6 +360,11 @@ function turnOf(sides: ('p1' | 'p2')[], flags: FlaggedTurn['actions'][number]['f
       residual: [],
     },
   ];
+}
+
+/** The same synthetic turn, read into steps with no lines behind it. */
+function replayOf(sides: ('p1' | 'p2')[], flags: FlaggedTurn['actions'][number]['flags'] = []): TurnReplay {
+  return readReplay([], turnOf(sides, flags));
 }
 
 /**
@@ -385,32 +425,40 @@ describe('the hit and the faint', () => {
     const before = session.protocolFor('p1').length;
     for (const side of ['p1', 'p2'] as const) session.submit(side, moveChoice(slot));
     const batch = session.protocolFor('p1').slice(before).filter((line) => !line.startsWith('|t:|'));
-    scene.update(view(), NOOP, readFlags(batch, FLAGS));
+    scene.update(view(), NOOP, readReplay(batch, readFlags(batch, FLAGS)));
     return scene;
   }
 
-  it('puts the hit in the slot after the lunge that took it', () => {
-    // p1 goes first on a bracket: its target is hit in slot 1, and the hit p1
-    // takes from the reply lands in slot 2.
+  it('puts each hit in the step of the move that took it, and nowhere else', () => {
+    // p1 goes first on a bracket: its target is hit in p1's step, and the hit
+    // p1 takes from the reply lands in p2's step, two beats on.
     const first = watchOneTurn(1, 'JIGGLE01');
-    expect(beatsOf(first, 'acted')).toEqual({ me: '1', foe: '2' });
-    expect(beatsOf(first, 'hit')).toEqual({ me: '2', foe: '1' });
+    expect(beatsOf(first, 'acted')).toEqual({ me: '1', foe: undefined });
+    expect(beatsOf(first, 'hit')).toEqual({ me: undefined, foe: '1' });
+    advance(2);
+    expect(beatsOf(first, 'acted')).toEqual({ me: undefined, foe: '1' });
+    expect(beatsOf(first, 'hit')).toEqual({ me: '1', foe: undefined });
 
-    // Speed decides slot 2, so the slots swap with the order.
+    // Speed decides slot 2, so the steps swap with the order.
     const second = watchOneTurn(2, 'JIGGLE01');
-    expect(beatsOf(second, 'acted')).toEqual({ me: '2', foe: '1' });
-    expect(beatsOf(second, 'hit')).toEqual({ me: '1', foe: '2' });
+    expect(beatsOf(second, 'acted')).toEqual({ me: undefined, foe: '1' });
+    expect(beatsOf(second, 'hit')).toEqual({ me: '1', foe: undefined });
+    advance(2);
+    expect(beatsOf(second, 'acted')).toEqual({ me: '1', foe: undefined });
+    expect(beatsOf(second, 'hit')).toEqual({ me: undefined, foe: '1' });
   });
 
-  it('takes the last slot when the other side never acted', () => {
-    // Only p2 moved, and p2 is the one that lost HP: recoil, weather, a burn.
-    // There is no p1 lunge to follow, so the hit follows the last lunge there
-    // was rather than landing before the turn.
+  it('lands a drop no step explained on the final view, as a hit with no lunge', () => {
+    // Only p2 moved, and the lines did not say where p2's HP went (a synthetic
+    // turn): the view itself carries the drop, and it lands last, as a hit.
     const view = baseView();
     const scene = createScene();
     scene.update(withHp(view, 'opponent', 1), NOOP);
-    scene.update(withHp(view, 'opponent', 0.8), NOOP, turnOf(['p2']));
+    scene.update(withHp(view, 'opponent', 0.8), NOOP, replayOf(['p2']));
     expect(beatsOf(scene, 'acted')).toEqual({ me: undefined, foe: '1' });
+    expect(beatsOf(scene, 'hit')).toEqual({ me: undefined, foe: undefined });
+    advance(2);
+    expect(beatsOf(scene, 'acted')).toEqual({ me: undefined, foe: undefined });
     expect(beatsOf(scene, 'hit')).toEqual({ me: undefined, foe: '1' });
   });
 
@@ -419,7 +467,9 @@ describe('the hit and the faint', () => {
     const marks = (flags: FlaggedTurn['actions'][number]['flags']): Record<string, string | undefined> => {
       const scene = createScene();
       scene.update(withHp(view, 'opponent', 1), NOOP);
-      scene.update(withHp(view, 'opponent', 0.5), NOOP, turnOf(['p1', 'p2'], flags));
+      scene.update(withHp(view, 'opponent', 0.5), NOOP, replayOf(['p1', 'p2'], flags));
+      // The drop is the view's, so it lands on the final draw.
+      advance(4);
       const out: Record<string, string | undefined> = {};
       for (const side of ['me', 'foe'] as const) {
         for (const [key, value] of Object.entries(actorOf(scene, side).dataset)) out[`${side}.${key}`] = value;
@@ -471,8 +521,8 @@ describe('the hit and the faint', () => {
     const view = baseView();
     const scene = createScene();
     scene.update(withHp(view, 'opponent', 1), NOOP);
-    scene.update(withFainted(view, 'opponent'), NOOP, turnOf(['p1', 'p2']));
-    expect(beatsOf(scene, 'acted')).toEqual({ me: '1', foe: '2' });
+    scene.update(withFainted(view, 'opponent'), NOOP, replayOf(['p1', 'p2']));
+    expect(beatsOf(scene, 'acted')).toEqual({ me: '1', foe: undefined });
 
     scene.root.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true }));
     for (const key of ['acted', 'hit', 'fainting'] as const) {
@@ -484,69 +534,92 @@ describe('the hit and the faint', () => {
 });
 
 /**
- * The chunk each bar draws, placed in the slot of the move that caused it.
- * **The victory-order patch, item 2.**
+ * The chunk each bar draws, in the step of the move that caused it.
+ * **The victory-order patch, item 2; one step per action since the per-move
+ * replay patch.**
  *
  * ## What was reported, and what it turned out to be
  *
  * "Animations are not tied to speed right now, are they? I just saw a Snubbull
  * go before my Sizzlipede and the animation for my attack went first."
  *
- * The lunges were not the problem. They are placed off the protocol's own
- * ordering and the cases above assert both directions against a real fight;
- * `test/visual-motion.test.ts` asserts on both engines that slot 2 is held back
- * by exactly the two beats the stylesheet's four-slot layout is built from.
- *
- * What had no order in it at all was the **bar**. Both sides' chunks were drawn
- * on the frame the update arrived, so on a turn where both sides took damage
- * the outline of the hit the player *dealt* appeared simultaneously with the one
- * they took — before either body had moved. The eye goes to the bar, and two
- * chunks at once reads as "both attacks happened now", which from the losing
- * side of a Speed check reads as your own attack going first.
- *
- * ## What is slotted, and what emphatically is not
- *
- * The chunk is the ghost of the ground that was lost: emphasis, not
- * information. The bar's *fill*, the HP text, the flag words and the move
- * buttons are correct on the frame the update arrives and nothing here changes
- * that — the rule in `ui/theme/motion.ts` is untouched. A player who never
- * looks at the chunk loses no fact.
+ * The lunges were not the problem. What had no order in it at all was the
+ * **bar**: both sides' chunks were drawn on the frame the update arrived, so on
+ * a turn where both sides took damage the outline of the hit the player
+ * *dealt* appeared simultaneously with the one they took. The victory-order
+ * patch slotted the chunk's fade; the per-move replay moves the *fill* too,
+ * because a bar that is already at the turn's end state tells the player the
+ * second move landed before the first one was drawn. Each step's bars stand
+ * where the lines say the bodies stood after that action, and the view itself
+ * lands last.
  */
-describe('the chunk lands in the turn order', () => {
+describe('the chunk lands in its step', () => {
   function slotOf(scene: Scene, side: 'me' | 'foe'): string | undefined {
     return shadowOf(scene, side).dataset['slot'];
   }
 
-  /** Both sides at full, then both damaged on one turn with the given order. */
+  const body = (over: Partial<BodyState> = {}): BodyState => ({ switched: false, species: null, hp: null, fainted: false, ...over });
+  const hpOf = (fraction: number): BodyState['hp'] => ({ current: Math.round(fraction * 100), max: 100, fraction });
+
+  /** Both sides at full, then both halved on one turn, the steps saying whose move did which. */
   function twoHits(order: ('p1' | 'p2')[]): Scene {
     const scene = createScene();
     const full = baseView();
     scene.update(full, NOOP);
     const hurt = withHp(withHp(full, 'opponent', 0.5), 'player', 0.5);
-    scene.update(hurt, NOOP, turnOf(order));
+    const steps = order.map((side) => ({
+      side,
+      kind: 'move' as const,
+      // The side that acted took nothing yet; its target is at half.
+      bodies: side === 'p1' ? { p1: body(), p2: body({ hp: hpOf(0.5) }) } : { p1: body({ hp: hpOf(0.5) }), p2: body() },
+      marks: [],
+      fired: [],
+    }));
+    // The second step's bodies carry the first's drop too, as the lines would.
+    steps[1]!.bodies = { p1: body({ hp: hpOf(0.5) }), p2: body({ hp: hpOf(0.5) }) };
+    scene.update(hurt, NOOP, { steps, marks: [], fired: [], bracket: null });
     return scene;
   }
 
-  it('gives each side the slot after the other side acted', () => {
-    // p1 first: the foe's chunk answers p1's move (slot 1), the player's answers
-    // p2's (slot 2). The same rule the recoil beside it uses, from the same list.
+  it('draws the target\'s chunk in the actor\'s step, and the reply\'s two beats on', () => {
+    // p1 first: the foe's chunk answers p1's move now; the player's answers p2's
+    // in the next step. Both ride slot 1, the beat after their step's lunge.
     const first = twoHits(['p1', 'p2']);
     expect(slotOf(first, 'foe')).toBe('1');
-    expect(slotOf(first, 'me')).toBe('2');
-    // And the recoil agrees, because both read one `actingOrder`.
-    expect(beatsOf(first, 'hit')).toEqual({ me: '2', foe: '1' });
+    expect(fillOf(first, 'foe').style.width).toBe('50%');
+    expect(slotOf(first, 'me')).toBeUndefined();
+    expect(fillOf(first, 'me').style.width).toBe('100%');
+    // And the recoil agrees, because both read the one chunk.
+    expect(beatsOf(first, 'hit')).toEqual({ me: undefined, foe: '1' });
+
+    advance(2);
+    expect(slotOf(first, 'me')).toBe('1');
+    expect(fillOf(first, 'me').style.width).toBe('50%');
+    // The foe lost nothing more this step, so its chunk stands where the last
+    // step drew it, still fading (`keep`), and it takes no second hit.
+    expect(slotOf(first, 'foe')).toBe('1');
+    expect(beatsOf(first, 'hit')).toEqual({ me: '1', foe: undefined });
+
+    // The view itself: both at half, nothing new lost, no chunk.
+    advance(2);
+    expect(fillOf(first, 'me').style.width).toBe('50%');
+    expect(fillOf(first, 'foe').style.width).toBe('50%');
+    expect(beatsOf(first, 'hit')).toEqual({ me: undefined, foe: undefined });
   });
 
   it('mirrors when the other side goes first, which is the reported turn', () => {
     const second = twoHits(['p2', 'p1']);
     expect(slotOf(second, 'me')).toBe('1');
-    expect(slotOf(second, 'foe')).toBe('2');
-    expect(beatsOf(second, 'hit')).toEqual({ me: '1', foe: '2' });
+    expect(slotOf(second, 'foe')).toBeUndefined();
+    expect(beatsOf(second, 'hit')).toEqual({ me: '1', foe: undefined });
+    advance(2);
+    expect(slotOf(second, 'foe')).toBe('1');
+    expect(beatsOf(second, 'hit')).toEqual({ me: undefined, foe: '1' });
   });
 
   it('carries no slot at all when there is no turn to place it in', () => {
     /*
-     * The opening draw and every non-battle bar. Without a reading there is no
+     * The opening draw and every non-battle bar. Without a step there is no
      * order, so the chunk fades across the whole budget from now — exactly what
      * every bar did before slots existed. Asserted because the plausible wrong
      * change is to default to slot 1, which would hold the chunk at full
@@ -572,36 +645,26 @@ describe('the chunk lands in the turn order', () => {
     scene.root.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true }));
     expect(slotOf(scene, 'me')).toBeUndefined();
     expect(shadowOf(scene, 'me').dataset['fading']).toBeUndefined();
+    // The tap landed the bars on the view itself.
+    expect(fillOf(scene, 'foe').style.width).toBe('50%');
   });
 
   it('places the chunk from the same reading the log numbers the turn with', () => {
     /*
      * Not a synthetic turn: a real fight, through the real adapter, on the turn
      * the report describes — the fast side moves first because Speed decided
-     * it, and the slow side's chunk is the one in slot 1 because the fast
-     * side's move is what took it.
-     *
-     * What is taken from the fight is the *reading*, not the HP: a real turn's
-     * damage may or may not clear `MIN_CHUNK` on either side, and this case is
-     * about which slot a chunk lands in rather than about whether that fight
-     * drew one. So the bars are then driven full-then-halved by hand, and the
-     * `turns` handed to the second of those is the real one.
-     *
-     * The intermediate full draw is also what absorbs the species change:
-     * `Bar.set` is told `chunk: false` on a swapped body, because the
-     * difference between two different bodies' bars is not damage.
+     * it, and the slow side's chunk is the one drawn first because the fast
+     * side's move is what took it. The HP is the lines' own.
      */
-    const { scene, turns } = playOneTurn(SLOW, FAST, 2, 'JIGGLE01');
+    const { scene, turns, replay } = playOneTurn(SLOW, FAST, 2, 'JIGGLE01');
     const order = turns.flatMap((turn) => turn.actions.map((each) => each.action.side));
     expect(order[0], 'the fixture no longer has the fast side moving first').toBe('p2');
-
-    const full = baseView();
-    scene.update(full, NOOP);
-    const hurt = withHp(withHp(full, 'opponent', 0.5), 'player', 0.5);
-    scene.update(hurt, NOOP, turns);
-    // p2 acted first, so the player's chunk answers it and lands in slot 1.
+    expect(replay.steps.map((step) => step.side)).toEqual(order);
+    // p2 acted first, so the player's chunk answers it and is drawn first.
     expect(slotOf(scene, 'me')).toBe('1');
-    expect(slotOf(scene, 'foe')).toBe('2');
+    expect(slotOf(scene, 'foe')).toBeUndefined();
+    advance(2);
+    expect(slotOf(scene, 'foe')).toBe('1');
   });
 });
 

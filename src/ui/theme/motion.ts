@@ -130,6 +130,22 @@ export function outroHoldMs(
  * — or the battle speed setting in `ui/settings.ts` — can set it without
  * reaching into `data/`.
  */
+/**
+ * One beat of the turn, in milliseconds. **The per-move replay patch.**
+ *
+ * The same number `tokens.css` derives as `--motion-beat`: a quarter of the
+ * feedback budget at the player's battle speed. The scene paces the turn's
+ * steps off this, two beats per action (the lunge, then the hit), so a
+ * two-action turn still takes the one budget and nothing is read back off a
+ * stylesheet (`test/no-computed-timing.test.ts`). Reduced motion does not
+ * shorten it: the stylesheet cancels the movement, and the pacing of the HP
+ * steps is the outcome, which that setting keeps.
+ */
+export function beatMs(speed: BattleSpeed = getBattleSpeed(), feedbackMs: number = DEFAULT_DISPLAY_TUNING.battleFeedbackMs): number {
+  const full = feedbackMs * (BATTLE_SPEED_SCALE[speed] ?? 1);
+  return Number.isFinite(full) && full > 0 ? full / 4 : 0;
+}
+
 export function applyMotion(
   root: HTMLElement,
   speed: BattleSpeed = 'even',

@@ -14683,3 +14683,106 @@ re-recordings (the first pass failed exactly those four pins and one named
 path in a README line); `npm run build` and `scripts/smoke-defender.mjs`
 against it, whose `stats/defender-map.png` shows rank 1 on the Shore painting
 with the region named in the heading, the sidebar and the footer stamp.
+
+## 115. The turn plays move by move, and the map's nodes wear their sprites
+
+**2026-10-06**, on `claude/eager-galileo-8vqf47`, after section 114. Prompt
+[`spec/gymrun-patch-per-move-replay-and-map-sprites.md`](spec/gymrun-patch-per-move-replay-and-map-sprites.md),
+the author's go-ahead on the per-move item section 114 carried open (*"go
+ahead and build the per-move so can play test it"*) and a second ask (*"add
+actual sprite cut outs to the map"*). Both are `ui/` only. No version axis
+moves; `contentHash` holds at `76dc8f`. Bible **Rev 29**, D107 and D108, by
+the author's directive (`design/bible-discrepancies.md`, `design/playtest-log.md`).
+
+### The per-move replay (D108)
+
+**What was wrong.** The scene drew one view per batch: the bar, the number
+and the sprite stood at the turn's end state on the first frame, and only
+the shadow chunk and the lunges were slotted, by stylesheet delays in a
+four-slot layout (first actor, its target, second actor, its target). The
+second move's effect landed on the frame the first's did, and a body that
+switched in and fainted in the same turn was set swapped and fainted on one
+update: it rose through the swap beat and the fainted rule snapped it out of
+sight with no sink. The engine's order was right; it could not be seen.
+
+**The reader.** `ui/replay.ts` `readReplay(protocol, turns)` walks the batch
+in step with the actions `readTurns` numbered, the same nth-line-is-nth-action
+correspondence `flags.ts` and `battle-log.ts` rest on, and emits one step per
+action of the turn being played: its side and kind, and what each body looked
+like after that action's lines (the HP off the last `-damage`, `-heal` or
+`-sethp` naming it, a faint, a `switch` or `drag` with the species it named),
+with the action's abnormality marks and trait fires reduced one action at a
+time by `ui/abnormality.ts`'s own reducers, and the bracket chevron's answer
+off the log's own `priority` marking (`bracketOf`, moved from the scene). An
+action no line opened a step for (the replacement after `|upkeep|`, where the
+engine writes it; a turn handed over with no lines) is still a step, with the
+bodies as they stand at the end. What hangs on no step (the residual, an
+earlier group's `|cant|`) is the final draw's. `flattenReplay` folds every
+mark and fire onto the turn for the opening batch, which plays no step.
+
+**The scene.** `scene.update(view, onChoose, replay?)` replaces the `turns`,
+`marks` and `fired` arguments. With steps, it draws the first now and each
+later one two beats on (`ui/theme/motion.ts` `beatMs`, a quarter of the budget
+at the player's speed, read at the moment of use), composing each step's view
+over the view the stage stood at before the batch (so a body's level, types
+and stats are its own until its switch brings the final view's in), with the
+lines' HP (exact where the side's own numbers were given, a fraction of the
+body's max where a percentage was), the faint, and the switch line's species;
+the foe's count is held one higher until its faint is shown. Each step is the
+one-slot vocabulary the stage already had: the lunge on the actor that moved
+(never on a switch, which is the swap beat), the hit and the chunk one beat
+after, the mark in the same slot. The view itself lands last, with the
+residual's marks and fires. A tap lands on that final view at once and, when
+the fight ended, the outro's hold then runs from there, so the last turn is
+painted; a second tap ends the hold. The next update, a cancel and a reset
+all land a running replay on its final view first, so no step is drawn over a
+newer view. The outro waits on a running replay before its hold begins.
+
+**What is deleted.** The four-slot stylesheet: `data-acted="2"`'s delay,
+`data-hit="2"`'s delay and its one-beat sink, `.hp__shadow[data-slot="2"]`,
+`data-abnormal-slot="2"`'s delay and their reduced-motion twins; `actingOrder`,
+`hitSlot` and `bracketMark` in the scene. The faint's sink is one beat so a
+body is down before the next step. `Bar.set` gains `keep`: a later draw of the
+same turn that lost nothing on a side leaves the chunk a previous step drew
+standing, two beats into its four-beat fade, where it used to clear it; a
+heal and a swap still clear.
+
+**Tests.** `test/replay.test.ts` holds the reader on hand-written protocol: a
+two-move turn's HP per step, the bracket, a switch-in that faints and is
+replaced inside one batch as three steps, the residual left to the view, the
+last turn of a two-turn batch, the opening batch, and a lineless turn.
+`test/battle-feedback.test.ts` drives the clock with fake timers: the lunges
+one step at a time in the log's order, a replacement switch as its own step,
+the hit in its step and nowhere else, the chunk in its step, a drop no step
+explained landing last, and the tap landing on the final view and drawing no
+later step. `test/battle-outro.test.ts`, `test/forecast-feedback.test.ts` and
+`test/trait-fired.test.ts` moved to the new signature. In Chromium,
+`test/visual-release-c.test.ts` reads slot 1's timings on the first step's
+frame and watches a live turn lunge one body, then the other, never both; the
+slot 2 cases in `test/visual-motion.test.ts` are gone with the slot.
+
+### The map's sprites (D107)
+
+`ui/chip.ts` `trainerMark(sprite, label, size)`: the trainer's sprite in the
+node glyph's slot, the trainer glyph where the CDN has none, the same wrapper
+and tip as `nodeKindGlyph`. `run-map.ts` wears it on a defender door on every
+row (the class table's sprite; D101 names the class there) and on an attacker
+route trainer once walked (the record's sprite; the visit names it). An
+unwalked attacker trainer keeps the glyph: the record's sprite would say which
+class, and so which team, is behind the door before the choice, and the map
+reveals a node's kind and never its contents. On the map the cutout fills the
+disc (`styles.css`). `test/defender-ui.test.ts` holds the sprite on every
+door row and its absence on an unmet attacker trainer.
+
+### Gates
+
+`npm run types`, `npm run lint` and `npm run hedge` clean; `npm run
+test:unit` 2,189 of 2,190 on the first pass, the one failure a path in this
+section, corrected (three vitest worker timeouts in that pass, run beside a
+build and the smoke, none a test); in Chromium `test/visual-release-c.test.ts`,
+`test/visual-motion.test.ts` and `test/visual-battle-outro.test.ts` 24 of 24
+against the harness's own build; `npm run build` and `scripts/smoke-defender.mjs`
+against it, whose `stats/defender-map.png` shows the Shore rank with the
+trainer cutouts on every door; and a live turn screenshotted beat by beat
+(`stats/turn1-beat*.png`): the faster side's hit on the frame the move is
+chosen, the reply two beats on.
