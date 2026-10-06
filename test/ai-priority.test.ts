@@ -511,8 +511,13 @@ describe('the version axes', () => {
      *
      * And at checkpoint 10, the merge of the two: both sets of tables in one
      * tree, `gymrun-randomizer-30` beside it. `docs/generation.md` section 113.
+     *
+     * And for the blank-abilities patch, from `998fc2`: `data/abilities.ts`
+     * loses the sixteen abilities with no effect in a singles battle (three
+     * with no engine handler, thirteen that act only on a doubles ally).
+     * `gymrun-randomizer-31` moves beside it. `docs/generation.md` section 114.
      */
-    expect(CONTENT_HASH).toBe('998fc2965108d1b16f4beb0122f38476aaeae2b108ee20ff5258034d63529f4c');
+    expect(CONTENT_HASH).toBe('fe220132dbb41c5e2e15e6d0fb99f42aefd8420d9c4d46504a07c321c32f223f');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

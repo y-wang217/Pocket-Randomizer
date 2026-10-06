@@ -480,7 +480,15 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * note states: one string never names two schemas.
  * `docs/spec/gymrun-stage6.0-checkpoint10-merge-main.md`, `docs/generation.md` section 113.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-30';
+/*
+ * ## `-31`: sixteen blank abilities leave the pool. Ball Fetch, Honey Gather
+ * and Run Away have no engine handler; thirteen more act only on a doubles
+ * ally. `ABILITY_POOL` falls from 286 to 270, so the same ability draw reads a
+ * different name on every seed. Same count on every key. `contentHash` moves
+ * beside it for the table. `RUN_LOG_VERSION` holds.
+ * `docs/spec/gymrun-patch-blank-abilities.md`, `docs/generation.md` section 114.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-31';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

@@ -2,8 +2,8 @@
   "seed": "SEED-A",
   "versions": {
     "runLog": "gymrun-run-24/gymrun-0.3.0",
-    "contentHash": "998fc2965108d1b16f4beb0122f38476aaeae2b108ee20ff5258034d63529f4c",
-    "randomizer": "gymrun-randomizer-30",
+    "contentHash": "fe220132dbb41c5e2e15e6d0fb99f42aefd8420d9c4d46504a07c321c32f223f",
+    "randomizer": "gymrun-randomizer-31",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -29,7 +29,7 @@
       "moves": [
         "Flame Wheel 40/40",
         "Astonish 24/24",
-        "Force Palm 14/16",
+        "Force Palm 15/16",
         "Water Pulse 30/32"
       ],
       "item": null,
@@ -55,7 +55,7 @@
       "label": "Trainer battle",
       "tier": "normal",
       "opponent": "Pokéfan Kaleb",
-      "turns": 3,
+      "turns": 2,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
@@ -76,9 +76,9 @@
     "mode": "attacker",
     "versions": {
       "runLog": "gymrun-run-24/gymrun-0.3.0",
-      "contentHash": "998fc2965108d1b16f4beb0122f38476aaeae2b108ee20ff5258034d63529f4c",
+      "contentHash": "fe220132dbb41c5e2e15e6d0fb99f42aefd8420d9c4d46504a07c321c32f223f",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-30"
+      "randomizerVersion": "gymrun-randomizer-31"
     },
     "decisions": [
       {
@@ -129,13 +129,6 @@
       {
         "kind": "node",
         "index": 0
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
-        }
       },
       {
         "kind": "battle",

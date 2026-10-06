@@ -105,9 +105,11 @@ describe('the run log version', () => {
      * tables state. `-29` is the boss drawn as a challenger from a cast rather
      * than a leader of the gym's type; `-30` the Gen 5 to 9 rivals joining
      * that cast, and the merge of Stage 6.0 onto Defender Mode, where the
-     * four were renumbered above main's `-26`.
+     * four were renumbered above main's `-26`. `-31` is sixteen abilities
+     * with no battle effect leaving the pool, so every ability draw reads a
+     * different name.
      */
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-30');
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-31');
     expect(RUN_LOG_VERSION).not.toContain(RANDOMIZER_VERSION);
   });
 });
