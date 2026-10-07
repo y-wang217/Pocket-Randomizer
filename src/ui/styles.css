@@ -7942,3 +7942,93 @@ button,
 
 /* The defender boss's pre-gym title: the gym mark, its team size, then the level (D101). */
 .pre-gym__size { margin-left: var(--space-1); font-variant-numeric: tabular-nums; }
+
+/* ---------- the journey vignettes (bible Rev 30, D109) ----------
+   A beat between screens, over the whole frame (`ui/vignette.ts`): a crop of
+   the region's map painting under the map's own scrim, one sprite at 128,
+   and the caption beneath it, in the kind's colour token. It covers the nav
+   too, so nothing under it can be pressed; a tap anywhere ends it. Above the
+   coach marks, which a screen drawn beneath it may raise. */
+.vignette {
+  --kind: var(--text);
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  background: var(--bg);
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.vignette[data-moment='wild'] { --kind: var(--kind-wild); }
+.vignette[data-moment='trainer'] { --kind: var(--kind-trainer); }
+.vignette[data-moment='gym'] { --kind: var(--kind-gym); }
+.vignette[data-moment='shop'] { --kind: var(--kind-shop); }
+.vignette[data-moment='rest'] { --kind: var(--kind-rest); }
+.vignette[data-moment='event'] { --kind: var(--kind-event); }
+/* The region's painting, cropped to a window round the sprite: the map's
+   drawing at whole art pixels, its lower middle, under the scrim. */
+.vignette__stage {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  width: min(100%, 320px);
+  height: 240px;
+  overflow: hidden;
+  border-top: var(--rule-heavy) solid var(--kind);
+  border-bottom: var(--rule-heavy) solid var(--kind);
+  background:
+    var(--backdrop-image, none) center 70% / calc(var(--backdrop-w, 0) * var(--art-px)) calc(var(--backdrop-h, 0) * var(--art-px)) no-repeat,
+    color-mix(in srgb, var(--locale-glow) 38%, var(--bg-raised));
+  image-rendering: pixelated;
+}
+.vignette__stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--bg);
+  opacity: var(--map-scrim, 0.5);
+}
+/* The sprite at 128: a drawing at four art pixels to its pixel, a trainer or
+   a Pokemon at whatever its sheet gives, held whole. The lettered chip of a
+   moment with no drawing keeps the same box. */
+.vignette__sprite {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 128px;
+  height: 128px;
+  color: var(--kind);
+  filter: drop-shadow(0 var(--space-1) 0 color-mix(in srgb, var(--token-shadow) 55%, transparent));
+}
+.vignette__sprite > * { width: 100%; height: 100%; }
+.vignette__sprite img { object-fit: contain; object-position: 50% 100%; image-rendering: pixelated; }
+.vignette__sprite .asset--placeholder { font-size: var(--fs-5xl); }
+.vignette__caption {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: var(--fs-5xl);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+/* The entrance: the sprite rises a step and the caption fades in over the
+   first third of the hold. Still under reduced motion: the frame is the
+   beat, not the movement. */
+.vignette[data-still='false'] .vignette__sprite { animation: vignette-rise calc(var(--vignette-duration) / 3) ease-out both; }
+.vignette[data-still='false'] .vignette__caption { animation: vignette-fade calc(var(--vignette-duration) / 3) ease-out both; }
+@keyframes vignette-rise { from { transform: translateY(var(--space-2)); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes vignette-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .vignette .vignette__sprite,
+  .vignette .vignette__caption { animation: none; }
+}

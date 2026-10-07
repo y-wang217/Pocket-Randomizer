@@ -146,8 +146,17 @@ export interface ExposureFlags {
   counts: Partial<Record<GlyphFamily, number>>;
 }
 
+/**
+ * Whether the journey vignettes play. **The map calm-down patch, bible Rev 30,
+ * D109.** A string pair rather than a boolean so the settings sheet's one
+ * picker draws it, as it draws the battle speed.
+ */
+export const VIGNETTE_MODES = ['on', 'off'] as const;
+export type VignetteMode = (typeof VIGNETTE_MODES)[number];
+
 export interface Settings {
   battleSpeed: BattleSpeed;
+  vignettes: VignetteMode;
   tutorial: TutorialFlags;
   intro: IntroFlags;
   exposure: ExposureFlags;
@@ -170,6 +179,8 @@ export interface Settings {
  */
 export const DEFAULT_SETTINGS: Settings = {
   battleSpeed: 'even',
+  // On: the prompt's default. A beat is always one tap from over.
+  vignettes: 'on',
   tutorial: { skipped: false, seen: [] },
   intro: { seenVersion: 0 },
   exposure: { counts: {} },
@@ -216,6 +227,7 @@ export function readSettings(value: unknown): Partial<Settings> {
   if (typeof value !== 'object' || value === null) return {};
   const candidate = value as {
     battleSpeed?: unknown;
+    vignettes?: unknown;
     tutorial?: unknown;
     intro?: unknown;
     exposure?: unknown;
@@ -226,6 +238,7 @@ export function readSettings(value: unknown): Partial<Settings> {
    * `even`, which is the speed that store was already being shown.
    */
   if (isBattleSpeed(candidate.battleSpeed)) read.battleSpeed = candidate.battleSpeed;
+  if ((VIGNETTE_MODES as readonly unknown[]).includes(candidate.vignettes)) read.vignettes = candidate.vignettes as VignetteMode;
   const tutorial = candidate.tutorial as { skipped?: unknown; seen?: unknown } | undefined;
   if (typeof tutorial === 'object' && tutorial !== null) {
     read.tutorial = {
@@ -301,6 +314,17 @@ export function getBattleSpeed(): BattleSpeed {
 export function setBattleSpeed(battleSpeed: BattleSpeed): void {
   if (current.battleSpeed === battleSpeed) return;
   current = { ...current, battleSpeed };
+  saveSettings(current);
+  for (const listener of listeners) listener(current);
+}
+
+export function getVignettes(): VignetteMode {
+  return current.vignettes;
+}
+
+export function setVignettes(vignettes: VignetteMode): void {
+  if (current.vignettes === vignettes) return;
+  current = { ...current, vignettes };
   saveSettings(current);
   for (const listener of listeners) listener(current);
 }

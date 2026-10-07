@@ -13,6 +13,10 @@
 import type { BattleSession } from '../core/battle/driver';
 
 import type { NodeSpec } from '../core/encounters';
+import type { VignetteMoment } from '../data/vignetteCopy';
+import { trainerClass } from '../data/trainerClasses';
+import { opponentImg, spriteImg } from './sprites';
+import { createJourney } from './vignette';
 import type { AcquisitionDecision } from '../core/acquisition';
 import { applyBattleState } from '../core/party';
 import {
@@ -281,6 +285,13 @@ export function mountApp(root: HTMLElement): void {
     settingsSheet.overlay.root,
     stamps.root,
   );
+
+  /*
+   * **The journey vignettes. Bible Rev 30, D109.** Mounted on the frame, over
+   * the nav and every screen, so a beat covers everything a tap could reach.
+   * Driven from the run's seams below and nowhere else.
+   */
+  const journey = createJourney(shell);
 
   /*
    * The trigger's visibility follows the router, in one place.
@@ -695,6 +706,8 @@ export function mountApp(root: HTMLElement): void {
       evolvePick.cancel();
       berryPick.cancel();
       releaseBattle();
+      // A beat on the frame belongs to the run that asked for it.
+      journey.cancel();
     };
 
     /*
@@ -739,6 +752,56 @@ export function mountApp(root: HTMLElement): void {
       return answer;
     };
 
+    /*
+     * **The journey's seams. Bible Rev 30, D109.** Three, and every beat
+     * plays through one of them, so no screen can skip its vignette by
+     * accident (`test/journey-seam.test.ts` holds the shape):
+     *
+     * - `enterNode`, after a node is chosen and before `playRun` hears the
+     *   choice, so the beat stands between the commit and the node's screen.
+     *   Every map pick (`chooseNode`, `chooseDoor`) and the gym's entry
+     *   (`chooseLead`) answer through it. The same pattern as the
+     *   end-of-battle hold: one `await` on the one path, no branch in `core/`.
+     * - `arriveAtMap`, the only place the map screen is shown from a question.
+     *   When the last thing walked was a battle, a shop, an event or a region,
+     *   it plays *Where to next?* with the map drawn beneath it, so the beat
+     *   lifts onto the map at the current step. Rest does not chain: its own
+     *   beat was the whole of it, and the map never left.
+     * - `localePick`'s answer, which arms the return for the region's first map.
+     *
+     * The beats read `live` and draw nothing: no decision, no stream, no log.
+     */
+    let returnDue = false;
+    const beat = (moment: VignetteMoment, sprite: HTMLElement | null, beneath?: () => void): Promise<void> =>
+      journey.play({ moment, locale: live ? localeOf(live) : null, sprite }, beneath);
+    const leadSprite = (): HTMLElement | null => {
+      const lead = live?.party[0];
+      return lead ? spriteImg(lead.spec.species) : null;
+    };
+    // Who a moment is about: a trainer's or the boss's own sprite, the lead
+    // at a rest, and the kind's drawing otherwise.
+    const nodeSprite = (node: NodeSpec): HTMLElement | null => {
+      if (node.kind === 'rest') return leadSprite();
+      if (node.kind !== 'trainer' && node.kind !== 'gym') return null;
+      const sprite = node.trainerClass ? (trainerClass(node.trainerClass)?.sprite ?? null) : (node.encounter?.source?.sprite ?? null);
+      return sprite ? opponentImg(sprite, 24) : null;
+    };
+    const enterNode = async <T,>(node: NodeSpec | undefined, answer: T): Promise<T> => {
+      if (node) {
+        returnDue = node.kind !== 'rest';
+        await beat(node.kind, nodeSprite(node));
+      }
+      return answer;
+    };
+    const arriveAtMap = (): void => {
+      if (!returnDue) {
+        showScreen('map');
+        return;
+      }
+      returnDue = false;
+      void beat('return', leadSprite(), () => showScreen('map'));
+    };
+
     const policy: RunPolicy = {
       bindPartyEditor: (edit) => {
         editParty = edit;
@@ -773,9 +836,9 @@ export function mountApp(root: HTMLElement): void {
         return starterPick.wait();
       },
       chooseDoor: (options) => {
-        void options;
-        showScreen('map');
-        return nodePick.wait().then(flushedBefore);
+        const picked = nodePick.wait();
+        arriveAtMap();
+        return picked.then((index) => enterNode(options[index], index)).then(flushedBefore);
       },
       chooseLocale: (options, state) => {
         localeScreen.render(
@@ -795,7 +858,14 @@ export function mountApp(root: HTMLElement): void {
           (index) => localePick.submit(index),
         );
         showScreen('locale');
-        return localePick.wait().then(flushedBefore);
+        return localePick
+          .wait()
+          .then((index) => {
+            // A region's first map arrives with *Where to next?* (D109).
+            returnDue = true;
+            return index;
+          })
+          .then(flushedBefore);
       },
 
       /*
@@ -824,13 +894,18 @@ export function mountApp(root: HTMLElement): void {
         pendingGym = gym;
         renderPreGym();
         showScreen('pre-gym');
-        return leadPick.wait().then(flushedBefore);
+        // The gym's own beat, once the lead is chosen and before the fight (D109).
+        return leadPick
+          .wait()
+          .then((lead) => enterNode(live?.segments[live.currentSegment]?.gym, lead))
+          .then(flushedBefore);
       },
       chooseNode: (options: NodeSpec[]) => {
-        // The map is already rendered by onState; this only arms the buttons.
-        void options;
-        showScreen('map');
-        return nodePick.wait().then(flushedBefore);
+        // The map is already rendered by onState; this arms the buttons and
+        // shows it, through the journey's seam (D109).
+        const picked = nodePick.wait();
+        arriveAtMap();
+        return picked.then((index) => enterNode(options[index], index)).then(flushedBefore);
       },
       /*
        * Every battle completion, win or loss, cards or none.
