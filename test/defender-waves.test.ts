@@ -29,6 +29,7 @@ import {
 } from '../src/core/run';
 import type { Reward } from '../src/core/rewards';
 import { DEFENDER_BOSS_RELIC_IDS, DEFENDER_RANK_LOCALES, DEFENDER_RANKS, DEFENDER_RELIC_IDS, DEFENDER_WAVE_LENGTH } from '../src/data/defender';
+import { DEFENDER_EVENT_STEPS } from '../src/data/defenderEvents';
 import { LOCALE_IDS } from '../src/data/locales';
 import { defenderOpponentIvs, opponentTeamSize } from '../src/data/scaling';
 import { classesAtRank } from '../src/data/trainerClasses';
@@ -50,8 +51,10 @@ describe('the ranks, as generated', () => {
         expect(rank.localeOffer).toEqual([]);
         expect(rank.routes).toHaveLength(1);
         const steps = rank.routes[0]!.steps;
-        expect(steps).toHaveLength(waveLength(r) + 1);
-        const doors = steps.slice(0, -1);
+        // Doors, then the rank's question marks (2026-10-06), then the intermission.
+        expect(steps).toHaveLength(waveLength(r) + (DEFENDER_EVENT_STEPS[r] ?? 0) + 1);
+        const doors = steps.slice(0, waveLength(r));
+        const marks = steps.slice(waveLength(r), -1);
         const intermission = steps[steps.length - 1]!;
 
         for (const door of doors) {
@@ -67,6 +70,16 @@ describe('the ranks, as generated', () => {
           }
         }
 
+        expect(marks).toHaveLength(DEFENDER_EVENT_STEPS[r] ?? 0);
+        for (const mark of marks) {
+          expect(mark.options).toHaveLength(1);
+          const node = mark.options[0]!;
+          expect(node.kind).toBe('event');
+          expect(node.tier).toBeNull();
+          expect(node.event).toBeNull();
+          expect(node.defenderEvent).toBeDefined();
+        }
+
         expect(intermission.options).toHaveLength(1);
         expect(intermission.options[0]?.kind).toBe('shop');
         expect(intermission.options[0]?.shop).not.toBeNull();
@@ -80,14 +93,18 @@ describe('the ranks, as generated', () => {
     }
   });
 
-  it('switches locales, wild nodes, rest nodes and events off', () => {
+  it('switches locales, wild nodes, rest nodes and the attacker\'s events off', () => {
+    // A defender question mark is its own instance (`defenderEvent`), never
+    // the attacker's `event` (2026-10-06).
     for (const seed of SEEDS) {
       for (const rank of createRun(seed, DEFAULT_TUNING, 'defender').segments) {
         for (const node of rank.routes.flatMap((route) => route.steps.flatMap((step) => step.options))) {
-          expect(['trainer', 'shop']).toContain(node.kind);
+          expect(['trainer', 'shop', 'event']).toContain(node.kind);
           expect(node.locale).toBeNull();
           expect(node.event).toBeNull();
           expect(node.acquisition).toBeNull();
+          if (node.kind === 'event') expect(node.defenderEvent).toBeDefined();
+          else expect(node.defenderEvent).toBeUndefined();
         }
       }
     }
@@ -172,15 +189,18 @@ describe('a headless defender run (prompt test 1)', () => {
     }
   }, 240_000);
 
-  it('logs a door for every door entered and nothing for an intermission', async () => {
+  it('logs a door for every door entered, a pick for every question mark with a question, and nothing for an intermission', async () => {
     const run = await playRun('WAVES-LOG', policy(1, 1), DEFAULT_TUNING, { mode: 'defender' });
     const kinds = run.log.decisions.map((decision) => decision.kind);
     for (const banned of ['starter', 'locale', 'node', 'event', 'acquisition']) expect(kinds).not.toContain(banned);
     const doorsEntered = run.state.history.filter((visit) => visit.node.kind === 'trainer');
     const intermissions = run.state.history.filter((visit) => visit.node.kind === 'shop');
+    const marks = run.state.history.filter((visit) => visit.node.kind === 'event');
     expect(kinds.filter((kind) => kind === 'door')).toHaveLength(doorsEntered.length);
-    // A shop question is asked at each intermission, but no node question.
-    expect(kinds.filter((kind) => kind === 'shop')).toHaveLength(intermissions.length);
+    // A question mark logs its pick, as an index; a bazaar asks nothing but its shop.
+    expect(kinds.filter((kind) => kind === 'eventPick')).toHaveLength(marks.filter((visit) => (visit.node.defenderEvent?.options.length ?? 0) > 0).length);
+    // A shop question is asked at each intermission and each bazaar, but no node question.
+    expect(kinds.filter((kind) => kind === 'shop')).toHaveLength(intermissions.length + marks.filter((visit) => visit.node.shop).length);
     // The policy took the second challenger at every door.
     for (const visit of doorsEntered) expect(visit.node.id).toMatch(/-1$/);
   }, 120_000);

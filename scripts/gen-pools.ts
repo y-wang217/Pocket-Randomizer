@@ -490,7 +490,7 @@ const statusRows: MoveRow[] = [...new Set(STATUS_MOVES)]
  *
  * The species-locked abilities go for the same reason, because they are blanks
  * too once they are drawn off-species. Every entry was read off the engine's
- * own handler, not the dex text. Two shapes:
+ * own handler, not the dex text. Three shapes:
  *
  *   - **A no-op on anyone else.** The handler returns early unless the holder
  *     is the named species or forme (Zen Mode reads `baseSpecies !==
@@ -501,6 +501,12 @@ const statusRows: MoveRow[] = [...new Set(STATUS_MOVES)]
  *     `formeChange` with a fixed forme and no species check, so a Rattata that
  *     rolls one switches out a Palafin or switches in a Terapagos. That is
  *     worse than a blank.
+ *   - **A blank on every holder.** Ball Fetch, Honey Gather and Run Away have
+ *     no handler in the engine at all, and the ally abilities (Battery, Plus,
+ *     Friend Guard and the rest) read only the holder's allies, which in
+ *     singles is nobody. Not species-locked, but the same reason to go.
+ *     Stalwart and Propeller Tail stay: `Battle#getTarget` reads them on any
+ *     battle, so they are not shown to be blanks, only near ones.
  *
  * What stays despite being a signature: As One, Comatose, Tera Shell,
  * Illusion, Drizzle, Drought and Natural Cure name a species in the dex or in
@@ -521,6 +527,14 @@ const SPECIES_LOCKED_ABILITIES = new Set([
   // Locked to a type rather than a species, the Double Shock case: it guards
   // the side's Grass types, which in singles is the holder or nobody.
   'flowerveil',
+  // No handler at all: the dex entry is a name and a rating. The effect is
+  // out of battle (a Poke Ball, a Honey, fleeing a wild battle) and the engine
+  // does not model it. The dex's own text is "No competitive use."
+  'ballfetch', 'honeygather', 'runaway',
+  // No-op in singles: every handler reads only `allies()`, `adjacentAllies()`
+  // or an `onAlly*` event, and the holder is excluded from its own allies.
+  'battery', 'costar', 'curiousmedicine', 'friendguard', 'healer', 'hospitality',
+  'minus', 'plus', 'powerofalchemy', 'powerspot', 'receiver', 'symbiosis', 'telepathy',
 ]);
 
 const abilityRows: string[] = dex.abilities

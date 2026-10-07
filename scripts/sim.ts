@@ -995,6 +995,9 @@ function valueOfEffect(effect: ResolvedEffect, state: RunState, segment: number)
       );
     case 'move':
       return valueOfReward({ kind: 'tm', move: effect.move }, state, segment);
+    // A consumable is scored as the card that pays one (defender question marks, 2026-10-06).
+    case 'consumable':
+      return effect.items.reduce<number>((sum, id) => sum + valueOfReward({ kind: 'consumable', id }, state, segment), 0);
     /*
      * A relic is scored flat rather than by its passive. The bot cannot know
      * which relic it will be offered — that is decided at offer resolution

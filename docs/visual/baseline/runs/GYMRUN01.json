@@ -1,9 +1,9 @@
 {
   "seed": "GYMRUN01",
   "versions": {
-    "runLog": "gymrun-run-24/gymrun-0.3.0",
-    "contentHash": "76dc8f3dac61ae176d7419e7026fb3736c44caa8779bbfb5b0b26b7789687890",
-    "randomizer": "gymrun-randomizer-30",
+    "runLog": "gymrun-run-25/gymrun-0.3.0",
+    "contentHash": "865d3ba22af9c9c2b8f1f9d7378eeba0c433d71717cd3306a8679d711f59f1fd",
+    "randomizer": "gymrun-randomizer-34",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -15,7 +15,7 @@
     "kind": "trainer",
     "species": "Dusk",
     "bySpecies": "Buneary",
-    "byMove": "Fury Swipes",
+    "byMove": "Disarming Voice",
     "indirect": null
   },
   "currency": 70,
@@ -27,10 +27,10 @@
     {
       "species": "Snubbull",
       "level": 20,
-      "ability": "Minus",
+      "ability": "Misty Surge",
       "moves": [
         "Draining Kiss 16/16",
-        "Upper Hand 18/24",
+        "Upper Hand 19/24",
         "Force Palm 16/16",
         "Poison Fang 24/24"
       ],
@@ -41,9 +41,9 @@
     {
       "species": "Nosepass",
       "level": 20,
-      "ability": "Hospitality",
+      "ability": "Hydration",
       "moves": [
-        "Rock Throw 20/24",
+        "Rock Throw 18/24",
         "Frost Breath 16/16",
         "False Swipe 64/64",
         "Agility 48/48"
@@ -137,8 +137,18 @@
       "opponent": "Leader Brock",
       "turns": 5,
       "winner": "p1",
-      "hpAfter": 52,
-      "casualties": []
+      "hpAfter": 9,
+      "casualties": [
+        {
+          "side": "p1",
+          "name": "Cedar",
+          "level": 15,
+          "species": "Snubbull",
+          "bySpecies": "Onix",
+          "byMove": "Rock Tomb",
+          "indirect": null
+        }
+      ]
     },
     {
       "segment": 1,
@@ -146,7 +156,7 @@
       "label": "Trainer battle",
       "tier": "hard",
       "opponent": "Bug Catcher Elijah",
-      "turns": 13,
+      "turns": 14,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
@@ -156,7 +166,7 @@
           "level": 20,
           "species": "Snubbull",
           "bySpecies": "Buneary",
-          "byMove": "Fury Swipes",
+          "byMove": "Tackle",
           "indirect": null
         },
         {
@@ -165,7 +175,7 @@
           "level": 20,
           "species": "Nosepass",
           "bySpecies": "Buneary",
-          "byMove": "Fury Swipes",
+          "byMove": "Disarming Voice",
           "indirect": null
         }
       ]
@@ -175,10 +185,10 @@
     "seed": "GYMRUN01",
     "mode": "attacker",
     "versions": {
-      "runLog": "gymrun-run-24/gymrun-0.3.0",
-      "contentHash": "76dc8f3dac61ae176d7419e7026fb3736c44caa8779bbfb5b0b26b7789687890",
+      "runLog": "gymrun-run-25/gymrun-0.3.0",
+      "contentHash": "865d3ba22af9c9c2b8f1f9d7378eeba0c433d71717cd3306a8679d711f59f1fd",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-30"
+      "randomizerVersion": "gymrun-randomizer-34"
     },
     "decisions": [
       {
@@ -421,8 +431,15 @@
       {
         "kind": "battle",
         "choice": {
+          "kind": "switch",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
           "kind": "move",
-          "slot": 1
+          "slot": 2
         }
       },
       {
@@ -487,14 +504,28 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "switch",
-          "slot": 2
+          "kind": "move",
+          "slot": 1
         }
       },
       {
         "kind": "battle",
         "choice": {
           "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
           "slot": 2
         }
       },
@@ -545,13 +576,6 @@
         "choice": {
           "kind": "move",
           "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
         }
       }
     ]

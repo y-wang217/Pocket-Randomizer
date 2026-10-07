@@ -6,12 +6,36 @@
  * species carries the gym type (`typeLock.carriesGymType`), so the off-type
  * slot gets nothing; eligibility is read off the species, never a battle's
  * live types, so Burn Up or Soak cannot switch it off mid-fight (ruling R7).
+ * Whether the badge is installed at all is `badgesActive`, below.
  */
-import { DEFENDER_BADGE } from '../../data/defender';
+import { DEFENDER_BADGE, DEFENDER_OFF_TYPE_RELIC } from '../../data/defender';
 import { entryOfSpecies, hasEvolution } from '../../data/evolution';
 import { toId } from '../../data/blacklists';
-import type { BadgeMember, BattleBadge, PokemonSpec, TeamSpec } from '../types';
-import { carriesGymType } from './typeLock';
+import type { BadgeMember, BattleBadge, PokemonSpec, PokemonState, TeamSpec } from '../types';
+import type { DefenderRunState } from './opening';
+import { carriesGymType, offTypeCount } from './typeLock';
+
+/** What `badgesActive` reads: the party, the held relics and the gym type. */
+export type BadgeState = {
+  party: readonly Pick<PokemonState, 'spec'>[];
+  relics: readonly string[];
+  defender?: Pick<DefenderRunState, 'gymType'> | null;
+};
+
+/**
+ * Whether the badge is lit for this run. **2026-10-06.** A defender run's
+ * badge is on while every party member carries the gym type, or while the
+ * Stranger's Pass is held; an off-type member without the Pass puts it out for
+ * the whole team, typed members included. The one reading `playNode` and the
+ * screens share, so a card cannot draw a lit flame the battle would not
+ * honour. Read off species and the held list, never a battle's live types.
+ */
+export function badgesActive(state: BadgeState): boolean {
+  const gymType = state.defender?.gymType;
+  if (!gymType) return false;
+  if (state.relics.includes(DEFENDER_OFF_TYPE_RELIC)) return true;
+  return offTypeCount(state.party.map((member) => member.spec), gymType) === 0;
+}
 
 /** Peck while the species can still evolve, Pluck at its final stage. */
 export function fifthMoveFor(spec: Pick<PokemonSpec, 'species'>): string {

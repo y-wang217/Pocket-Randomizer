@@ -38,6 +38,14 @@ export const DEFENDER_RANKS = 8;
 export const DEFENDER_DRAFT = { picks: 3, options: 3 } as const;
 
 /**
+ * The recruit draft's shape: how many options carry the gym type and how many
+ * do not. **2026-10-06.** Every draft offers one off-type mon; there is no cap
+ * on how many the party holds. What an off-type member costs is the badge
+ * (`core/defender/badge.ts`, `badgesActive`), not a refusal.
+ */
+export const DEFENDER_RECRUIT = { typed: 2, offType: 1 } as const;
+
+/**
  * Battles per wave, by rank. The prompt's starting row; step 3 reads it.
  */
 export const DEFENDER_WAVE_LENGTH: readonly number[] = [2, 2, 3, 3, 4, 4, 5, 5];
@@ -67,13 +75,6 @@ export const DEFENDER_RANK_LOCALES: readonly LocaleId[] = ['shore', 'forest', 'm
  * and a recruit draft fills each slot that unlocks after bosses 2, 4 and 6.
  */
 export const DEFENDER_SLOT_SCHEDULE_OFFSET = 1;
-
-/**
- * How many party slots a defender run may fill with a mon that does not carry
- * the gym type, before the off-type relic. Zero: the type lock is total until
- * that relic is held, and the relic grants exactly one (step 5).
- */
-export const DEFENDER_BASE_EXEMPT_SLOTS = 0;
 
 /**
  * The relics a defender run's relic cards may shuffle. **Report ruling R2,
@@ -139,13 +140,26 @@ export const DEFENDER_CONSUMABLE_ENTRY = {
 } as const;
 
 /**
- * The off-type slot relic's id. **Defender Mode v0, step 5.** In the boss
- * relic pool only, and offered at most once per run. Holding it grants
- * `DEFENDER_OFF_TYPE_SLOTS` party slots exempt from the type lock.
+ * The Stranger's Pass. **Defender Mode v0, step 5; reversed 2026-10-06.** In
+ * the boss relic pool only, and offered at most once per run. It used to grant
+ * one party slot exempt from the type lock. Now any number of off-type members
+ * may join and the badge goes dark while one stands in the party; holding the
+ * Pass lights it again (`core/defender/badge.ts`, `badgesActive`). The exempt
+ * slot is deleted, not kept behind a flag: `docs/generation.md` section 117.
  */
 export const DEFENDER_OFF_TYPE_RELIC = 'strangers-pass';
 
-export const DEFENDER_OFF_TYPE_SLOTS = 1;
+/**
+ * The Collector's door. **2026-10-06.** One door slot in the run, `rank`'s
+ * last door step on `side`, becomes a hard-tier trainer fielding the mons the
+ * run traded away (`DefenderRunState.tradedAway`), the most recent `maxTeam`
+ * of them, once any trade has happened; an ordinary door until then. Beating
+ * it pays one three-card offer per mon fielded, so the slot draws `maxTeam`
+ * offers at generation whether or not the Collector ever stands there. The
+ * rulings: *"the special door in a later rank"*, *"a reward per mon traded
+ * away"*, *"Rank 7's last door"*. The rank index is zero-based.
+ */
+export const DEFENDER_REVENGE = { rank: 6, side: 1, tier: 'hard', maxTeam: 6 } as const;
 
 /** The boss page's relic list: the defender list plus the off-type relic. */
 export const DEFENDER_BOSS_RELIC_IDS: readonly RelicId[] = [...DEFENDER_RELIC_IDS, DEFENDER_OFF_TYPE_RELIC];

@@ -17,4 +17,6 @@ export const TRAINER_CLASS_NAMES: Readonly<Record<string, string>> = {
   birdkeeper: 'Bird Keeper',
   acetrainer: 'Ace Trainer',
   veteran: 'Veteran',
+  // The traded-away mons' trainer (`DEFENDER_REVENGE_CLASS`), 2026-10-06.
+  collector: 'Collector',
 };

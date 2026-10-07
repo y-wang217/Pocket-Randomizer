@@ -43,6 +43,9 @@ import { createParty } from '../core/party';
 import { createRng } from '../core/rng';
 import type { RewardOffer, TargetedReward } from '../core/rewards';
 import { chooseLocale, chooseStarter, createRun, partyCapacity, type NodeVisit, type RunResult, type RunState } from '../core/run';
+import { chooseDraftPick, chooseGymType } from '../core/defender/opening';
+import { resolveTrade } from '../core/defender/trade';
+import { DEFENDER_DRAFT } from '../data/defender';
 import type { MoveSpec, PokemonSpec, PokemonState, RunLog } from '../core/types';
 import { ITEMS } from '../data/items';
 import { MAX_PARTY_CAPACITY } from '../data/partyTuning';
@@ -331,6 +334,38 @@ export function relicOffer(state: RunState): { offer: RewardOffer; state: RunSta
           if (node.reward?.options.some((option) => option.kind === 'relic')) {
             return { offer: node.reward, state: bare };
           }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * A door offer that deals a **trade**, against a defender run past its
+ * opening. **Bible Rev 30, D109, 2026-10-06.**
+ *
+ * The gym is Fire and the draft takes the first mon of every pick, as the
+ * scripted policy does, so the party the trade is resolved against is the
+ * seed's own. The first door whose offer carries a trade card is staged, the
+ * card resolved (`resolveTrade`) so it names the member asked for, which is
+ * what the face draws. Null when the map deals none, which at a quarter per
+ * door across twenty-eight doors it never does.
+ */
+export function tradeOffer(seed: string): { offer: RewardOffer; state: RunState } | null {
+  let state = chooseGymType(createRun(seed, DEFAULT_TUNING, 'defender'), 0);
+  for (let pick = 0; pick < DEFENDER_DRAFT.picks; pick++) state = chooseDraftPick(state, 0);
+  for (const segment of state.segments) {
+    for (const route of segment.routes) {
+      for (const step of route.steps) {
+        for (const node of step.options) {
+          const offer = node.reward;
+          if (!offer?.options.some((option) => option.kind === 'trade')) continue;
+          const resolved: RewardOffer = {
+            ...offer,
+            options: offer.options.map((option) => (option.kind === 'trade' ? resolveTrade(option, state) : option)),
+          };
+          return { offer: resolved, state };
         }
       }
     }

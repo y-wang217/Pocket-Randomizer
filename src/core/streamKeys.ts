@@ -191,9 +191,20 @@ export function defenderNodeKey(nodeId: string): string {
   return `defender/node/${nodeId}`;
 }
 
-/** What a defender node pays, on `rewards`, as `nodeRewardKey`. */
-export function defenderNodeRewardKey(nodeId: string, purpose: 'offer' | 'shop' | 'trade'): string {
+/**
+ * What a defender node pays, on `rewards`, as `nodeRewardKey`. `event` is a
+ * question mark's option draws (2026-10-06), a purpose nothing else reads.
+ */
+export function defenderNodeRewardKey(nodeId: string, purpose: 'offer' | 'shop' | 'trade' | 'event'): string {
   return `defender/node/${nodeId}/${purpose}`;
+}
+
+/**
+ * A rank's question marks, on `map`: each one's shape and identity, in step
+ * order (2026-10-06). One key per rank, as `defenderDoorKey` is one per door.
+ */
+export function defenderRankEventsKey(rank: number): string {
+  return `defender/rank/${rank}/events`;
 }
 
 /** One door's two classes and two tiers, on `map`. */

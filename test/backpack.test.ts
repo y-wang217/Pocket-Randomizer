@@ -35,6 +35,7 @@ import {
 import type { ItemPlan, PokemonSpec, PokemonState, RunLog } from '../src/core/types';
 import { partyCapacityAfter } from '../src/data/partyTuning';
 import { DEFAULT_TUNING, withTuning } from '../src/data/tuning';
+import { firstRunWhere, seedRange } from './seed-search';
 
 const spec = (species: string, ability: string, moves: string[]): PokemonSpec =>
   ({ species, ability, moves, level: 20 }) as PokemonSpec;
@@ -533,11 +534,22 @@ describe('item assignment replays identically', () => {
   }, 60_000);
 
   it('records an items decision only where there was something to manage', async () => {
-    const run = await playRun('BAG-GATE', shuffling());
+    /*
+     * **Searched rather than pinned.** `BAG-GATE` picked up an item on every
+     * version up to `-30` and none at `-31`, which is the expiry
+     * `test/seed-search.ts` describes: the seed only has to reach a run that
+     * holds an item, and the search finds the first one that does.
+     */
+    const { run } = await firstRunWhere(
+      seedRange('BAG-GATE-', 20),
+      (seed) => playRun(seed, shuffling()),
+      (played) => played.log.decisions.some((decision) => decision.kind === 'items'),
+      'picked up an item',
+    );
     const plans = run.log.decisions.filter((decision) => decision.kind === 'items');
 
     // There is at least one, or this test is asserting nothing about a run that
-    // never picked up an item.
+    // never picked up an item. `firstRunWhere` throws before this does.
     expect(plans.length).toBeGreaterThan(0);
     /*
      * And fewer than one per node *visited*, because the opening boundaries

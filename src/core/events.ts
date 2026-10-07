@@ -62,6 +62,7 @@ import { grantRelic, shuffledRelics } from './rewards';
 import type { RngStream } from './rng';
 import type { RunState } from './run';
 import { hpEventDelta } from './hpCopy';
+import { consumableById } from '../data/consumables';
 import { BERRIES, itemById } from '../data/items';
 import { RELIC_IDS, relicById, type RelicId } from '../data/relics';
 import {
@@ -110,6 +111,8 @@ export type ResolvedEffect =
   | { kind: 'damage'; percent: number; target: EffectTarget }
   | { kind: 'heal'; percent: number; target: EffectTarget }
   | { kind: 'item'; items: readonly string[] }
+  /** Consumables, drawn, into the defender bag (2026-10-06). */
+  | { kind: 'consumable'; items: readonly string[] }
   | { kind: 'loseItem'; pool: readonly string[] }
   | { kind: 'discard'; count: number }
   | { kind: 'move'; move: string }
@@ -442,6 +445,7 @@ function resolveEffect(
   segment: number,
   stream: RngStream,
   offerPokemon: OfferPokemon,
+  relicIds: readonly RelicId[] = RELIC_IDS,
 ): ResolvedEffect {
   switch (effect.kind) {
     case 'item': {
@@ -449,6 +453,12 @@ function resolveEffect(
       if (available.length === 0) return { kind: 'nothing' };
       const items = Array.from({ length: Math.max(1, effect.count) }, () => stream.pick(available));
       return { kind: 'item', items };
+    }
+    case 'consumable': {
+      const available = effect.pool.filter((id) => consumableById(id));
+      if (available.length === 0) return { kind: 'nothing' };
+      const items = Array.from({ length: Math.max(1, effect.count) }, () => stream.pick(available));
+      return { kind: 'consumable', items };
     }
     case 'move': {
       /*
@@ -472,8 +482,8 @@ function resolveEffect(
        * holds, so an eleventh relic costs one more draw and reshuffles no seed
        * beyond that.
        */
-      const order = shuffledRelics(RELIC_IDS, stream);
-      const fallback = resolveEffect(effect.fallback, segment, stream, offerPokemon);
+      const order = shuffledRelics(relicIds, stream);
+      const fallback = resolveEffect(effect.fallback, segment, stream, offerPokemon, relicIds);
       return { kind: 'relic', order, fallback };
     }
     default:
@@ -482,11 +492,27 @@ function resolveEffect(
 }
 
 /**
+ * A list of template effects, resolved in order on `stream`. **The defender
+ * question marks' entry point (2026-10-06)**: the same resolver the tier pools
+ * go through, with the relic table the caller names (`DEFENDER_RELIC_IDS`
+ * there) and no Pokemon on offer, so an `acquisition` template degrades to
+ * `nothing` as an empty pool does.
+ */
+export function resolveEffects(
+  effects: readonly EventEffect[],
+  segment: number,
+  stream: RngStream,
+  relicIds: readonly RelicId[] = RELIC_IDS,
+): ResolvedEffect[] {
+  return effects.map((effect) => resolveEffect(effect, segment, stream, () => null, relicIds));
+}
+
+/**
  * One weighted draw over a list. **Exactly one draw, always**, whatever the
  * weights say — including when every weight is zero, which is the shape a
  * degenerate distribution like Safe's has.
  */
-function weightedPick<T>(
+export function weightedPick<T>(
   entries: readonly { weight: number; value: T }[],
   stream: RngStream,
   fallback: T,
@@ -774,6 +800,10 @@ function applyEffect(state: RunState, effect: ResolvedEffect, tuning: Tuning): R
        */
       return { ...state, backpack: effect.items.reduce((bag, item) => stow(bag, item), [...state.backpack]) };
 
+    // Into the defender bag (`RunState.consumables`), beside a consumable card.
+    case 'consumable':
+      return { ...state, consumables: [...(state.consumables ?? []), ...effect.items] };
+
     /*
      * Deliberately nothing, and — like `acquisition` above — the application
      * lives at the call site rather than here.
@@ -838,11 +868,18 @@ function healLead(state: RunState, percent: number): RunState['party'] {
 /**
  * Take a percentage of max HP off the target, without fainting anyone.
  *
- * The floor is what makes an event unable to end a run. That is a design rule,
- * not a safety net: an event is a node with no battle in it, so a player who
- * lost a run to one lost it to a coin flip they could see but never play. The
- * risk an event carries is arriving at the *next* fight nearly dead, which is a
- * cost the player then gets to make decisions about.
+ * The floor is what makes an attacker event unable to end a run. That is a
+ * design rule, not a safety net: a player who lost a run to one lost it to a
+ * coin flip they could see but never play. The risk an event carries is
+ * arriving at the *next* fight nearly dead, which is a cost the player then
+ * gets to make decisions about.
+ *
+ * **"An event is a node with no battle in it" stood here until 2026-10-06**
+ * and is deleted for Defender Mode: a defender question mark's ambush offers a
+ * fight, picked before it is played, and a lost one ends the run as any fight
+ * does (`core/defender/events.ts`, `docs/generation.md` section 120). The
+ * attacker's events are unchanged, and section 14's Toll ruling stands in
+ * both modes: a paid option never contains a fight.
  *
  * It also keeps the party in a coherent state. `isWiped` reads `fainted`, and
  * HP driven to zero without a faint would be a shape no other code expects.
@@ -882,6 +919,8 @@ export function describeEffect(effect: ResolvedEffect): string {
       return `${hpEventDelta(effect.percent)}${effect.target === 'lead' ? ', lead' : ''}`;
     case 'item':
       return effect.items.map((item) => itemById(item)?.name ?? item).join(', ');
+    case 'consumable':
+      return effect.items.map((item) => consumableById(item)?.name ?? item).join(', ');
     case 'loseItem':
       return 'Lose a berry';
     case 'discard':

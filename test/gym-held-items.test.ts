@@ -194,6 +194,11 @@ describe('the gym held-item ladder', () => {
    * `gymrun-randomizer-30`: the Gen 5 to 9 rivals join the library, and
    * among them Bede's and Marnie's later fights as gym leaders, which enter
    * the route windows at `hard` and `elite`. Wild teams did not move.
+   *
+   * **Re-recorded 2026-10-06**, from `96ac96497a3b5b51`, with
+   * `gymrun-randomizer-31`: sixteen blank abilities leave `ABILITY_POOL`
+   * (286 to 270), so the same ability pick lands on a different name on
+   * every team, trainer and wild alike. No other draw moved.
    */
   it('generates trainer and wild teams byte-identically to before the ladder existed', () => {
     const records: string[] = [];
@@ -214,7 +219,7 @@ describe('the gym held-item ladder', () => {
       }
     }
     const digest = createHash('sha256').update(records.join('\n')).digest('hex').slice(0, 16);
-    expect(digest).toBe('96ac96497a3b5b51');
+    expect(digest).toBe('6659100649bea4a2');
   });
 
   it('spends the same two draws on a gym member as on any other opponent', () => {

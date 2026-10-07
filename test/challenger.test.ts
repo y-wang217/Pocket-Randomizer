@@ -58,7 +58,7 @@ describe('the segment', () => {
     // A logged decision neither added nor removed: the challenger changes the
     // opponent, not the questions. `-23` when this was written; `-24` is
     // Defender Mode's (a run log says which mode it is), merged at checkpoint 10.
-    expect(RUN_LOG_VERSION).toBe('gymrun-run-24/gymrun-0.3.0');
+    expect(RUN_LOG_VERSION).toBe('gymrun-run-25/gymrun-0.3.0');
   });
 });
 

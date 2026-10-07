@@ -4815,3 +4815,136 @@ each of which takes two beats; a two-action turn is unchanged at the one
 budget. The faint's sink shortens to a beat so a body is down before the
 next step. Recorded as a directive, not a disconfirmer: no section 9 row
 named it.
+
+## Rulings, 2026-10-06, the defender design message
+
+Four amendments from one message
+([`../spec/gymrun-patch-defender-events-trades-revenge-offtype.md`](../spec/gymrun-patch-defender-events-trades-revenge-offtype.md)),
+each ruled by the author the same day in the questions that message's file
+records, and each filed here before any surface was drawn. The core work
+behind them is headless and may proceed; the UI waits for Rev 30.
+
+## D109. The trade card shows a mon it has not revealed, and an arrow nobody has drawn
+
+**Filed 2026-10-06. Ruled the same day: option 2. Bible Rev 30.**
+
+The author: *"trades don't look like trades. the trade should be a 'trade'
+offer with a questionmark mystery sprite icon, with the mons and a rotating
+two arrows"*, and, asked what the question mark hides, *"mon received is a
+mystery. you choose that option to discard the others. then you choose to
+take the trade or not."* Today section 3's *Trade (defender)* row reads "two
+sprites in fixed slots, the offered mon on the left and the member asked for
+on the right, each with its species name (D102)", and section 2 has
+fourteen families and no mark for an exchange. The encoding table has one
+"unknown" precedent, the Ability row's `?` for an unrevealed opponent
+ability: "held-and-unknown is not the same fact as none".
+
+**Options.**
+
+1. **A mystery silhouette, no mark.** The offered slot draws a silhouette
+   with a question mark where the sprite was and no species name; the asked
+   member stays as D102 draws it. The fixed slots carry the direction, as
+   they do today.
+2. **A mystery silhouette and a fifteenth family, `exchange`.** As 1, with
+   one glyph, two arrows turning, between the two slots on the card and on
+   the reveal step (D110). It gets an exposure label as every family does
+   (R7), and it is a glyph rather than a control's icon because it encodes
+   what the card is.
+3. **Arrows as an unregistered mark.** The arrows drawn by the card's CSS
+   with no roster entry. Rejected at filing: section 10.3 is exactly the
+   rule this would walk past.
+
+**Recommendation: 2.** It is what the author described, and the one family
+is the smallest honest way to draw it. The amendment touches section 2's
+roster count and table, section 3's *Trade (defender)* row (the offered
+slot's content and the mark), section 4's *Consumable or trade reward card*
+row, which stays at 0 words, section 5's *Reward card* row, and section 9's
+bet that a question mark in a sprite slot reads as "not yet shown" and not
+as "nothing".
+
+## D110. A second step the trade never had
+
+**Filed 2026-10-06. Ruled the same day: option 1. Bible Rev 30.**
+
+Picking the trade card is today the whole decision: the reward entry, and
+the swap is applied. The author's flow has two steps, the pick and then the
+trade, and the question *"is the offered mon revealed before you
+Take/Decline?"* was answered *"Revealed, then Take/Decline"*. D102's reason
+for showing the offered mon at all was C2: its moves, stats and ability
+change the decision. That reason holds at the moment the irreversible swap
+is agreed to, and the pick has already cost two cards.
+
+**Options.**
+
+1. **A reveal step in the cards' place.** After the claim, where the berry
+   pick mounts (D99), the offered mon as its starter card beside the asked
+   member's party row, the `exchange` mark between them; *Take* is the
+   primary action and opens the confirm band with the swap as its content,
+   *Decline* the hollow sibling and leaves with nothing. A new component row
+   in section 5, *Trade reveal*, and a budget row of 5 in section 4: a
+   three-word question and the two controls.
+2. **Hidden until taken.** The step shows only the asked member and the two
+   controls; the offered mon is drawn only after *Take*. The gamble is the
+   whole card.
+
+**Recommendation: 1.** The author chose it, and it keeps C2 where D102 put
+it. The amendment adds section 5's row and section 4's row, and section 9's
+bet that the step reads as a second chance rather than as a reroll.
+
+## D111. An event screen with odds, a fight button, and no capability on it
+
+**Filed 2026-10-06. Ruled the same day: option 1. Bible Rev 30.**
+
+Defender ? nodes mount the event screen (D33's component: the label, the
+hint, the reward-tier pips, the Toll's price; the requirement and the band
+above the choices). Two of the new shapes carry facts the screen has no
+row for: a wager's stated odds, and a fight offered as an option. And a
+defender run has no capabilities, so the capability glyph and band chevron
+the screen mounts above the choices have nothing to show.
+
+**Options.**
+
+1. **The same component, two rows added, one pair absent.** The capability
+   glyph and chevron are absent in a defender run. A wager button carries
+   its odds as a bare fraction in the chevron's slot; a fight button carries
+   the Node family's trainer head where the tier pips sit, with the tier
+   word the map node card already budgets. A new section 4 row, *Defender
+   event screen*, at 49: the hook 12, three labels 4, three hints 6, the
+   Toll's price 5 and the control 2, which is D33's row with one button
+   fewer and no capability pair.
+2. **A second event component.** A defender event screen of its own.
+   Rejected at filing: R6 and the one-component rule in section 5.
+
+**Recommendation: 1.** The amendment adds two section 3 rows (*Odds*,
+*Fight in an event*), one section 4 row, and a note on section 5's *Event
+choice* row that it mounts in both modes.
+
+## D112. The badge can be off, and the roster says it is only ever on or absent
+
+**Filed 2026-10-06. Ruled the same day: option 1. Bible Rev 30.**
+
+The author: *"make passives (gym badge the player holds) disabled once you
+add a non-typed mon, which the relic that allows non-typed mons reenables"*.
+Section 2's Badge row reads "drawn only for a party member carrying that
+type in a defender run", and section 3's five badge rows have two states
+each, present and absent. A badge the run holds and cannot use is a third
+state, and it changes a decision: whether to take the off-type recruit.
+
+**Options.**
+
+1. **Every badge mark dimmed while the badge is off.** The flame, the eye
+   and the wing, wherever they draw (the battle button, the opposing panel,
+   the Speed cell, the move chips on draft, recruit and trade cards, the
+   party row), take the PP glyph's dimmed state while any off-type member
+   stands in the party and the Stranger's Pass is not held; the mark's
+   inspect says why. On the recruit screen the off-type candidate's card
+   wears the dimmed mark so the consequence is read before pressing, which
+   is C2 and the Prices rule's "a gate reads what the player sees".
+2. **Marks hidden, one word of state.** The marks disappear and a word,
+   *Badge off*, sits on the Team screen. A word at rest, against R2.
+
+**Recommendation: 1.** One state the roster already has (dimmed), on marks
+that already exist, and nothing new at rest. The amendment adds a section 3
+row, *Badge inactive (defender)*, amends the Badge family row's "drawn only
+for" clause, and adds section 9's bet that a dimmed mark reads as off and not
+as a weaker badge.

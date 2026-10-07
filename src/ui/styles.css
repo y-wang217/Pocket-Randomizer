@@ -7916,3 +7916,27 @@ button,
 
 /* The defender boss's pre-gym title: the gym mark, its team size, then the level (D101). */
 .pre-gym__size { margin-left: var(--space-1); font-variant-numeric: tabular-nums; }
+
+/* ---------- the blind trade and its reveal (bible Rev 30, D109, D110) ---------- */
+
+/* The offered slot is a question mark where a sprite would be: not yet shown, not none.
+   Drawn as content rather than a text node, so the census reads a mark and the card
+   stays at its 0 words; the accessible name is the span's. */
+.sprite--mystery { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; font-size: var(--fs-mystery); font-weight: 700; color: var(--text); opacity: 0.7; }
+.sprite--mystery::before { content: '?'; }
+.reward__trade-mark { display: inline-flex; align-items: center; align-self: center; color: var(--text); }
+.reward__trade-mark .glyph { width: 24px; height: 24px; }
+.trade-reveal { display: grid; gap: var(--space-2); justify-items: center; }
+.trade-reveal__pair { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; justify-content: center; }
+.trade-reveal__pair .starter { pointer-events: none; }
+.trade-reveal__actions { display: flex; gap: var(--space-2); }
+
+/* ---------- the badge, off (bible Rev 30, D112) ---------- */
+
+/* Every badge mark dims while the badge is off: the PP glyph's dimmed state, not a word. */
+[data-badge-state='off'] .move__badge--flame,
+.starter__badge-off { opacity: 0.4; }
+.starter__badge-off { display: inline-flex; position: absolute; top: var(--space-1); right: var(--space-1); }
+
+/* ---------- a defender question mark's odds (bible Rev 30, D111) ---------- */
+.event__odds { font-variant-numeric: tabular-nums; font-weight: 600; }

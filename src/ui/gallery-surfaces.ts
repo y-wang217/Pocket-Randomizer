@@ -87,9 +87,21 @@ export const CONFIRM_SURFACES = ['confirm-replace', 'confirm-forfeit'] as const;
  */
 export const RELIC_SURFACES = ['result-relic', 'shop-relic'] as const;
 
+/**
+ * The surface that shows a defender **trade** card. **Bible Rev 30, D109,
+ * 2026-10-06.** A decision surface in every respect, listed apart for the
+ * relic surfaces' reason: `SMOKE24`'s attacker fixtures can never deal one,
+ * since a trade is dealt on a defender door, so without this the Exchange
+ * family would be painted by no surface the family walk opens
+ * (`test/visual-exposure-labels.test.ts`). It stages the first door offer the
+ * defender map deals a trade on, resolved against the opened party.
+ */
+export const DEFENDER_SURFACES = ['result-trade'] as const;
+
 export const GALLERY_SURFACES = [
   ...DECISION_SURFACES,
   ...RELIC_SURFACES,
+  ...DEFENDER_SURFACES,
   ...OVERLAY_SURFACES,
   ...CONFIRM_SURFACES,
   ...ARCHIVE_SURFACES,

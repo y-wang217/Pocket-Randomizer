@@ -1,9 +1,9 @@
 {
   "seed": "SEED-B",
   "versions": {
-    "runLog": "gymrun-run-24/gymrun-0.3.0",
-    "contentHash": "76dc8f3dac61ae176d7419e7026fb3736c44caa8779bbfb5b0b26b7789687890",
-    "randomizer": "gymrun-randomizer-30",
+    "runLog": "gymrun-run-25/gymrun-0.3.0",
+    "contentHash": "865d3ba22af9c9c2b8f1f9d7378eeba0c433d71717cd3306a8679d711f59f1fd",
+    "randomizer": "gymrun-randomizer-34",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -14,8 +14,8 @@
     "leader": "Roark",
     "kind": "gym",
     "species": "Fennel",
-    "bySpecies": "Cranidos",
-    "byMove": "Smack Down",
+    "bySpecies": "Onix",
+    "byMove": "Triple Axel",
     "indirect": null
   },
   "currency": 82,
@@ -25,7 +25,7 @@
     {
       "species": "Cutiefly",
       "level": 15,
-      "ability": "Sheer Force",
+      "ability": "Simple",
       "moves": [
         "Bug Bite 27/32",
         "Horn Attack 40/40",
@@ -39,11 +39,11 @@
     {
       "species": "Rattata",
       "level": 15,
-      "ability": "Mirror Armor",
+      "ability": "Mold Breaker",
       "moves": [
-        "Swift 29/32",
+        "Swift 30/32",
         "Pounce 32/32",
-        "Brutal Swing 29/32",
+        "Brutal Swing 30/32",
         "Spore 24/24"
       ],
       "item": "silkscarf",
@@ -91,9 +91,9 @@
       "label": "Wild encounter",
       "tier": "normal",
       "opponent": "Wild Salandit",
-      "turns": 2,
+      "turns": 3,
       "winner": "p1",
-      "hpAfter": 42,
+      "hpAfter": 30,
       "casualties": []
     },
     {
@@ -104,7 +104,7 @@
       "opponent": "Wild Minun",
       "turns": 3,
       "winner": "p1",
-      "hpAfter": 26,
+      "hpAfter": 14,
       "casualties": [
         {
           "side": "p1",
@@ -123,7 +123,7 @@
       "label": "Challenger Leader Roark",
       "tier": null,
       "opponent": "Leader Roark",
-      "turns": 6,
+      "turns": 3,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
@@ -141,8 +141,8 @@
           "name": "Fennel",
           "level": 15,
           "species": "Rattata",
-          "bySpecies": "Cranidos",
-          "byMove": "Smack Down",
+          "bySpecies": "Onix",
+          "byMove": "Triple Axel",
           "indirect": null
         }
       ]
@@ -152,10 +152,10 @@
     "seed": "SEED-B",
     "mode": "attacker",
     "versions": {
-      "runLog": "gymrun-run-24/gymrun-0.3.0",
-      "contentHash": "76dc8f3dac61ae176d7419e7026fb3736c44caa8779bbfb5b0b26b7789687890",
+      "runLog": "gymrun-run-25/gymrun-0.3.0",
+      "contentHash": "865d3ba22af9c9c2b8f1f9d7378eeba0c433d71717cd3306a8679d711f59f1fd",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-30"
+      "randomizerVersion": "gymrun-randomizer-34"
     },
     "decisions": [
       {
@@ -286,8 +286,15 @@
       {
         "kind": "battle",
         "choice": {
-          "kind": "move",
+          "kind": "switch",
           "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 1
         }
       },
       {
@@ -402,27 +409,6 @@
         "choice": {
           "kind": "move",
           "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 3
         }
       }
     ]

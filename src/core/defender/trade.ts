@@ -25,8 +25,6 @@ import { defenderNodeRewardKey } from '../streamKeys';
 import type { PokemonState } from '../types';
 import { playerLevel } from '../../data/scaling';
 import { finishDefenderMon } from './draft';
-import { exemptSlots } from './exempt';
-import { typeLockRefusal } from './typeLock';
 
 type TradeCard = Extract<Reward, { kind: 'trade' }>;
 
@@ -79,14 +77,6 @@ export function applyTrade(state: RunState, card: TradeCard): RunState {
   if (!card.offered || card.requested === undefined) throw new Error('A trade must be resolved before it is taken');
   const slot = state.party.findIndex((member) => member.acquired === card.requested);
   if (slot < 0) throw new RangeError(`The member a trade requested (acquisition ${card.requested}) is not in the party`);
-  const refusal = typeLockRefusal(
-    state.party.map((member) => member.spec),
-    card.offered,
-    defender.gymType,
-    exemptSlots(state),
-    slot,
-  );
-  if (refusal) throw new RangeError(`Trade refused: ${refusal}`);
 
   const leaving = state.party[slot]!;
   const joined: PokemonState = {
@@ -98,7 +88,12 @@ export function applyTrade(state: RunState, card: TradeCard): RunState {
     ...state,
     party,
     backpack: leaving.item ? stow(state.backpack, leaving.item) : state.backpack,
-    defender: { ...defender, acquisitions: defender.acquisitions + 1 },
+    defender: {
+      ...defender,
+      acquisitions: defender.acquisitions + 1,
+      // The leaving member, as it left: the Collector fields it later.
+      tradedAway: [...defender.tradedAway, leaving.spec],
+    },
   };
 }
 

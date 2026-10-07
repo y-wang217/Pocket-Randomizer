@@ -82,7 +82,7 @@ import type { CapabilityBand } from '../core/capabilities';
 import type { Tier } from '../core/types';
 import { typeChip } from './chip';
 import { el } from './scene';
-import { renderBadgeTip, renderConsumableTip, renderTradeAskTip, renderTradeOfferTip } from './defender-tips';
+import { renderBadgeOffTip, renderBadgeTip, renderConsumableTip, renderTradeAskTip, renderTradeOfferTip } from './defender-tips';
 
 /** What a `data-tip` attribute can name. */
 type TipKind =
@@ -252,6 +252,8 @@ type TipKind =
   | 'reward-tier'
   /** Defender Mode v0 (bible Rev 25, D100 and D102): a badge mark, a consumable, a trade's two Pokemon. */
   | 'badge'
+  /** A dimmed badge mark: why the badge is off (D112). */
+  | 'badge-off'
   | 'consumable'
   | 'trade-offer'
   | 'trade-ask'
@@ -307,6 +309,7 @@ const KINDS = [
   'tier',
   'reward-tier',
   'badge',
+  'badge-off',
   'consumable',
   'trade-offer',
   'trade-ask',
@@ -871,6 +874,8 @@ function render(tip: string, trigger?: HTMLElement): HTMLElement | null {
       return renderRewardTier(id);
     case 'badge':
       return renderBadgeTip(id);
+    case 'badge-off':
+      return renderBadgeOffTip(id);
     case 'consumable':
       return renderConsumableTip(id);
     case 'trade-offer':
