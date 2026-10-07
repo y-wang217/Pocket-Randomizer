@@ -58,6 +58,17 @@ export interface ChipOptions {
   extra?: string;
 }
 
+/**
+ * A node's mark on the map since D109: a cutout standing on the painting, not
+ * a chip, so it carries the kind's tip and none of the chip's fill or ring
+ * (`visual-v2`'s one neutral chip style stays one).
+ */
+function cutout(className: string, tip: string): HTMLElement {
+  const node = el('span', className);
+  node.dataset['tip'] = tip;
+  return node;
+}
+
 function build(variant: ChipVariant, legacy: string, text: string, options: ChipOptions = {}): HTMLElement {
   const node = el('span', `chip chip--${variant} ${legacy}${options.extra ? ` ${options.extra}` : ''}`.trim());
   node.textContent = text;
@@ -367,7 +378,8 @@ export function challengerMark(source: EncounterRef | null, label: string, size:
  * as `nodeKindGlyph`, because it is the kind's mark.
  */
 export function trainerMark(sprite: string | null, label: string, size: 24 | 16): HTMLElement {
-  const node = build('node', 'node__kind node__kind--challenger node__kind--trainer', '', { tip: 'node:trainer' });
+  // A cutout on the map, not a chip since D109: no disc, no chip fill.
+  const node = cutout('node__kind node__kind--challenger node__kind--trainer', 'node:trainer');
   if (sprite) {
     node.append(opponentImg(sprite, size));
   } else {
@@ -389,9 +401,18 @@ export function trainerMark(sprite: string | null, label: string, size: 24 | 16)
  * inspect. The size is the caller's stylesheet's: the drawing fills the box.
  */
 export function nodeSilhouette(kind: NodeKind, label: string): HTMLElement {
-  const node = build('node', 'node__kind node__kind--silhouette', '', { tip: `node:${kind}` });
+  const node = cutout('node__kind node__kind--silhouette', `node:${kind}`);
   node.dataset['kind'] = kind;
-  node.append(assetIcon(`silhouette:${kind}`));
+  /*
+   * The drawing is the node family's mark here, so it reports the family the
+   * way `glyphNode` does: R7's exposure labels and the family walk find it by
+   * `data-family`, and `data-glyph` names which mark it is.
+   */
+  const art = assetIcon(`silhouette:${kind}`);
+  art.dataset['family'] = 'node';
+  art.dataset['glyph'] = `node-${kind}`;
+  art.setAttribute('aria-label', label);
+  node.append(art);
   node.setAttribute('role', 'img');
   node.setAttribute('aria-label', label);
   return node;

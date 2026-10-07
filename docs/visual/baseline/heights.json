@@ -9,15 +9,15 @@
     "scrollHeight": 749,
     "clientHeight": 749,
     "decisionCount": 2,
-    "decisionTop": 614.31,
-    "decisionBottom": 686.19
+    "decisionTop": 612.88,
+    "decisionBottom": 690.75
   },
   "battle": {
-    "screenHeight": 563.72,
+    "screenHeight": 591.72,
     "scrollHeight": 749,
     "clientHeight": 749,
     "decisionCount": 4,
-    "decisionTop": 436.28,
-    "decisionBottom": 651
+    "decisionTop": 464.28,
+    "decisionBottom": 679
   }
 }

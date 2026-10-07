@@ -17,6 +17,7 @@ import type { VignetteMoment } from '../data/vignetteCopy';
 import { trainerClass } from '../data/trainerClasses';
 import { opponentImg, spriteImg } from './sprites';
 import { createJourney } from './vignette';
+import { mountNodeBand } from './node-band';
 import type { AcquisitionDecision } from '../core/acquisition';
 import { applyBattleState } from '../core/party';
 import {
@@ -893,6 +894,7 @@ export function mountApp(root: HTMLElement): void {
         void state;
         pendingGym = gym;
         renderPreGym();
+        mountNodeBand(preGymScreen.root, 'gym', live ? localeOf(live) : null);
         showScreen('pre-gym');
         // The gym's own beat, once the lead is chosen and before the fight (D109).
         return leadPick
@@ -1141,6 +1143,8 @@ export function mountApp(root: HTMLElement): void {
       },
       chooseShopPurchases: (stock, state) => {
         shopScreen.render(stock, state, (indexes) => shopBasket.submit(indexes));
+        // The node band (D109): the shop's token and silhouette, and the region.
+        mountNodeBand(shopScreen.root, 'shop', localeOf(state));
         showScreen('shop');
         return shopBasket.wait();
       },
@@ -1148,6 +1152,7 @@ export function mountApp(root: HTMLElement): void {
         // The event screen holds the run open between the pick and the reveal:
         // it resolves this promise on "Carry on", not on the choice itself.
         eventScreen.render(event, state, (archetype) => eventPick.submit(archetype));
+        mountNodeBand(eventScreen.root, 'event', localeOf(state));
         showScreen('event');
         return eventPick.wait();
       },
@@ -1816,6 +1821,9 @@ export function mountApp(root: HTMLElement): void {
         state.currentSegment,
         runMode(state) === 'defender',
       );
+      // The node band (D109): the kind the fight is under, which the battle
+      // header no longer carries as a mark.
+      mountNodeBand(battleScreen.root, node.kind, localeOf(state));
       showScreen('battle');
     };
 

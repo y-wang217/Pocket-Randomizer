@@ -18,6 +18,22 @@ and fails on any byte that differs. Heights are compared by
 
 ## Corrections
 
+- **2026-10-07, the map calm-down and journey vignettes patch** (D109,
+  `docs/generation.md` §116). `heights.json` alone; runs, the battle protocol
+  and the digest are untouched because nothing under `core/` changed and no
+  version axis moved (`contentHash` holds at `76dc8f`).
+
+  **The map** keeps its screen and scroll heights; the decision's box moves
+  because its marks changed size: the disc (40) became the kind's silhouette
+  at 48 with a glow, so `decisionTop` 614.31 → 612.88 and `decisionBottom`
+  686.19 → 690.75. **The battle** grows by the node band (28px) at its head:
+  `screenHeight` 563.72 → 591.72, `decisionTop` 436.28 → 464.28,
+  `decisionBottom` 651 → 679. `scrollHeight` holds at 749 against a client
+  height of 749, so neither screen scrolls, and the fourth move ends at 679,
+  under the 740 thumb line. Re-recorded with `node scripts/visual/measure.mjs
+  --out` after `npm run build`, on the box whose pre-patch measurement matched
+  the file on every field the patch does not touch.
+
 - **2026-09-25, the docked inspect sheet patch** (`docs/generation.md` §81).
   `heights.json` alone; runs, the battle protocol and the digest are untouched
   because nothing under `core/` changed and no version axis moved.

@@ -3008,7 +3008,10 @@ body {
 .event__result[hidden],
 .panel__volatiles[hidden],
 .panel__stages[hidden],
-.map__region[hidden] { display: none; }
+.map__region[hidden],
+/* The battle title with nothing in it since D109: the kind's mark went to
+   the node band, so a fight with no challenger leaves the title empty. */
+.battle__header .screen__title[hidden] { display: none; }
 
 .screen__title {
   margin: 0;
@@ -8028,7 +8031,52 @@ button,
 .vignette[data-still='false'] .vignette__caption { animation: vignette-fade calc(var(--vignette-duration) / 3) ease-out both; }
 @keyframes vignette-rise { from { transform: translateY(var(--space-2)); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes vignette-fade { from { opacity: 0; } to { opacity: 1; } }
+/* And the OS's own word, in case `data-still` was read before the player
+   changed it: the same selectors, so the cancel always wins. */
 @media (prefers-reduced-motion: reduce) {
-  .vignette .vignette__sprite,
-  .vignette .vignette__caption { animation: none; }
+  .vignette[data-still='false'] .vignette__sprite,
+  .vignette[data-still='false'] .vignette__caption { animation: none; }
 }
+
+/* ---------- the node band (bible Rev 30, D109) ----------
+   The head of a node screen: the kind's colour token as its ground and its
+   left edge, the silhouette at 24, the locale's name (`ui/node-band.ts`). The
+   same token and shape as the map node and the vignette, so the three read
+   as one thing. Thin: it takes the screen's top gap back below it. */
+.node-band {
+  --kind: var(--text);
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 28px;
+  margin-bottom: calc(-1 * var(--space-1));
+  padding: var(--space-h) var(--space-2);
+  background: color-mix(in srgb, var(--kind) 18%, var(--bg-raised));
+  border-left: var(--space-1) solid var(--kind);
+  border-radius: var(--radius-chip);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.node-band[data-kind='wild'] { --kind: var(--kind-wild); }
+.node-band[data-kind='trainer'] { --kind: var(--kind-trainer); }
+.node-band[data-kind='gym'] { --kind: var(--kind-gym); }
+.node-band[data-kind='shop'] { --kind: var(--kind-shop); }
+.node-band[data-kind='rest'] { --kind: var(--kind-rest); }
+.node-band[data-kind='event'] { --kind: var(--kind-event); }
+.node-band .node__kind {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  color: var(--kind);
+}
+.node-band .node__kind .asset { width: 100%; height: 100%; }
+.node-band__locale:empty { display: none; }
