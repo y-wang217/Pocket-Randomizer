@@ -1,6 +1,6 @@
 /**
  * What a defender question mark may say. **2026-10-06.** `docs/generation.md`
- * section 118, bible D109.
+ * section 120, bible D111.
  *
  * The same two claims `test/event-copy.test.ts` and `test/event-budget.test.ts`
  * make of the attacker's event copy: every string is present for every event

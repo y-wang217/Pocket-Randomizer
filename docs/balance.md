@@ -171,7 +171,7 @@ on any member under half HP. **The test of this mode is by hand.**
 
 Report `sim-reports/benchmarks/2026-10-05T00-52-24-356Z-defender-v0-gymrun-randomizer-24-200.json`.
 
-**2026-10-06, the four design changes** (`generation.md` sections 115 to
+**2026-10-06, the four design changes** (`generation.md` sections 117 to
 118), the `randomizer-34` rows. **Recorded, not chased**, and read down the
 prefix only: the same bot, a different map. What the bot now meets that it did
 not: one question mark per rank from rank 1, which it answers with option 0

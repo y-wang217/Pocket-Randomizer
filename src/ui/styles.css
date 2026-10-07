@@ -885,11 +885,13 @@ body {
    on the scrim floating beside it. The panel no longer moves; the rule that
    moved it is deleted, not kept behind a flag.
 
-   Four slots and no more, each one `--motion-beat` long: first actor, its
-   target, second actor, its target. `scene.ts` places a side by its first
-   action in the turn, which caps the lunges at two, and puts a hit in the
-   slot after the other side's lunge. The last slot ends exactly where the HP
-   shadow's fade does, so a turn's whole feedback is still the one number.
+   One step per action since the per-move replay patch, two beats each: the
+   actor lunges on the first and its target is hit on the second, and the
+   scene draws the next action's step two beats on (`ui/replay.ts`). The
+   four-slot layout that drew the whole turn at once, two lunges and two hits
+   in fixed slots, is deleted with it: a slot is written when its step is
+   drawn, so every beat here is slot 1, and a two-action turn still spends
+   the one feedback budget.
 
    `transform` and `opacity` only, on the compositor: no layout property is
    touched, so a beat cannot reflow the stage or move the move buttons under a
@@ -907,10 +909,6 @@ body {
 
 .stage__actor[data-acted] {
   animation: actor-lunge var(--motion-beat) ease-in-out;
-}
-
-.stage__actor[data-acted="2"] {
-  animation-delay: calc(var(--motion-beat) * 2);
 }
 
 @keyframes actor-lunge {
@@ -940,29 +938,21 @@ body {
 }
 
 /* The faint. The same `sprite-sink` the swap beat uses — a body leaving the
-   fight is the same kind of event however it left — starting in the slot the
-   hit would have taken and running to the end of the budget: three beats
-   after the first actor's hit, one after the second's. `both`, so the body is
-   still standing through the slots before its own and stays down after.
+   fight is the same kind of event however it left — in the slot the hit
+   would have taken, one beat long since the per-move replay patch, so the
+   body is down before the next action's step is drawn. `both`, so the body
+   is still standing through the beat before its own and stays down after.
 
-   Written after the hit rule at equal specificity, so on the turn a hit is
+   Written after the hit rule at equal specificity, so on the step a hit is
    also the KO the sink wins the shorthand and there is one animation on the
-   sprite, not two. The delay rules for the slots come after both, so the sink
+   sprite, not two. The delay rule for the slot comes after both, so the sink
    inherits the hit's slot. */
 .stage__actor[data-fainting='true'] .sprite:not(.sprite--ghost) {
-  animation: sprite-sink calc(var(--motion-beat) * 3) ease-in both;
-}
-
-.stage__actor[data-fainting='true'][data-hit="2"] .sprite:not(.sprite--ghost) {
-  animation-duration: var(--motion-beat);
+  animation: sprite-sink var(--motion-beat) ease-in both;
 }
 
 .stage__actor[data-hit="1"] .sprite:not(.sprite--ghost) {
   animation-delay: var(--motion-beat);
-}
-
-.stage__actor[data-hit="2"] .sprite:not(.sprite--ghost) {
-  animation-delay: calc(var(--motion-beat) * 3);
 }
 
 /* Where the sink ends, held as state. `scene.ts` mirrors the projection's
@@ -1010,16 +1000,16 @@ body {
    turn with no order in it, and the bar is where the eye goes.
 
    So a chunk holds at full strength until the slot of the move that caused it,
-   then fades — the same two slots `data-hit` uses on the sprite beside it, from
-   the same reading of the protocol. `both` is what makes the hold work: without
-   a backwards fill the shadow sits at the base rule's `opacity: 0` through its
+   then fades — the same slot `data-hit` uses on the sprite beside it, from the
+   same reading of the protocol. `both` is what makes the hold work: without a
+   backwards fill the shadow sits at the base rule's `opacity: 0` through its
    delay and the chunk is invisible for the part of the turn it is waiting out.
 
    **The total is unchanged, and that is deliberate.** Delay plus duration is
-   four beats on both slots, which is exactly `--motion-duration`, so the fade
-   still ends where the last lunge does and a turn's whole feedback is still the
-   one number. What moved is where inside that window the chunk resolves, not
-   how long the window is.
+   four beats, which is exactly `--motion-duration`. Since the per-move replay
+   patch the scene draws each action's step two beats apart and every chunk is
+   slot 1 (the second step's chunk starts two beats later because the step
+   does), so slot 2 is deleted rather than kept behind nothing.
 
    **The bar's number does not wait for any of this.** The fill goes to the new
    value on the frame the update arrives, as it always has (`ui/bar.ts`), and
@@ -1030,12 +1020,6 @@ body {
 .hp__shadow[data-fading][data-slot="1"] {
   animation-delay: var(--motion-beat);
   animation-duration: calc(var(--motion-beat) * 3);
-  animation-fill-mode: both;
-}
-
-.hp__shadow[data-fading][data-slot="2"] {
-  animation-delay: calc(var(--motion-beat) * 3);
-  animation-duration: var(--motion-beat);
   animation-fill-mode: both;
 }
 
@@ -2874,14 +2858,11 @@ body {
   animation-fill-mode: both;
 }
 
-/* The slot, matching the lunge and hit delays exactly.
-
-   Slot 1 has no rule of its own: its delay is zero, which is already the
-   initial value, and writing `0ms` would be a hardcoded duration —
-   `test/visual-tokens.test.ts` counts those and caught exactly this. When the
-   slot moves back to 1 the rule below stops matching and the delay reverts on
-   its own, so nothing needs resetting. */
-.stage__actor[data-abnormal-slot="2"] .stage__mark { animation-delay: calc(var(--motion-beat) * 2); }
+/* The slot: every mark rides slot 1 since the per-move replay patch, the
+   beat of the step it is drawn with, whose delay is zero, which is already
+   the initial value; writing `0ms` would be a hardcoded duration
+   (`test/visual-tokens.test.ts` counts those). Slot 2's delay went with the
+   four-slot layout. */
 
 /* **prevented** — the ring closes and stops. The one beat that reads as
    absence, which is what these events are: the turn produced nothing. */
@@ -4537,8 +4518,7 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
      than trusting the rule to have applied. */
   .hp__shadow,
   .hp__shadow[data-fading],
-  .hp__shadow[data-fading][data-slot="1"],
-  .hp__shadow[data-fading][data-slot="2"] { animation: none; }
+  .hp__shadow[data-fading][data-slot="1"] { animation: none; }
   /* The beats: the lunge on the actor, the hit and the faint on the sprite.
      Selectors matched to every rule they override, the slot delays and the
      KO-turn duration included, for the reason the chunk's note gives. The
@@ -4546,12 +4526,10 @@ body[data-band-open] .decline:not(.confirm-band .decline) {
      it stands; the faint ends at the `data-fainted` state the rule above
      already holds, so a KO'd body is down without ever having moved.
      `animation: none` is the shorthand, so it resets the delays too. */
-  .stage__actor[data-acted], .stage__actor[data-acted="2"] { animation: none; }
+  .stage__actor[data-acted] { animation: none; }
   .stage__actor[data-hit] .sprite:not(.sprite--ghost),
   .stage__actor[data-hit="1"] .sprite:not(.sprite--ghost),
-  .stage__actor[data-hit="2"] .sprite:not(.sprite--ghost),
-  .stage__actor[data-fainting='true'] .sprite:not(.sprite--ghost),
-  .stage__actor[data-fainting='true'][data-hit="2"] .sprite:not(.sprite--ghost) { animation: none; }
+  .stage__actor[data-fainting='true'] .sprite:not(.sprite--ghost) { animation: none; }
   /* V5.5: the species swap resolves instantly. Selectors matched to the rules
      they override rather than to the elements, for the reason the chunk's own
      note gives — a media query adds no specificity and a plain `.sprite` would
@@ -7854,9 +7832,15 @@ button,
   image-rendering: pixelated;
 }
 .battle__detail-text .sprite--opponent[data-missing] { display: none; }
-/* The challenger's sprite in the kind's slot on the boss node and the battle title (D106). */
+/* The challenger's sprite in the kind's slot on the boss node and the battle title (D106),
+   and a trainer's on a door and a walked trainer node (D107). */
 .node__kind--challenger .sprite--opponent { object-fit: cover; object-position: 50% 0; image-rendering: pixelated; vertical-align: middle; }
 .node__kind--challenger .sprite--opponent[data-missing] { display: none; }
+/* On the map the cutout fills the disc rather than sitting at the glyph's 24:
+   the head of the figure, cropped from the top of the sheet's 80px cell, at
+   whatever size the row gives the mark (D107). The glyph fallback keeps its size. */
+.map-graph .node__kind--challenger .sprite--opponent { width: 100%; height: 100%; border-radius: 50%; }
+.map-graph .node--gym .node__kind--challenger .sprite--opponent { border-radius: var(--radius-card); }
 .map-graph__player:has(.sprite--trainer[data-missing]) {
   border-radius: 50%;
   background: var(--selected);
@@ -7933,7 +7917,7 @@ button,
 /* The defender boss's pre-gym title: the gym mark, its team size, then the level (D101). */
 .pre-gym__size { margin-left: var(--space-1); font-variant-numeric: tabular-nums; }
 
-/* ---------- the blind trade and its reveal (bible Rev 29, D107, D108) ---------- */
+/* ---------- the blind trade and its reveal (bible Rev 30, D109, D110) ---------- */
 
 /* The offered slot is a question mark where a sprite would be: not yet shown, not none.
    Drawn as content rather than a text node, so the census reads a mark and the card
@@ -7947,12 +7931,12 @@ button,
 .trade-reveal__pair .starter { pointer-events: none; }
 .trade-reveal__actions { display: flex; gap: var(--space-2); }
 
-/* ---------- the badge, off (bible Rev 29, D110) ---------- */
+/* ---------- the badge, off (bible Rev 30, D112) ---------- */
 
 /* Every badge mark dims while the badge is off: the PP glyph's dimmed state, not a word. */
 [data-badge-state='off'] .move__badge--flame,
 .starter__badge-off { opacity: 0.4; }
 .starter__badge-off { display: inline-flex; position: absolute; top: var(--space-1); right: var(--space-1); }
 
-/* ---------- a defender question mark's odds (bible Rev 29, D109) ---------- */
+/* ---------- a defender question mark's odds (bible Rev 30, D111) ---------- */
 .event__odds { font-variant-numeric: tabular-nums; font-weight: 600; }

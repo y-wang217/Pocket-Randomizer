@@ -14610,7 +14610,188 @@ machine's font stack, which fail on every tree in this container; the three
 contrast cases sections 109 to 112 also recorded are gone, main having
 moved them.
 
-## 114. Sixteen abilities with no battle effect leave the pool
+## 114. A defender rank stands on a painted map
+
+**2026-10-06**, on `claude/eager-galileo-8vqf47`, from `main` at `22fb781`.
+Prompt [`spec/gymrun-patch-defender-map-backdrops.md`](spec/gymrun-patch-defender-map-backdrops.md),
+the author's *"the defender maps are empty. fix that"*, filed verbatim before
+any work. `contentHash` from `998fc2` to **`76dc8f`**; `RANDOMIZER_VERSION`,
+`RUN_LOG_VERSION` and `AI_VERSION` hold.
+
+### What was empty
+
+Reproduced in the built bundle with `scripts/smoke-defender.mjs`. The map drew
+its doors, its intermission, its boss, its edges and the trainer; what it drew
+them on was the flat placeholder tint, with no region line above it. A rank's
+one route carried `locale: null` (section 106.5), so `localeOf` answered null
+for the whole run: the graph asked the manifest for no backdrop, the heading's
+region line stayed hidden, and `data-locale` was never written, which left the
+World behind the frame and the battle backdrop behind every door fight at
+their placeholders too. The attacker's map is a painting with a route on it;
+the defender's was the route alone.
+
+### The region is a lookup, not a draw
+
+`DEFENDER_RANK_LOCALES` in `data/defender.ts`: eight regions, one per rank,
+every region once, climbing from the shore to the summit. `generateRank`
+writes `rankLocale(rank)` onto the rank's route, clamped to the table's ends
+the way `waveLength` is. Nothing is drawn and no stream is read, so the draw
+composition is unchanged and `RANDOMIZER_VERSION` holds; the table is data,
+so `contentHash` moves, and `test/fixtures/sim-report.json` re-minted on its
+stamp alone (the three attacker runs byte for byte). No decision is added:
+`localeChoices` was already `0` for every rank, so the locale question is
+never asked and `RUN_LOG_VERSION` holds.
+
+The door nodes keep `locale: null`. A node's locale is what an event or a wild
+draw reads, and a rank has neither; `test/defender-waves.test.ts` still holds
+that, and now also holds the route's region against the table on every seed.
+
+### What follows without a defender branch
+
+Because the route carries the region, every surface that reads `localeOf`
+paints it: the map graph's backdrop (D60's *Scene backdrop*), the World
+behind the frame, the battle backdrop behind each door fight (the boss keeps
+the gym's), the footer stamp, the sidebar's *where* line, the summary's route
+band and the decision feed. None of those files changed.
+
+### The one presentation decision
+
+The heading's region line shows the region's name and not its four type
+chips in a defender run (`ui/screens/run-map.ts` `renderHeading`, shared with
+the map drawer so the two cannot differ). The chips say what a region's wild
+nodes hold; a door's challengers come from their trainer class, and a chip row
+above them would be a claim about the fight that the fight does not honour.
+The bible's *Scene backdrop* row (D60) already says the locale's map backdrop
+stands behind the map, and the heading's region line has no row of its own,
+so no amendment is filed; this note is the record. `test/defender-ui.test.ts`
+holds the backdrop key, the name and the absent chips, and holds the attacker
+heading's four chips beside them.
+
+### Not built here
+
+The same message asked two questions: the smallest lift for looping music,
+and for the beats of a turn to be shown move by move so that a swap that
+faints in the same turn is seen. Both were answered as an assessment in the
+session and are carried as open items in [`README.md`](README.md) section 5.
+
+### Gates
+
+`npm run types`, `npm run lint` and `npm run hedge` clean; the sim fixture,
+the visual baseline and the hash pin in `test/ai-priority.test.ts` moved on
+their stamps alone; `npm run test:unit` **2,187 of 2,187** after those three
+re-recordings (the first pass failed exactly those four pins and one named
+path in a README line); `npm run build` and `scripts/smoke-defender.mjs`
+against it, whose `stats/defender-map.png` shows rank 1 on the Shore painting
+with the region named in the heading, the sidebar and the footer stamp.
+
+## 115. The turn plays move by move, and the map's nodes wear their sprites
+
+**2026-10-06**, on `claude/eager-galileo-8vqf47`, after section 114. Prompt
+[`spec/gymrun-patch-per-move-replay-and-map-sprites.md`](spec/gymrun-patch-per-move-replay-and-map-sprites.md),
+the author's go-ahead on the per-move item section 114 carried open (*"go
+ahead and build the per-move so can play test it"*) and a second ask (*"add
+actual sprite cut outs to the map"*). Both are `ui/` only. No version axis
+moves; `contentHash` holds at `76dc8f`. Bible **Rev 29**, D107 and D108, by
+the author's directive (`design/bible-discrepancies.md`, `design/playtest-log.md`).
+
+### The per-move replay (D108)
+
+**What was wrong.** The scene drew one view per batch: the bar, the number
+and the sprite stood at the turn's end state on the first frame, and only
+the shadow chunk and the lunges were slotted, by stylesheet delays in a
+four-slot layout (first actor, its target, second actor, its target). The
+second move's effect landed on the frame the first's did, and a body that
+switched in and fainted in the same turn was set swapped and fainted on one
+update: it rose through the swap beat and the fainted rule snapped it out of
+sight with no sink. The engine's order was right; it could not be seen.
+
+**The reader.** `ui/replay.ts` `readReplay(protocol, turns)` walks the batch
+in step with the actions `readTurns` numbered, the same nth-line-is-nth-action
+correspondence `flags.ts` and `battle-log.ts` rest on, and emits one step per
+action of the turn being played: its side and kind, and what each body looked
+like after that action's lines (the HP off the last `-damage`, `-heal` or
+`-sethp` naming it, a faint, a `switch` or `drag` with the species it named),
+with the action's abnormality marks and trait fires reduced one action at a
+time by `ui/abnormality.ts`'s own reducers, and the bracket chevron's answer
+off the log's own `priority` marking (`bracketOf`, moved from the scene). An
+action no line opened a step for (the replacement after `|upkeep|`, where the
+engine writes it; a turn handed over with no lines) is still a step, with the
+bodies as they stand at the end. What hangs on no step (the residual, an
+earlier group's `|cant|`) is the final draw's. `flattenReplay` folds every
+mark and fire onto the turn for the opening batch, which plays no step.
+
+**The scene.** `scene.update(view, onChoose, replay?)` replaces the `turns`,
+`marks` and `fired` arguments. With steps, it draws the first now and each
+later one two beats on (`ui/theme/motion.ts` `beatMs`, a quarter of the budget
+at the player's speed, read at the moment of use), composing each step's view
+over the view the stage stood at before the batch (so a body's level, types
+and stats are its own until its switch brings the final view's in), with the
+lines' HP (exact where the side's own numbers were given, a fraction of the
+body's max where a percentage was), the faint, and the switch line's species;
+the foe's count is held one higher until its faint is shown. The status, the volatiles, the stages
+and the traits are the turn's view's from the first step, as they were when
+the turn was drawn at once; the reader steps HP, identity and the faint, and
+a panel showing the previous turn's status under a body already shown hit
+would be two views at once (the first CI run's `visual-v5` read a loaded
+board's chips on the first step's frame and found none). Each step is the
+one-slot vocabulary the stage already had: the lunge on the actor that moved
+(never on a switch, which is the swap beat), the hit and the chunk one beat
+after, the mark in the same slot. The view itself lands last, with the
+residual's marks and fires. A tap lands on that final view at once and, when
+the fight ended, the outro's hold then runs from there, so the last turn is
+painted; a second tap ends the hold. The next update, a cancel and a reset
+all land a running replay on its final view first, so no step is drawn over a
+newer view. The outro waits on a running replay before its hold begins.
+
+**What is deleted.** The four-slot stylesheet: `data-acted="2"`'s delay,
+`data-hit="2"`'s delay and its one-beat sink, `.hp__shadow[data-slot="2"]`,
+`data-abnormal-slot="2"`'s delay and their reduced-motion twins; `actingOrder`,
+`hitSlot` and `bracketMark` in the scene. The faint's sink is one beat so a
+body is down before the next step. `Bar.set` gains `keep`: a later draw of the
+same turn that lost nothing on a side leaves the chunk a previous step drew
+standing, two beats into its four-beat fade, where it used to clear it; a
+heal and a swap still clear.
+
+**Tests.** `test/replay.test.ts` holds the reader on hand-written protocol: a
+two-move turn's HP per step, the bracket, a switch-in that faints and is
+replaced inside one batch as three steps, the residual left to the view, the
+last turn of a two-turn batch, the opening batch, and a lineless turn.
+`test/battle-feedback.test.ts` drives the clock with fake timers: the lunges
+one step at a time in the log's order, a replacement switch as its own step,
+the hit in its step and nowhere else, the chunk in its step, a drop no step
+explained landing last, and the tap landing on the final view and drawing no
+later step. `test/battle-outro.test.ts`, `test/forecast-feedback.test.ts` and
+`test/trait-fired.test.ts` moved to the new signature. In Chromium,
+`test/visual-release-c.test.ts` reads slot 1's timings on the first step's
+frame and watches a live turn lunge one body, then the other, never both; the
+slot 2 cases in `test/visual-motion.test.ts` are gone with the slot.
+
+### The map's sprites (D107)
+
+`ui/chip.ts` `trainerMark(sprite, label, size)`: the trainer's sprite in the
+node glyph's slot, the trainer glyph where the CDN has none, the same wrapper
+and tip as `nodeKindGlyph`. `run-map.ts` wears it on a defender door on every
+row (the class table's sprite; D101 names the class there) and on an attacker
+route trainer once walked (the record's sprite; the visit names it). An
+unwalked attacker trainer keeps the glyph: the record's sprite would say which
+class, and so which team, is behind the door before the choice, and the map
+reveals a node's kind and never its contents. On the map the cutout fills the
+disc (`styles.css`). `test/defender-ui.test.ts` holds the sprite on every
+door row and its absence on an unmet attacker trainer.
+
+### Gates
+
+`npm run types`, `npm run lint` and `npm run hedge` clean; `npm run
+test:unit` **2,190 of 2,190** in 170 files (a first pass beside a build and
+the smoke failed one path in this section, corrected; both passes logged a
+vitest worker RPC timeout in this container, which is not a test); in Chromium `test/visual-release-c.test.ts`,
+`test/visual-motion.test.ts` and `test/visual-battle-outro.test.ts` 24 of 24
+against the harness's own build; `npm run build` and `scripts/smoke-defender.mjs`
+against it, whose `stats/defender-map.png` shows the Shore rank with the
+trainer cutouts on every door; and a live turn screenshotted beat by beat
+(`stats/turn1-beat*.png`): the faster side's hit on the frame the move is
+chosen, the reply two beats on.
+## 116. Sixteen abilities with no battle effect leave the pool
 
 **2026-10-06**, a bug report, on `claude/affectionate-hopper-0beolc`, from
 `main` at `22fb781`. Prompt
@@ -14665,7 +14846,7 @@ and `npm run test:trim` green across 170 files (`check.mjs` reporting the
 reporter RPC timeout both legs have hit on every tree in this container, with
 every test passed); `npm run build` and `npm run smoke` passed.
 
-## 115. Off-type members: the type lock becomes a badge condition
+## 117. Off-type members: the type lock becomes a badge condition
 
 **2026-10-06**, the defender design message's fourth change, on
 `claude/affectionate-hopper-0beolc`. Prompt
@@ -14716,7 +14897,7 @@ picks a typed recruit, so the defender benchmark rows do not measure this
 change; recorded in `balance.md` when the rows are re-run at the end of the
 four.
 
-The badge's *shown* state waits on D110 (bible Rev 29): the marks dim while
+The badge's *shown* state waits on D112 (bible Rev 30): the marks dim while
 the badge is dark, and the off-type recruit card wears the dimmed mark so the
 consequence is read before pressing.
 
@@ -14729,7 +14910,7 @@ run, that a battle carries a crit chance exactly while `badgesActive` holds.
 `npm run types`, the sim fixture and the visual baseline re-recorded for the
 stamp; the attacker golden holds.
 
-## 116. The blind trade: a pick, then a reveal, then yes or no
+## 118. The blind trade: a pick, then a reveal, then yes or no
 
 **2026-10-06**, the defender design message's second change, on
 `claude/affectionate-hopper-0beolc`. Prompt
@@ -14740,7 +14921,7 @@ received is a mystery. you choose that option to discard the others. then you
 choose to take the trade or not"* and *"Revealed, then Take/Decline"*.
 `RUN_LOG_VERSION` to `-25`; `RANDOMIZER_VERSION`, `contentHash` and
 `AI_VERSION` hold. **This section is the headless half.** How the card and the
-reveal are shown is D107 and D108 (bible Rev 29), built with the UI stage.
+reveal are shown is D109 and D110 (bible Rev 30), built with the UI stage.
 
 ### What moves
 
@@ -14761,7 +14942,7 @@ reveal are shown is D107 and D108 (bible Rev 29), built with the UI stage.
   apply; the node's gold payout lands as it always did.
 - **The leaving member is kept**: `DefenderRunState.tradedAway` holds the
   spec each trade sent away, in trade order, written by `applyTrade`. It is
-  what the Collector fields (section 117). State a replay rebuilds, never a
+  what the Collector fields (section 119). State a replay rebuilds, never a
   draw.
 
 Nothing in `drawTrade` moves: the three offered mons and the selector are
@@ -14777,7 +14958,7 @@ seeds with `chooseTrade` answering `false` and asserts the party, the bag and
 log replaying identically. `test/storage.test.ts`, `test/decision-feed.test.ts`
 and the three version pins moved to `run-25`.
 
-## 117. The Collector: the fight against everything you traded away
+## 119. The Collector: the fight against everything you traded away
 
 **2026-10-06**, the defender design message's third change, on
 `claude/affectionate-hopper-0beolc`. Prompt
@@ -14829,7 +15010,7 @@ the Collector.
 
 The map's run-map screen draws a step from `segments` directly and so still
 shows the drawn door's class on the Collector's slot until the UI stage reads
-through `revengeNodeFor` (section 118's UI note).
+through `revengeNodeFor` (section 120's UI note).
 
 ### Tests
 
@@ -14842,7 +15023,7 @@ mon fielded and replays byte for byte. `test/defender-opening.test.ts` learns
 that the names table carries the Collector. The sim fixture and the visual
 baseline re-recorded for the stamp; the attacker golden holds.
 
-## 118. The question marks come to Defender Mode
+## 120. The question marks come to Defender Mode
 
 **2026-10-06**, the defender design message's first change, built last, on
 `claude/affectionate-hopper-0beolc`. Prompt
@@ -14852,7 +15033,7 @@ event nodes possible to have any number of results, not just acquire
 something for a price. e.g. battle, make a decision, get something special, a
 special store, or a rest spot. could be a free relic on rare occasions...
 mimic slay the spire events"*, with the ruling *"Dedicated ? step"*.
-`RANDOMIZER_VERSION` to `-34`, `RUN_LOG_VERSION` is `-25` (section 116's
+`RANDOMIZER_VERSION` to `-34`, `RUN_LOG_VERSION` is `-25` (section 118's
 bump, widened to carry this change's decision too, one bump for the one
 message as Defender Mode v0's five decisions were one), `contentHash` from
 `714eea` to `3a0597`; `AI_VERSION` holds.
@@ -14936,30 +15117,30 @@ shape: out of range, and `cannot pay`, named.
 table; a wager's loss is drawn as the losing outcome's cost; the bench bot
 answers option 0 at every question mark, which on an ambush is the fight.
 
-### The UI, under bible Rev 29
+### The UI, under bible Rev 30
 
-Built after the four cores, UI last as every stage. D107 to D110 were filed
-before any of it and ruled the same day; Rev 29 records them.
+Built after the four cores, UI last as every stage. D109 to D112 were filed
+before any of it and ruled the same day; Rev 30 records them.
 
-- **D109, the question mark.** `ui/screens/event.ts` gains `renderDefender`:
+- **D111, the question mark.** `ui/screens/event.ts` gains `renderDefender`:
   the same component with the requirement pair absent, a `pay`'s price named
   against the bag and dimmed when unpayable, a `wager`'s odds as a bare
   percentage, a `fight`'s trainer mark and tier word, the tier pips on
   everything that pays. A fight resolves on the press, the battle frame being
   its reveal; every other role holds the screen for its outcome lines and a
   *Carry on*. `app.ts` wires `chooseDefenderEvent` beside `chooseEventOption`.
-- **D107, the card.** `ui/screens/reward.ts`'s trade face is a question mark
+- **D109, the card.** `ui/screens/reward.ts`'s trade face is a question mark
   where the offered sprite was (text, not a glyph: the Ability row's
   precedent), the **Exchange** family's one glyph (the fifteenth family,
   `data/glyphFamilies.ts`, `exchange-arrows`), and the member asked for with
   its name and its party-row press. The offered slot carries no press.
-- **D108, the reveal.** `ui/screens/result.ts` gains a `TradePrompt` in the
+- **D110, the reveal.** `ui/screens/result.ts` gains a `TradePrompt` in the
   cards' place where the berry pick mounts: the offered mon's starter card,
   the mark, the asked member's row; *Take* opens the confirm band with the
   pair and commits, *Decline* leaves. `app.ts` wires `chooseTrade` beside
   `chooseBerry`. `scripts/smoke-defender.mjs` now takes the trade card where
   one is dealt, so the reveal is driven in the app.
-- **D110, the badge off.** The recruit screen (`starter-select.ts`) dims every
+- **D112, the badge off.** The recruit screen (`starter-select.ts`) dims every
   typed card's flame while `badgesActive` is false and puts the gym's badge
   mark, dimmed, on an off-type candidate's card, with a `badge-off:` press
   that says why (`BADGE_OFF_COPY`). **Deviation**: in a battle the marks are
@@ -14969,7 +15150,7 @@ before any of it and ruled the same day; Rev 29 records them.
   recruit card, where the decision is made, is where it is.
 - **The Collector on the map.** `run-map.ts` reads each step's doors through
   `revengeNodeFor`, the reading `nodeOptions` makes, so the slot shows the
-  Collector's class once a trade has happened (section 117's note closed).
+  Collector's class once a trade has happened (section 119's note closed).
 
 `docs/copy.md` regenerated with the new strings; `npm run hedge` clean.
 
@@ -14981,7 +15162,7 @@ shape. It exists because the family walk
 gallery's surfaces and no attacker fixture can deal a trade, so without it the
 Exchange family was painted by no surface at all. The census is re-recorded
 with it; the question mark is the stylesheet's content rather than a text
-node, so the trade card reads 0 words as D107 says, and the one word the
+node, so the trade card reads 0 words as D109 says, and the one word the
 census now attributes to the reward card component, *HP*, is the restore
 card's own face, within its budget of 8, on a card the attacker's `SMOKE24`
 fixtures never dealt. The census also records main's own *Lead* control on
@@ -14995,3 +15176,68 @@ name), `test/defender-event-copy.test.ts`, `test/defender-waves.test.ts`
 reshaped for the steps. The sim fixture and the visual baseline re-recorded
 for the stamp; the attacker golden, `test/event-costs.test.ts` and
 `test/event-inventory.test.ts` hold.
+
+## 121. The defender design changes merged onto the map backdrops and the per-move replay
+
+**2026-10-07**, on `claude/affectionate-hopper-0beolc`, for
+[y-wang217/Pocket-Randomizer#100](https://github.com/y-wang217/Pocket-Randomizer/pull/100):
+the author's *"resolve conflicts and then i'll merge"*. `main` had taken two
+patches since the branch forked at `22fb781`: the defender map backdrops
+(section 114) and the per-move replay with the map's sprites (section 115,
+[y-wang217/Pocket-Randomizer#99](https://github.com/y-wang217/Pocket-Randomizer/pull/99)).
+`RANDOMIZER_VERSION` holds at `-34` and `RUN_LOG_VERSION` at `-25`, since
+neither of main's patches moved either axis. `contentHash` is **`865d3b`**,
+both sets of tables; `AI_VERSION` holds.
+
+### Two branches, one set of numbers
+
+The precedent is section 113's: one string never names two schemas, so this
+branch's numbers move above main's.
+
+| axis | main | this branch | merged |
+|---|---|---|---|
+| `RANDOMIZER_VERSION` | `-30`, held | `-31` to `-34` | **`-34`**, no collision |
+| `RUN_LOG_VERSION` | `-24`, held | `-25` | **`-25`**, no collision |
+| `contentHash` | `76dc8f` (the rank locale table) | `3a0597` | **`865d3b`** |
+| bible revision | Rev 29 (D107, D108) | Rev 29 | this branch's becomes **Rev 30** |
+| rulings | D107 (the map's sprites), D108 (the turn drawn one action at a time) | D107 to D110 | this branch's become **D109 to D112** |
+| `generation.md` | sections 114, 115 | sections 114 to 118 | this branch's become **sections 116 to 120**; this note is 121 |
+
+Every reference moved with its number, in code comments, tests, the spec's
+reading, the bible, the discrepancy register, the playtest log,
+[`README.md`](README.md) and [`balance.md`](balance.md). The pass touched only
+lines this branch added and main's copy does not contain, so main's D107 is
+still the map's sprites and this branch's D107 is now D109. The quoted message
+and rulings in the spec were not edited: none of them names a number. The
+glyph family count needed no renumbering, since main still had fourteen and
+Exchange is the fifteenth either way. Sections 116 to 120 name the hashes
+and the benchmark stamps as they were when written, `3a0597` and the
+`randomizer-34` rows among them; the benchmark report keeps the string it was
+stamped with, and this note supersedes it.
+
+### How the two compose
+
+The union, with nothing narrowed on either side.
+
+- **`core/defender/waves.ts`**: main's `rankLocale` sets every rank's route
+  in a region; this branch's question-mark step, picker and the Collector's
+  extra pages sit on that route. A question-mark node keeps `locale: null`,
+  as main's test asks of every node ("the route carries it; the door nodes do
+  not").
+- **The map's sprites (main's D107)** put a defender door's class sprite on
+  every row. The map reads each door through `revengeNodeFor`, so once a
+  trade has happened the Collector's door wears the Collector's own sprite,
+  which `@pkmn/img` carries as `collector`. A question mark keeps the node
+  family's `?` glyph, since it has no trainer class.
+- **The per-move replay (main's D108)** plays an ambush fight like any other,
+  one action at a time.
+- The four sets of generated files (the sim fixture, the visual baseline,
+  `docs/copy.md` and the text census) were regenerated on the merged tree,
+  never hand-merged. The attacker golden held without a re-mint.
+
+### Gates
+
+`npm run types`, `lint` and `hedge` clean; the hash pin, the sim fixture and
+the visual baseline re-recorded; the attacker golden unchanged; the node suite
+and the strict trim, the build, `npm run smoke`, `scripts/smoke-defender.mjs`,
+and the browser family walk as recorded in the merge commit.

@@ -12,10 +12,11 @@
  *
  * A rank's route is `DEFENDER_WAVE_LENGTH[rank]` door steps, each two trainer
  * nodes of two different classes, then one intermission step holding a single
- * shop node. The intermission is a step so `position`, `betweenNodes`, the shop
- * question and the teach gate all work unchanged; it is **not a choice**, and
- * the run loop plays it without asking (`core/run.ts`). The boss is the
- * segment's `gym`, fought after it.
+ * shop node, set in the region `DEFENDER_RANK_LOCALES[rank]` names (a lookup,
+ * not a draw; the defender map backdrops patch). The intermission is a step so
+ * `position`, `betweenNodes`, the shop question and the teach gate all work
+ * unchanged; it is **not a choice**, and the run loop plays it without asking
+ * (`core/run.ts`). The boss is the segment's `gym`, fought after it.
  *
  * ## Passes, in the attacker's order and on the attacker's streams
  *
@@ -33,11 +34,13 @@
 import {
   DEFENDER_BOSS_RELIC_IDS,
   DEFENDER_CONSUMABLE_ENTRY,
+  DEFENDER_RANK_LOCALES,
   DEFENDER_RELIC_IDS,
   DEFENDER_REVENGE,
   DEFENDER_WAVE_LENGTH,
 } from '../../data/defender';
 import { DEFENDER_AMBUSH, DEFENDER_BAZAAR_SHELF, DEFENDER_EVENT_STEPS } from '../../data/defenderEvents';
+import type { LocaleId } from '../../data/locales';
 import { defenderOpponentIvs } from '../../data/scaling';
 import type { Tuning } from '../../data/tuning';
 import { generateShopStock } from '../economy';
@@ -85,6 +88,22 @@ export function revengeNodeId(rank: number): string | null {
 export function waveLength(rank: number): number {
   const index = Math.max(0, Math.min(DEFENDER_WAVE_LENGTH.length - 1, rank));
   return DEFENDER_WAVE_LENGTH[index] ?? 0;
+}
+
+/**
+ * Where rank `rank` is set. Clamped to the table's ends, as `waveLength` is.
+ *
+ * Read off `DEFENDER_RANK_LOCALES`, never drawn: the region paints the map and
+ * the door fights and decides nothing about them, so it is a lookup. Written
+ * onto the rank's one route, where `localeOf` reads every segment's region
+ * from, so the map screen, the World and the battle backdrop follow without a
+ * defender branch of their own.
+ */
+export function rankLocale(rank: number): LocaleId {
+  const index = Math.max(0, Math.min(DEFENDER_RANK_LOCALES.length - 1, rank));
+  const locale = DEFENDER_RANK_LOCALES[index];
+  if (!locale) throw new Error('DEFENDER_RANK_LOCALES is empty');
+  return locale;
 }
 
 function emptyNode(id: string, kind: NodeSpec['kind'], label: string): NodeSpec {
@@ -224,7 +243,8 @@ export function generateRank(rank: number, rng: Rng, tuning: Tuning, picker: Def
     gymDefinition: { id: `defender-boss-${rank}`, segment: rank },
     gymEncounter: null,
     localeOffer: [],
-    routes: [{ locale: null, steps }],
+    // The rank's region, from the table: what paints the map and the fights.
+    routes: [{ locale: rankLocale(rank), steps }],
     gym: boss,
   };
 }

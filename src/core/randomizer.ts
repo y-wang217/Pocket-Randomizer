@@ -486,7 +486,7 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * ally. `ABILITY_POOL` falls from 286 to 270, so the same ability draw reads a
  * different name on every seed. Same count on every key. `contentHash` moves
  * beside it for the table. `RUN_LOG_VERSION` holds.
- * `docs/spec/gymrun-patch-blank-abilities.md`, `docs/generation.md` section 114.
+ * `docs/spec/gymrun-patch-blank-abilities.md`, `docs/generation.md` section 116.
  */
 /*
  * ## `-32`: the recruit draft draws two typed mons and one off-type. The
@@ -496,7 +496,7 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * only; no attacker draw moves. The exempt slot and the type lock's refusal
  * are deleted; the badge goes dark instead (`core/defender/badge.ts`).
  * `contentHash` moves for `data/defender.ts`. `RUN_LOG_VERSION` holds.
- * `docs/generation.md` section 115.
+ * `docs/generation.md` section 117.
  */
 /*
  * ## `-33`: the Collector's slot draws its extra pages. The defender design
@@ -507,7 +507,7 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * Collector itself is a reading of that slot at `nodeOptions`, never a draw.
  * `contentHash` moves for `data/defender.ts` and `data/trainerClasses.ts`.
  * `RUN_LOG_VERSION` holds: the pages are `reward` entries.
- * `docs/generation.md` section 117.
+ * `docs/generation.md` section 119.
  */
 /*
  * ## `-34`: the question marks come to Defender Mode. One step per rank from
@@ -519,7 +519,7 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * and the boss draw as before, and no attacker draw moves. `contentHash`
  * moves for `data/defenderEvents.ts` and the `consumable` effect in
  * `data/eventPools.ts`. `RUN_LOG_VERSION` is `-25` with the `eventPick` entry.
- * `docs/generation.md` section 118.
+ * `docs/generation.md` section 120.
  */
 export const RANDOMIZER_VERSION = 'gymrun-randomizer-34';
 

@@ -66,7 +66,7 @@ export function renderBadgeTip(type: string): HTMLElement | null {
   return body;
 }
 
-/** A dimmed badge mark's inspect (D110): the badge, why it is off, what it does when lit. */
+/** A dimmed badge mark's inspect (D112): the badge, why it is off, what it does when lit. */
 export function renderBadgeOffTip(type: string): HTMLElement | null {
   const copy = BADGE_COPY[type];
   if (!copy) return null;

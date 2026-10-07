@@ -104,7 +104,7 @@ describe('the versions block', () => {
      * `-24` records the run's mode on the log and adds Defender Mode v0's
      * decisions. `docs/generation.md` section 106.
      * `-25` adds a decision, whether a picked trade card is taken.
-     * `docs/generation.md` section 116.
+     * `docs/generation.md` section 118.
      */
     expect(RUN_LOG_VERSION.startsWith('gymrun-run-25/')).toBe(true);
     expect(RUN_LOG_VERSION).not.toContain('gymrun-run-14/');

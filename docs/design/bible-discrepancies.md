@@ -96,6 +96,8 @@ which blocks everything.
 | D104 | Stage 6.0's player-facing half: the opponent's name, sprite and citation | Every opponent is a named trainer from a named game, and no rule says whether the battle header, the map node card or the summary may say so; D61 refuses the sprite | **2026-10-05**, option 1: class and name on the battle header with the sprite at 16, the citation on the summary, the map node card a kind |
 | D105 | Stage 6.0 checkpoint 6: the boss is a challenger with no type | Four surfaces show the gym's type as a chip, and the boss no longer has one | **2026-10-05**, by the author's directive: the chips come off, the surfaces read the challenger's class and name |
 | D106 | Stage 6.0 checkpoint 7: no badge, a progress bar to the next challenger | The eight-badge rail and the badge mark (D46, D72, D104) say the segment is a gym; the author's design says it is training toward a challenger | **2026-10-05**, option 1: one bar at four mounts and the locale screen, the badge retired, the challenger's sprite in its slot |
+| D107 | The map sprites patch: a defender door is a trainer glyph on a grey disc, and every door is the same disc | D106 gives the boss its sprite and the battle header its; a door's class is named on the card (D101) and its sprite is in the table, and no rule says a trainer node wears one | **2026-10-06**, by the author's directive: a door's class sprite on every row, a walked attacker trainer's record sprite, the glyph on an unwalked one |
+| D108 | The per-move replay patch: section 6 names a sequence and the scene drew the turn at once | The second move's effect lands on the frame the first's does, and a body that switches in and faints in one turn is never seen | **2026-10-06**, by the author's directive: one step per action, two beats each, the view itself last |
 
 ## Rulings, 2026-09-19
 
@@ -4723,6 +4725,15 @@ card's four chips stay: they are the area's wild types, the typed resource
 the author's design keeps. No option set was needed; the directive is the
 ruling, and the amendment is the one the directive implies.
 
+## Rulings, 2026-10-06, the per-move replay and the map sprites
+
+| Row | Ruling | Amendment |
+|---|---|---|
+| D107 | **By the author's directive** (*"add actual sprite cut outs to the map, so it doesn't just look like a bunch of grey nodes. especially since we no longer encounter 'wild' fights"*): a trainer wears their own sprite in the node glyph's slot where the player already knows who they are. A defender door's class sprite on every row, since D101 names the class there; an attacker route trainer's record sprite once walked, since the visit names them; the kind's glyph on an unwalked attacker trainer, because the map reveals a node's kind and never its contents. The cutout fills the disc on the map. | Bible Rev 29: section 3, *Node*; section 5, *Map node card*. `../generation.md` §115 |
+| D108 | **By the author's directive** (*"go ahead and build the per-move so can play test it"*): section 6 is drawn one action at a time, two beats each, the lunge then the hit, each body's HP and identity as the lines left them after that action, the view itself last, the faint's sink one beat. A two-action turn spends the one budget; more actions add two beats each. | Bible Rev 29: section 6's opening. `../generation.md` §115 |
+
+---
+
 ## D106. No badge: a progress bar that shrinks as the next challenger approaches
 
 **Filed 2026-10-05, by the same checkpoint. Ruled option 1 the same day and built as checkpoint 7. Bible Rev 28.**
@@ -4763,6 +4774,47 @@ section 4's new budget row, section 5's *Map heading*, *Run Info screen*,
 *Locale card* and *Battle screen header* rows, and section 9's bet that the
 bar reads as approach rather than as a timer.
 
+## D107. The map's nodes are grey discs, and the trainers behind them have sprites
+
+**Filed 2026-10-06, by the author's directive. Ruled and built the same day. Bible Rev 29.**
+
+The author: *"add actual sprite cut outs to the map, so it doesn't just look
+like a bunch of grey nodes. especially since we no longer encounter 'wild'
+fights."* A defender run's map is doors, each two trainer nodes, each the
+trainer kind's glyph on a disc; D101 names the class beside it and the class
+table carries a Showdown sprite id read by nothing. D106 put the challenger's
+own sprite in the boss node's slot and the battle header's, and that is the
+precedent: the slot can hold the trainer, and the glyph is the fallback.
+
+The one line to hold is the map's: it reveals a node's kind and never its
+contents. A defender door's class is already on the face (D101), so the
+sprite adds nothing the player does not have. An attacker's route trainer is
+a library record with a class, a name and a team, none of which the map shows
+before the choice; its sprite would say which class is behind the door, which
+says what the team is. So an attacker trainer wears its sprite once walked,
+where the visit already names it, and the glyph until then. No option set was
+needed; the directive is the ruling.
+
+## D108. Section 6 is a sequence and the scene drew the turn at once
+
+**Filed 2026-10-06, by the author's directive. Ruled and built the same day. Bible Rev 29.**
+
+Section 6 has read as a sequence since Rev 1: first actor, hit, second actor,
+hit. The build drew one view per batch, with the bar, the number and the
+sprite at the turn's end state on the first frame, and slotted only the
+shadow chunk and the lunges by stylesheet delay. The author's playtest said
+what that looks like: *"pokemon swaps happen invisibly especially if the swap
+happens and i attack it, making it faint in 1 move"* and *"the moves don't
+follow speed. i want to see the effects of each individual move."* The order
+was the engine's and right; it could not be seen.
+
+The ruling is the section as written, drawn: one step per action, the bodies
+as the lines left them after it, the view itself last. What the section
+loses is its *"adds no time"* sentence for a turn of more than two actions,
+each of which takes two beats; a two-action turn is unchanged at the one
+budget. The faint's sink shortens to a beat so a body is down before the
+next step. Recorded as a directive, not a disconfirmer: no section 9 row
+named it.
 
 ## Rulings, 2026-10-06, the defender design message
 
@@ -4770,11 +4822,11 @@ Four amendments from one message
 ([`../spec/gymrun-patch-defender-events-trades-revenge-offtype.md`](../spec/gymrun-patch-defender-events-trades-revenge-offtype.md)),
 each ruled by the author the same day in the questions that message's file
 records, and each filed here before any surface was drawn. The core work
-behind them is headless and may proceed; the UI waits for Rev 29.
+behind them is headless and may proceed; the UI waits for Rev 30.
 
-## D107. The trade card shows a mon it has not revealed, and an arrow nobody has drawn
+## D109. The trade card shows a mon it has not revealed, and an arrow nobody has drawn
 
-**Filed 2026-10-06. Ruled the same day: option 2. Bible Rev 29.**
+**Filed 2026-10-06. Ruled the same day: option 2. Bible Rev 30.**
 
 The author: *"trades don't look like trades. the trade should be a 'trade'
 offer with a questionmark mystery sprite icon, with the mons and a rotating
@@ -4795,7 +4847,7 @@ ability: "held-and-unknown is not the same fact as none".
    they do today.
 2. **A mystery silhouette and a fifteenth family, `exchange`.** As 1, with
    one glyph, two arrows turning, between the two slots on the card and on
-   the reveal step (D108). It gets an exposure label as every family does
+   the reveal step (D110). It gets an exposure label as every family does
    (R7), and it is a glyph rather than a control's icon because it encodes
    what the card is.
 3. **Arrows as an unregistered mark.** The arrows drawn by the card's CSS
@@ -4810,9 +4862,9 @@ row, which stays at 0 words, section 5's *Reward card* row, and section 9's
 bet that a question mark in a sprite slot reads as "not yet shown" and not
 as "nothing".
 
-## D108. A second step the trade never had
+## D110. A second step the trade never had
 
-**Filed 2026-10-06. Ruled the same day: option 1. Bible Rev 29.**
+**Filed 2026-10-06. Ruled the same day: option 1. Bible Rev 30.**
 
 Picking the trade card is today the whole decision: the reward entry, and
 the swap is applied. The author's flow has two steps, the pick and then the
@@ -4839,9 +4891,9 @@ is agreed to, and the pick has already cost two cards.
 it. The amendment adds section 5's row and section 4's row, and section 9's
 bet that the step reads as a second chance rather than as a reroll.
 
-## D109. An event screen with odds, a fight button, and no capability on it
+## D111. An event screen with odds, a fight button, and no capability on it
 
-**Filed 2026-10-06. Ruled the same day: option 1. Bible Rev 29.**
+**Filed 2026-10-06. Ruled the same day: option 1. Bible Rev 30.**
 
 Defender ? nodes mount the event screen (D33's component: the label, the
 hint, the reward-tier pips, the Toll's price; the requirement and the band
@@ -4867,9 +4919,9 @@ the screen mounts above the choices have nothing to show.
 *Fight in an event*), one section 4 row, and a note on section 5's *Event
 choice* row that it mounts in both modes.
 
-## D110. The badge can be off, and the roster says it is only ever on or absent
+## D112. The badge can be off, and the roster says it is only ever on or absent
 
-**Filed 2026-10-06. Ruled the same day: option 1. Bible Rev 29.**
+**Filed 2026-10-06. Ruled the same day: option 1. Bible Rev 30.**
 
 The author: *"make passives (gym badge the player holds) disabled once you
 add a non-typed mon, which the relic that allows non-typed mons reenables"*.

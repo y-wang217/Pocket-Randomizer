@@ -88,7 +88,7 @@ export const CONFIRM_SURFACES = ['confirm-replace', 'confirm-forfeit'] as const;
 export const RELIC_SURFACES = ['result-relic', 'shop-relic'] as const;
 
 /**
- * The surface that shows a defender **trade** card. **Bible Rev 29, D107,
+ * The surface that shows a defender **trade** card. **Bible Rev 30, D109,
  * 2026-10-06.** A decision surface in every respect, listed apart for the
  * relic surfaces' reason: `SMOKE24`'s attacker fixtures can never deal one,
  * since a trade is dealt on a defender door, so without this the Exchange

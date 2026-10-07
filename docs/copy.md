@@ -1084,7 +1084,7 @@ Source: `src/data/defenderCopy.ts, src/data/trainerClassCopy.ts` · 22 strings
 
 ### 35. Defender Mode, the question marks
 
-The event screen in a defender run: the hook over the buttons, each option's label and hint. Bible Rev 29, D109.
+The event screen in a defender run: the hook over the buttons, each option's label and hint. Bible Rev 30, D111.
 
 Source: `src/data/defenderEventCopy.ts` · 64 strings
 
@@ -1272,9 +1272,9 @@ Found by grep, not by import: a string assigned straight to `textContent`, `titl
 | `src/ui/seed-bar.ts` line 117 | Start run |  |
 | `src/ui/seed-bar.ts` line 127 | New seed |  |
 | `src/ui/seed-bar.ts` line 132 | Resume saved run |  |
-| `src/ui/scene.ts` line 1295 | Moves first at this Speed |  |
-| `src/ui/scene.ts` line 2488 | BP |  |
-| `src/ui/scene.ts` line 2507 | PP |  |
+| `src/ui/scene.ts` line 1455 | Moves first at this Speed |  |
+| `src/ui/scene.ts` line 2511 | BP |  |
+| `src/ui/scene.ts` line 2530 | PP |  |
 | `src/ui/drawer.ts` line 180 | Party |  |
 | `src/ui/drawer.ts` line 242 | Relics |  |
 | `src/ui/header.ts` line 22 | GYMRUN |  |

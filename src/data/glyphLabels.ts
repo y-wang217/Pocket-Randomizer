@@ -84,7 +84,7 @@ export const GLYPH_LABELS: Readonly<Record<string, string>> = {
   'badge-flame': 'Fire badge',
   'badge-eye': 'Psychic badge',
   'badge-wing': 'Flying badge',
-  // The exchange family, one mark. D107, 2026-10-06.
+  // The exchange family, one mark. D109, 2026-10-06.
   'exchange-arrows': 'Trade',
 
   'capability-cut': 'Cut',

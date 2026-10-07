@@ -94,6 +94,15 @@ export interface SetOptions {
    * before slots existed.
    */
   slot?: number | null;
+  /**
+   * Leave a standing chunk where nothing was lost. **The per-move replay
+   * patch.** A replay draws the bar once per step and once more for the view
+   * itself; a draw that moved nothing on this side would otherwise clear the
+   * chunk the previous step drew, two beats into a four-beat fade. A heal
+   * and a swap still clear it: a shadow behind a bar that grew marks ground
+   * as lost that was gained, and two bodies' bars are not a hit.
+   */
+  keep?: boolean;
 }
 
 export interface Bar {
@@ -172,7 +181,7 @@ export function createBar(options: BarOptions = {}): Bar {
 
       const lost = before - fraction;
       if (!shadow || setOptions.chunk === false || lost < MIN_CHUNK) {
-        clearChunk();
+        if (!(setOptions.keep && setOptions.chunk !== false && Math.abs(lost) < MIN_CHUNK)) clearChunk();
         return false;
       }
       /*

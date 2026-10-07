@@ -3,7 +3,7 @@
  *
  * One hook per event and one label and hint per option, in the option order
  * `data/defenderEvents.ts` lists them. The same budgets as the attacker's event
- * copy (bible section 8, D33, D109): a hook under thirty words and two lines
+ * copy (bible section 8, D33, D111): a hook under thirty words and two lines
  * at 390px, a label under six words, a hint at most six words and a fragment,
  * naming the shape of what the button does and never the drawn outcome. No
  * hedge word: `test/defender-event-copy.test.ts` lints every string against

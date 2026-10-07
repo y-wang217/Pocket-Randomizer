@@ -771,7 +771,7 @@ export function mountApp(root: HTMLElement): void {
       },
       chooseRecruit: (options, state) => {
         const gymType = state.defender?.gymType ?? '';
-        // The badge's state rides along (D110): a card dims its mark while the
+        // The badge's state rides along (D112): a card dims its mark while the
         // badge is off, and an off-type candidate wears the dimmed mark.
         starterScreen.render(options, (index) => starterPick.submit(index), { title: DEFENDER_SCREEN_COPY.recruit, gymType, badgeLit: badgesActive(state) });
         showScreen('starter');
@@ -945,7 +945,7 @@ export function mountApp(root: HTMLElement): void {
       },
       /*
        * The trade reveal, on the same screen, in the cards' place (bible Rev
-       * 29, D108). `playRun` asks it right after the trade card is picked, so
+       * 30, D110). `playRun` asks it right after the trade card is picked, so
        * the result the card came from is still `lastReview`.
        */
       chooseTrade: (card, state) => {
@@ -1094,7 +1094,7 @@ export function mountApp(root: HTMLElement): void {
         showScreen('event');
         return eventPick.wait();
       },
-      // A defender question mark, on the same screen (bible Rev 29, D109).
+      // A defender question mark, on the same screen (bible Rev 30, D111).
       chooseDefenderEvent: (event, state) => {
         eventScreen.renderDefender(event, state, (index) => defenderEventPick.submit(index));
         showScreen('event');

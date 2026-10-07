@@ -334,7 +334,7 @@ describe('the version axes', () => {
      * `-24` is Defender Mode v0 merged onto it: the log records its mode, and
      * the mode brings its own decisions. `docs/generation.md` section 106.
      * `-25` is a picked trade taken or declined, a decision after the card.
-     * `docs/generation.md` section 116.
+     * `docs/generation.md` section 118.
      */
     expect(RUN_LOG_VERSION).toBe('gymrun-run-25/gymrun-0.3.0');
     /*
@@ -514,26 +514,36 @@ describe('the version axes', () => {
      * And at checkpoint 10, the merge of the two: both sets of tables in one
      * tree, `gymrun-randomizer-30` beside it. `docs/generation.md` section 113.
      *
-     * And for the blank-abilities patch, from `998fc2`: `data/abilities.ts`
-     * loses the sixteen abilities with no effect in a singles battle (three
-     * with no engine handler, thirteen that act only on a doubles ally).
-     * `gymrun-randomizer-31` moves beside it. `docs/generation.md` section 114.
+     * And for the defender map backdrops patch, from `998fc2`: one new table,
+     * `DEFENDER_RANK_LOCALES` in `defender.ts`, the region each rank is set
+     * in. A lookup and not a draw, so no randomizer axis moves; the sim
+     * fixture and the visual baseline are byte-identical but for this hash.
+     * `docs/generation.md` section 114.
      *
-     * And for the defender design message's fourth change, from `fe2201`:
-     * `data/defender.ts` loses the exempt slot and gains the recruit draft's
-     * shape. `gymrun-randomizer-32` moves beside it. `docs/generation.md`
-     * section 115.
+     * And for the blank-abilities patch, built beside that one from `998fc2`
+     * and merged onto it: `data/abilities.ts` loses the sixteen abilities
+     * with no effect in a singles battle (three with no engine handler,
+     * thirteen that act only on a doubles ally). `gymrun-randomizer-31` moves
+     * beside it. `docs/generation.md` section 116.
      *
-     * And for its third change, from `d18681`: `data/defender.ts` gains the
-     * Collector's slot and `data/trainerClasses.ts` the Collector.
-     * `gymrun-randomizer-33` moves beside it. `docs/generation.md` section 117.
+     * And for the defender design message's fourth change: `data/defender.ts`
+     * loses the exempt slot and gains the recruit draft's shape.
+     * `gymrun-randomizer-32` moves beside it. `docs/generation.md` section 117.
      *
-     * And for its first change, from `714eea`: `data/defenderEvents.ts`, the
-     * question marks' table, and the `consumable` effect in
-     * `data/eventPools.ts`. `gymrun-randomizer-34` moves beside it.
-     * `docs/generation.md` section 118.
+     * And for its third change: `data/defender.ts` gains the Collector's slot
+     * and `data/trainerClasses.ts` the Collector. `gymrun-randomizer-33`
+     * moves beside it. `docs/generation.md` section 119.
+     *
+     * And for its first change: `data/defenderEvents.ts`, the question marks'
+     * table, and the `consumable` effect in `data/eventPools.ts`.
+     * `gymrun-randomizer-34` moves beside it. `docs/generation.md` section 120.
+     *
+     * The branch's own hashes (`fe2201`, `d18681`, `714eea`, `3a0597`) were
+     * computed on the tree without the backdrops table; this pin is the
+     * merged tree's, both tables in it. `docs/generation.md` section 121's
+     * merge note.
      */
-    expect(CONTENT_HASH).toBe('3a0597965aaf062fa161fc57dd2ae2f804de8c98a39b013348852e5bf240e02c');
+    expect(CONTENT_HASH).toBe('865d3ba22af9c9c2b8f1f9d7378eeba0c433d71717cd3306a8679d711f59f1fd');
   });
 
   it('is deterministic within the build: one seed, one log, twice', async () => {

@@ -64,7 +64,7 @@ export interface DefenderPick {
   title: string;
   gymType: string;
   /**
-   * Whether the badge is lit for the run as it stands (D110, 2026-10-06).
+   * Whether the badge is lit for the run as it stands (D112, 2026-10-06).
    * While it is not, every typed card's flame is dimmed; and whatever it is,
    * a candidate that does not carry the gym type wears the gym's badge mark
    * dimmed, so the consequence of taking it is read before pressing.
@@ -170,7 +170,7 @@ export function starterInspectCard(spec: PokemonSpec, gymType: string | null): H
 }
 
 /**
- * The gym's badge mark, dimmed, on a card that would put the badge out (D110).
+ * The gym's badge mark, dimmed, on a card that would put the badge out (D112).
  * The mark is the family's own glyph for the type, the tip says why it is off.
  */
 function dimmedBadgeMark(gymType: string): HTMLElement {

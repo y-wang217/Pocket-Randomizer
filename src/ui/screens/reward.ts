@@ -283,10 +283,10 @@ export function renderRewardCard(
 
     /*
      * **A trade is a mon not yet shown, the exchange mark, and the member
-     * asked for. Bible Rev 29, D107** (two revealed sprites under D102 until
+     * asked for. Bible Rev 30, D109** (two revealed sprites under D102 until
      * 2026-10-06). The offered slot draws a question mark where a sprite
      * would be, the Ability row's "held-and-unknown is not none" precedent,
-     * and carries no press: showing the mon is the reveal step's job (D108),
+     * and carries no press: showing the mon is the reveal step's job (D110),
      * once the pick has cost the other two cards. The member asked for is
      * named, as a price must be, and its press opens its party row through
      * the `trade-ask:` tip. The mark between them is the exchange family's

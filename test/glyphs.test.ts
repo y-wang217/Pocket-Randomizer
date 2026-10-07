@@ -80,8 +80,8 @@ describe('the glyph sheet', () => {
   // first drawn for the shop price and the coins card (D66, Rev 17).
   // Fourteen since Defender Mode v0: `badge`, filed as D100 before any of it
   // was built and ruled into Rev 25 (`docs/reports/defender-mode-v0-step7-bible.md`).
-  // Fifteen since the blind trade: `exchange`, filed as D107 before any of it
-  // was built and ruled into Rev 29 (`docs/design/bible-discrepancies.md`).
+  // Fifteen since the blind trade: `exchange`, filed as D109 before any of it
+  // was built and ruled into Rev 30 (`docs/design/bible-discrepancies.md`).
   it('fills all fifteen families of section 2, and no sixteenth', () => {
     expect(GLYPH_FAMILIES).toHaveLength(15);
     for (const family of GLYPH_FAMILIES) expect(glyphsOf(family), family).not.toHaveLength(0);

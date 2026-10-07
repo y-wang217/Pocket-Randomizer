@@ -474,9 +474,9 @@ import { DEFAULT_TUNING, type NodeKind, type Tuning } from '../data/tuning';
  * `{ kind: 'trade', accept }` is recorded immediately after the `reward`
  * entry that picked a trade card: picking the card is the first step and
  * forfeits the other two, this is the second, asked with the offered mon
- * revealed (change 2, `docs/generation.md` section 116).
+ * revealed (change 2, `docs/generation.md` section 118).
  * `{ kind: 'eventPick', index }` is a defender question mark's option, asked
- * before any fight it starts (change 1, section 118). A `-24` reader meets
+ * before any fight it starts (change 1, section 120). A `-24` reader meets
  * kinds it does not know, and a `-24` log replayed here runs out of step at
  * the first of either. One bump for the one message, as Defender Mode v0's
  * five decisions were one.

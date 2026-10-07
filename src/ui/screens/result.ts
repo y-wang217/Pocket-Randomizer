@@ -99,7 +99,7 @@ export interface BerryPrompt {
  * is looking at on this screen.
  */
 /**
- * A trade card picked, and the step it opens. **Bible Rev 29, D108.**
+ * A trade card picked, and the step it opens. **Bible Rev 30, D110.**
  *
  * The pick forfeited the offer's other two cards; this is the second step,
  * in the cards' place on this screen as the berry pick is (D99): the offered
@@ -151,7 +151,7 @@ export interface ResultScreen {
      * in the cards' section, which is empty by then: the card has been taken.
      */
     berry?: BerryPrompt | null,
-    /** The trade reveal a picked trade card opened (D108). In the cards' place, as the berry pick is. */
+    /** The trade reveal a picked trade card opened (D110). In the cards' place, as the berry pick is. */
     trade?: TradePrompt | null,
   ): void;
 }
@@ -281,7 +281,7 @@ export function createResultScreen(): ResultScreen {
         );
       } else if (tradePrompt) {
         /*
-         * The reveal, in the cards' place (D108). The heading is the
+         * The reveal, in the cards' place (D110). The heading is the
          * question; the content is the pair the band will show again; the two
          * controls are the only actions on the screen.
          */
@@ -347,7 +347,7 @@ export function createResultScreen(): ResultScreen {
 }
 
 /**
- * The trade reveal's content and controls (D108). The offered mon's starter
+ * The trade reveal's content and controls (D110). The offered mon's starter
  * card, the exchange mark, the asked member's party row; *Take* through the
  * confirm band, *Decline* straight out.
  */

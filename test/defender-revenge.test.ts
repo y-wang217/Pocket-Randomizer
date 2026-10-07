@@ -1,6 +1,6 @@
 /**
  * The Collector: the fight against everything the run traded away.
- * **Defender Mode, 2026-10-06.** `docs/generation.md` section 117.
+ * **Defender Mode, 2026-10-06.** `docs/generation.md` section 119.
  *
  * Three claims. The slot is drawn like any door and carries its extra pages
  * on every seed; the Collector is a *reading* of that slot against the run,

@@ -66,7 +66,7 @@ extra drawn events before the event floor runs, and shorter runs. Recorded
 here, out of scope.
 
 **Four changes**, built in the order 4, 2, 3, 1, UI last, each recorded in
-[`../generation.md`](../generation.md) sections 115 to 118:
+[`../generation.md`](../generation.md) sections 117 to 120:
 
 1. **Defender ? nodes.** One dedicated ? step per rank from rank 1, before the
    intermission, always visited. Six shapes drawn at generation from a
@@ -92,6 +92,6 @@ here, out of scope.
    badge is off for the whole team; the Stranger's Pass turns it back on.
 
 Version axes: `RANDOMIZER_VERSION` to `-32`, `RUN_LOG_VERSION` to `-25`,
-`contentHash` moves, `AI_VERSION` holds. Bible amendments D107 to D110 are
+`contentHash` moves, `AI_VERSION` holds. Bible amendments D109 to D112 are
 filed in [`../design/bible-discrepancies.md`](../design/bible-discrepancies.md)
 before any surface is drawn.

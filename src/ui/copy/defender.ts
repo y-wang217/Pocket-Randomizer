@@ -21,11 +21,11 @@ export const DEFENDER_SCREEN_COPY = {
   recruit: 'Recruit one',
   /** The reveal step's accessible name for the pair: offered for asked. Never painted. */
   tradeLabel: (offered: string, asked: string): string => `${offered} for ${asked}`,
-  /** The trade card's accessible name at rest (D107): the member asked for, the other side not yet shown. */
+  /** The trade card's accessible name at rest (D109): the member asked for, the other side not yet shown. */
   tradeMystery: (asked: string): string => `Trade: ${asked} for a Pokemon not yet shown`,
-  /** The unrevealed slot's accessible name (D107). Never painted: the slot draws a question mark. */
+  /** The unrevealed slot's accessible name (D109). Never painted: the slot draws a question mark. */
   tradeUnrevealed: 'Not yet shown',
-  /** The reveal step (D108): the question, and its two controls. Five words, the row's budget. */
+  /** The reveal step (D110): the question, and its two controls. Five words, the row's budget. */
   tradeRevealTitle: 'Take the trade?',
   tradeTake: 'Take',
   tradeDecline: 'Decline',

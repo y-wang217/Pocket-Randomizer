@@ -29,7 +29,7 @@ export const BADGE_COPY: Readonly<Record<string, { name: string; effect: string 
 export const BADGE_SCOPE = 'Gym-type members only.';
 
 /**
- * The line on a dimmed badge mark's inspect (bible D110, 2026-10-06): why the
+ * The line on a dimmed badge mark's inspect (bible D112, 2026-10-06): why the
  * badge is off, and what lights it again. The numbers it restates are
  * `core/defender/badge.ts`'s `badgesActive`.
  */

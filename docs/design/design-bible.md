@@ -1,33 +1,54 @@
 # GYMRUN Design Bible: Card and Battle Presentation
 
-Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 29, Oct 6, 2026.
+Repo home: `docs/design/design-bible.md`. Owner: lead designer. Rev 30, Oct 7, 2026.
 
-**Rev 29** carries four amendments, D107 to D110, from the author's design
+**Rev 30** carries four amendments, D109 to D112, from the author's design
 message of 2026-10-06 for Defender Mode
 ([`../spec/gymrun-patch-defender-events-trades-revenge-offtype.md`](../spec/gymrun-patch-defender-events-trades-revenge-offtype.md)),
 each ruled the same day in the questions that file records and filed in
 [`bible-discrepancies.md`](bible-discrepancies.md) before any surface was
-drawn. **D107**: the trade card no longer shows the offered mon. A question
+drawn. **D109**: the trade card no longer shows the offered mon. A question
 mark where its sprite was, the Ability row's "held-and-unknown is not none",
 the member asked for named as a price must be, and a **fifteenth glyph
 family, Exchange**, one mark of two arrows turning, between them; section 2's
 roster and the Trade row of section 3 say so, and the card stays at 0 words.
-**D108**: a second step, the *Trade reveal*, a new component in section 5 and
+**D110**: a second step, the *Trade reveal*, a new component in section 5 and
 a budget row of 5 in section 4: after the pick has cost the other two cards,
 the offered mon as its starter card beside the asked member's party row, the
 Exchange mark between, in the cards' place on the result screen where the
 berry pick mounts; *Take* opens the confirm band with the pair and *Decline*
 leaves with nothing. C2 holds where D102 put it, at the moment the swap is
-agreed to. **D109**: the event screen mounts a defender question mark with
+agreed to. **D111**: the event screen mounts a defender question mark with
 its requirement pair absent, a wager's odds as a bare percentage in the
 chevron's slot, and a fight's trainer mark and tier word, the map node card's
 pair; a new section 4 row, *Defender event screen*, at 49, and two section 3
-rows. **D110**: the badge has a third state, off, while a member of another
+rows. **D112**: the badge has a third state, off, while a member of another
 type stands in the party and the Stranger's Pass is not held; every badge
 mark takes the PP glyph's dimmed state, its press says why, and an off-type
 recruit's card wears the dimmed mark so the consequence is read before
 pressing. Section 9 carries four bets. Recorded in
 [`playtest-log.md`](playtest-log.md) as the author's directive.
+**Rev 29** carries two amendments, D107 and D108, from the author's message of
+2026-10-06
+([`../spec/gymrun-patch-per-move-replay-and-map-sprites.md`](../spec/gymrun-patch-per-move-replay-and-map-sprites.md)):
+*"go ahead and build the per-move so can play test it"* and *"add actual
+sprite cut outs to the map, so it doesn't just look like a bunch of grey
+nodes. especially since we no longer encounter 'wild' fights"*. **D107**: a
+trainer wears their own sprite in the node glyph's slot where the player
+already knows who they are: a defender door's class sprite on every row
+(D101 names the class there) and an attacker route trainer's record sprite
+once the node is walked; an unwalked attacker trainer keeps the kind's glyph,
+because the map reveals a node's kind and never its contents; the boss as
+D106. On the map the cutout fills the disc. Section 3's *Node* row and
+section 5's *Map node card* row say so. **D108**: section 6 is drawn one
+action at a time. The scene plays one step per action, two beats each, the
+lunge then the hit, with each body's HP and identity as the engine's lines
+left them after that action, and the view itself last; the faint's sink is
+one beat. A two-action turn spends the one budget, and a turn with more
+actions spends two beats more per action, which is the only time section 6
+now adds. Both hold C1: an identity the player already holds, and the
+engine's own order. Recorded in [`playtest-log.md`](playtest-log.md) as the
+author's directive.
 
 **Rev 28** carries one amendment, D106, from the author's ruling of
 2026-10-05 (*"d102 option1"*,
@@ -624,7 +645,7 @@ Enforce: the vital list is this rule's text and nothing else; adding a fact to i
 
 ## 2. Canonical vocabulary
 
-Fifteen glyph families (2026-10-06, D107; fourteen under D100, 2026-10-05; thirteen under D54, 2026-09-30; twelve under D47, 2026-09-25; eleven under D46 the same day, ten under D37, 2026-09-22). Adding a sixteenth is an amendment.
+Fifteen glyph families (2026-10-06, D109; fourteen under D100, 2026-10-05; thirteen under D54, 2026-09-30; twelve under D47, 2026-09-25; eleven under D46 the same day, ten under D37, 2026-09-22). Adding a sixteenth is an amendment.
 
 **A control's icon is not a glyph** (2026-09-30, D54). The shell nav's five tab icons sit beside their words, are `aria-hidden`, and name a place to go rather than an attribute, so they are outside this roster and carry no exposure label.
 
@@ -640,11 +661,11 @@ Fifteen glyph families (2026-10-06, D107; fourteen under D100, 2026-10-05; thirt
 | Status | Three-letter chip: BRN, PAR, PSN, TOX, SLP, FRZ. Fixed colour each. One per volatile condition on the same pattern, and **not a tenth family** (2026-09-21, D19): a volatile is a thing happening to this Pokemon right now, which is what this family already means, and it takes the same shape, the same slot rule and the same inspect text | Genre-standard |
 | Stat | Six stat glyphs. In battle, a stage is the cell's own number, green up and red down, with the stage count beneath (2026-10-02, D98; a multiplier plus ladder bar on the chip row from 4.8.0.3 until then), nonzero only | Neutral; the stage colours are the stat change's (D84) |
 | Capability | One glyph per capability, plus a band chevron filled to the run's reach — none, latent, known (2026-09-22, D37) | Neutral |
-| Node | One glyph per node kind: a head (trainer), a bush (wild), a tent (rest), a bag (shop), a question mark (event); the boss wears the challenger's own trainer sprite in the slot, the head where the record has none (the badge retired 2026-10-05, D106). On the map node card at 24, on the battle screen header at 16 (2026-09-25, D46) | Neutral |
+| Node | One glyph per node kind: a head (trainer), a bush (wild), a tent (rest), a bag (shop), a question mark (event); the boss wears the challenger's own trainer sprite in the slot, the head where the record has none (the badge retired 2026-10-05, D106); a trainer the player already knows wears theirs too, a defender door's class on every row and an attacker's route trainer once walked, the head on an unwalked one (2026-10-06, D107). On the map node card at 24, on the battle screen header at 16 (2026-09-25, D46) | Neutral |
 | Field | Nine glyphs for the state of the board: rain, sun, sand, snow, strong winds, and the four terrains. Heavy rain and Extreme sun wear the rain and sun marks and differ on inspect. At 16 in a fixed slot on the battle screen header, dimmed while an ability suppresses the weather. The battle backdrop behind the stage carries the same state as a wash and a terrain tint, colour secondary to the glyph (2026-09-25, D47; on the backdrop, not the world, 2026-09-30, D60) | Neutral glyph; the wash and tint are global tokens mixed into the backdrop's own |
 | Currency | One mark, beside a bare number wherever a coin amount appears: the map node's payout, the shop price, the wallet, a coins card (2026-09-30, D54 and D66) | Neutral |
-| Badge | Three marks, one per defender gym type, drawn only for a party member carrying that type in a defender run: a flame (Fire's highlighted move slot), an eye (Psychic's revealed action), a wing (Flying's fifth move and Speed). On the gym type select card, the type's mark beside its type chip (2026-10-05, D100). Every mark dimmed, the PP glyph's state, while the badge is off (2026-10-06, D110) | Neutral |
-| Exchange | One mark, two arrows turning, between a defender trade's two slots on the card and on the reveal step (2026-10-06, D107) | Neutral |
+| Badge | Three marks, one per defender gym type, drawn only for a party member carrying that type in a defender run: a flame (Fire's highlighted move slot), an eye (Psychic's revealed action), a wing (Flying's fifth move and Speed). On the gym type select card, the type's mark beside its type chip (2026-10-05, D100). Every mark dimmed, the PP glyph's state, while the badge is off (2026-10-06, D112) | Neutral |
+| Exchange | One mark, two arrows turning, between a defender trade's two slots on the card and on the reveal step (2026-10-06, D109) | Neutral |
 
 Font: Pixelify Sans, blanket, per the 4.7.1 decision. If the numeral font jitters on HP and PP counters, `--font-numeral` falls back to the mono stack, one line, and this table is annotated.
 
@@ -690,11 +711,11 @@ The single source of truth for how each attribute renders at rest. Inspect shows
 | Fifth move (defender, Flying) | The battle button, its own fixed slot outside the 2x2 grid, the wing beside the name. Once per battle is the PP glyph's own 1, max dimmed (D100, D103) | Absent | The once-per-battle rule, Peck before the final stage and Pluck at it |
 | Badge Speed (defender, Flying) | In the player's Speed cell, the number the engine reads, with the wing beneath it in place of a stage count when there is no stage (D100, extending D98) | Absent: no badge, the plain stored stat | The stored stat, the stage, and the 1.1x |
 | Consumable (defender) | The item sprite in the reward card's sprite slot; in the Bag's list, the sprite, the name and the effect line at rest (R13) (2026-10-05, D102) | Absent | Name, effect line from `consumableCopy` |
-| Trade (defender) | A question mark where the offered mon's sprite would be, the Exchange mark, and the member asked for on the right with its species name, in fixed slots (2026-10-06, D107; two revealed sprites under D102 until then). The offered mon is shown on the reveal step only (D108) | Absent | The member's party row. The offered slot carries no press: showing the mon is the reveal step's |
-| Trade reveal (defender) | The offered mon as its starter card, the Exchange mark, the asked member's party row, in the cards' place on the result screen after the pick (2026-10-06, D108) | Absent | The starter card and the party row are their own inspects |
-| Badge inactive (defender) | Every badge mark dimmed while a member of another type stands in the party and the Stranger's Pass is not held; on the recruit screen, an off-type candidate's card wears the gym's mark dimmed (2026-10-06, D110) | Absent: the badge lit, or an attacker run | Why the badge is off, and what lights it, from `BADGE_OFF_COPY` |
-| Odds (defender event) | A bare percentage on a wager button, in the chevron's slot (2026-10-06, D109) | Absent on every other role | Not on inspect: the number is the fact |
-| Fight in an event (defender) | The Node family's trainer mark and the tier word on a fight button, the map node card's own pair (2026-10-06, D109) | Absent on every other role | The kind's hint, as on the map |
+| Trade (defender) | A question mark where the offered mon's sprite would be, the Exchange mark, and the member asked for on the right with its species name, in fixed slots (2026-10-06, D109; two revealed sprites under D102 until then). The offered mon is shown on the reveal step only (D110) | Absent | The member's party row. The offered slot carries no press: showing the mon is the reveal step's |
+| Trade reveal (defender) | The offered mon as its starter card, the Exchange mark, the asked member's party row, in the cards' place on the result screen after the pick (2026-10-06, D110) | Absent | The starter card and the party row are their own inspects |
+| Badge inactive (defender) | Every badge mark dimmed while a member of another type stands in the party and the Stranger's Pass is not held; on the recruit screen, an off-type candidate's card wears the gym's mark dimmed (2026-10-06, D112) | Absent: the badge lit, or an attacker run | Why the badge is off, and what lights it, from `BADGE_OFF_COPY` |
+| Odds (defender event) | A bare percentage on a wager button, in the chevron's slot (2026-10-06, D111) | Absent on every other role | Not on inspect: the number is the fact |
+| Fight in an event (defender) | The Node family's trainer mark and the tier word on a fight button, the map node card's own pair (2026-10-06, D111) | Absent on every other role | The kind's hint, as on the map |
 
 Disappears from every default view: field labels, type names, category words, accuracy at 100, priority at 0, item names, the coverage sentence, the battle log.
 
@@ -721,7 +742,7 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Result screen | 6 | Outcome word, "+N", continue |
 | Capture card | 0 | Follows the recipient card |
 | Event screen | 59 | Hook 12, four labels 4, four hints 6 — 52 — plus the Toll's price 5 and the control 2. The requirement, the band and the reward tier are glyphs (2026-09-22, D33) |
-| Defender event screen | 49 | D33's row with one button fewer and no requirement pair: hook 12, three labels 4, three hints 6, the price 5 and the control 2. The odds, the trainer mark and the tier pips are numbers and glyphs (2026-10-06, D109) |
+| Defender event screen | 49 | D33's row with one button fewer and no requirement pair: hook 12, three labels 4, three hints 6, the price 5 and the control 2. The odds, the trainer mark and the tier pips are numbers and glyphs (2026-10-06, D111) |
 | Locale card | 0 | Locale name plus four type chips |
 | Locale screen | 7 | The instruction (2026-09-22, D32), and the next-challenger component's 3 in the rail's place (2026-10-05, D106) |
 | Starter card | 0 plus the ability name | Species name, ability name. The moves are move chips; the stats are the detail panel's stat block (2026-10-01, D78; move cards and the block on the card under D40, 2026-09-23) |
@@ -730,8 +751,8 @@ Words at rest, excluding proper nouns and bare numbers. The census (milestone M0
 | Pre-gym screen, defender boss | 4 | "Choose lead". The team size as a bare number beside the gym glyph and the level as the party row writes it, in the slots of the leader name and the type chip (2026-10-05, D101) |
 | Mode choice (run creation) | 2 | The two mode words, one per control (2026-10-05, D101) |
 | Gym type select screen | 4 | The instruction, the locale screen's figure. Each card is a type chip and the badge's mark, zero words; what the badge does is the card's inspect (2026-10-05, D101) |
-| Consumable or trade reward card | 0 | **None** — a consumable is its sprite; a trade is a question mark, the Exchange mark and one species name, a proper noun (2026-10-06, D107; two sprites and two names under D102 until then) |
-| Trade reveal | 5 | The question, *Take the trade?*, and the two controls. The pair is the starter card and the party row, at their own budgets (2026-10-06, D108) |
+| Consumable or trade reward card | 0 | **None** — a consumable is its sprite; a trade is a question mark, the Exchange mark and one species name, a proper noun (2026-10-06, D109; two sprites and two names under D102 until then) |
+| Trade reveal | 5 | The question, *Take the trade?*, and the two controls. The pair is the starter card and the party row, at their own budgets (2026-10-06, D110) |
 | Next challenger | 3 | *Next challenger* and the class word; the name is a proper noun, the sprite a sprite, the bar a bar (2026-10-05, D106). One component wherever it mounts, so one budget |
 | Confirm overlay (replace) | 6 | "Replace Tackle with Fire Punch?" |
 | Confirm overlay (decline) | 6 | "Forfeit this reward?", and the band's two controls (2026-09-21, D22) |
@@ -853,14 +874,14 @@ One component per attribute cluster. A screen mounts components; it never draws 
 | Summary visit | The node's label and outcome as before, and under a trainer or gym visit's opponent one muted line, the place and the game the record came from, `Pewter City Gym · Red and Blue`. A wild visit carries no line (2026-10-05, D104) | Summary |
 | World | The locale's three layers and drift, behind the game frame (2026-09-25, D47; the field state moved to the scene backdrop, 2026-09-30, D60). Before the first region, on the starter screen and the region picker, the opening painting from the asset manifest in their place, and nothing else (2026-10-01, D87) | Every screen, mounted once by `app.ts`, outside the frame |
 | Scene backdrop | The game screen's painted scene inside the frame, from the asset manifest: the locale's battle backdrop, or the gym's, behind the battle stage; the locale's map backdrop behind the map. During a battle, the field state as a weather wash and a terrain tint over it, global tokens mixed into the backdrop's own. A missing file is the manifest's placeholder at the correct size (2026-09-30, D60) | The battle stage and the map, inside the frame. Never outside it: that is the World's |
-| Reward card | A defender consumable's sprite in the same slot, and a trade's question mark, Exchange mark and asked member's sprite and name (2026-10-06, D107; two revealed sprites under D102 until then). The item or berry sprite in a fixed slot, a relic's icon and the capability glyph it satisfies (2026-09-30, D65 and D66), the boosted type chip, the move card on a move kind, with no TM disc (D67 and D71), `+N` beside the currency glyph on coins and `+N%` beside a bar on a restore (D66), the shop's price beside the currency glyph (2026-09-22, D29 and D36), and on the gym's "pick a berry" card a fan of three berry sprites in the item slot, the first three of its table, never a resist berry (2026-10-02, D99). Three across where they fit, stacked where they do not. **The berry pick opens in the cards' place on the result screen**: one item card per berry, five across, the same component and the same claim band, with a cancel that returns to the berries and never past them (D99). **Selected only after a tap**: no card carries the selected state before the player puts it there, and the claim is the Confirm band's commit (2026-09-30, D69) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |
+| Reward card | A defender consumable's sprite in the same slot, and a trade's question mark, Exchange mark and asked member's sprite and name (2026-10-06, D109; two revealed sprites under D102 until then). The item or berry sprite in a fixed slot, a relic's icon and the capability glyph it satisfies (2026-09-30, D65 and D66), the boosted type chip, the move card on a move kind, with no TM disc (D67 and D71), `+N` beside the currency glyph on coins and `+N%` beside a bar on a restore (D66), the shop's price beside the currency glyph (2026-09-22, D29 and D36), and on the gym's "pick a berry" card a fan of three berry sprites in the item slot, the first three of its table, never a resist berry (2026-10-02, D99). Three across where they fit, stacked where they do not. **The berry pick opens in the cards' place on the result screen**: one item card per berry, five across, the same component and the same claim band, with a cancel that returns to the berries and never past them (D99). **Selected only after a tap**: no card carries the selected state before the player puts it there, and the claim is the Confirm band's commit (2026-09-30, D69) | `screens/result.ts` and `screens/shop.ts`. Two call sites, one component: the shelf mounted its own copy until M5.1 |
 | Shell nav | Five tabs, each a word and a control icon: Map, Team, Bag, Run Info, Settings. **A tab opens a screen, not an overlay** (2026-09-30, D53). Opened while a decision is pending elsewhere, the screen is a readout: it never advances run state, never submits, never consumes RNG, and closing it returns to the pending decision, which is the §12 standing rule's three properties carried from the drawer to the screen. Map from anywhere but the map is the chain without its picker, so there is still exactly one path by which a node completes. **Narrowed 2026-10-02 (D94, D95):** the readout property holds in a battle only. Outside one, Team opens the writable party screen and Bag the writable bag screen from every surface; neither submits the pending decision, and an item layout made there is applied at the next question (between nodes) or at the resolving node's boundary (while one is open), so it always reaches the next fight. Reorder and release are offered between nodes only. In a battle both are the readout, with no editing control drawn | The shell, every viewport. Replaces the drawer triggers |
 | Run Info screen | The decision feed, newest first, and the run's position: the segment heading, the next-challenger bar (in the rail's place since D106, 2026-10-05; the rail had lost its type chips at D105), locale, seed (2026-09-30, D53 and D55) | The Run Info tab. The desktop sidebar mounts the same feed |
-| Map node card | Node glyph at 24 (on the boss, the challenger's own sprite, D106) with the leader's name on a gym, then beneath it the tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29; the glyph exists and the pips sit beneath it since 2026-09-25, D46). **On the map screen's graph, the step being chosen from carries the whole card, its detail line included** (the payout as the currency glyph and a number, the AI tier, a shop's shelf as a count and a coin amount; never the kind's hint, which is the glyph's inspect, D77). **Every other row carries the node glyph (and a gym's leader), the tier pips and the capability glyph with its chevron, and nothing else at rest**; the rest of the card is on the node glyph's long press. Where the frame is too short for even that, those rows keep the glyph alone, with the rest on the same press. **Since 2026-10-01 (D85) a later row, one not yet reached, keeps the glyph alone at every height**: the tier pips and the capability chevron join the rest of the card on the press, and only the row being chosen from and the walked rows carry them at rest. Off the chosen row the disc has no ring; the glyph sits on a soft token over the painting A node's place on the graph is its option index within its step against the scene backdrop's slot grid, never a hash or a draw (2026-09-30, D63 and D75) | The map screen and the map drawer |
+| Map node card | Node glyph at 24 (on the boss, the challenger's own sprite, D106) with the leader's name on a gym, then beneath it the tier pips, reward-tier pips, capability glyph with band chevron (2026-09-22, D29; the glyph exists and the pips sit beneath it since 2026-09-25, D46). **On the map screen's graph, the step being chosen from carries the whole card, its detail line included** (the payout as the currency glyph and a number, the AI tier, a shop's shelf as a count and a coin amount; never the kind's hint, which is the glyph's inspect, D77). **Every other row carries the node glyph (and a gym's leader), the tier pips and the capability glyph with its chevron, and nothing else at rest**; the rest of the card is on the node glyph's long press. Where the frame is too short for even that, those rows keep the glyph alone, with the rest on the same press. **Since 2026-10-01 (D85) a later row, one not yet reached, keeps the glyph alone at every height**: the tier pips and the capability chevron join the rest of the card on the press, and only the row being chosen from and the walked rows carry them at rest. Off the chosen row the disc has no ring; the glyph sits on a soft token over the painting. A door's and a walked trainer's glyph is the trainer's own sprite, the cutout filling the disc (2026-10-06, D107). A node's place on the graph is its option index within its step against the scene backdrop's slot grid, never a hash or a draw (2026-09-30, D63 and D75) | The map screen and the map drawer |
 | Locale card | Locale name, four type chips, and a crop of the locale's map backdrop where the palette swatch stood. **Since 2026-10-01 (D86) the crop is the card's whole face**, and the name and the chips each sit on a semi-opaque plate over it. The segment's challenger is not on the card: it is shown once, in the next-challenger bar above the cards, as class and name with no type chip, because the challenger belongs to the segment and not to the locale and has no type (2026-09-22, D29; the crop and the gym, 2026-09-30, D72; the type chip off, 2026-10-05, D105; the bar in the rail's place, D106) | The locale screen |
 | Confirm band | The question, an optional line, the content being traded, and exactly two controls: the one that commits and the way out (2026-09-22, D29). On a claim or a buy, the way out returns to the cards and never leaves the offer: CLAUDE.md allows no skip at the card (2026-09-30, D69) | `ui/band.ts`, mounted by the six screens that confirm: the four of Rev 1, plus the result screen and the shop (2026-09-30, D69). No screen builds its own |
-| Event choice | The label, the hint, the reward-tier pips and the Toll's price. The requirement and the band sit above the choices, as the map node card's glyph and chevron (2026-09-22, D33). In a defender run the requirement pair is absent, a wager carries its odds and a fight the trainer mark and tier word (2026-10-06, D109) | `screens/event.ts`. One surface in both modes, and the only one section 4 budgets prose on |
-| Trade reveal | The offered mon's starter card, the Exchange mark and the asked member's party row, with *Take*, which opens the Confirm band with the pair as its content, and *Decline*. In the cards' place on the result screen after the pick, where the berry pick mounts (2026-10-06, D108) | `screens/result.ts` |
+| Event choice | The label, the hint, the reward-tier pips and the Toll's price. The requirement and the band sit above the choices, as the map node card's glyph and chevron (2026-09-22, D33). In a defender run the requirement pair is absent, a wager carries its odds and a fight the trainer mark and tier word (2026-10-06, D111) | `screens/event.ts`. One surface in both modes, and the only one section 4 budgets prose on |
+| Trade reveal | The offered mon's starter card, the Exchange mark and the asked member's party row, with *Take*, which opens the Confirm band with the pair as its content, and *Decline*. In the cards' place on the result screen after the pick, where the berry pick mounts (2026-10-06, D110) | `screens/result.ts` |
 | Exposure label | The first-encounter label for a glyph family | Rendered by the glyph, driven by the exposure store. Every family's marks pass through the glyph renderer, band pips, status lettering and the effectiveness edge included, so a family cannot be drawn without reporting itself (2026-09-23, D41) |
 
 A component that exists twice, or a screen that draws a stat without the stat block, is the defect this document exists to prevent.
@@ -895,7 +916,7 @@ area and its place in tab order.
 
 ## 6. Battle turn grammar
 
-In resolution order, on a 390x844 phone. Timings are the numbers already in `data/tuning.ts` and the Swift/Even/Patient setting; this section adds no time.
+In resolution order, on a 390x844 phone. Timings are the numbers already in `data/tuning.ts` and the Swift/Even/Patient setting. Drawn one action at a time since 2026-10-06 (D108): the scene plays one step per action, two beats each, the lunge then the hit, each body's HP and identity as the engine's lines left them after that action, and the view itself last. A two-action turn spends the one budget; a turn with more actions spends two beats more per action, which is the only time this section adds.
 
 1. Turn header replaces itself in place. "Turn 4". No scroll.
 2. First actor jiggles. If a bracket decided the order, the priority chevron flashes on that panel. Same-bracket turns are unmarked, matching the log rule.
@@ -973,11 +994,11 @@ Every rule is a bet. The observation that loses it is written here, and section 
 | The map's later rows lose nothing (2026-09-30, D63; the pips and chevron off later rows 2026-10-01, D85) | A tester routes toward a node two or more steps ahead and is surprised by what it paid or how its opponent played, or long-presses more than half the later nodes before every pick | The detail line returns to every row that fits it, and the map drops a row of chrome to make the room |
 | Six-word hints carry the shape of a risk (2026-09-22, D33) | A tester cannot say which of two options is the variable one, or presses a button expecting no cost and is charged | The hints go back up, and the row rises with them rather than the hints being dropped |
 | Move chips suffice for the discard decision | Testers expand every chip to a full card before choosing | Chips gain PP at rest, still no words |
-| Fifteen glyph families is the right size (2026-10-06, D107; fourteen under D100, 2026-10-05; thirteen under D54, 2026-09-30; twelve under D47, 2026-09-25; eleven under D46, ten under D37, 2026-09-22) | Testers confuse any two glyphs after labels fade | One of the pair becomes a word permanently |
-| The trade card's question mark reads as not yet shown, not as nothing (2026-10-06, D107) | A tester says the trade offers nothing, or asks what the empty slot is | The slot gains a silhouette of the offered mon's shape, still unnamed |
-| The trade reveal reads as a second chance, not a reroll (2026-10-06, D108) | A tester declines and expects another offer, or asks to see the other two cards again | The forfeit is said once, a line on the reveal, within the row's budget |
-| The odds read as a chance, not a rating (2026-10-06, D109) | A tester picks the higher percentage as the better button, or reads it as a reward size | The percentage moves to the button's press and the pips alone stay |
-| A dimmed badge mark reads as off, not as a weaker badge (2026-10-06, D110) | A tester takes an off-type recruit and is surprised the badge did nothing, or reads the dim flame as a smaller bonus | The marks go while the badge is off, and a word of state returns on the Team screen, option 2 |
+| Fifteen glyph families is the right size (2026-10-06, D109; fourteen under D100, 2026-10-05; thirteen under D54, 2026-09-30; twelve under D47, 2026-09-25; eleven under D46, ten under D37, 2026-09-22) | Testers confuse any two glyphs after labels fade | One of the pair becomes a word permanently |
+| The trade card's question mark reads as not yet shown, not as nothing (2026-10-06, D109) | A tester says the trade offers nothing, or asks what the empty slot is | The slot gains a silhouette of the offered mon's shape, still unnamed |
+| The trade reveal reads as a second chance, not a reroll (2026-10-06, D110) | A tester declines and expects another offer, or asks to see the other two cards again | The forfeit is said once, a line on the reveal, within the row's budget |
+| The odds read as a chance, not a rating (2026-10-06, D111) | A tester picks the higher percentage as the better button, or reads it as a reward size | The percentage moves to the button's press and the pips alone stay |
+| A dimmed badge mark reads as off, not as a weaker badge (2026-10-06, D112) | A tester takes an off-type recruit and is surprised the badge did nothing, or reads the dim flame as a smaller bonus | The marks go while the badge is off, and a word of state returns on the Team screen, option 2 |
 | The eye reads as the opponent's action, not a hint (2026-10-05, D100) | A tester says the game told them which move to use, or reads the revealed move as their own | The move chip goes and the move name alone stays, behind the eye's press |
 | The crit percentage reads as a chance, not accuracy (2026-10-05, D100) | A tester reads it as hit chance | The percentage moves to the flame's press, and the flame alone stays at rest |
 | The class name at the door reads as identity, not a difficulty (2026-10-05, D101) | A tester picks by class name alone and is surprised by the tier, or asks which class is harder | The class name moves to the trainer glyph's press, and the type chips stay |

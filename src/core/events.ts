@@ -877,7 +877,7 @@ function healLead(state: RunState, percent: number): RunState['party'] {
  * **"An event is a node with no battle in it" stood here until 2026-10-06**
  * and is deleted for Defender Mode: a defender question mark's ambush offers a
  * fight, picked before it is played, and a lost one ends the run as any fight
- * does (`core/defender/events.ts`, `docs/generation.md` section 118). The
+ * does (`core/defender/events.ts`, `docs/generation.md` section 120). The
  * attacker's events are unchanged, and section 14's Toll ruling stands in
  * both modes: a paid option never contains a fight.
  *

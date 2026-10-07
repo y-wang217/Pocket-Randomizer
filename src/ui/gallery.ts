@@ -416,7 +416,7 @@ async function main(): Promise<void> {
       break;
     }
     /*
-     * The defender trade card (bible Rev 29, D107), on the result screen's
+     * The defender trade card (bible Rev 30, D109), on the result screen's
      * cards-only shape: the one surface that paints the Exchange family.
      */
     case 'result-trade': {

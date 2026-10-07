@@ -162,7 +162,7 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
   },
   {
     path: 'src/data/defenderEventCopy.ts',
-    why: "the defender question marks' hooks, labels and hints (D109); read by ui/screens/event.ts, ui/decision-feed.ts and tests only, and a reworded hint must not refuse every defender seed recorded before it (D12)",
+    why: "the defender question marks' hooks, labels and hints (D111); read by ui/screens/event.ts, ui/decision-feed.ts and tests only, and a reworded hint must not refuse every defender seed recorded before it (D12)",
   },
   {
     path: 'src/data/trainerClassCopy.ts',

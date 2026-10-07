@@ -1,6 +1,6 @@
 /**
  * Defender Mode's question marks. **2026-10-06.** `docs/generation.md`
- * section 118.
+ * section 120.
  *
  * Four claims. The table is sound: every role carries what its role needs
  * and nothing it must not, and every shape has an eligible event at every

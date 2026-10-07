@@ -84,7 +84,7 @@ describe('every drafted, recruited and trade-offered mon carries the gym type (p
    * off-type mon with the Stranger's Pass, none without, a second refused.
    * Now every draft offers one off-type option last, any number may join, and
    * what an off-type member costs is the badge (`badgesActive`), which the
-   * Pass lights again. `docs/generation.md` section 115.
+   * Pass lights again. `docs/generation.md` section 117.
    */
   it('offers an off-type recruit in every draft, and the badge goes dark while one stands in the party', () => {
     const bare = opened('ECON-EXEMPT');

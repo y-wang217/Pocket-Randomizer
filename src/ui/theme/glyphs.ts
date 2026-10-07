@@ -337,7 +337,7 @@ export const GLYPHS: readonly Glyph[] = [
   { id: 'badge-wing', family: 'badge', label: labelOf('badge-wing'), art: path('M3 19.5c2.6-7.6 8.2-13.2 18-15-1.2 2.8-3 4.8-5.4 6.1 1.6.2 3-.1 4.4-.8-1.5 2.6-3.8 4.2-6.8 4.8 1.2.4 2.4.4 3.7.1-2.9 3-7.1 4.6-12.4 4.8zm2.2-1.8c3.6-1.4 6.6-3.8 9-7.2-3.6 1.6-6.6 4-9 7.2z') },
 
   /*
-   * The exchange family. **D107, 2026-10-06.** One mark: two arrows turning
+   * The exchange family. **D109, 2026-10-06.** One mark: two arrows turning
    * about the centre, the top one clockwise, each with a head thick enough to
    * read at 16px. Between a trade's two slots on the card and on the reveal.
    */

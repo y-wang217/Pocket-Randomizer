@@ -72,7 +72,7 @@ export interface EventScreen {
   root: HTMLElement;
   render(event: EventInstance, state: RunState, onDone: (archetype: EventArchetype) => void): void;
   /**
-   * A defender question mark (bible Rev 29, D109): the same component with
+   * A defender question mark (bible Rev 30, D111): the same component with
    * the requirement pair absent, a wager's odds and a fight's trainer mark.
    * `onDone` is the option's index. A `fight` resolves on the press, since
    * the fight follows; every other role holds the screen open for its reveal.
@@ -311,7 +311,7 @@ export function createEventScreen(): EventScreen {
     },
 
     renderDefender(event, state, onDone) {
-      // No requirement pair: a defender run has no capabilities (D109).
+      // No requirement pair: a defender run has no capabilities (D111).
       gate.replaceChildren();
       prompt.textContent = DEFENDER_EVENT_HOOKS[event.eventId] ?? '';
       result.hidden = true;
@@ -328,7 +328,7 @@ export function createEventScreen(): EventScreen {
         hint.textContent = DEFENDER_EVENT_HINTS[event.eventId]?.[index] ?? '';
 
         /*
-         * The attribute row (D109): the price, named against the bag, on a
+         * The attribute row (D111): the price, named against the bag, on a
          * `pay`; the odds as a bare percentage on a `wager`, in the chevron's
          * slot; the trainer mark and the tier word on a `fight`, the map node
          * card's own pair; the tier pips on everything that pays. No

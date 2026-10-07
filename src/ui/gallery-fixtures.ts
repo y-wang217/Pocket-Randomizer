@@ -343,7 +343,7 @@ export function relicOffer(state: RunState): { offer: RewardOffer; state: RunSta
 
 /**
  * A door offer that deals a **trade**, against a defender run past its
- * opening. **Bible Rev 29, D107, 2026-10-06.**
+ * opening. **Bible Rev 30, D109, 2026-10-06.**
  *
  * The gym is Fire and the draft takes the first mon of every pick, as the
  * scripted policy does, so the party the trade is resolved against is the

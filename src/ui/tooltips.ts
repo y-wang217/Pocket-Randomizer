@@ -252,7 +252,7 @@ type TipKind =
   | 'reward-tier'
   /** Defender Mode v0 (bible Rev 25, D100 and D102): a badge mark, a consumable, a trade's two Pokemon. */
   | 'badge'
-  /** A dimmed badge mark: why the badge is off (D110). */
+  /** A dimmed badge mark: why the badge is off (D112). */
   | 'badge-off'
   | 'consumable'
   | 'trade-offer'

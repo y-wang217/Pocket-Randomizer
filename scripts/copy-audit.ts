@@ -627,7 +627,7 @@ section({
 
 section({
   title: 'Defender Mode, the question marks',
-  where: 'The event screen in a defender run: the hook over the buttons, each option\'s label and hint. Bible Rev 29, D109.',
+  where: 'The event screen in a defender run: the hook over the buttons, each option\'s label and hint. Bible Rev 30, D111.',
   source: 'src/data/defenderEventCopy.ts',
   rows: DEFENDER_EVENTS.flatMap((event) => [
     { key: `${event.id} · hook`, text: DEFENDER_EVENT_HOOKS[event.id] ?? '' },

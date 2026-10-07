@@ -7,7 +7,7 @@
  * two readings decide is the **badge**: `badge.ts`'s `badgesActive` puts it
  * out while any member does not carry the type and the Pass is not held, and
  * `memberBadge` gives an off-type member none even while it is lit. The
- * refusal and the exempt slot are deleted (`docs/generation.md` section 115).
+ * refusal and the exempt slot are deleted (`docs/generation.md` section 117).
  *
  * Read off the species' own types (`data/speciesTypes.ts`), never a battle's
  * live types: a Burn Up or a Soak changes a Pokemon for a fight, not which
