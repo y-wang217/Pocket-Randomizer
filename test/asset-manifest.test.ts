@@ -67,8 +67,21 @@ describe('the asset manifest', () => {
    * art. The PNG's own header is read for the size, so a file dropped in at the
    * wrong size fails here rather than on a screen.
    */
-  it('has no placeholder left, and every drawing is at its native size', () => {
+  /*
+   * **One placeholder since the map calm-down patch** (bible Rev 30, D109):
+   * the return-to-map vignette, whose sprite is the lead's and whose own
+   * drawing has not arrived. The prompt ships every new asset as a
+   * placeholder first; this names the one exception rather than loosening
+   * the rule for every key.
+   */
+  const PLACEHOLDERS: readonly AssetKey[] = ['vignette:return'];
+
+  it('has no placeholder left but the vignette awaiting art, and every drawing is at its native size', () => {
     for (const [key, asset] of MANIFEST) {
+      if (PLACEHOLDERS.includes(key)) {
+        expect(asset.kind, key).toBe('placeholder');
+        continue;
+      }
       expect(asset.kind, key).toBe('file');
       if (asset.kind !== 'file') continue;
       const png = readFileSync(join(process.cwd(), 'src/ui/assets', asset.file));

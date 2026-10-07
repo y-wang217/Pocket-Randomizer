@@ -7585,6 +7585,18 @@ button,
   background-position: center calc(100% + min(var(--map-art-lift), max(0px, var(--map-art-h) - 100cqh)));
   image-rendering: pixelated;
 }
+/* The scrim (D109): a flat layer of the frame's own fill over the painting,
+   at `--map-scrim` from `data/displayTuning.ts`. The painting sets the mood
+   and the marks stand clear of it. Never a blur, never `backdrop-filter`. */
+.map-graph::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--bg);
+  opacity: var(--map-scrim, 0.5);
+}
 
 /* The rows. Tracks are set inline per row from four tokens: the step being
    chosen from gets a floor the whole card fits in, the gym room for its
@@ -7594,7 +7606,7 @@ button,
   --map-art-lift: calc(var(--space-12) + var(--space-8) + var(--space-2));
   --map-row-step-min: 30px;
   --map-row-current-min: 96px;
-  --map-row-gym-min: 62px;
+  --map-row-gym-min: 80px;
   --map-row-entrance-min: 16px;
 }
 .map-graph__rows {
@@ -7628,19 +7640,9 @@ button,
   inset: 0;
   display: block;
 }
-.map-graph .step__marker {
-  position: absolute;
-  left: var(--space-1);
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
-  font-size: var(--fs-xs);
-  border-color: var(--border-heavy);
-}
-.map-graph .step:not(.step--current) .step__marker { background: color-mix(in srgb, var(--bg-raised) 82%, transparent); color: var(--text); border-color: transparent; }
+/* No step number since D109: the rows' order is the distance to the gym. */
 
-/* A node: a disc with the kind's mark in it, the facts beneath. */
+/* A node: the kind's silhouette, the facts beneath (D109). */
 .map-graph .node {
   position: absolute;
   left: var(--x, 50%);
@@ -7663,30 +7665,63 @@ button,
   text-align: center;
   opacity: 1;
 }
-/* The mark is a token, not a button (Bible Rev 20, D85): the heavy black
-   ring is gone, and the disc is a soft round token on the painting with a
-   shadow under it. The kind chip inside keeps the one neutral chip style
-   (`visual-v2`: every neutral chip shares one colour, fill and outline). A
-   later row draws the token a size down. */
+/* The three weights. Bible Rev 30, D109: shape first, then colour, and no
+   disc. The mark is the kind's silhouette at the size its weight gives it,
+   with a shadow under it so it stands on the painting:
+   - the step being chosen from: 48, full colour, a glow in the kind's token;
+   - where the player stands: 32, solid, with the marker beside it;
+   - every later row: 24, in grey; a walked-past node greyer still.
+   The boss is the badge at 56, the largest mark and the only one in full
+   colour off the chosen row. `--kind` is the kind's colour token. */
+.map-graph .node--wild { --kind: var(--kind-wild); }
+.map-graph .node--trainer { --kind: var(--kind-trainer); }
+.map-graph .node--shop { --kind: var(--kind-shop); }
+.map-graph .node--event { --kind: var(--kind-event); }
+.map-graph .node--rest { --kind: var(--kind-rest); }
+.map-graph .node--gym { --kind: var(--kind-gym); }
 .map-graph .node__mark {
+  --mark: 24px;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--bg-raised) 90%, transparent);
+  width: var(--mark);
+  height: var(--mark);
+  background: none;
   border: 0;
-  box-shadow:
-    0 var(--space-h) 0 color-mix(in srgb, var(--token-shadow) 45%, transparent),
-    0 0 var(--space-2) color-mix(in srgb, var(--token-shadow) 30%, transparent);
-  transition: box-shadow 120ms ease;
+  border-radius: 0;
+  filter: drop-shadow(0 var(--space-h) 0 color-mix(in srgb, var(--token-shadow) 55%, transparent));
 }
-.map-graph .node--upcoming .node__mark { width: 30px; height: 30px; }
-.map-graph .node__label { gap: 0; }
-.map-graph .node__kind { display: grid; place-items: center; width: 84%; height: 84%; padding: 0; border-radius: 50%; }
-.map-graph .node--gym .node__mark,
-.map-graph .node--gym .node__kind { border-radius: var(--radius-card); }
-.map-graph .node--gym .node__mark { width: 40px; height: 40px; }
+.map-graph .node__label { display: grid; place-items: center; width: 100%; height: 100%; gap: 0; }
+.map-graph .node__kind {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  /* Rest's tent is ink through a mask until its drawing arrives: drawn in
+     its token. Every drawing in colour ignores this. */
+  color: var(--kind);
+}
+.map-graph .node__kind .asset { width: 100%; height: 100%; }
+/* Later: small and grey. Walked past: greyer still. */
+.map-graph .node--upcoming .node__mark { opacity: 0.7; filter: grayscale(1) drop-shadow(0 var(--space-h) 0 color-mix(in srgb, var(--token-shadow) 55%, transparent)); }
+.map-graph .node--done .node__mark { --mark: 24px; opacity: 0.5; filter: grayscale(1); }
+.map-graph .node--passed .node__mark { opacity: 0.3; }
+/* Where the player stands: solid, a size up, in full colour. */
+.map-graph .node--here .node__mark {
+  --mark: 32px;
+  opacity: 1;
+  filter: drop-shadow(0 var(--space-h) 0 color-mix(in srgb, var(--token-shadow) 55%, transparent));
+}
+/* The boss: the badge, largest, in full colour wherever it stands. */
+.map-graph .node--gym .node__mark {
+  --mark: 56px;
+  opacity: 1;
+  filter: drop-shadow(0 var(--space-h) 0 color-mix(in srgb, var(--token-shadow) 55%, transparent));
+}
 
 .map-graph .node__facts {
   display: inline-flex;
@@ -7694,7 +7729,8 @@ button,
   gap: var(--space-1);
   padding: var(--hairline) var(--space-1);
   background: var(--bg-raised);
-  border: var(--hairline) solid var(--border-heavy);
+  /* No border since D109: the plate is a ground for the pips, not a box. */
+  border: 0;
   border-radius: var(--radius-chip);
   line-height: 0;
 }
@@ -7725,51 +7761,27 @@ button,
 /* The coin amount (5.0/3's `coinAmount`), on the detail line's baseline. */
 .map-graph .coin-amount { vertical-align: middle; }
 
-/* The step being chosen from: the only buttons on the map, a size up, in a
-   ring of the selection colour with a soft glow round it. */
-.map-graph .node--current { cursor: pointer; }
-/* 40px, the disc's old size, so the decision row's measured edges are where
-   `heights.json` recorded them. */
+/* The step being chosen from: the only buttons on the map, the largest
+   marks but the boss's, in full colour, with a glow in the kind's own token
+   round the silhouette (D109). The button is the mark and its facts, so its
+   box clears 44px either way. */
+.map-graph .node--current { cursor: pointer; min-width: 52px; min-height: 52px; }
 .map-graph .node--current .node__mark {
-  width: 40px;
-  height: 40px;
-  background: color-mix(in srgb, var(--highlight) 28%, var(--bg-raised));
-  box-shadow:
-    0 0 0 var(--rule-heavy) var(--selected),
-    0 0 var(--space-3) var(--space-h) color-mix(in srgb, var(--selected) 55%, transparent),
-    0 var(--space-1) 0 color-mix(in srgb, var(--token-shadow) 45%, transparent);
+  --mark: 48px;
+  opacity: 1;
+  filter:
+    drop-shadow(0 0 var(--space-h) var(--kind))
+    drop-shadow(0 0 var(--space-2) color-mix(in srgb, var(--kind) 70%, transparent))
+    drop-shadow(0 var(--space-h) 0 color-mix(in srgb, var(--token-shadow) 55%, transparent));
 }
 .map-graph .node--current:hover { transform: translate(-50%, calc(-50% - 1px)); }
-.map-graph .node--current:hover .node__mark {
-  box-shadow:
-    0 0 0 var(--rule-heavy) var(--emphasis),
-    0 0 var(--space-3) var(--space-1) color-mix(in srgb, var(--emphasis) 55%, transparent);
-}
 .map-graph .node--current:focus-visible { outline: none; }
 .map-graph .node--current:focus-visible .node__mark { outline: var(--space-h) solid var(--emphasis); outline-offset: var(--space-h); }
-
-/* Walked steps, dimmed by fill rather than by opacity, so the path beneath
-   stays beneath and the marks still clear the contrast floor. The node taken
-   is solid; the ones passed over are dashed. */
-.map-graph .node--done .node__mark {
-  width: 30px;
-  height: 30px;
-  background: color-mix(in srgb, var(--bg-raised) 55%, var(--locale-glow));
-  color: var(--text-dim);
-}
-.map-graph .node--passed .node__mark { outline: var(--hairline) dashed var(--border-heavy); box-shadow: none; }
-.map-graph .node--passed .node__facts { opacity: 0.7; }
 
 /* The pitch floor (D63). A row shorter than a mark and its facts keeps the
    mark alone; the facts are on the mark's press, with the rest of the card. */
 @container map-row (max-height: 58px) {
   .map-graph .node--compact .node__facts { display: none; }
-}
-/* And a row shorter than the disc draws a smaller disc round the same mark
-   at the same 24: the mark never shrinks, only the ring around it. */
-@container map-row (max-height: 42px) {
-  .map-graph .node--compact .node__mark { width: 28px; height: 28px; }
-  .map-graph .step__marker { width: 16px; height: 16px; }
 }
 
 /* The edges: travelled solid, the next choices dashed, later steps none. */
@@ -7783,22 +7795,24 @@ button,
   overflow: visible;
 }
 .map-graph__edge {
-  stroke: var(--border-heavy);
+  stroke: var(--text-dim);
   stroke-width: 4;
   stroke-linecap: round;
   fill: none;
 }
-.map-graph__edge--next { stroke-dasharray: 2 9; }
+/* The way to the next choices in the cream, the brightest line on the map
+   (D109): with the travelled path, the only lines there are. */
+.map-graph__edge--next { stroke: var(--text); stroke-dasharray: 2 9; }
 
 /* The entrance, and the trainer standing beside the node last walked to. */
 .map-graph__entrance {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 28px;
-  height: 12px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--border-heavy) 45%, transparent);
+  /* An anchor for the travelled path, drawn as nothing since D109: the
+     player standing on it is the mark. */
+  width: 0;
+  height: 0;
   transform: translate(-50%, -50%);
 }
 .map-graph__player {
@@ -7839,8 +7853,20 @@ button,
 /* On the map the cutout fills the disc rather than sitting at the glyph's 24:
    the head of the figure, cropped from the top of the sheet's 80px cell, at
    whatever size the row gives the mark (D107). The glyph fallback keeps its size. */
-.map-graph .node__kind--challenger .sprite--opponent { width: 100%; height: 100%; border-radius: 50%; }
-.map-graph .node--gym .node__kind--challenger .sprite--opponent { border-radius: var(--radius-card); }
+/* Since D109 there is no disc to fill: the whole figure stands at the mark's
+   size, a cutout like every other kind's silhouette. */
+.map-graph .node__kind--challenger .sprite--opponent { width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; }
+/* The challenger at 16 before their name on the boss's label (D109). */
+.map-graph .node__name .sprite--opponent {
+  width: 16px;
+  height: 16px;
+  margin-right: var(--space-h);
+  vertical-align: text-bottom;
+  object-fit: cover;
+  object-position: 50% 0;
+  image-rendering: pixelated;
+}
+.map-graph .node__name .sprite--opponent[data-missing] { display: none; }
 .map-graph__player:has(.sprite--trainer[data-missing]) {
   border-radius: 50%;
   background: var(--selected);

@@ -22,6 +22,8 @@
 import type { FieldKind } from '../core/battle/view';
 import { el } from './dom';
 import { opponentImg } from './sprites';
+import { assetIcon } from './assets/manifest';
+import type { NodeKind } from '../data/tuning';
 import type { EncounterRef } from '../core/types';
 import { categoryGlyphId, glyphNode, markFamily, typeGlyphId } from './theme/glyph';
 import { BAND_PIPS } from '../data/bandInfo';
@@ -372,6 +374,24 @@ export function trainerMark(sprite: string | null, label: string, size: 24 | 16)
     const mark = glyphNode('node-trainer', { label, size });
     if (mark) node.append(mark);
   }
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  return node;
+}
+
+/**
+ * A node kind as its coloured silhouette. **The map calm-down patch, bible
+ * Rev 30, D109: shape first, then colour.** The map's mark for every kind but
+ * a trainer who wears their sprite (D107), and the node band's and the
+ * vignette's: the cutout in the kind's own colours, so a player tells rest
+ * from a fight at thumbnail size without reading a glyph. Same wrapper and tip
+ * as `nodeKindGlyph`, because it is the kind's mark and opens the kind's
+ * inspect. The size is the caller's stylesheet's: the drawing fills the box.
+ */
+export function nodeSilhouette(kind: NodeKind, label: string): HTMLElement {
+  const node = build('node', 'node__kind node__kind--silhouette', '', { tip: `node:${kind}` });
+  node.dataset['kind'] = kind;
+  node.append(assetIcon(`silhouette:${kind}`));
   node.setAttribute('role', 'img');
   node.setAttribute('aria-label', label);
   return node;

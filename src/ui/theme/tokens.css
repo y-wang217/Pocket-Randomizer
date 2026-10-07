@@ -117,6 +117,18 @@
   --highlight: #f4c83f;
   --selected: #4a8ef0;
   --disabled: #5d6470;
+  /* The node kinds' colour tokens. Bible Rev 30, D109: shape first, then
+     colour. Each is the main tone of the kind's own drawing
+     (`ui/assets/silhouettes/`), so the glow, the node band and the vignette
+     wear the colour the cutout already has; none is a type hue. Rest has no
+     drawing yet and its tent is drawn in its token. The second channel only:
+     the silhouette carries the kind, and the map reads in grey. */
+  --kind-wild: #2a965a;
+  --kind-trainer: #ff3636;
+  --kind-shop: #5aaef6;
+  --kind-event: #ba7ef6;
+  --kind-gym: #ffd24e;
+  --kind-rest: #4fd6d0;
   /* The stat block's band bar (bible Rev 21, D88): one neutral colour at
      every fraction, never a colour by how full it is, and a track a step
      darker than the cell it sits in. */

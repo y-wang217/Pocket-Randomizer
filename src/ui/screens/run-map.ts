@@ -58,9 +58,10 @@ import { nodePayout } from '../../core/economy';
 import { NODE_KIND_WORDS } from '../../data/glyphLabels';
 import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
 import { applyBackdrop } from '../assets/manifest';
-import { capabilityBandChevron, capabilityGlyph, challengerMark, currencyAmount, nodeKindGlyph, tierPips, trainerMark } from '../chip';
+import { capabilityBandChevron, capabilityGlyph, currencyAmount, nodeSilhouette, tierPips, trainerMark } from '../chip';
+import { DEFAULT_DISPLAY_TUNING } from '../../data/displayTuning';
 import { slotX } from '../map-layout';
-import { trainerImg } from '../sprites';
+import { opponentImg, trainerImg } from '../sprites';
 import { el } from '../scene';
 import { typeChip } from './starter-select';
 
@@ -297,6 +298,9 @@ export function createMapGraph(): MapGraph {
       const plan = planGraph(state);
       const locale = localeOf(state);
       applyBackdrop(root, locale ? `map-backdrop:${locale}` : null);
+      // The flat scrim that pushes the painting back (D109): a display number,
+      // never a blur, read by the stylesheet's `::after`.
+      root.style.setProperty('--map-scrim', String(DEFAULT_DISPLAY_TUNING.mapScrimOpacity));
       root.dataset['steps'] = String(plan.steps.length);
       // The step rows that take the smaller floor: all but the one being chosen from.
       root.style.setProperty('--map-steps', String(plan.rows.filter((row) => row.kind === 'step' && row.track === 'step').length));
@@ -398,7 +402,11 @@ export function planGraph(state: RunState): Plan {
   return { steps, taken, phases, gymPhase, gymVisit, visits, here, rows, edges };
 }
 
-/** The foot of the segment, where the player stands before the first step. */
+/**
+ * The foot of the segment, where the player stands before the first step.
+ * **No mark since D109**: the spot stays as the travelled path's first
+ * anchor, drawn as nothing, and the player standing on it is the mark.
+ */
 function renderEntrance(here: boolean): HTMLElement {
   const row = el('li', 'step step--entrance');
   const spot = el('span', 'map-graph__entrance');
@@ -429,10 +437,12 @@ function renderStepRow(
   const phase = plan.phases[index]!;
   const row = el('li', `step step--${phase}`);
   row.dataset['step'] = String(step.index);
-
-  const marker = el('span', 'step__marker');
-  marker.textContent = String(step.index + 1);
-  marker.setAttribute('aria-label', `Step ${step.index + 1}`);
+  /*
+   * **No step number on the face since D109.** The rows are the distance to
+   * the gym, read off their order, and a number beside each was the same fact
+   * twice; the row keeps it for a screen reader.
+   */
+  row.setAttribute('aria-label', `Step ${step.index + 1}`);
 
   const nodes = el('div', 'step__nodes');
   // The tutorial's anchors sit on the current step only: the decision, not the context.
@@ -445,6 +455,7 @@ function renderStepRow(
         full: phase === 'current',
         visit: walked === option ? plan.visits[step.index] : undefined,
         passed: phase === 'done' && walked !== option,
+        here: plan.here === `${step.index}:${option}`,
         defender: runMode(state) === 'defender',
         onChoose: choose ? () => choose(option) : undefined,
       });
@@ -457,7 +468,7 @@ function renderStepRow(
     nodes.append(renderPlayer(slotX(locale, step.index, step.options.length, plan.taken[index]!)));
   }
 
-  row.append(marker, nodes);
+  row.append(nodes);
   return row;
 }
 
@@ -470,6 +481,7 @@ function renderGymRow(state: RunState, segment: Segment, plan: Plan): HTMLElemen
     full: false,
     visit: plan.gymVisit,
     passed: false,
+    here: plan.here === 'gym',
     defender: runMode(state) === 'defender',
   });
   element.style.setProperty('--x', '50%');
@@ -554,6 +566,8 @@ interface NodeOptions {
   visit: NodeVisit | undefined;
   /** A node on a walked step that was not the one taken. */
   passed: boolean;
+  /** The node the player is standing on: the second of D109's three weights. */
+  here: boolean;
   /** A defender run: a gym is a boss with no leader, a trainer has a class. */
   defender: boolean;
   onChoose?: () => void;
@@ -571,6 +585,7 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
     options.full ? 'node--full' : 'node--compact',
     options.visit ? 'node--visited' : '',
     options.passed ? 'node--passed' : '',
+    options.here ? 'node--here' : '',
   ].filter(Boolean).join(' ');
 
   /*
@@ -594,12 +609,12 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
   const challenger = node.trainerClass ? trainerClass(node.trainerClass) : null;
   const trainerSprite =
     node.kind === 'trainer' ? (options.defender ? (challenger?.sprite ?? null) : options.visit ? (node.encounter?.source?.sprite ?? null) : null) : null;
-  const kind =
-    node.kind === 'gym'
-      ? challengerMark(node.encounter?.source ?? null, kindWord(node.kind), 24)
-      : trainerSprite
-        ? trainerMark(trainerSprite, kindWord(node.kind), 24)
-        : nodeKindGlyph(node.kind, kindWord(node.kind), 24);
+  /*
+   * **Every other kind is its coloured silhouette since D109**, the boss's a
+   * badge: shape first, then colour, so the kinds part at thumbnail size and
+   * in grey. The disc they stood in is retired.
+   */
+  const kind = trainerSprite ? trainerMark(trainerSprite, kindWord(node.kind), 24) : nodeSilhouette(node.kind, kindWord(node.kind));
   const said = [nodeDetailText(node, segment, options.visit), ...(phase === 'upcoming' ? laterFacts(node, run) : [])]
     .filter(Boolean)
     .join(' · ');
@@ -614,6 +629,13 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
     // A defender boss has no leader: its team size, bare, as on the pre-gym
     // screen (D101). An attacker boss is its challenger's name.
     name.textContent = options.defender ? String(size) : `${node.encounter?.source?.name ?? ''}${size > 1 ? ` · ${size} Pokemon` : ''}`;
+    /*
+     * The challenger's own sprite at 16 before their name, since D109 took
+     * the slot it held for the badge: the way D104 marks the opponent on the
+     * battle header, so the boss still wears the person.
+     */
+    const sprite = options.defender ? null : (node.encounter?.source?.sprite ?? null);
+    if (sprite) name.prepend(opponentImg(sprite, 16));
     element.append(name);
   }
 
