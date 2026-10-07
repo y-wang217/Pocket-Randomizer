@@ -1,6 +1,6 @@
 /**
  * The journey vignettes. **The map calm-down and journey vignettes patch,
- * bible Rev 30, D109** (`docs/spec/gymrun-patch-map-calm-down-and-journey-vignettes.md`,
+ * bible Rev 31, D113** (`docs/spec/gymrun-patch-map-calm-down-and-journey-vignettes.md`,
  * section 5's *Vignette* row).
  *
  * A vignette is a beat between screens: a crop of the current locale's map

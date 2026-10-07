@@ -75,7 +75,7 @@ function createBattleSpeedPicker(): HTMLElement {
  * seeing five buttons and two nulls. A suite that names one picker must keep
  * finding one picker.
  */
-/** The journey vignettes, on or off (bible Rev 30, D109). */
+/** The journey vignettes, on or off (bible Rev 31, D113). */
 function createVignettePicker(): HTMLElement {
   return createPicker({
     heading: VIGNETTE_HEADING,

@@ -36,8 +36,10 @@ import {
   DEFENDER_CONSUMABLE_ENTRY,
   DEFENDER_RANK_LOCALES,
   DEFENDER_RELIC_IDS,
+  DEFENDER_REVENGE,
   DEFENDER_WAVE_LENGTH,
 } from '../../data/defender';
+import { DEFENDER_AMBUSH, DEFENDER_BAZAAR_SHELF, DEFENDER_EVENT_STEPS } from '../../data/defenderEvents';
 import type { LocaleId } from '../../data/locales';
 import { defenderOpponentIvs } from '../../data/scaling';
 import type { Tuning } from '../../data/tuning';
@@ -46,9 +48,10 @@ import { assignTiers, type NodeSpec, type Segment, type Step } from '../encounte
 import { generateBossTeam, generateClassTeam } from '../randomizer';
 import { generateGymRewardOffer, generateRewardOffer } from '../rewards';
 import type { Rng, SimSeed } from '../rng';
-import { defenderBossRewardKey, defenderDoorKey, defenderNodeKey, defenderNodeRewardKey } from '../streamKeys';
+import { defenderBossRewardKey, defenderDoorKey, defenderNodeKey, defenderNodeRewardKey, defenderRankEventsKey } from '../streamKeys';
 import type { Tier } from '../types';
 import { drawDoorClasses } from './classes';
+import { DefenderEventPicker, drawDefenderEventShape, generateDefenderEvent } from './events';
 import { drawTrade } from './trade';
 
 /** Overwritten in pass 3; never reaches a battle. */
@@ -65,6 +68,20 @@ export function intermissionNodeId(rank: number): string {
 
 export function bossNodeId(rank: number): string {
   return `r${rank}-boss`;
+}
+
+/** The `n`th question mark of `rank` (2026-10-06). */
+export function eventNodeId(rank: number, n: number): string {
+  return `r${rank}-e${n}`;
+}
+
+/**
+ * The Collector's slot in `rank`, or null for every other rank: the last
+ * door's `DEFENDER_REVENGE.side`. One slot in the run (2026-10-06).
+ */
+export function revengeNodeId(rank: number): string | null {
+  if (rank !== DEFENDER_REVENGE.rank) return null;
+  return doorNodeId(rank, waveLength(rank) - 1, DEFENDER_REVENGE.side);
 }
 
 /** How many doors rank `rank` has. Clamped to the table's ends. */
@@ -105,7 +122,7 @@ function emptyNode(id: string, kind: NodeSpec['kind'], label: string): NodeSpec 
   };
 }
 
-export function generateRank(rank: number, rng: Rng, tuning: Tuning): Segment {
+export function generateRank(rank: number, rng: Rng, tuning: Tuning, picker: DefenderEventPicker = new DefenderEventPicker()): Segment {
   const ivs = defenderOpponentIvs(rank);
   const steps: Step[] = [];
 
@@ -129,6 +146,31 @@ export function generateRank(rank: number, rng: Rng, tuning: Tuning): Segment {
         };
       }),
     });
+  }
+
+  // --- the question marks (2026-10-06) ------------------------------------
+  // One step each, after the doors and before the intermission, never a
+  // choice. Shape and identity on the rank's `map` key; the options on the
+  // node's own `rewards` key. An ambush's team is a hard untyped class team on
+  // the node's `randomizer` key, its seed set in pass 3 like every fight's.
+  const eventStream = rng.map.at(defenderRankEventsKey(rank));
+  for (let n = 0; n < (DEFENDER_EVENT_STEPS[rank] ?? 0); n++) {
+    const id = eventNodeId(rank, n);
+    const shape = drawDefenderEventShape(rank, eventStream);
+    const definition = picker.pick(shape, rank, eventStream);
+    const node: NodeSpec = {
+      ...emptyNode(id, 'event', 'Something happens'),
+      defenderEvent: generateDefenderEvent(id, rank, definition, rng.rewards.at(defenderNodeRewardKey(id, 'event'))),
+    };
+    if (shape === 'ambush') {
+      node.encounter = {
+        team: generateClassTeam([], rank, DEFENDER_AMBUSH.tier, ivs, rng.randomizer.at(defenderNodeKey(id))),
+        opponent: 'ambush',
+        source: null,
+        simSeed: PLACEHOLDER_SEED,
+      };
+    }
+    steps.push({ index: steps.length, options: [node] });
   }
 
   // The intermission: one shop node, a step of its own, never a choice.
@@ -155,19 +197,32 @@ export function generateRank(rank: number, rng: Rng, tuning: Tuning): Segment {
   // --- pass 4: what each node pays -------------------------------------------
   for (const node of steps.flatMap((step) => step.options)) {
     if (node.tier) {
-      const offer = generateRewardOffer(
-        node.id,
-        node.tier,
-        rank,
-        rng.rewards.at(defenderNodeRewardKey(node.id, 'offer')),
-        tuning,
-        DEFENDER_RELIC_IDS,
-        [DEFENDER_CONSUMABLE_ENTRY],
-      );
+      const offerStream = rng.rewards.at(defenderNodeRewardKey(node.id, 'offer'));
+      const offer = generateRewardOffer(node.id, node.tier, rank, offerStream, tuning, DEFENDER_RELIC_IDS, [DEFENDER_CONSUMABLE_ENTRY]);
       // At most one trade per offer, and it takes the last card. Drawn on its
       // own key whether or not it is carried (`drawTrade`).
       const trade = drawTrade(node.id, rank, rng);
       node.reward = trade ? { ...offer, options: [...offer.options.slice(0, -1), trade] } : offer;
+      /*
+       * The Collector's slot (2026-10-06): the extra pages a win over the
+       * traded-away mons pays, one per mon beyond the first, drawn here on the
+       * same stream after the door's own offer, at the Collector's tier and
+       * with no trade card. Drawn whether or not a trade ever happens, so a
+       * run that never trades and one that does draw the same map.
+       */
+      if (node.id === revengeNodeId(rank)) {
+        node.revenge = {
+          offers: Array.from({ length: DEFENDER_REVENGE.maxTeam - 1 }, () =>
+            generateRewardOffer(node.id, DEFENDER_REVENGE.tier, rank, offerStream, tuning, DEFENDER_RELIC_IDS, [DEFENDER_CONSUMABLE_ENTRY]),
+          ),
+        };
+      }
+    } else if (node.defenderEvent?.shape === 'ambush') {
+      // The ambush's cards, paid on a win like a door's, at the ambush's tier.
+      node.reward = generateRewardOffer(node.id, DEFENDER_AMBUSH.tier, rank, rng.rewards.at(defenderNodeRewardKey(node.id, 'offer')), tuning, DEFENDER_RELIC_IDS, [DEFENDER_CONSUMABLE_ENTRY]);
+    } else if (node.defenderEvent?.shape === 'bazaar') {
+      // The bazaar's shelf, on the shop key a shop node would use.
+      node.shop = generateShopStock(node.id, rank, rng.rewards.at(defenderNodeRewardKey(node.id, 'shop')), tuning, DEFENDER_BAZAAR_SHELF);
     } else if (node.kind === 'shop') {
       node.shop = generateShopStock(node.id, rank, rng.rewards.at(defenderNodeRewardKey(node.id, 'shop')), tuning);
     }

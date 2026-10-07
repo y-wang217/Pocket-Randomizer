@@ -1,6 +1,6 @@
 """
 The node silhouettes from the author's drawings. The map calm-down patch, bible
-Rev 30, D109.
+Rev 31, D113.
 
     python3 scripts/visual/silhouettes.py SRC.webp OUT.png 32
 

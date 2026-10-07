@@ -68,7 +68,7 @@ describe('the asset manifest', () => {
    * wrong size fails here rather than on a screen.
    */
   /*
-   * **One placeholder since the map calm-down patch** (bible Rev 30, D109):
+   * **One placeholder since the map calm-down patch** (bible Rev 31, D113):
    * the return-to-map vignette, whose sprite is the lead's and whose own
    * drawing has not arrived. The prompt ships every new asset as a
    * placeholder first; this names the one exception rather than loosening

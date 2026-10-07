@@ -18,8 +18,8 @@ and fails on any byte that differs. Heights are compared by
 
 ## Corrections
 
-- **2026-10-07, the map calm-down and journey vignettes patch** (D109,
-  `docs/generation.md` §116). `heights.json` alone; runs, the battle protocol
+- **2026-10-07, the map calm-down and journey vignettes patch** (D113,
+  `docs/generation.md` §122). `heights.json` alone; runs, the battle protocol
   and the digest are untouched because nothing under `core/` changed and no
   version axis moved (`contentHash` holds at `76dc8f`).
 

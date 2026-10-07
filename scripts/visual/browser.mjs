@@ -686,7 +686,7 @@ export async function openApp(browser, url, seed, viewport = PHONE, contextOptio
   if (!tutorial) await skipTutorialIn(context);
   /*
    * **A first launch with the journey vignettes off. The map calm-down
-   * patch, D109.** A test that asks for the tutorial asks for a first launch,
+   * patch, D113.** A test that asks for the tutorial asks for a first launch,
    * and a first launch has the beats on, whose layer takes the clicks the
    * walk aims at a map node. Only the beats are stored; the coach marks and
    * the greeting stay first-launch.

@@ -40,6 +40,7 @@ import {
 import { previewEvolutions } from '../core/evolution';
 
 import type { Choice, ItemId, ItemPlan, PartyEdit, PokemonSpec, PokemonState, RunLog, RunMode } from '../core/types';
+import { badgesActive } from '../core/defender/badge';
 import { DEFENDER_SCREEN_COPY } from './copy/defender';
 import { applyRelicPassives } from '../core/relics';
 import { applyItemPlan, arrivedItems, backpackCapacity, keepLayoutPlan, reconcileItemPlan } from '../core/items';
@@ -288,7 +289,7 @@ export function mountApp(root: HTMLElement): void {
   );
 
   /*
-   * **The journey vignettes. Bible Rev 30, D109.** Mounted on the frame, over
+   * **The journey vignettes. Bible Rev 31, D113.** Mounted on the frame, over
    * the nav and every screen, so a beat covers everything a tap could reach.
    * Driven from the run's seams below and nowhere else.
    */
@@ -656,6 +657,8 @@ export function mountApp(root: HTMLElement): void {
     const acquirePick = createPending<AcquisitionDecision>();
     const shopBasket = createPending<number[]>();
     const eventPick = createPending<EventArchetype>();
+    const defenderEventPick = createPending<number>();
+    const tradeDecision = createPending<boolean>();
     const leadPick = createPending<number>();
     const evolvePick = createPending<number>();
     const berryPick = createPending<number>();
@@ -754,7 +757,7 @@ export function mountApp(root: HTMLElement): void {
     };
 
     /*
-     * **The journey's seams. Bible Rev 30, D109.** Three, and every beat
+     * **The journey's seams. Bible Rev 31, D113.** Three, and every beat
      * plays through one of them, so no screen can skip its vignette by
      * accident (`test/journey-seam.test.ts` holds the shape):
      *
@@ -832,7 +835,9 @@ export function mountApp(root: HTMLElement): void {
       },
       chooseRecruit: (options, state) => {
         const gymType = state.defender?.gymType ?? '';
-        starterScreen.render(options, (index) => starterPick.submit(index), { title: DEFENDER_SCREEN_COPY.recruit, gymType });
+        // The badge's state rides along (D112): a card dims its mark while the
+        // badge is off, and an off-type candidate wears the dimmed mark.
+        starterScreen.render(options, (index) => starterPick.submit(index), { title: DEFENDER_SCREEN_COPY.recruit, gymType, badgeLit: badgesActive(state) });
         showScreen('starter');
         return starterPick.wait();
       },
@@ -862,7 +867,7 @@ export function mountApp(root: HTMLElement): void {
         return localePick
           .wait()
           .then((index) => {
-            // A region's first map arrives with *Where to next?* (D109).
+            // A region's first map arrives with *Where to next?* (D113).
             returnDue = true;
             return index;
           })
@@ -896,7 +901,7 @@ export function mountApp(root: HTMLElement): void {
         renderPreGym();
         mountNodeBand(preGymScreen.root, 'gym', live ? localeOf(live) : null);
         showScreen('pre-gym');
-        // The gym's own beat, once the lead is chosen and before the fight (D109).
+        // The gym's own beat, once the lead is chosen and before the fight (D113).
         return leadPick
           .wait()
           .then((lead) => enterNode(live?.segments[live.currentSegment]?.gym, lead))
@@ -904,7 +909,7 @@ export function mountApp(root: HTMLElement): void {
       },
       chooseNode: (options: NodeSpec[]) => {
         // The map is already rendered by onState; this arms the buttons and
-        // shows it, through the journey's seam (D109).
+        // shows it, through the journey's seam (D113).
         const picked = nodePick.wait();
         arriveAtMap();
         return picked.then((index) => enterNode(options[index], index)).then(flushedBefore);
@@ -1014,6 +1019,19 @@ export function mountApp(root: HTMLElement): void {
         });
         showScreen('result');
         return berryPick.wait();
+      },
+      /*
+       * The trade reveal, on the same screen, in the cards' place (bible Rev
+       * 30, D110). `playRun` asks it right after the trade card is picked, so
+       * the result the card came from is still `lastReview`.
+       */
+      chooseTrade: (card, state) => {
+        resultScreen.render(lastReview, null, state, () => undefined, null, null, null, {
+          card,
+          onDecide: (accept) => tradeDecision.submit(accept),
+        });
+        showScreen('result');
+        return tradeDecision.wait();
       },
       /*
        * Required by `RunPolicy` and unreachable from `playRun` while
@@ -1143,7 +1161,7 @@ export function mountApp(root: HTMLElement): void {
       },
       chooseShopPurchases: (stock, state) => {
         shopScreen.render(stock, state, (indexes) => shopBasket.submit(indexes));
-        // The node band (D109): the shop's token and silhouette, and the region.
+        // The node band (D113): the shop's token and silhouette, and the region.
         mountNodeBand(shopScreen.root, 'shop', localeOf(state));
         showScreen('shop');
         return shopBasket.wait();
@@ -1155,6 +1173,12 @@ export function mountApp(root: HTMLElement): void {
         mountNodeBand(eventScreen.root, 'event', localeOf(state));
         showScreen('event');
         return eventPick.wait();
+      },
+      // A defender question mark, on the same screen (bible Rev 30, D111).
+      chooseDefenderEvent: (event, state) => {
+        eventScreen.renderDefender(event, state, (index) => defenderEventPick.submit(index));
+        showScreen('event');
+        return defenderEventPick.wait();
       },
       /*
        * `chooseMoveRecipient` and `chooseMoveToReplace` were wired here and are
@@ -1821,7 +1845,7 @@ export function mountApp(root: HTMLElement): void {
         state.currentSegment,
         runMode(state) === 'defender',
       );
-      // The node band (D109): the kind the fight is under, which the battle
+      // The node band (D113): the kind the fight is under, which the battle
       // header no longer carries as a mark.
       mountNodeBand(battleScreen.root, node.kind, localeOf(state));
       showScreen('battle');

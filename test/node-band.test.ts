@@ -1,5 +1,5 @@
 /**
- * The node band. **The map calm-down patch, bible Rev 30, D109**, its part 3:
+ * The node band. **The map calm-down patch, bible Rev 31, D113**, its part 3:
  * each node screen carries a thin header in the same colour token and
  * silhouette as its map node and vignette, with the locale's name and
  * nothing else.

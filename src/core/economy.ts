@@ -35,6 +35,7 @@ import {
   type ShopEntry,
   shopSlotsFor,
   TIER_PAYOUT,
+  type ShopSlot,
 } from '../data/shop';
 import type { BattleKind } from '../data/tuning';
 import type { Tuning } from '../data/tuning';
@@ -145,9 +146,15 @@ export function generateShopStock(
   segment: number,
   stream: RngStream,
   tuning: Tuning,
+  /**
+   * A shelf of its own in place of the segment's (2026-10-06): the defender
+   * bazaar's. The draw order and count are the shelf's as ever, so the
+   * segment's own shops are untouched when this is absent.
+   */
+  shelf?: readonly ShopSlot[],
 ): ShopStock {
-  const slots = shopSlotsFor(segment);
-  const entries = shopEntriesFor(segment);
+  const slots = shelf ?? shopSlotsFor(segment);
+  const entries = shelf ? shelf.flatMap((slot) => slot.entries) : shopEntriesFor(segment);
   const extra = stream.inRange(tuning.shopExtraSlots);
 
   const items: ShopItem[] = [];

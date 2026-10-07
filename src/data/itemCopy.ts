@@ -108,6 +108,8 @@ export const RELIC_COPY: Readonly<Record<RelicId, string>> = {
   'windrider-feather': 'Carries the party over anything on the ground.',
   'cascade-talisman': 'Climbs water that falls. A Pokemon that goes down comes back with more left in it.',
   'abyssal-lens': 'Goes down where the light stops. Shopkeepers name a lower price when you are holding it.',
+  // Defender only (`data/defender.ts`, `DEFENDER_OFF_TYPE_RELIC`). No capability, so one sentence for the badge.
+  'strangers-pass': 'Lets a Pokemon of another type stand in the gym. The badge stays lit while one does.',
   'everburning-lantern': 'Lights a place that has none. The party rests easier near it.',
 };
 

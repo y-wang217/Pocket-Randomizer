@@ -59,7 +59,7 @@ export interface ChipOptions {
 }
 
 /**
- * A node's mark on the map since D109: a cutout standing on the painting, not
+ * A node's mark on the map since D113: a cutout standing on the painting, not
  * a chip, so it carries the kind's tip and none of the chip's fill or ring
  * (`visual-v2`'s one neutral chip style stays one).
  */
@@ -378,7 +378,7 @@ export function challengerMark(source: EncounterRef | null, label: string, size:
  * as `nodeKindGlyph`, because it is the kind's mark.
  */
 export function trainerMark(sprite: string | null, label: string, size: 24 | 16): HTMLElement {
-  // A cutout on the map, not a chip since D109: no disc, no chip fill.
+  // A cutout on the map, not a chip since D113: no disc, no chip fill.
   const node = cutout('node__kind node__kind--challenger node__kind--trainer', 'node:trainer');
   if (sprite) {
     node.append(opponentImg(sprite, size));
@@ -393,7 +393,7 @@ export function trainerMark(sprite: string | null, label: string, size: 24 | 16)
 
 /**
  * A node kind as its coloured silhouette. **The map calm-down patch, bible
- * Rev 30, D109: shape first, then colour.** The map's mark for every kind but
+ * Rev 31, D113: shape first, then colour.** The map's mark for every kind but
  * a trainer who wears their sprite (D107), and the node band's and the
  * vignette's: the cutout in the kind's own colours, so a player tells rest
  * from a fight at thumbnail size without reading a glyph. Same wrapper and tip

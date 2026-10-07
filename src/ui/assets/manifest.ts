@@ -107,7 +107,7 @@ export const NATIVE = {
   nav: { width: 12, height: 12 },
   currency: { width: 8, height: 8 },
   wordmark: { width: 96, height: 16 },
-  /** A node kind's coloured cutout (D109): the map, the node band, the vignette. */
+  /** A node kind's coloured cutout (D113): the map, the node band, the vignette. */
   silhouette: { width: 32, height: 32 },
 } as const satisfies Record<string, NativeSize>;
 
@@ -132,7 +132,7 @@ const NODE_LETTERS: Readonly<Record<NodeKind, string>> = {
 /**
  * Every node kind, read off the letters' record, which the compiler holds to
  * the data's own union: a kind added to the game without an entry here fails
- * to build. The calm-down patch's tests read their kind list from this (D109).
+ * to build. The calm-down patch's tests read their kind list from this (D113).
  */
 export const NODE_KINDS: readonly NodeKind[] = Object.keys(NODE_LETTERS) as NodeKind[];
 
@@ -184,7 +184,7 @@ const icon = (file: string, native: NativeSize, tone: Tone, letter: string): Art
 });
 
 /**
- * A node kind's silhouette. **The map calm-down patch, bible Rev 30, D109:
+ * A node kind's silhouette. **The map calm-down patch, bible Rev 31, D113:
  * shape first, then colour.** The five drawings are the author's, converted
  * to 32x32 by `scripts/visual/silhouettes.py`, in their own colours. Rest
  * has no drawing yet, so its silhouette is the tent's 8px ink mark, drawn in
@@ -197,7 +197,7 @@ const silhouette = (kind: NodeKind): ArtFile =>
     : icon(`silhouettes/node-${kind}.png`, NATIVE.silhouette, 'colour', NODE_LETTERS[kind]);
 
 /**
- * A vignette's sprite (D109). Where the moment has a person to show, the
+ * A vignette's sprite (D113). Where the moment has a person to show, the
  * vignette shows them instead (a trainer's sprite, the lead's), and this is
  * what it falls back to. A kind's moment is its silhouette; the return to the
  * map has no drawing, so it ships as the lettered chip at the silhouette's

@@ -1,6 +1,6 @@
 /**
  * The journey vignettes. **The map calm-down and journey vignettes patch,
- * bible Rev 30, D109**, its tests 4, 5 and 6, in jsdom.
+ * bible Rev 31, D113**, its tests 4, 5 and 6, in jsdom.
  *
  * - 4: every moment and node kind has a manifest key and a caption within
  *   section 4's budget, and a moment with no drawing renders the placeholder

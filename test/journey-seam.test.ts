@@ -1,6 +1,6 @@
 /**
  * The journey's seams. **The map calm-down and journey vignettes patch,
- * bible Rev 30, D109**, its test 7: *"Every map commit and node completion
+ * bible Rev 31, D113**, its test 7: *"Every map commit and node completion
  * passes through the one transition seam, so no screen can skip its vignette
  * by accident."*
  *

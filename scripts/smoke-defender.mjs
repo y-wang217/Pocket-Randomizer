@@ -133,8 +133,34 @@ for (let guard = 0; guard < 2500; guard++) {
     continue;
   }
 
+  if (await count(visible('event'))) {
+    // A question mark (2026-10-06): the first pressable option, then its
+    // reveal's Carry on where the role has one (a fight goes straight to the
+    // battle frame).
+    note('question mark');
+    const option = page.locator(`${visible('event')} .event__choice:not(:disabled)`).first();
+    if (await option.count()) await option.click();
+    await page.waitForTimeout(25);
+    const carry = page.locator(`${visible('event')} .event__result .primary-action`);
+    if (await carry.count()) await carry.first().click();
+    await page.waitForTimeout(25);
+    continue;
+  }
+
   if (await count(visible('result'))) {
-    const card = page.locator(`${visible('result')} .reward`).first();
+    // The trade reveal (2026-10-06): Take, through the band.
+    const reveal = page.locator(`${visible('result')} .trade-reveal__take`);
+    if (await reveal.count()) {
+      note('trade reveal');
+      await reveal.first().click();
+      await page.locator('.confirm-band .primary-action').click();
+      await page.waitForTimeout(25);
+      continue;
+    }
+    // The trade card where one is dealt, so the reveal step is driven too;
+    // the first card otherwise.
+    const trade = page.locator(`${visible('result')} .reward--trade`);
+    const card = (await trade.count()) ? trade.first() : page.locator(`${visible('result')} .reward`).first();
     if (await card.count()) {
       for (const kind of ['consumable', 'trade']) {
         if (await count(`${visible('result')} .reward--${kind}`)) note(`${kind} card`);

@@ -1,9 +1,9 @@
 {
   "seed": "RESULT-0",
   "versions": {
-    "runLog": "gymrun-run-24/gymrun-0.3.0",
-    "contentHash": "76dc8f3dac61ae176d7419e7026fb3736c44caa8779bbfb5b0b26b7789687890",
-    "randomizer": "gymrun-randomizer-30",
+    "runLog": "gymrun-run-25/gymrun-0.3.0",
+    "contentHash": "865d3ba22af9c9c2b8f1f9d7378eeba0c433d71717cd3306a8679d711f59f1fd",
+    "randomizer": "gymrun-randomizer-34",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -14,21 +14,21 @@
     "leader": "Cilan",
     "kind": "trainer",
     "species": "Jasper",
-    "bySpecies": "Wailmer",
-    "byMove": "Chilling Water",
+    "bySpecies": "Piplup",
+    "byMove": "Aqua Jet",
     "indirect": null
   },
-  "currency": 14,
+  "currency": 0,
   "backpack": [],
   "relics": [],
   "party": [
     {
       "species": "Shelmet",
       "level": 15,
-      "ability": "Power Spot",
+      "ability": "Primordial Sea",
       "moves": [
-        "Fury Cutter 31/32",
-        "Ice Shard 47/48",
+        "Fury Cutter 30/32",
+        "Ice Shard 48/48",
         "Pay Day 32/32",
         "Amnesia 32/32"
       ],
@@ -45,17 +45,6 @@
       "tier": "normal",
       "opponent": "Picnicker Karina",
       "turns": 3,
-      "winner": "p1",
-      "hpAfter": 3,
-      "casualties": []
-    },
-    {
-      "segment": 0,
-      "kind": "trainer",
-      "label": "Trainer battle",
-      "tier": "hard",
-      "opponent": "Fisherman Dale",
-      "turns": 2,
       "winner": "p2",
       "hpAfter": 0,
       "casualties": [
@@ -64,8 +53,8 @@
           "name": "Jasper",
           "level": 15,
           "species": "Shelmet",
-          "bySpecies": "Wailmer",
-          "byMove": "Chilling Water",
+          "bySpecies": "Piplup",
+          "byMove": "Aqua Jet",
           "indirect": null
         }
       ]
@@ -75,10 +64,10 @@
     "seed": "RESULT-0",
     "mode": "attacker",
     "versions": {
-      "runLog": "gymrun-run-24/gymrun-0.3.0",
-      "contentHash": "76dc8f3dac61ae176d7419e7026fb3736c44caa8779bbfb5b0b26b7789687890",
+      "runLog": "gymrun-run-25/gymrun-0.3.0",
+      "contentHash": "865d3ba22af9c9c2b8f1f9d7378eeba0c433d71717cd3306a8679d711f59f1fd",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-30"
+      "randomizerVersion": "gymrun-randomizer-34"
     },
     "decisions": [
       {
@@ -99,28 +88,6 @@
           "kind": "move",
           "slot": 1
         }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "battle",
-        "choice": {
-          "kind": "move",
-          "slot": 1
-        }
-      },
-      {
-        "kind": "reward",
-        "index": 0
-      },
-      {
-        "kind": "node",
-        "index": 0
       },
       {
         "kind": "battle",

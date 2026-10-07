@@ -1,7 +1,7 @@
 /**
  * The calm map and the journey vignettes in the real app, in a browser at
- * 390x844. **The map calm-down and journey vignettes patch, bible Rev 30,
- * D109**: the pixel half of its test 2, and its test 5 against the built game
+ * 390x844. **The map calm-down and journey vignettes patch, bible Rev 31,
+ * D113**: the pixel half of its test 2, and its test 5 against the built game
  * rather than jsdom.
  *
  * Test 2: every next-step node tappable at 44px or more, nothing else on the

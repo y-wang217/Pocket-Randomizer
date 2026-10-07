@@ -50,7 +50,18 @@ export function classesAtRank(rank: number): readonly TrainerClass[] {
   return TRAINER_CLASSES.filter((entry) => entry.ranks.min <= rank && rank <= entry.ranks.max);
 }
 
-/** A class by id, or null. */
+/**
+ * The Collector. **2026-10-06.** The trainer who fields every mon a defender
+ * run traded away, at one fixed door (`DEFENDER_REVENGE` in `data/defender.ts`).
+ * **Kept out of `TRAINER_CLASSES`**, the `DEFENDER_ONLY_RELICS` pattern, so
+ * `drawDoorClasses` never draws it and no door's class draw moves; `trainerClass`
+ * finds it so the door names itself. Untyped, because its team is whatever the
+ * player gave away. The sprite is Showdown's Collector.
+ */
+export const DEFENDER_REVENGE_CLASS: TrainerClass = { id: 'collector', types: [], ranks: { min: 6, max: 6 }, sprite: 'collector' };
+
+/** A class by id, or null. The Collector included. */
 export function trainerClass(id: string): TrainerClass | null {
+  if (id === DEFENDER_REVENGE_CLASS.id) return DEFENDER_REVENGE_CLASS;
   return TRAINER_CLASSES.find((entry) => entry.id === id) ?? null;
 }

@@ -2,7 +2,7 @@
 
 2026-10-07, on `claude/vibrant-sagan-bg399f`. The patch as built, at 390x844,
 against the shots before it in [`../map-calm-down-0/`](../map-calm-down-0/README.md).
-Record: [`../../../generation.md`](../../../generation.md) section 116, bible Rev 30 (D109).
+Record: [`../../../generation.md`](../../../generation.md) section 122, bible Rev 31 (D113).
 
 - `map-SMOKE24.png` (Cave), `map-SEED-A.png` (Badlands), `map-GYMRUN01.png`
   (Summit): each seed's first map, then the map two steps in. Next-step
@@ -21,4 +21,4 @@ battle header's kind mark moved into the band); section 2's *Node* family,
 section 3's *Node kind* row, section 4's new *Vignette* and *Node band*
 budgets, section 5's *Map node card* row and its new *Node band* and
 *Vignette* rows, section 7 (the vignette is not an onboarding mechanism), and
-section 8's carve-out for vignette captions. All filed as D109 before code.
+section 8's carve-out for vignette captions. All filed as D113 before code.

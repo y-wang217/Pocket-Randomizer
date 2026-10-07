@@ -480,7 +480,48 @@ import { getStarterPool, STARTER_MOVE_BANDS } from '../data/starters';
  * note states: one string never names two schemas.
  * `docs/spec/gymrun-stage6.0-checkpoint10-merge-main.md`, `docs/generation.md` section 113.
  */
-export const RANDOMIZER_VERSION = 'gymrun-randomizer-30';
+/*
+ * ## `-31`: sixteen blank abilities leave the pool. Ball Fetch, Honey Gather
+ * and Run Away have no engine handler; thirteen more act only on a doubles
+ * ally. `ABILITY_POOL` falls from 286 to 270, so the same ability draw reads a
+ * different name on every seed. Same count on every key. `contentHash` moves
+ * beside it for the table. `RUN_LOG_VERSION` holds.
+ * `docs/spec/gymrun-patch-blank-abilities.md`, `docs/generation.md` section 116.
+ */
+/*
+ * ## `-32`: the recruit draft draws two typed mons and one off-type. The
+ * defender design message's fourth change (`docs/spec/gymrun-patch-defender-events-trades-revenge-offtype.md`):
+ * the off-type option is always offered and always admissible, so the third
+ * typed draw it used to stand in for is not made. `defender/recruit/*` keys
+ * only; no attacker draw moves. The exempt slot and the type lock's refusal
+ * are deleted; the badge goes dark instead (`core/defender/badge.ts`).
+ * `contentHash` moves for `data/defender.ts`. `RUN_LOG_VERSION` holds.
+ * `docs/generation.md` section 117.
+ */
+/*
+ * ## `-33`: the Collector's slot draws its extra pages. The defender design
+ * message's third change: rank 6's last door, side 1, draws five more
+ * three-card offers after its own, on the same `defender/node/<id>/offer`
+ * key, so a win over the traded-away mons can pay one page per mon fielded.
+ * One node in the run; no other draw moves and no attacker draw moves. The
+ * Collector itself is a reading of that slot at `nodeOptions`, never a draw.
+ * `contentHash` moves for `data/defender.ts` and `data/trainerClasses.ts`.
+ * `RUN_LOG_VERSION` holds: the pages are `reward` entries.
+ * `docs/generation.md` section 119.
+ */
+/*
+ * ## `-34`: the question marks come to Defender Mode. One step per rank from
+ * rank 1, before the intermission: its shape and identity on
+ * `defender/rank/<rank>/events` (`map`), its options on
+ * `defender/node/<id>/event` (`rewards`), an ambush's team on the node's own
+ * `randomizer` key and its seed on `battle`, its cards on `offer` and a
+ * bazaar's shelf on `shop`. New keys and new nodes; the doors, the intermission
+ * and the boss draw as before, and no attacker draw moves. `contentHash`
+ * moves for `data/defenderEvents.ts` and the `consumable` effect in
+ * `data/eventPools.ts`. `RUN_LOG_VERSION` is `-25` with the `eventPick` entry.
+ * `docs/generation.md` section 120.
+ */
+export const RANDOMIZER_VERSION = 'gymrun-randomizer-34';
 
 // ---------------------------------------------------------------------------
 // Pools, filtered

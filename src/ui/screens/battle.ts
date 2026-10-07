@@ -187,7 +187,7 @@ export function createBattleScreen(): BattleScreen {
       // name beside it; the other kinds wear the kind's mark alone, and so
       // does a Defender Mode boss, which has no name (`leaderless`).
       /*
-       * **The kind left this header for the node band in D109** (bible Rev
+       * **The kind left this header for the node band in D113** (bible Rev
        * 30, `ui/node-band.ts`): the band above the header carries the kind's
        * silhouette in its colour, the same mark the map node wore, and a mark
        * here too would be R3's double render. A challenger keeps their own

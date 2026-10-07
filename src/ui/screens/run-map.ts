@@ -47,6 +47,7 @@ import type { NodeSpec, Segment } from '../../core/encounters';
 import type { LocaleId } from '../../data/locales';
 import type { NodeVisit, RunState } from '../../core/run';
 import { localeOf, runMode, stepsOf } from '../../core/run';
+import { revengeNodeFor } from '../../core/defender/revenge';
 import { nextChallengerOf, renderNextChallenger } from '../next-challenger';
 import { trainerClass } from '../../data/trainerClasses';
 import { TRAINER_CLASS_NAMES } from '../../data/trainerClassCopy';
@@ -298,7 +299,7 @@ export function createMapGraph(): MapGraph {
       const plan = planGraph(state);
       const locale = localeOf(state);
       applyBackdrop(root, locale ? `map-backdrop:${locale}` : null);
-      // The flat scrim that pushes the painting back (D109): a display number,
+      // The flat scrim that pushes the painting back (D113): a display number,
       // never a blur, read by the stylesheet's `::after`.
       root.style.setProperty('--map-scrim', String(DEFAULT_DISPLAY_TUNING.mapScrimOpacity));
       root.dataset['steps'] = String(plan.steps.length);
@@ -404,7 +405,7 @@ export function planGraph(state: RunState): Plan {
 
 /**
  * The foot of the segment, where the player stands before the first step.
- * **No mark since D109**: the spot stays as the travelled path's first
+ * **No mark since D113**: the spot stays as the travelled path's first
  * anchor, drawn as nothing, and the player standing on it is the mark.
  */
 function renderEntrance(here: boolean): HTMLElement {
@@ -438,7 +439,7 @@ function renderStepRow(
   const row = el('li', `step step--${phase}`);
   row.dataset['step'] = String(step.index);
   /*
-   * **No step number on the face since D109.** The rows are the distance to
+   * **No step number on the face since D113.** The rows are the distance to
    * the gym, read off their order, and a number beside each was the same fact
    * twice; the row keeps it for a screen reader.
    */
@@ -449,8 +450,11 @@ function renderStepRow(
   if (phase === 'current') nodes.dataset['tutorial'] = 'options';
   const choose = phase === 'current' ? onChoose : undefined;
   nodes.append(
-    ...step.options.map((node, option) => {
+    ...step.options.map((drawn, option) => {
       const walked = plan.taken[index];
+      // The Collector is a reading of the drawn door against the run
+      // (section 119), the one `nodeOptions` makes; the map reads it too.
+      const node = runMode(state) === 'defender' ? revengeNodeFor(drawn, state) : drawn;
       const element = renderNode(node, phase, segment.index, state, {
         full: phase === 'current',
         visit: walked === option ? plan.visits[step.index] : undefined,
@@ -566,7 +570,7 @@ interface NodeOptions {
   visit: NodeVisit | undefined;
   /** A node on a walked step that was not the one taken. */
   passed: boolean;
-  /** The node the player is standing on: the second of D109's three weights. */
+  /** The node the player is standing on: the second of D113's three weights. */
   here: boolean;
   /** A defender run: a gym is a boss with no leader, a trainer has a class. */
   defender: boolean;
@@ -610,7 +614,7 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
   const trainerSprite =
     node.kind === 'trainer' ? (options.defender ? (challenger?.sprite ?? null) : options.visit ? (node.encounter?.source?.sprite ?? null) : null) : null;
   /*
-   * **Every other kind is its coloured silhouette since D109**, the boss's a
+   * **Every other kind is its coloured silhouette since D113**, the boss's a
    * badge: shape first, then colour, so the kinds part at thumbnail size and
    * in grey. The disc they stood in is retired.
    */
@@ -630,7 +634,7 @@ function renderNode(node: NodeSpec, phase: Phase, segment: number, run: Capabili
     // screen (D101). An attacker boss is its challenger's name.
     name.textContent = options.defender ? String(size) : `${node.encounter?.source?.name ?? ''}${size > 1 ? ` · ${size} Pokemon` : ''}`;
     /*
-     * The challenger's own sprite at 16 before their name, since D109 took
+     * The challenger's own sprite at 16 before their name, since D113 took
      * the slot it held for the badge: the way D104 marks the opponent on the
      * battle header, so the boss still wears the person.
      */

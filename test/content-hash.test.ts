@@ -146,7 +146,7 @@ describe('the hash moves for a data edit and only for a data edit', () => {
   });
 
   /*
-   * **The map calm-down patch, its test 8** (bible Rev 30, D109): a vignette
+   * **The map calm-down patch, its test 8** (bible Rev 31, D113): a vignette
    * caption is copy, and rewording one must not refuse a shared seed. The loop
    * below covers the file with a comment; this rewords a caption itself.
    */

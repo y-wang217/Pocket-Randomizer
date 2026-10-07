@@ -203,7 +203,7 @@ export interface DisplayTuning {
   /**
    * How strongly the flat scrim pushes the map's painting back, as an
    * opacity from 0 (the painting as drawn) to 1 (the scrim alone). **The map
-   * calm-down patch, bible Rev 30, D109.**
+   * calm-down patch, bible Rev 31, D113.**
    *
    * The painting sets the region's mood and must not compete with the marks:
    * the report before the patch found it muddying the mid-value regions (Cave,
@@ -214,7 +214,7 @@ export interface DisplayTuning {
 
   /**
    * How long a journey vignette holds before it gets out of the way, in
-   * milliseconds. **The map calm-down patch, D109.** One number for every
+   * milliseconds. **The map calm-down patch, D113.** One number for every
    * beat. A tap ends a beat at once, and reduced motion keeps the frame still
    * for the same time rather than shortening it: the beat is the picture, not
    * the movement.

@@ -248,7 +248,7 @@ export const BATTLE_SPEED_COPY: Readonly<Record<BattleSpeed, { name: string; des
 
 export const VIGNETTE_HEADING = 'Journey beats';
 /*
- * The journey vignettes' switch (bible Rev 30, D109). Descriptions of what
+ * The journey vignettes' switch (bible Rev 31, D113). Descriptions of what
  * happens, not advice on which to pick.
  */
 export const VIGNETTE_COPY: Readonly<Record<VignetteMode, { name: string; description: string }>> = {

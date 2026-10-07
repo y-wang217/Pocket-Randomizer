@@ -9,6 +9,7 @@ import { greedyAiPolicy } from '../src/core/battle/ai';
 import type { Policy } from '../src/core/battle/policy';
 import { consumableRefusal } from '../src/core/defender/consumables';
 import { chooseDraftPick, chooseGymType } from '../src/core/defender/opening';
+import { badgesActive } from '../src/core/defender/badge';
 import { bossUnlocksSlot, chooseRecruit, recruitOptions } from '../src/core/defender/recruit';
 import { acquisitionOrder, resolveTrade } from '../src/core/defender/trade';
 import { carriesGymType } from '../src/core/defender/typeLock';
@@ -26,7 +27,7 @@ import {
 } from '../src/core/run';
 import type { PartyEdit, RunLog } from '../src/core/types';
 import { consumableById } from '../src/data/consumables';
-import { DEFENDER_GYM_TYPES, DEFENDER_OFF_TYPE_RELIC, DEFENDER_RANKS } from '../src/data/defender';
+import { DEFENDER_GYM_TYPES, DEFENDER_OFF_TYPE_RELIC, DEFENDER_RANKS, DEFENDER_RECRUIT } from '../src/data/defender';
 import { DEFAULT_TUNING } from '../src/data/tuning';
 
 const SEEDS = Array.from({ length: 30 }, (_, i) => `ECON-${i}`);
@@ -78,27 +79,64 @@ describe('every drafted, recruited and trade-offered mon carries the gym type (p
     ]);
   });
 
-  it('accepts one off-type mon into the Stranger\'s Pass slot, and no more', () => {
-    let state = { ...opened('ECON-EXEMPT'), relics: [DEFENDER_OFF_TYPE_RELIC] };
-    const gymType = state.defender!.gymType!;
-    // Without the pass, the draft is typed and an off-type pick is refused.
+  /*
+   * **Reversed 2026-10-06.** This case used to assert the exempt slot: one
+   * off-type mon with the Stranger's Pass, none without, a second refused.
+   * Now every draft offers one off-type option last, any number may join, and
+   * what an off-type member costs is the badge (`badgesActive`), which the
+   * Pass lights again. `docs/generation.md` section 117.
+   */
+  it('offers an off-type recruit in every draft, and the badge goes dark while one stands in the party', () => {
     const bare = opened('ECON-EXEMPT');
-    expect(recruitOptions(bare, 2).every((spec) => carriesGymType(spec, gymType))).toBe(true);
-    const offType = bare.defender!.recruits[1]![gymType].offType;
-    expect(() => chooseRecruit(bare, [offType], 0)).toThrow(/does not carry Fire/);
+    const gymType = bare.defender!.gymType!;
+    expect(badgesActive(bare)).toBe(true);
 
-    // With it, the third option is the off-type candidate, and it may join.
-    const first = recruitOptions(state, 2);
-    expect(carriesGymType(first[2]!, gymType)).toBe(false);
-    state = chooseRecruit(state, first, 2);
-    expect(state.party.filter((member) => !carriesGymType(member.spec, gymType))).toHaveLength(1);
+    const first = recruitOptions(bare, 2);
+    expect(first).toHaveLength(DEFENDER_RECRUIT.typed + DEFENDER_RECRUIT.offType);
+    expect(first.slice(0, -1).every((spec) => carriesGymType(spec, gymType))).toBe(true);
+    expect(carriesGymType(first.at(-1)!, gymType)).toBe(false);
 
-    // The slot is used: the next draft is typed again, and a second off-type is refused.
+    // No cap: the off-type pick joins, and so does a second one.
+    let state = chooseRecruit(bare, first, first.length - 1);
+    expect(badgesActive(state)).toBe(false);
     const second = recruitOptions(state, 4);
-    expect(second.every((spec) => carriesGymType(spec, gymType))).toBe(true);
-    const another = state.defender!.recruits[3]![gymType].offType;
-    expect(() => chooseRecruit(state, [another], 0)).toThrow(/exempt slot is taken/);
+    expect(carriesGymType(second.at(-1)!, gymType)).toBe(false);
+    state = chooseRecruit(state, second, second.length - 1);
+    expect(state.party.filter((member) => !carriesGymType(member.spec, gymType))).toHaveLength(2);
+    expect(badgesActive(state)).toBe(false);
+
+    // The Stranger's Pass lights the badge again, off-type members and all.
+    expect(badgesActive({ ...state, relics: [DEFENDER_OFF_TYPE_RELIC] })).toBe(true);
+    // And a typed pick never put it out.
+    expect(badgesActive(chooseRecruit(bare, first, 0))).toBe(true);
   });
+
+  it('installs no badge in a battle once an off-type member stands in the party', async () => {
+    // Fire: the highlighted move carries a crit chance while the badge is on,
+    // and nothing does once it is off. The recruit after boss 2 takes the
+    // off-type option, so the run has battles on both sides of it.
+    let seen = { lit: 0, dark: 0 };
+    for (const seed of ['ECON-DARK-0', 'ECON-DARK-1', 'ECON-DARK-2', 'ECON-DARK-3']) {
+      seen = { lit: 0, dark: 0 };
+      const policy: RunPolicy = {
+        ...scriptedRunPolicy(greedyAiPolicy),
+        chooseRecruit: async (options) => options.length - 1,
+      };
+      await playRun(seed, policy, DEFAULT_TUNING, {
+        mode: 'defender',
+        opponent: passive,
+        onBattle: (session, _node, state) => {
+          const crit = session.viewFor('p1').moves.some((entry) => entry.critChance !== undefined);
+          expect(crit).toBe(badgesActive(state));
+          if (crit) seen.lit++;
+          else seen.dark++;
+        },
+      });
+      if (seen.dark > 0) break;
+    }
+    expect(seen.lit).toBeGreaterThan(0);
+    expect(seen.dark).toBeGreaterThan(0);
+  }, 240_000);
 });
 
 describe('trades (prompt test 7)', () => {
@@ -146,8 +184,43 @@ describe('trades (prompt test 7)', () => {
       const run = await playRun(seed, policy, DEFAULT_TUNING, { mode: 'defender', opponent: passive, onNodeResolved });
       const replayed = await replayRun(run.log, DEFAULT_TUNING, { mode: 'defender', opponent: passive });
       expect(replayed.state).toEqual(run.state);
+      // Every taken trade left a `trade` entry behind its card, and the member it sent away is kept.
+      const taken = run.log.decisions.filter((d) => d.kind === 'trade');
+      expect(taken.every((d) => d.kind === 'trade' && d.accept)).toBe(true);
+      expect(run.state.defender!.tradedAway).toHaveLength(taken.length);
     }
     expect(checked).toBeGreaterThan(0);
+  }, 240_000);
+
+  /*
+   * **The second step, 2026-10-06.** Picking the card forfeits the other two;
+   * the trade itself is then taken or declined, and a decline pays nothing.
+   */
+  it('declines: the party is untouched, the other two cards are gone, nothing is sent away, and it replays', async () => {
+    let declined = 0;
+    const policy: RunPolicy = {
+      ...scriptedRunPolicy(greedyAiPolicy),
+      chooseReward: async (offer) => Math.max(0, offer.options.findIndex((card) => card.kind === 'trade')),
+      chooseTrade: async () => false,
+    };
+    for (const seed of ['ECON-SWAP-0', 'ECON-SWAP-1', 'ECON-SWAP-2', 'ECON-SWAP-3']) {
+      const onNodeResolved = (before: RunState, after: RunState, result: NodeResult): void => {
+        const picked = result.node.reward?.options.some((card) => card.kind === 'trade');
+        if (!picked || result.reward !== undefined) return;
+        declined++;
+        expect(after.party.map((member) => member.spec)).toEqual(before.party.map((member) => member.spec));
+        expect(after.backpack).toEqual(before.backpack);
+        expect(after.defender!.tradedAway).toEqual(before.defender!.tradedAway);
+      };
+      const run = await playRun(seed, policy, DEFAULT_TUNING, { mode: 'defender', opponent: passive, onNodeResolved });
+      const trades = run.log.decisions.filter((d) => d.kind === 'trade');
+      expect(trades.every((d) => d.kind === 'trade' && !d.accept)).toBe(true);
+      expect(run.state.defender!.tradedAway).toEqual([]);
+      const replayed = await replayRun(run.log, DEFAULT_TUNING, { mode: 'defender', opponent: passive });
+      expect(replayed.state).toEqual(run.state);
+      expect(JSON.stringify(replayed.log)).toBe(JSON.stringify(run.log));
+    }
+    expect(declined).toBeGreaterThan(0);
   }, 240_000);
 });
 

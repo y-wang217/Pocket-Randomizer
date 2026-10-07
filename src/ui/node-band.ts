@@ -1,5 +1,5 @@
 /**
- * The node band. **The map calm-down patch, bible Rev 30, D109** (section 5's
+ * The node band. **The map calm-down patch, bible Rev 31, D113** (section 5's
  * *Node band* row).
  *
  * A thin band at the head of a node screen (battle, shop, event, pre-gym), in
@@ -7,7 +7,7 @@
  * so the map node, its vignette and its screen read as one thing. Nothing
  * else: no kind word, which beside its silhouette would be R3's double
  * render, and no fact the screen does not already carry. The battle header's
- * kind mark lives here since D109. Rest has no screen and wears no band.
+ * kind mark lives here since D113. Rest has no screen and wears no band.
  *
  * One component, mounted by `ui/app.ts` on each screen it shows for a node,
  * so the band sits in the same slot on every screen (R1).

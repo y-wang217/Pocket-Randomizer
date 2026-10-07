@@ -64,6 +64,13 @@ import { renderSlots } from '../slots';
 import { renderCaptureOffer } from './acquisition';
 import { renderEvolutionBlock, type EvolutionPrompt } from './evolution';
 import { offerBadge, renderOfferCards } from './reward';
+import { starterInspectCard } from './starter-select';
+import { memberCardContents } from '../member-card';
+import { openBand } from '../band';
+import { glyphNode } from '../theme/glyph';
+import { GLYPH_LABELS } from '../../data/glyphLabels';
+import { DEFENDER_SCREEN_COPY } from '../copy/defender';
+import { DEFAULT_TUNING } from '../../data/tuning';
 
 /**
  * A "pick a berry" card taken, and the pick it opens. **The berry gym reward
@@ -91,6 +98,23 @@ export interface BerryPrompt {
  * party as it stands *before* the node resolves, which is the party the player
  * is looking at on this screen.
  */
+/**
+ * A trade card picked, and the step it opens. **Bible Rev 30, D110.**
+ *
+ * The pick forfeited the offer's other two cards; this is the second step,
+ * in the cards' place on this screen as the berry pick is (D99): the offered
+ * mon revealed as its starter card beside the member asked for as its party
+ * row, the exchange mark between them. *Take* opens the confirm band with
+ * the pair as its content and commits the swap; *Decline* leaves with
+ * nothing. C2 holds where D102 put it: the offered mon's moves, stats and
+ * ability change the decision, and they are shown at the moment the
+ * irreversible swap is agreed to. `onDecide` is reached exactly once.
+ */
+export interface TradePrompt {
+  card: Extract<Reward, { kind: 'trade' }>;
+  onDecide: (accept: boolean) => void;
+}
+
 export interface CapturePrompt {
   offer: AcquisitionOffer;
   party: readonly PokemonState[];
@@ -127,6 +151,8 @@ export interface ResultScreen {
      * in the cards' section, which is empty by then: the card has been taken.
      */
     berry?: BerryPrompt | null,
+    /** The trade reveal a picked trade card opened (D110). In the cards' place, as the berry pick is. */
+    trade?: TradePrompt | null,
   ): void;
 }
 
@@ -176,7 +202,7 @@ export function createResultScreen(): ResultScreen {
 
   return {
     root,
-    render(review, offer, state, onDone, capturePrompt, evolutionPrompt, berryPrompt) {
+    render(review, offer, state, onDone, capturePrompt, evolutionPrompt, berryPrompt, tradePrompt) {
       const won = review?.won ?? true;
 
       if (review) {
@@ -222,9 +248,10 @@ export function createResultScreen(): ResultScreen {
         evolution.replaceChildren();
       }
 
-      cardsHeading.hidden = !offer && !berryPrompt;
-      cards.hidden = !offer && !berryPrompt;
+      cardsHeading.hidden = !offer && !berryPrompt && !tradePrompt;
+      cards.hidden = !offer && !berryPrompt && !tradePrompt;
       cards.classList.toggle('rewards--berries', Boolean(berryPrompt && !offer));
+      cards.classList.toggle('rewards--trade', Boolean(tradePrompt && !offer && !berryPrompt));
       if (offer) {
         cardsHeading.replaceChildren(document.createTextNode(TAKE_ONE), offerBadge(offer.badge));
         // A tap selects and opens the claim band; its commit is the pick
@@ -252,6 +279,14 @@ export function createResultScreen(): ResultScreen {
             claim: BERRY_PICK_CLAIM_COPY,
           }),
         );
+      } else if (tradePrompt) {
+        /*
+         * The reveal, in the cards' place (D110). The heading is the
+         * question; the content is the pair the band will show again; the two
+         * controls are the only actions on the screen.
+         */
+        cardsHeading.replaceChildren(document.createTextNode(DEFENDER_SCREEN_COPY.tradeRevealTitle));
+        cards.replaceChildren(renderTradeReveal(tradePrompt, state));
       } else {
         // Cleared, not just hidden. `hidden` is a UA style that any `display`
         // rule overrides — see the note in styles.css — and a stale card left
@@ -292,7 +327,7 @@ export function createResultScreen(): ResultScreen {
        * skipping were allowed, which it is not. Without one, this button is the
        * whole point of the screen: the confirmation a rewardless win never got.
        */
-      if (offer || capturePrompt || evolutionPrompt?.question || berryPrompt) {
+      if (offer || capturePrompt || evolutionPrompt?.question || berryPrompt || tradePrompt) {
         // With a capture on screen, "Take it" and "Leave it" are the continue,
         // exactly as taking a card is when the cards are up, and as choosing a
         // branch is when a fork is open. A third button beside them would read
@@ -309,6 +344,66 @@ export function createResultScreen(): ResultScreen {
       }
     },
   };
+}
+
+/**
+ * The trade reveal's content and controls (D110). The offered mon's starter
+ * card, the exchange mark, the asked member's party row; *Take* through the
+ * confirm band, *Decline* straight out.
+ */
+function renderTradeReveal(prompt: TradePrompt, state: RunState): HTMLElement {
+  const { card } = prompt;
+  const asked = state.party.find((member) => member.acquired === card.requested);
+  const root = el('div', 'trade-reveal');
+  if (!card.offered || !asked) return root;
+  const gymType = state.defender?.gymType ?? null;
+
+  const pair = (): HTMLElement => {
+    const row = el('div', 'trade-reveal__pair');
+    row.setAttribute('aria-label', DEFENDER_SCREEN_COPY.tradeLabel(card.offered!.species, asked.spec.species));
+    const mark = el('span', 'reward__trade-mark');
+    const arrows = glyphNode('exchange-arrows', { label: GLYPH_LABELS['exchange-arrows'] ?? '' });
+    if (arrows) mark.append(arrows);
+    row.append(
+      starterInspectCard(card.offered!, gymType),
+      mark,
+      memberCardContents(asked, { holding: asked.item ?? null, tuning: state.tuning ?? DEFAULT_TUNING, readout: true }),
+    );
+    return row;
+  };
+
+  const actions = el('div', 'trade-reveal__actions');
+  const take = document.createElement('button');
+  take.type = 'button';
+  take.className = 'button primary-action trade-reveal__take';
+  take.textContent = DEFENDER_SCREEN_COPY.tradeTake;
+  const decline = document.createElement('button');
+  decline.type = 'button';
+  decline.className = 'button button--hollow trade-reveal__decline';
+  decline.textContent = DEFENDER_SCREEN_COPY.tradeDecline;
+  let decided = false;
+  const decide = (accept: boolean): void => {
+    if (decided) return;
+    decided = true;
+    take.disabled = true;
+    decline.disabled = true;
+    prompt.onDecide(accept);
+  };
+  take.addEventListener('click', () => {
+    openBand({
+      title: DEFENDER_SCREEN_COPY.tradeRevealTitle,
+      confirm: DEFENDER_SCREEN_COPY.tradeTake,
+      cancel: DEFENDER_SCREEN_COPY.tradeDecline,
+      content: pair(),
+      onConfirm: () => decide(true),
+      onCancel: () => undefined,
+    });
+  });
+  decline.addEventListener('click', () => decide(false));
+  actions.append(take, decline);
+
+  root.append(pair(), actions);
+  return root;
 }
 
 /**

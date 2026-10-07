@@ -213,7 +213,7 @@ describe('the token rule', () => {
    * one of them a `calc` over `--motion-beat`, which is `--motion-duration`
    * over four. Nothing new to count.
    *
-   * **16 since the map calm-down patch** (bible Rev 30, D109): the map node's
+   * **16 since the map calm-down patch** (bible Rev 31, D113): the map node's
    * disc is retired, and its 120ms ring transition went with it. The
    * vignette's hold is `var(--vignette-duration)`, published from
    * `data/displayTuning.ts`, so nothing new to count.

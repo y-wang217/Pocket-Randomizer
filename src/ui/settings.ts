@@ -147,8 +147,8 @@ export interface ExposureFlags {
 }
 
 /**
- * Whether the journey vignettes play. **The map calm-down patch, bible Rev 30,
- * D109.** A string pair rather than a boolean so the settings sheet's one
+ * Whether the journey vignettes play. **The map calm-down patch, bible Rev 31,
+ * D113.** A string pair rather than a boolean so the settings sheet's one
  * picker draws it, as it draws the battle speed.
  */
 export const VIGNETTE_MODES = ['on', 'off'] as const;

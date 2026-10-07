@@ -28,6 +28,13 @@ export const BADGE_COPY: Readonly<Record<string, { name: string; effect: string 
 /** The line under a badge's name on any badge mark's inspect. */
 export const BADGE_SCOPE = 'Gym-type members only.';
 
+/**
+ * The line on a dimmed badge mark's inspect (bible D112, 2026-10-06): why the
+ * badge is off, and what lights it again. The numbers it restates are
+ * `core/defender/badge.ts`'s `badgesActive`.
+ */
+export const BADGE_OFF_COPY = 'Off while a Pokemon of another type stands in the gym. The Stranger\'s Pass lights it again.';
+
 export const CONSUMABLE_COPY: Readonly<Record<string, string>> = {
   potion: 'Heals 20 HP.',
   superpotion: 'Heals 60 HP.',

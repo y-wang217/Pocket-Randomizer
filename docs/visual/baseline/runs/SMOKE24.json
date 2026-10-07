@@ -1,9 +1,9 @@
 {
   "seed": "SMOKE24",
   "versions": {
-    "runLog": "gymrun-run-24/gymrun-0.3.0",
-    "contentHash": "76dc8f3dac61ae176d7419e7026fb3736c44caa8779bbfb5b0b26b7789687890",
-    "randomizer": "gymrun-randomizer-30",
+    "runLog": "gymrun-run-25/gymrun-0.3.0",
+    "contentHash": "865d3ba22af9c9c2b8f1f9d7378eeba0c433d71717cd3306a8679d711f59f1fd",
+    "randomizer": "gymrun-randomizer-34",
     "ai": "gymrun-ai-7-tiers-reach-the-app",
     "engine": "gymrun-0.3.0"
   },
@@ -12,22 +12,22 @@
   "causeOfDeath": {
     "segment": 0,
     "leader": "Roark",
-    "kind": "wild",
-    "species": "Mire",
-    "bySpecies": "Oricorio",
-    "byMove": "Terrain Pulse",
+    "kind": "gym",
+    "species": "Loam",
+    "bySpecies": "Onix",
+    "byMove": "Aerial Ace",
     "indirect": null
   },
-  "currency": 22,
+  "currency": 35,
   "backpack": [],
   "relics": [],
   "party": [
     {
       "species": "Hippopotas",
       "level": 15,
-      "ability": "Rough Skin",
+      "ability": "Sand Spit",
       "moves": [
-        "Sand Tomb 24/24",
+        "Drain Punch 16/16",
         "Razor Leaf 38/40",
         "Bulldoze 30/32",
         "Mud Shot 24/24"
@@ -39,10 +39,10 @@
     {
       "species": "Karrablast",
       "level": 15,
-      "ability": "Suction Cups",
+      "ability": "Super Luck",
       "moves": [
         "Fell Stinger 40/40",
-        "Skitter Smack 16/16",
+        "Skitter Smack 15/16",
         "Breaking Swipe 23/24",
         "Shore Up 8/8"
       ],
@@ -60,7 +60,7 @@
       "opponent": "Wild Karrablast",
       "turns": 3,
       "winner": "p1",
-      "hpAfter": 28,
+      "hpAfter": 22,
       "casualties": []
     },
     {
@@ -102,9 +102,9 @@
       "label": "Wild encounter",
       "tier": "hard",
       "opponent": "Wild Oricorio",
-      "turns": 6,
-      "winner": "p2",
-      "hpAfter": 0,
+      "turns": 5,
+      "winner": "p1",
+      "hpAfter": 4,
       "casualties": [
         {
           "side": "p1",
@@ -114,14 +114,35 @@
           "bySpecies": "Oricorio",
           "byMove": "Peck",
           "indirect": null
-        },
+        }
+      ]
+    },
+    {
+      "segment": 0,
+      "kind": "gym",
+      "label": "Challenger Leader Roark",
+      "tier": null,
+      "opponent": "Leader Roark",
+      "turns": 3,
+      "winner": "p2",
+      "hpAfter": 0,
+      "casualties": [
         {
           "side": "p1",
           "name": "Mire",
           "level": 15,
           "species": "Hippopotas",
-          "bySpecies": "Oricorio",
-          "byMove": "Terrain Pulse",
+          "bySpecies": "Onix",
+          "byMove": "Aerial Ace",
+          "indirect": null
+        },
+        {
+          "side": "p1",
+          "name": "Loam",
+          "level": 15,
+          "species": "Karrablast",
+          "bySpecies": "Onix",
+          "byMove": "Aerial Ace",
           "indirect": null
         }
       ]
@@ -131,10 +152,10 @@
     "seed": "SMOKE24",
     "mode": "attacker",
     "versions": {
-      "runLog": "gymrun-run-24/gymrun-0.3.0",
-      "contentHash": "76dc8f3dac61ae176d7419e7026fb3736c44caa8779bbfb5b0b26b7789687890",
+      "runLog": "gymrun-run-25/gymrun-0.3.0",
+      "contentHash": "865d3ba22af9c9c2b8f1f9d7378eeba0c433d71717cd3306a8679d711f59f1fd",
       "aiVersion": "gymrun-ai-7-tiers-reach-the-app",
-      "randomizerVersion": "gymrun-randomizer-30"
+      "randomizerVersion": "gymrun-randomizer-34"
     },
     "decisions": [
       {
@@ -302,6 +323,56 @@
         "kind": "battle",
         "choice": {
           "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 2
+        }
+      },
+      {
+        "kind": "acquisition",
+        "decision": {
+          "kind": "decline"
+        }
+      },
+      {
+        "kind": "reward",
+        "index": 0
+      },
+      {
+        "kind": "items",
+        "plan": {
+          "assignments": [],
+          "discards": [],
+          "teaches": [
+            {
+              "move": "Drain Punch",
+              "slot": 0,
+              "replaceSlot": 0
+            }
+          ],
+          "discardTms": []
+        }
+      },
+      {
+        "kind": "lead",
+        "index": 0
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "move",
+          "slot": 4
+        }
+      },
+      {
+        "kind": "battle",
+        "choice": {
+          "kind": "switch",
           "slot": 2
         }
       },

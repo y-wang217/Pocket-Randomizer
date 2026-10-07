@@ -1,6 +1,6 @@
 /**
- * The journey vignettes' captions. **The map calm-down patch, bible Rev 30,
- * D109** (`docs/spec/gymrun-patch-map-calm-down-and-journey-vignettes.md`).
+ * The journey vignettes' captions. **The map calm-down patch, bible Rev 31,
+ * D113** (`docs/spec/gymrun-patch-map-calm-down-and-journey-vignettes.md`).
  *
  * A vignette is a beat between screens: a picture and at most five words
  * that say what kind of moment the player is entering. One caption per node
@@ -8,7 +8,7 @@
  * kind, and shown only after the commit**, so a caption can never compare,
  * rank or recommend one option over another: by the time it plays there is no
  * other option on screen. That is the ground the bible's section 8 carve-out
- * stands on (D109), and why *"Stay safe, spend wisely"* is style here rather
+ * stands on (D113), and why *"Stay safe, spend wisely"* is style here rather
  * than a hedge.
  *
  * Copy, so it lives in `data/` with every other string a tuning pass would

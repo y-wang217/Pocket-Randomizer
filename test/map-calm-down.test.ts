@@ -1,6 +1,6 @@
 /**
  * The map calm-down. **The map calm-down and journey vignettes patch, bible
- * Rev 30, D109** (`docs/spec/gymrun-patch-map-calm-down-and-journey-vignettes.md`),
+ * Rev 31, D113** (`docs/spec/gymrun-patch-map-calm-down-and-journey-vignettes.md`),
  * its test 3 and the structural half of its test 2.
  *
  * Shape first, then colour: every node kind has its own silhouette and its own

@@ -72,8 +72,8 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 `claude/vibrant-sagan-bg399f`, prompt
 [`spec/gymrun-patch-map-calm-down-and-journey-vignettes.md`](spec/gymrun-patch-map-calm-down-and-journey-vignettes.md),
 report [`visual/reports/map-calm-down-0/README.md`](visual/reports/map-calm-down-0/README.md),
-rulings [`spec/gymrun-patch-map-calm-down-rulings-d109.md`](spec/gymrun-patch-map-calm-down-rulings-d109.md),
-record [`generation.md`](generation.md) section 116, bible **Rev 30** (D109).
+rulings [`spec/gymrun-patch-map-calm-down-rulings-d113.md`](spec/gymrun-patch-map-calm-down-rulings-d113.md),
+record [`generation.md`](generation.md) section 122, bible **Rev 31** (D113).
 Every node kind is its own coloured silhouette, from the author's drawings,
 with its own colour token; the map has three weights (the next step at 48
 with a glow, where the player stands at 32, later rows at 24 in grey) under
@@ -130,6 +130,18 @@ main's berry pick and species-locked pools** as `-26`, `-24` and `b85ac9`,
 with `AI_VERSION` held (`generation.md` 106.11). Attacker generation is frozen
 by `test/attacker-generation-golden.test.ts`, re-minted on main's `-25`, and the
 sim fixture and visual baseline moved in their version stamps only.
+
+**Built 2026-10-06: four Defender Mode design changes**, on
+`claude/affectionate-hopper-0beolc`, prompt
+[`spec/gymrun-patch-defender-events-trades-revenge-offtype.md`](spec/gymrun-patch-defender-events-trades-revenge-offtype.md),
+record [`generation.md`](generation.md) sections 117 to 120 (section 116 is
+the blank-abilities patch on the same branch). A dedicated ? step per rank
+with six Slay the Spire shapes, the trade card gone blind with a reveal step,
+the Collector fielding the traded-away mons, and off-type recruits with the
+badge off until the Stranger's Pass. D109 to D112 filed, ruled and built as
+bible Rev 30. `RANDOMIZER_VERSION` `-34`, `RUN_LOG_VERSION` `-25`. Merged
+onto main's map backdrops and per-move replay on 2026-10-07, which moved this
+branch's numbers above main's (`generation.md` section 121).
 
 **Also in flight, reapplied onto this tree on 2026-10-02: the Toll price gate,
 and a ceiling on a region with a floor under its fights.** Branch
@@ -1447,12 +1459,12 @@ One line each. The analysis lives where the pointer goes, not here.
    trainer should be a trainer sprite already so we'll have to reconcile that
    at some point. it doesn't matter now."* An unwalked attacker trainer wears
    the crossed pennants because its record's sprite would reveal who is behind
-   the node before the choice (D107). `generation.md` section 116.
+   the node before the choice (D107). `generation.md` section 122.
 
 0. **Two drawings the vignettes wait on.** Rest has no silhouette (the tent's
    8px mark stands in, in rest's token) and the return to the map has no
    sprite of its own (the lead stands in; its manifest entry is the lettered
-   chip). Each is one manifest line and a file drop. `generation.md` section 116.
+   chip). Each is one manifest line and a file drop. `generation.md` section 122.
 
 0. **Looping music.** Asked 2026-10-06 with the defender map patch. The app
    plays no audio anywhere. The smallest lift is one new module under `ui/`: a looped

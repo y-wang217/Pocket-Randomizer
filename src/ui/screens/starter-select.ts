@@ -35,6 +35,9 @@
  */
 import { describeSpecCard, type SpecCard } from '../../core/battle/driver';
 import { flameSlotFor } from '../../core/defender/badge';
+import { carriesGymType } from '../../core/defender/typeLock';
+import { glyphNode } from '../theme/glyph';
+import { GLYPH_LABELS } from '../../data/glyphLabels';
 import { moveCoverage, typeVulnerabilities } from '../../core/coverage';
 import type { PokemonSpec } from '../../core/types';
 import { LOCALES, type LocaleId } from '../../data/locales';
@@ -60,6 +63,13 @@ export interface StarterSelect {
 export interface DefenderPick {
   title: string;
   gymType: string;
+  /**
+   * Whether the badge is lit for the run as it stands (D112, 2026-10-06).
+   * While it is not, every typed card's flame is dimmed; and whatever it is,
+   * a candidate that does not carry the gym type wears the gym's badge mark
+   * dimmed, so the consequence of taking it is read before pressing.
+   */
+  badgeLit?: boolean;
 }
 
 export function createStarterSelect(): StarterSelect {
@@ -90,6 +100,13 @@ export function createStarterSelect(): StarterSelect {
         renderCard(card, index, () => tap(index), defender ? flameSlotFor(options[index]!, defender.gymType) : null),
       );
       const buttons = built.map((entry) => entry.card);
+      if (defender) {
+        for (const [index, button] of buttons.entries()) {
+          const typed = carriesGymType(options[index]!, defender.gymType);
+          if (!typed) button.append(dimmedBadgeMark(defender.gymType));
+          if (!typed || defender.badgeLit === false) button.dataset['badgeState'] = 'off';
+        }
+      }
       grid.replaceChildren(...buttons);
       choose.hidden = true;
 
@@ -150,6 +167,22 @@ export function starterInspectCard(spec: PokemonSpec, gymType: string | null): H
   built.show('detail');
   built.card.setAttribute('tabindex', '-1');
   return built.card;
+}
+
+/**
+ * The gym's badge mark, dimmed, on a card that would put the badge out (D112).
+ * The mark is the family's own glyph for the type, the tip says why it is off.
+ */
+function dimmedBadgeMark(gymType: string): HTMLElement {
+  const holder = el('span', 'starter__badge-off');
+  holder.dataset['badgeState'] = 'off';
+  const id = gymType === 'Fire' ? 'badge-flame' : gymType === 'Psychic' ? 'badge-eye' : 'badge-wing';
+  const mark = glyphNode(id, { label: GLYPH_LABELS[id] ?? '' });
+  if (mark) {
+    mark.dataset['tip'] = `badge-off:${gymType}`;
+    holder.append(mark);
+  }
+  return holder;
 }
 
 function backdropFor(types: readonly string[]): LocaleId | null {

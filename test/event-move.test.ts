@@ -173,8 +173,12 @@ describe('the version axes this patch moved', () => {
     // `-28` the Champion Cup joining it, which reorders the candidate windows;
     // `-29` the boss a challenger, one record per name in every window;
     // `-30` the Gen 5 to 9 rivals entering the challenger windows, and the
-    // merge of Stage 6.0 onto Defender Mode (the four above renumbered then).
-    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-30');
+    // merge of Stage 6.0 onto Defender Mode (the four above renumbered then);
+    // `-31` sixteen blank abilities leaving the pool;
+    // `-32` the recruit draft drawing two typed mons and one off-type;
+    // `-33` the Collector's slot drawing its five extra pages;
+    // `-34` the question marks entering Defender Mode's ranks.
+    expect(RANDOMIZER_VERSION).toBe('gymrun-randomizer-34');
   });
 });
 

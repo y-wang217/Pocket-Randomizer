@@ -137,6 +137,13 @@ export type EventEffect =
   /** `count` items, each drawn from `pool`. */
   | { kind: 'item'; pool: readonly string[]; count: number }
   /**
+   * `count` consumables (`data/consumables.ts`), each drawn from `pool`, into
+   * the defender run's consumable bag. **2026-10-06**, for the defender
+   * question marks; no attacker pool uses it, and an attacker run has no bag
+   * for it to land in.
+   */
+  | { kind: 'consumable'; pool: readonly string[]; count: number }
+  /**
    * Take one item the run is carrying, restricted to `pool`.
    *
    * "Lose a berry" rather than "lose an item": a berry is a consumable the run

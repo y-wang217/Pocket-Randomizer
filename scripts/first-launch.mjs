@@ -50,6 +50,7 @@ export const SEEN_EVERY_INTRO = Number.MAX_SAFE_INTEGER;
  * appear in every driven run, and the height gates say so on the first run.
  */
 export const EXPOSED_FAMILIES = [
+  'exchange',
   'type',
   'category',
   'band',
@@ -77,8 +78,8 @@ const PAST_EVERY_LABEL = 1_000;
 export function notFirstLaunch() {
   return JSON.stringify({
     /*
-     * **The journey vignettes off. The map calm-down patch, bible Rev 30,
-     * D109.** Not a once-only surface, but the same hazard the header names:
+     * **The journey vignettes off. The map calm-down patch, bible Rev 31,
+     * D113.** Not a once-only surface, but the same hazard the header names:
      * a layer over every screen at every map commit, which a scripted click
      * lands on instead of the node it meant. A driven browser measures the
      * screens; the beat itself has its own browser test

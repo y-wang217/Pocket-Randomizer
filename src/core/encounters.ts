@@ -60,6 +60,7 @@
  * consumed — and the reward a seed pays out would quietly become a function of
  * play. Keying does not touch that argument; it is about *when*, not *where*.
  */
+import type { DefenderEventInstance } from './defender/events';
 import {
   generateGymEncounter,
   generateStarters,
@@ -136,6 +137,25 @@ export interface NodeSpec {
    * its name.
    */
   trainerClass?: string;
+  /**
+   * The Collector's extra pages, on the one defender door slot that can become
+   * the fight against the traded-away mons (`DEFENDER_REVENGE`,
+   * `core/defender/revenge.ts`). **2026-10-06.** `maxTeam - 1` three-card
+   * offers beyond `reward`, drawn at generation whether or not the Collector
+   * ever stands here; a win pays one page per mon fielded. Absent everywhere
+   * else. The node's own class, tier and team are the door's as drawn: the
+   * substitution is a reading at `run.nodeOptions`, never written here.
+   */
+  revenge?: { offers: readonly RewardOffer[] };
+  /**
+   * A defender question mark's contents (`core/defender/events.ts`),
+   * **2026-10-06**: its shape, its identity and every option fully drawn. On a
+   * defender `event` node only; `event` below stays null there, since the
+   * attacker's instance is a different shape. `tier` stays null so the map
+   * shows the question mark and nothing else; an ambush's fight reads its
+   * tier from the shape (`fightTierOf`).
+   */
+  defenderEvent?: DefenderEventInstance;
   /**
    * The locale this node's route runs through, or null for the gym.
    *

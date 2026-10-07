@@ -161,6 +161,10 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
     why: "Defender Mode v0's badge and consumable inspect lines (bible Rev 25, D100 and D102); read by ui/ only, and a reworded line must not refuse every defender seed recorded before it (D12)",
   },
   {
+    path: 'src/data/defenderEventCopy.ts',
+    why: "the defender question marks' hooks, labels and hints (D111); read by ui/screens/event.ts, ui/decision-feed.ts and tests only, and a reworded hint must not refuse every defender seed recorded before it (D12)",
+  },
+  {
     path: 'src/data/trainerClassCopy.ts',
     why: "Defender Mode v0's trainer class names as the door shows them; read by ui/ and tests only, and a renamed class must not refuse every defender seed recorded before it (D12)",
   },
@@ -170,7 +174,7 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
   },
   {
     path: 'src/data/vignetteCopy.ts',
-    why: "the journey vignettes' captions (bible Rev 30, D109), one per node kind and one for the return to the map; read by ui/vignette.ts and tests only, and a reworded caption must not refuse a shared seed",
+    why: "the journey vignettes' captions (bible Rev 31, D113), one per node kind and one for the return to the map; read by ui/vignette.ts and tests only, and a reworded caption must not refuse a shared seed",
   },
   {
     path: 'src/data/statStages.ts',
