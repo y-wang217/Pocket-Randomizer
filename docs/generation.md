@@ -14823,7 +14823,7 @@ edges already drew only the travelled path and the next step.
   the tent's 8px ink mark drawn in rest's token. `ui/chip.ts` `nodeSilhouette`
   wears them, with the kind's tip. A trainer who wears their sprite (D107)
   still does, now as a whole cutout with no disc.
-- **Colour tokens.** `--kind-<kind>` in `theme/tokens.css`, each the main
+- **Colour tokens.** `--kind-<kind>` in `src/ui/theme/tokens.css`, each the main
   tone of the kind's drawing, none a type hue. The map's `.node--<kind>` sets
   `--kind`, which the next-step glow, the node band and the vignette read.
 - **Three weights.** The step being chosen from at 48 in full colour with a
@@ -14934,3 +14934,16 @@ no screen and no band.
 - Updated, each with a comment naming this patch: `test/asset-manifest.test.ts`
   (the one placeholder), `test/visual-tokens.test.ts` (16 durations, the
   disc's ring transition gone).
+
+### Gates
+
+`npm run check`: lint, hedge, typecheck, `test:chromium` (every browser file,
+the new `visual-journey` included), `trim:browser`, build, smoke and census
+pass; WebKit skipped for no browser binary in this container. `test:node`
+and `trim:node` failed on one test, `test/boundaries.test.ts`'s doc-path
+check, on a path this section first wrote short (`src/ui/theme/tokens.css`);
+fixed, and the file then passes 23 of 23. Both node legs also logged a
+vitest worker RPC timeout, which is not a test. `contentHash` holds at
+`76dc8f` and `test/visual-baseline.test.ts` replays every pinned run, SMOKE24
+included, byte identical. Shots as built:
+[`visual/reports/map-calm-down-1/`](visual/reports/map-calm-down-1/README.md).
