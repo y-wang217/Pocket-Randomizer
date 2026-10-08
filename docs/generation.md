@@ -15502,3 +15502,13 @@ card rows.
 - `test/event-screen.test.ts`: the outcome and price lines are compared to
   the core description with a coin amount read as the mark, and a coin
   outcome must carry the mark.
+
+### Gates
+
+`npm run check` on the finished tree: lint, hedge, typecheck,
+`test:chromium`, `trim:browser`, build, smoke and census pass; WebKit
+skipped for no browser binary in this container. `test:node` and
+`trim:node` ran 178 files and passed all 2253 tests each, and are marked as
+runner errors only for vitest's reporter RPC timeout, as in section 122.
+Shots as built:
+[`visual/reports/potion-hp-and-currency/`](visual/reports/potion-hp-and-currency/README.md).
