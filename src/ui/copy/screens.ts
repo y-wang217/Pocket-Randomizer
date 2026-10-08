@@ -370,9 +370,6 @@ export const CAPTURE_FULL: Prose = {
 /** The release control on a capture block's card, which sits under the member's name. */
 export const RELEASE_LABEL = (species: string): Prose => ({ long: `Release ${species}`, short: 'Release' });
 
-/** Beside a held item on the capture block's cards: the item is not part of the price. */
-export const RETURNS_TO_BAG: Prose = { long: 'returns to your bag', short: 'to bag' };
-
 /** The evolution block on a gym clear's result screen. Stage 4.9. */
 export const EVOLUTION_HEADING = 'Evolution';
 

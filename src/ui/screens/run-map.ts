@@ -155,6 +155,7 @@ export function createRunMap(): RunMap {
       // Coins, as the currency mark and a number (D54). A shop node saying
       // "from 55" is only a decision if this is on screen.
       wallet.replaceChildren(currencyAmount(state.currency, 'wallet'));
+      wallet.className = 'map__wallet wallet';
     },
   };
 }

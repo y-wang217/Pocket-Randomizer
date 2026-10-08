@@ -103,7 +103,6 @@ import {
   KIND_HINTS,
   CAPTURE_FULL,
   RELEASE_LABEL,
-  RETURNS_TO_BAG,
   EVOLUTION_HEADING,
   EVOLUTION_LINE,
   EVOLUTION_CHOICE,
@@ -450,7 +449,6 @@ section({
     ...proseRows(CAPTURE_SOURCE),
     { key: 'CAPTURE_FULL', text: CAPTURE_FULL.long, short: CAPTURE_FULL.short },
     { key: 'RELEASE_LABEL', text: RELEASE_LABEL('Swablu').long, short: RELEASE_LABEL('Swablu').short },
-    { key: 'RETURNS_TO_BAG', text: RETURNS_TO_BAG.long, short: RETURNS_TO_BAG.short },
   ],
 });
 

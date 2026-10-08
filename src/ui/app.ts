@@ -378,6 +378,8 @@ export function mountApp(root: HTMLElement): void {
    * the second implementation the overlay exists to avoid.
    */
   let readMap: () => RunState | null = () => null;
+  /** The wallet the tabs show: the run's coins with the node's undecided payout folded in. */
+  let readWallet: () => number | null = () => null;
 
   /**
    * The Run Info screen's view, asked at the moment it opens, on the same
@@ -428,7 +430,7 @@ export function mountApp(root: HTMLElement): void {
         if (name === 'party' && leavePartyForMap()) break;
         const state = readMap();
         if (!state) break;
-        mapDrawer.open(state, button);
+        mapDrawer.open(state, button, readWallet() ?? state.currency);
         openTab = 'map';
         break;
       }
@@ -1335,6 +1337,7 @@ export function mountApp(root: HTMLElement): void {
         party,
         holding: itemLayoutOf(party, pendingPlan),
         relics: decidedRelics ?? state.relics,
+        currency: walletNow(state),
         tuning: state.tuning,
         // The Bag tab's readout, as run state holds it. Stage 5.0/1.
         bag: {
@@ -1349,7 +1352,8 @@ export function mountApp(root: HTMLElement): void {
     // The map overlay's window onto this run. A read of the same `live`
     // reference, with nothing derived — see the declaration above.
     readMap = () => live;
-    readRunInfo = () => (live ? { state: live, entries: feed.entries() } : null);
+    readWallet = () => (live ? walletNow(live) : null);
+    readRunInfo = () => (live ? { state: live, entries: feed.entries(), currency: walletNow(live) } : null);
     /*
      * The Team and Bag tabs' writable destination: the party screen, from the
      * two surfaces whose Manage buttons already lead there. Everywhere else
@@ -1462,6 +1466,15 @@ export function mountApp(root: HTMLElement): void {
      * pays.
      */
     let decidedRelics: readonly RelicId[] | null = null;
+
+    /**
+     * The coins held, when the node's payout or a coins card has not been
+     * folded yet. Same lag, same lifetime and same setter as `decidedRelics`
+     * (2026-10-08): the wallet the tabs show must be the one the result
+     * screen's header prints, not the balance the fight was entered with.
+     */
+    let decidedCurrency: number | null = null;
+    const walletNow = (state: RunState): number => decidedCurrency ?? state.currency;
 
     /**
      * The gym the pre-gym screen is asking about, while it is asking.
@@ -1601,6 +1614,7 @@ export function mountApp(root: HTMLElement): void {
           tms: state.tms,
           teachable: atTeachBoundary ? teachableNow(state) : new Set<string>(),
           relics: state.relics,
+          currency: walletNow(state),
           tuning: state.tuning,
           slots: partyCapacity(state),
           // Named for where it goes; from a result, a shop or an event (D94)
@@ -1768,6 +1782,7 @@ export function mountApp(root: HTMLElement): void {
       // stand-in for it is a second answer to a question with one.
       decidedParty = null;
       decidedRelics = null;
+      decidedCurrency = null;
       /*
        * The world's palette, from the same projection the map names the
        * region with. Stage V1. Set here rather than on the locale screen's
@@ -1803,6 +1818,7 @@ export function mountApp(root: HTMLElement): void {
     const onProjection = (projection: RunProjection): void => {
       decidedParty = projection.party;
       decidedRelics = projection.relics;
+      decidedCurrency = projection.currency;
     };
 
     const onBattle = (session: BattleSession, node: NodeSpec, state: RunState): void => {

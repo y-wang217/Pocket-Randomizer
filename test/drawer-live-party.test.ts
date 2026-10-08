@@ -119,6 +119,8 @@ describe('the drawer reads the party the run has been told about', () => {
     expect(handler, 'app.ts no longer listens for the projection').not.toEqual('');
     expect(handler).toContain('decidedParty = projection.party');
     expect(handler).toContain('decidedRelics = projection.relics');
+    // And the coins, so a tab's wallet agrees with the result header (2026-10-08).
+    expect(handler).toContain('decidedCurrency = projection.currency');
     // And it must be handed to playRun, or the handler is decoration.
     expect(APP, 'the projection handler is never registered').toMatch(/onState,\s*onBattle,\s*onProjection/);
   });

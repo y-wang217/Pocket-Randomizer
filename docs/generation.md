@@ -15512,3 +15512,74 @@ skipped for no browser binary in this container. `test:node` and
 runner errors only for vitest's reporter RPC timeout, as in section 122.
 Shots as built:
 [`visual/reports/potion-hp-and-currency/`](visual/reports/potion-hp-and-currency/README.md).
+
+## 124. The wallet on the tabs a player checks, and the capture card's `to bag`
+
+**2026-10-08**, on `claude/potion-hp-and-currency`, after `c52d5fa`. Prompt
+[`spec/gymrun-patch-wallet-on-tabs-and-to-bag.md`](spec/gymrun-patch-wallet-on-tabs-and-to-bag.md),
+the author's yes to section 123's closing offer plus a bug report with a
+screenshot. On the same branch as section 123 rather than its own, because
+it extends that patch's wallet and is unmerged with it. Presentation only:
+no draw, no logged decision, no table, so no version axis moves. No bible
+amendment.
+
+### The wallet (*"add currency to the pages player checks"*)
+
+- **One component.** `walletFigure` in `ui/chip.ts`: the map's
+  `currencyAmount` (the mark, the number, the `currency:wallet` long press)
+  in the raised plate the map's heading wore. The map screen keeps its
+  wallet and now wears the shared `.wallet` class.
+- **Where.** Team and Bag (`ui/screens/party.ts`, at the right end of the
+  title's line), the read-only drawer both tabs open mid-node
+  (`ui/drawer.ts`, at the right end of the blurb's line, so the sheet grows
+  by nothing), Run Info (`ui/run-info.ts`) and the Map tab's overlay
+  (`ui/map-drawer.ts`), each beside its heading as the map screen has it.
+  The map overlay's header said it left the wallet out as a second readout
+  of the map screen's; the two are never on screen together and the drawer
+  it pointed to never carried the coins, so that note is rewritten in
+  place. Settings carries none: it is not a page about the run.
+- **Which number.** Mid-node the run has not folded the fight's payout yet,
+  so `state.currency` is the balance the fight was entered with while the
+  result header prints the sum. `RunProjection` gains `currency`: the payout
+  on a win (`nodePayout`) and a coins card taken on the result screen, with
+  `applyReward`'s clamp, the fold `resolveNode` makes. `ui/app.ts` holds it
+  as `decidedCurrency`, beside `decidedRelics` with the same setter and the
+  same reset, and every tab reads `decidedCurrency ?? live.currency`. A
+  shop's basket and an event's Toll are not projected: their own band and
+  reveal state the charge, and the tabs read the run's coins until the node
+  resolves.
+- **Gallery.** The `party` and `drawer` fixtures pass `currency`, so the
+  zero-scroll gate measures the screens with the wallet on them.
+
+### The lingering `to bag` (bug report)
+
+The capture card on a full party drew each held item as a boxed chip with
+`to bag` beside it, above the card's `Release` button. Neither was a
+control, and the pair read as one: a button that did nothing. Section 4
+gives the capture card no words at rest. The fact it carried, that a
+released member's item goes back to the bag, was already in the release
+band; the band now names the item (*"For good, to make room. Eviolite goes
+back to the bag."*, or only the first sentence when nothing is held), so the
+fact is where the release is committed and is more exact than it was (C2).
+`RETURNS_TO_BAG` and its `copy-audit` row are deleted; `docs/copy.md` is
+regenerated. The party screen's own `To bag` is a real control and is
+unchanged.
+
+### Bible rules touched
+
+C2 (the item fact moves to the band and gains the item's name); R1, R2 and
+R3; R13; section 2's currency row; section 3's coin amount row; section 4's
+capture card, Run Info and party rows (the wallet is a coin amount, glyph
+and number, no word); section 5's party row and Confirm band row.
+
+### Tests
+
+- `test/wallet-tabs.test.ts`: across four seeds, with cards answered on the
+  result screen as the app answers them, the last projection's `currency`
+  before each fight node resolves equals the run's coins after it (some of
+  them paid, so it is not vacuous). The wallet renders on Team, Bag, both
+  drawer tabs, Run Info and the Map overlay, with the projected number when
+  given one and the run's own otherwise. The capture card on a full party
+  names the held item with no `to bag`, and the release band names it.
+- `test/drawer-live-party.test.ts` holds that the projection handler sets
+  `decidedCurrency`.

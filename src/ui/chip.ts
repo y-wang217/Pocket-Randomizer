@@ -490,6 +490,19 @@ export function currencyAmount(
   return node;
 }
 
+/**
+ * The wallet as a figure: the run's coins beside the currency mark, in a
+ * raised plate. **2026-10-08, the wallet on the tabs a player checks.** The
+ * map screen's heading carried it alone since Stage 5.0/4; Team, Bag, Run
+ * Info and the Map tab's overlay mount the same figure now, so the number is
+ * one component wherever a player goes to look it up.
+ */
+export function walletFigure(amount: number, extra = ''): HTMLElement {
+  const node = el('div', `wallet${extra ? ` ${extra}` : ''}`);
+  node.append(currencyAmount(amount, 'wallet'));
+  return node;
+}
+
 /** none, latent, known: the ladder the chevrons count along. */
 const CAPABILITY_BAND_STEPS: readonly string[] = ['none', 'latent', 'known'];
 

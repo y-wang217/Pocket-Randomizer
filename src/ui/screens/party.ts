@@ -55,7 +55,7 @@ import { itemById } from '../../data/items';
 import { itemCopy, relicCopy } from '../../data/itemCopy';
 import type { Tuning } from '../../data/tuning';
 import { openBand } from '../band';
-import { neutralChip } from '../chip';
+import { neutralChip, walletFigure } from '../chip';
 import { collapsible } from '../collapse';
 import { el, moveChip } from '../scene';
 import { describeSpecCard } from '../../core/battle/driver';
@@ -120,6 +120,8 @@ export interface PartyScreen {
 /** Everything the screen draws: the party, the loose items, and the cap. */
 export interface PartyView {
   party: readonly PokemonState[];
+  /** The coins held, beside the title on both tabs (2026-10-08). Absent, no wallet is drawn. */
+  currency?: number;
   backpack: readonly ItemId[];
   /** The TMs the run is carrying, by move name, in acquisition order. */
   tms: readonly string[];
@@ -203,6 +205,11 @@ export function createPartyScreen(): PartyScreen {
 
   const title = el('h2', 'screen__title');
   title.textContent = 'Your party';
+  // The title's line, with the coins at its right end, as the map's heading
+  // carries them (2026-10-08).
+  const head = el('div', 'party__head');
+  const wallet = el('div', 'party__head-wallet');
+  head.append(title, wallet);
   const blurb = el('p', 'screen__blurb');
   setProse(blurb, PARTY_COPY.blurb);
 
@@ -248,7 +255,7 @@ export function createPartyScreen(): PartyScreen {
   // Text set per render, from `view.backTo`: the screen has two entrances and a
   // label naming the wrong one is the softlock told to the player in advance.
 
-  root.append(title, blurb, team, bagHalf, done);
+  root.append(head, blurb, team, bagHalf, done);
 
   // Which Team view is up, and the player's sort on the Stats view. Held for
   // the visit: reset by `render`, never persisted, and the sort starts in
@@ -297,6 +304,7 @@ export function createPartyScreen(): PartyScreen {
       const canEditParty = view.canEditParty ?? true;
       root.dataset['focus'] = focus;
       title.textContent = focus === 'bag' ? PARTY_LABELS.bagTitle : PARTY_LABELS.teamTitle;
+      wallet.replaceChildren(...(view.currency === undefined ? [] : [walletFigure(view.currency)]));
       // The lead and release sentence belongs to the half that has them.
       blurb.hidden = focus !== 'team' || !canEditParty;
       team.hidden = focus !== 'team';

@@ -241,7 +241,7 @@ async function main(): Promise<void> {
       stamp(state);
       show('map');
       if (surface === 'drawer') {
-        drawer.open({ party: state.party, holding: itemLayoutOf(state.party, null), relics: state.relics, tuning: state.tuning });
+        drawer.open({ party: state.party, holding: itemLayoutOf(state.party, null), relics: state.relics, currency: state.currency, tuning: state.tuning });
       }
       /*
        * The map overlay is staged over the map screen here, which is the one
@@ -362,6 +362,7 @@ async function main(): Promise<void> {
           // a picture of a state the game only reaches away from a rest.
           teachable: new Set(state.tms),
           relics: state.relics,
+          currency: state.currency,
           tuning: state.tuning,
           slots: partyCapacity(state),
           backTo: 'Back to the map',

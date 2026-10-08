@@ -51,10 +51,16 @@
  *
  * ## What it deliberately leaves out
  *
- * **The party block and the wallet.** The map *screen* carries both, and this
- * overlay does not. The party drawer is one tap away in the same bar and
- * already shows the party, its items and its HP; printing them here too would
- * be two readouts of one fact, which is two places for it to drift.
+ * **The party block.** The map *screen* carries it, and this overlay does
+ * not. The party drawer is one tap away in the same bar and already shows the
+ * party, its items and its HP; printing them here too would be two readouts
+ * of one fact, which is two places for it to drift.
+ *
+ * **The wallet came back on 2026-10-08** (`docs/spec/gymrun-patch-wallet-on-tabs-and-to-bag.md`).
+ * It was left out on the same argument, but the map screen and this overlay
+ * are never on screen together (the Map tab does nothing on the map), and the
+ * drawer that was "one tap away" never carried the coins. A shop on the next
+ * step is a decision only with the coins in view, wherever the map is read.
  *
  * **The settings pickers.** They live on the surface reachable from every
  * screen of a run, and that is the party drawer.
@@ -68,6 +74,7 @@ import type { RunState } from '../core/run';
 import { createOverlay } from './overlay';
 import { el } from './dom';
 import { createMapGraph, renderHeading } from './screens/run-map';
+import { walletFigure } from './chip';
 import { nextChallengerOf, renderNextChallenger } from './next-challenger';
 
 export interface MapDrawer {
@@ -83,7 +90,7 @@ export interface MapDrawer {
    * themselves. `opener` is the button that was pressed, so focus goes back
    * there on close.
    */
-  open(state: RunState, opener?: HTMLElement | null): void;
+  open(state: RunState, opener?: HTMLElement | null, wallet?: number): void;
   close(): void;
   isOpen(): boolean;
   /** Hear every close. Stage 5.0/1, for the shell nav. */
@@ -136,12 +143,13 @@ export function createMapDrawer(): MapDrawer {
       return button;
     },
 
-    open(state, opener) {
+    open(state, opener, wallet = state.currency) {
       const segment = state.segments[state.currentSegment];
       if (!segment) return;
 
       rail.replaceChildren(renderNextChallenger(nextChallengerOf(state)));
-      heading.replaceChildren(...renderHeading(state, segment));
+      // The wallet, as the map screen's heading carries it (2026-10-08).
+      heading.replaceChildren(...renderHeading(state, segment), walletFigure(wallet, 'map__wallet'));
       // No `onChoose`. See the header: this is what makes it a readout.
       graph.render(state, segment);
 

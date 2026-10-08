@@ -3012,6 +3012,15 @@ export interface RunProjection {
   party: readonly PokemonState[];
   /** The relics held, including one taken from a card this node and not yet folded. */
   relics: readonly RelicId[];
+  /**
+   * The coins held, with a won fight's payout and a coins card taken this node
+   * folded in. **2026-10-08.** The result screen's header already prints that
+   * sum; a wallet on the Team or Bag tab opened over it read the balance the
+   * fight was entered with, one number on one screen and another one tap away.
+   * The same fold `resolveNode` makes, in its terms: `nodePayout` on a win,
+   * `applyReward`'s clamp on a coins card.
+   */
+  currency: number;
 }
 
 function projectionOf(state: RunState, result: NodeResult, taken: Reward | null): RunProjection {
@@ -3050,7 +3059,11 @@ function projectionOf(state: RunState, result: NodeResult, taken: Reward | null)
       ? [...state.relics, taken.relic]
       : state.relics;
 
-  return { party, relics };
+  const won = result.battle?.result.winner === 'p1';
+  const payout = won ? nodePayout(result.node, state.currentSegment, applyRelicPassives(state.relics)) : 0;
+  const coins = taken?.kind === 'currency' ? Math.max(0, taken.amount) : 0;
+
+  return { party, relics, currency: state.currency + payout + coins };
 }
 
 /**
