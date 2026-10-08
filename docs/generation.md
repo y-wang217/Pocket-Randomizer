@@ -15583,3 +15583,16 @@ and number, no word); section 5's party row and Confirm band row.
   names the held item with no `to bag`, and the release band names it.
 - `test/drawer-live-party.test.ts` holds that the projection handler sets
   `decidedCurrency`.
+
+### Gates
+
+The first `npm run check` on this section failed `test:chromium` and
+`trim:browser` on `test/visual-v3.test.ts`'s pixel baseline (and three other
+files): the map's decision row sat 1.02px higher. The cause was the shared
+`.wallet` class carrying `display: inline-flex`, which the map's own wallet
+never had; it made the figure a flex box with no line box. Removed, so the
+map's wallet is laid out exactly as before, and both browser halves then
+pass, 33 files and 195 tests each. Lint, hedge, typecheck, build, smoke and
+census pass; `test:node` and `trim:node` pass all 2259 tests each and are
+marked as runner errors only for vitest's reporter RPC timeout; WebKit
+skipped for no browser binary. No baseline file was edited.
