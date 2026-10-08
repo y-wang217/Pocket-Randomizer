@@ -125,6 +125,15 @@ door fights stood on no painting. Each rank is now set in a region from
 door fights take the region's paintings, and the heading names the region
 without its type chips. `contentHash` to `76dc8f`; no other axis moves.
 
+**Also in flight: the card battle engine, a sandbox fun test.** Branch
+`claude/sweet-wozniak-40zdrr`, prompt
+[`spec/gymrun-card-battle-engine-prompt.md`](spec/gymrun-card-battle-engine-prompt.md),
+rulings [`spec/gymrun-card-battle-engine-rulings.md`](spec/gymrun-card-battle-engine-rulings.md),
+record [`generation.md`](generation.md) section 125. GYMRUN's own card battle,
+one fight behind a hidden entry on starter select, outside the design bible.
+Checkpoint 1 (types, tables, zones, legality with projection) is built and
+stopped for review. No version axis moves.
+
 **Also in flight: Defender Mode v0, a fun test.** Branch
 `claude/eager-turing-0059br`, prompt
 [`spec/gymrun-defender-mode-v0-fun-test.md`](spec/gymrun-defender-mode-v0-fun-test.md),

@@ -2354,7 +2354,7 @@ finding. `balance.md` section 16.5d has the reach and 16.4 the retake.
 Map generation is untouched: no keyed stream is opened, no structural draw is
 added, and `previewRun` is a function of the tables alone. The AI's noise draws
 from a sequence derived from each battle's own sim seed — a value
-`encounters.ts` already drew under `nodeKey` — so a run log, which records the
+`core/encounters.ts` already drew under `nodeKey` — so a run log, which records the
 player's decisions and not the opponent's, still replays into the same run.
 That is asserted directly in `test/ai-tiers.test.ts` rather than left to
 inference, because noise made it load-bearing for save and resume rather than
@@ -15596,3 +15596,85 @@ pass, 33 files and 195 tests each. Lint, hedge, typecheck, build, smoke and
 census pass; `test:node` and `trim:node` pass all 2259 tests each and are
 marked as runner errors only for vitest's reporter RPC timeout; WebKit
 skipped for no browser binary. No baseline file was edited.
+
+## 125. The card battle engine, a sandbox beside the game
+
+**2026-10-08**, on `claude/sweet-wozniak-40zdrr`, from `main` at `f85bfb7`.
+Prompt [`spec/gymrun-card-battle-engine-prompt.md`](spec/gymrun-card-battle-engine-prompt.md),
+rulings on its pre-code report
+[`spec/gymrun-card-battle-engine-rulings.md`](spec/gymrun-card-battle-engine-rulings.md).
+GYMRUN's own card battle engine, first slice: one fight behind a hidden entry
+on starter select, for a fun test. A separate system: it shares only
+`core/rng.ts` with a run, and nothing a run generates, resolves or logs moves.
+No version axis moves.
+
+### 125a. Where it lives, and why outside `src/data/`
+
+The engine is `src/core/cards/` and its tables are `src/cardData/`. The prompt
+offered two homes for the tables: a `cards` folder inside `src/data/`, behind
+the `contentHash` exclusion list, or anywhere else. The first is closed by the hash's own rule:
+the list names files, not globs, and `test/content-hash.test.ts` refuses an
+excluded file that `core/` imports, which the engine does. So the tables sit
+outside the glob, and that is a deliberate exception to CLAUDE.md's "every
+balance number lives in `data/`": the numbers are still in data, in a data
+directory of their own, and no resolver holds a literal. When the engine joins
+the run layer its tables move under `src/data/` and the hash covers them.
+Measured at the report: `865d3ba2` over 67 files with a card table outside
+`src/data/`, `ef835302` with one inside. `test/cards-boundaries.test.ts` holds
+that no hashed path is the engine's.
+
+### 125b. Randomness (the rulings)
+
+The author ruled the sandbox's randomness least effort and out of reach of
+every run seed. Each battle has its own seed string. Its draws come from
+`createRng(seed)` under one key, sequentially, with the count of draws held in
+the battle state so a step stays a pure function of its input; every reshuffle
+is a new draw. The prompt's per-shuffle keys (`cards:{battleId}:shuffle:{ordinal}`)
+are not built: a shuffle ordinal varies with play, which CLAUDE.md forbids in a
+key, and inside one battle's own stream there is nothing for keying to protect.
+This is the same shape as the sim's PRNG inside a Showdown battle. Built at
+checkpoint 2.
+
+### 125c. Outside the design bible (the rulings)
+
+The author ruled the card battler outside the design bible's scope: it is a
+new battle screen and gets its own presentation document at a later stage. The
+bible is not amended and its rules do not bind the sandbox's screen. Recorded
+here so it reads as a ruling and not as a patch quietly doing something else.
+
+### 125d. Checkpoint 1: types, tables, zones, legality with projection
+
+- **Tables** (`src/cardData/`): `rules.ts` carries every R and E default as one
+  typed object, plus `roundCap` (30, not in the snapshot) and two readings the
+  snapshot leaves open, below. `cards.ts` is the Puppeteer deck, checked
+  against the author's card sheet
+  ([`spec/assets/card-battle-puppeteer-card-sheet.jpg`](spec/assets/card-battle-puppeteer-card-sheet.jpg)).
+  Every card's `type` is `null` until the typed list arrives.
+- **Legality** (`src/core/cards/plan.ts`, `legal.ts`): `checkPlan` is the one
+  definition of a legal plan. Moves are checked in plan order against the board
+  the Moves before them leave; every other play against the final projection.
+  `legalActions` and `choicesFor` are built on it, so what is offered and what
+  `select` accepts cannot drift.
+
+Deviations from the prompt, each a reading it left open:
+
+- **A damage card needs something to hit** (`rules.damageNeedsTarget`). A
+  Strike with no enemy in the lane, a Slash over an empty column, or a Fire!
+  centred where no enemy stands is unplayable, with reason `noTarget`. Enemies
+  do not move during the plan, so this is a fact of the board, not a forecast.
+- **Strike counts from the attacker's side of the board** (`laneFromSide`),
+  the prompt's wording for an enemy's Strike applied to both sides. It differs
+  from "nearest the attacker" only when two units have passed each other in the
+  danger zone.
+- **`select` refuses a play that would leave an earlier one illegal**, reason
+  `breaksPlan`: a Move that walks a planned Slash out of range. The prompt says
+  only that the plan is always legal as a whole; refusing is the reading that
+  never removes a play the player did not touch.
+- **No `onceUsed` reason.** A Once card leaves for `spent` after it resolves,
+  so a hand card is never a used Once card.
+- **A bare-name reference resolved.** Section 13g named the run's encounter
+  generator by its bare filename, which `src/cardData/` now shares; it now
+  reads `core/encounters.ts`.
+
+`step` and `createBattle` do not exist yet: `select` and `unselect` are the
+plan's two halves, and `commit` is checkpoint 2.

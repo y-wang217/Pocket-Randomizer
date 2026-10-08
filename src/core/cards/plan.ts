@@ -1,0 +1,273 @@
+/**
+ * The plan: `select`, `unselect`, and the projection every legality question
+ * reads.
+ *
+ * ## Legality is checked against the projected board
+ *
+ * Moves resolve before every other card, so a unit standing in the backline
+ * may plan a Move into the danger zone and then a Slash in the same turn.
+ * `project` is the board after every planned Move, applied in plan order, and
+ * no zone, range or choice check ever reads the raw board.
+ *
+ * `checkPlan` is the one definition of a legal plan. Moves are checked one at
+ * a time against the board as the Moves before them leave it, because that is
+ * how they resolve; every other play is checked against the final projection,
+ * because that is the board it resolves on. A plan is legal only as a whole:
+ * `select` refuses a play that would leave an earlier one illegal, and
+ * `unselect` drops every later play the removal leaves illegal, naming each.
+ *
+ * Neither draws from any RNG.
+ */
+import { CARDS } from '../../cardData/cards';
+import { CLASS_SLOTS } from '../../cardData/classes';
+import { RULES } from '../../cardData/rules';
+import { UNITS } from '../../cardData/units';
+import type { CardDef, DamageKeyword, Effect, Pos } from './defs';
+import type { BattleEvent } from './events';
+import type { Action, BattleState, Choice, IllegalReason, PlannedPlay, PlayBlock, UnitId, UnitState } from './state';
+import { blastCentres, blastTiles, inDanger, moveDestinations, onBoard, samePos, slashTiles } from './zones';
+
+export type StepResult =
+  | { ok: true; state: BattleState; events: BattleEvent[] }
+  | { ok: false; state: BattleState; reason: IllegalReason };
+
+/** What a card asks the player to choose. Drives the UI's tap flow. */
+export type Needs = 'none' | 'unit' | 'tile' | 'unitThenTile';
+
+/** Unit positions after the planned Moves; `null` for a fainted unit. */
+export type Projection = Record<UnitId, Pos | null>;
+
+export type PlanCheck = { ok: true; positions: Projection } | { ok: false; index: number; reason: IllegalReason };
+
+const DAMAGE: readonly DamageKeyword[] = ['strike', 'pierce', 'slash', 'blast'];
+
+export function cardDefOf(state: BattleState, iid: string): CardDef | undefined {
+  const instance = Object.hasOwn(state.cards, iid) ? state.cards[iid] : undefined;
+  return instance && Object.hasOwn(CARDS, instance.def) ? CARDS[instance.def] : undefined;
+}
+
+export function damageOf(def: CardDef): { k: DamageKeyword; n: number } | undefined {
+  return def.effects.find((e): e is { k: DamageKeyword; n: number } => (DAMAGE as readonly string[]).includes(e.k));
+}
+
+function effect<K extends Effect['k']>(def: CardDef, k: K): Extract<Effect, { k: K }> | undefined {
+  return def.effects.find((e) => e.k === k) as Extract<Effect, { k: K }> | undefined;
+}
+
+/** A play that resolves in the move phase: a Move, or a Move placed by Command. */
+export function isMoveCard(def: CardDef): boolean {
+  return def.effects.some((e) => e.k === 'move' || e.k === 'grantMove');
+}
+
+export function needsOf(def: CardDef): Needs {
+  if (effect(def, 'grantMove')) return 'unitThenTile';
+  if (effect(def, 'move')) return 'tile';
+  if (effect(def, 'target')) return 'unit';
+  if (effect(def, 'blast')) return 'tile';
+  if (effect(def, 'shield')?.to === 'friendly') return 'unit';
+  return 'none';
+}
+
+export function unitOf(state: BattleState, id: unknown): UnitState | undefined {
+  return state.units.find((u) => u.id === id);
+}
+
+export function livingUnits(state: BattleState): UnitState[] {
+  return state.units.filter((u) => !u.fainted && u.pos !== null);
+}
+
+export function livingEnemies(state: BattleState): BattleState['enemies'] {
+  return state.enemies.filter((e) => e.pos !== null && e.hp > 0);
+}
+
+export function slotsOf(id: UnitId): number {
+  return CLASS_SLOTS[UNITS[id].class];
+}
+
+function choiceFits(needs: Needs, choice: Choice | undefined): boolean {
+  const unit = choice?.unit !== undefined;
+  const tile = choice?.tile !== undefined;
+  switch (needs) {
+    case 'none':
+      return !unit && !tile;
+    case 'unit':
+      return unit && !tile;
+    case 'tile':
+      return tile && !unit;
+    case 'unitThenTile':
+      return unit && tile;
+  }
+}
+
+/** The positions every other unit and every living enemy hold, as obstacles. */
+function obstacles(state: BattleState, positions: Projection, except: UnitId): Pos[] {
+  const out: Pos[] = [];
+  for (const [id, pos] of Object.entries(positions)) if (id !== except && pos) out.push(pos);
+  for (const enemy of livingEnemies(state)) out.push(enemy.pos!);
+  return out;
+}
+
+function checkMove(state: BattleState, play: PlannedPlay, def: CardDef, positions: Projection): IllegalReason | null {
+  const granted = effect(def, 'grantMove');
+  const mover = granted ? play.choice?.unit : play.unit;
+  const n = granted ? granted.n : effect(def, 'move')!.n;
+  const from = typeof mover === 'string' && Object.hasOwn(positions, mover) ? positions[mover as UnitId] : null;
+  if (!from) return granted ? 'badChoice' : 'fainted';
+  const destinations = moveDestinations('player', from, n, obstacles(state, positions, mover as UnitId));
+  if (destinations.length === 0) return 'noTarget';
+  if (!destinations.some((d) => samePos(d, play.choice?.tile))) return 'badChoice';
+  positions[mover as UnitId] = { ...play.choice!.tile! };
+  return null;
+}
+
+/** Every non-move play, against the final projection. */
+function checkEffects(state: BattleState, play: PlannedPlay, def: CardDef, positions: Projection): IllegalReason | null {
+  const pos = positions[play.unit];
+  if (!pos) return 'fainted';
+  const enemies = livingEnemies(state);
+  const damage = damageOf(def);
+  if (damage) {
+    if (RULES.keywordZone[damage.k] === 'danger' && !inDanger(pos)) return 'wrongZone';
+    if (effect(def, 'target')) {
+      if (enemies.length === 0) return 'noTarget';
+      return enemies.some((e) => e.id === play.choice?.unit) ? null : 'badChoice';
+    }
+    const hits = (tiles: Pos[]): boolean => enemies.some((e) => tiles.some((t) => samePos(t, e.pos)));
+    switch (damage.k) {
+      case 'strike':
+      case 'pierce':
+        if (RULES.damageNeedsTarget && !enemies.some((e) => e.pos!.lane === pos.lane)) return 'noTarget';
+        break;
+      case 'slash':
+        if (RULES.damageNeedsTarget && !hits(slashTiles('player', pos))) return 'noTarget';
+        break;
+      case 'blast': {
+        const centres = blastCentres('player', pos).filter((c) => !RULES.damageNeedsTarget || hits(blastTiles(c)));
+        if (centres.length === 0) return 'noTarget';
+        if (!centres.some((c) => samePos(c, play.choice?.tile))) return 'badChoice';
+        break;
+      }
+    }
+  }
+  if (effect(def, 'shield')?.to === 'friendly') {
+    // R6: Target on a friendly keyword picks a friendly unit, the player included.
+    if (!livingUnits(state).some((u) => u.id === play.choice?.unit)) return 'badChoice';
+  }
+  return null;
+}
+
+/** The one definition of a legal plan. See the header. */
+export function checkPlan(state: BattleState, plan: readonly PlannedPlay[]): PlanCheck {
+  const positions = Object.fromEntries(state.units.map((u) => [u.id, u.fainted || !u.pos ? null : { ...u.pos }])) as Projection;
+  const mpUsed: Partial<Record<UnitId, number>> = {};
+  const slotsUsed: Partial<Record<UnitId, number>> = {};
+  const seen: string[] = [];
+  const later: number[] = [];
+
+  for (const [index, play] of plan.entries()) {
+    const fail = (reason: IllegalReason): PlanCheck => ({ ok: false, index, reason });
+    const def = cardDefOf(state, play.card);
+    if (!def || !state.piles.hand.includes(play.card)) return fail('notInHand');
+    if (seen.includes(play.card)) return fail('alreadyPlanned');
+    seen.push(play.card);
+    const unit = unitOf(state, play.unit);
+    if (!unit) return fail('malformed');
+    if (unit.fainted) return fail('fainted');
+    if (def.owner !== 'neutral' && def.owner !== play.unit) return fail('notOwner');
+
+    mpUsed[unit.id] = (mpUsed[unit.id] ?? 0) + def.cost;
+    if (mpUsed[unit.id]! > unit.mp) return fail('noMp');
+    slotsUsed[unit.id] = (slotsUsed[unit.id] ?? 0) + 1;
+    if (slotsUsed[unit.id]! > slotsOf(unit.id)) return fail('noSlot');
+
+    if (effect(def, 'grantMove')) {
+      // Command: another friendly unit's slot, none of its MP.
+      const ally = unitOf(state, play.choice?.unit);
+      if (!ally || ally.id === unit.id || ally.fainted) return fail('badChoice');
+      slotsUsed[ally.id] = (slotsUsed[ally.id] ?? 0) + 1;
+      if (slotsUsed[ally.id]! > slotsOf(ally.id)) return fail('noSlot');
+    }
+
+    if (!choiceFits(needsOf(def), play.choice)) return fail('badChoice');
+
+    if (isMoveCard(def)) {
+      const reason = checkMove(state, play, def, positions);
+      if (reason) return fail(reason);
+    } else later.push(index);
+  }
+
+  for (const index of later) {
+    const play = plan[index]!;
+    const reason = checkEffects(state, play, cardDefOf(state, play.card)!, positions);
+    if (reason) return { ok: false, index, reason };
+  }
+  return { ok: true, positions };
+}
+
+/** The board after every planned Move. The raw position for a plan that is somehow illegal. */
+export function project(state: BattleState): Projection {
+  const check = checkPlan(state, state.plan);
+  if (check.ok) return check.positions;
+  return Object.fromEntries(state.units.map((u) => [u.id, u.pos])) as Projection;
+}
+
+const PLAY_BLOCKS: readonly IllegalReason[] = ['noMp', 'noSlot', 'wrongZone', 'noTarget', 'fainted'];
+
+/** Why a check failing on a play with no choice yet means the card is unplayable. */
+export function asPlayBlock(reason: IllegalReason): PlayBlock {
+  return (PLAY_BLOCKS.includes(reason) ? reason : 'noTarget') as PlayBlock;
+}
+
+function isPos(value: unknown): value is Pos {
+  if (typeof value !== 'object' || value === null) return false;
+  const { lane, col } = value as { lane?: unknown; col?: unknown };
+  return typeof lane === 'number' && typeof col === 'number' && onBoard(lane, col);
+}
+
+/** A select action's play, or `null` for one whose shape is wrong. */
+function parseSelect(action: unknown): PlannedPlay | null {
+  if (typeof action !== 'object' || action === null) return null;
+  const { card, unit, choice } = action as { card?: unknown; unit?: unknown; choice?: unknown };
+  if (typeof card !== 'string' || typeof unit !== 'string') return null;
+  const play: PlannedPlay = { card, unit: unit as UnitId };
+  if (choice === undefined) return play;
+  if (typeof choice !== 'object' || choice === null) return null;
+  const { unit: target, tile } = choice as { unit?: unknown; tile?: unknown };
+  if (target !== undefined && typeof target !== 'string') return null;
+  if (tile !== undefined && !isPos(tile)) return null;
+  const parsed: Choice = {};
+  if (target !== undefined) parsed.unit = target;
+  if (tile !== undefined) parsed.tile = { lane: tile.lane, col: tile.col };
+  return { ...play, choice: parsed };
+}
+
+export function select(state: BattleState, action: Extract<Action, { type: 'select' }> | unknown): StepResult {
+  if (state.phase !== 'plan') return { ok: false, state, reason: 'battleOver' };
+  const play = parseSelect(action);
+  if (!play) return { ok: false, state, reason: 'malformed' };
+  const plan = [...state.plan, play];
+  const check = checkPlan(state, plan);
+  if (!check.ok) return { ok: false, state, reason: check.index < state.plan.length ? 'breaksPlan' : check.reason };
+  return {
+    ok: true,
+    state: { ...state, plan },
+    events: [{ t: 'planned', index: state.plan.length, card: play.card, unit: play.unit }],
+  };
+}
+
+export function unselect(state: BattleState, action: Extract<Action, { type: 'unselect' }> | unknown): StepResult {
+  if (state.phase !== 'plan') return { ok: false, state, reason: 'battleOver' };
+  const index = typeof action === 'object' && action !== null ? (action as { planIndex?: unknown }).planIndex : undefined;
+  if (typeof index !== 'number' || !Number.isInteger(index) || index < 0 || index >= state.plan.length) {
+    return { ok: false, state, reason: 'badPlanIndex' };
+  }
+  const removed = state.plan[index]!;
+  const events: BattleEvent[] = [{ t: 'unplanned', card: removed.card, unit: removed.unit }];
+  const kept: PlannedPlay[] = [];
+  for (const play of state.plan.filter((_, i) => i !== index)) {
+    const check = checkPlan(state, [...kept, play]);
+    if (check.ok) kept.push(play);
+    else events.push({ t: 'planPruned', card: play.card, unit: play.unit, reason: check.reason });
+  }
+  return { ok: true, state: { ...state, plan: kept }, events };
+}
