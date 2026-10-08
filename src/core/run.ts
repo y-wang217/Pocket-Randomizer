@@ -3012,6 +3012,15 @@ export interface RunProjection {
   party: readonly PokemonState[];
   /** The relics held, including one taken from a card this node and not yet folded. */
   relics: readonly RelicId[];
+  /**
+   * The coins held, with a won fight's payout and a coins card taken this node
+   * folded in. **2026-10-08.** The result screen's header already prints that
+   * sum; a wallet on the Team or Bag tab opened over it read the balance the
+   * fight was entered with, one number on one screen and another one tap away.
+   * The same fold `resolveNode` makes, in its terms: `nodePayout` on a win,
+   * `applyReward`'s clamp on a coins card.
+   */
+  currency: number;
 }
 
 function projectionOf(state: RunState, result: NodeResult, taken: Reward | null): RunProjection {
@@ -3050,7 +3059,51 @@ function projectionOf(state: RunState, result: NodeResult, taken: Reward | null)
       ? [...state.relics, taken.relic]
       : state.relics;
 
-  return { party, relics };
+  const won = result.battle?.result.winner === 'p1';
+  const payout = won ? nodePayout(result.node, state.currentSegment, applyRelicPassives(state.relics)) : 0;
+  const coins = taken?.kind === 'currency' ? Math.max(0, taken.amount) : 0;
+
+  return { party, relics, currency: state.currency + payout + coins };
+}
+
+/**
+ * The party a restore would leave, read **before** the player claims it.
+ * The feature request of 2026-10-08: *"show hp when using potion"*.
+ *
+ * A restore card says `+85%` and a shop heal its fraction; neither says what
+ * the party will be standing on afterwards, and the result screen's party row
+ * is the party as the fight left it, before the node boundary has revived or
+ * healed anyone. So the number a player wants, *"what does this put me on"*,
+ * was arithmetic over a rule they cannot see.
+ *
+ * **Answered by doing it, not by restating it.** The same discipline as a
+ * price's payability (CLAUDE.md, *Prices*): the fold is run against a
+ * throwaway state through the functions `resolveNode` itself calls, in its
+ * order for a node that is not a gym — the battle folded in, `betweenNodes`,
+ * then `applyReward` or `applyPurchases` — so a preview cannot drift from
+ * the run it previews. A gym offers no restore (`data/rewardPools.ts`), which
+ * is why the gym's heal-then-level path is not mirrored here.
+ *
+ * Reads nothing it could draw from and returns a party nobody keeps: no RNG
+ * is consumed and no version axis can move.
+ */
+export function partyAfterRestore(
+  state: RunState,
+  fraction: number,
+  battle: Pick<BattleReview, 'party' | 'contribution'> | null = null,
+): PokemonState[] {
+  return applyReward({ ...state, party: partyAtBoundary(state, battle) }, { kind: 'heal', fraction }).party;
+}
+
+/** The same reading for a shop basket: the party as the purchases would leave it. */
+export function partyAfterPurchases(state: RunState, stock: ShopStock, basket: readonly number[]): PokemonState[] {
+  return applyPurchases({ ...state, party: partyAtBoundary(state) }, stock, basket).party;
+}
+
+/** The party as a non-gym node boundary leaves it, before anything the node pays. */
+function partyAtBoundary(state: RunState, battle: Pick<BattleReview, 'party' | 'contribution'> | null = null): PokemonState[] {
+  const party = battle ? applyBattleState(state.party, battle.party, battle.contribution) : state.party;
+  return betweenNodes(party, state.tuning, applyRelicPassives(state.relics));
 }
 
 // ---------------------------------------------------------------------------

@@ -469,14 +469,37 @@ export function capabilityBandChevron(band: string, label: string): HTMLElement 
  * because section 3's *Coin amount* row puts *"the word coins, and what the
  * amount buys or pays"* on inspect and a map amount is a fact the player
  * routes by. `context` picks that line (`payout` for what a node pays,
- * `price` for a shelf's cheapest, `wallet` for the run's coins); the number
+ * `earned` for what a won fight paid, `price` for a shelf's cheapest,
+ * `wallet` for the run's coins); the number
  * rides on `data-value`, the way a stat label carries its value.
  */
-export function currencyAmount(amount: number, context: 'payout' | 'price' | 'wallet'): HTMLElement {
-  const node = coinAmount(String(amount));
+export function currencyAmount(
+  amount: number,
+  context: 'payout' | 'earned' | 'price' | 'wallet',
+  /**
+   * Print the sign. A payout read as a change, the result screen's `+29`
+   * beside the wallet it lands in, says which number moved; the map's payout
+   * sits alone on a node and needs no sign.
+   */
+  signed = false,
+): HTMLElement {
+  const node = coinAmount(signed && amount >= 0 ? `+${amount}` : String(amount));
   node.dataset['tip'] = `currency:${context}`;
   node.dataset['value'] = String(amount);
   node.setAttribute('aria-label', `${amount} coins`);
+  return node;
+}
+
+/**
+ * The wallet as a figure: the run's coins beside the currency mark, in a
+ * raised plate. **2026-10-08, the wallet on the tabs a player checks.** The
+ * map screen's heading carried it alone since Stage 5.0/4; Team, Bag, Run
+ * Info and the Map tab's overlay mount the same figure now, so the number is
+ * one component wherever a player goes to look it up.
+ */
+export function walletFigure(amount: number, extra = ''): HTMLElement {
+  const node = el('div', `wallet${extra ? ` ${extra}` : ''}`);
+  node.append(currencyAmount(amount, 'wallet'));
   return node;
 }
 

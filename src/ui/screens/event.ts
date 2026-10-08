@@ -46,8 +46,7 @@
  */
 import {
   concreteOutcome,
-  describeCost,
-  describeOutcome,
+  describeEffect,
   describePrice,
   optionPayable,
   outcomeFor,
@@ -55,7 +54,9 @@ import {
   type EventInstance,
   type EventOption,
   type EventOutcome,
+  type ResolvedEffect,
 } from '../../core/events';
+import type { TollPrice } from '../../data/events';
 import { tierRangeOf, tierWeightsFor, type EventArchetype } from '../../data/eventPools';
 import { capabilityHolders, resolveCapability } from '../../core/capabilities';
 import { defenderOptionPayable, defenderOutcomeOf, type DefenderEventInstance } from '../../core/defender/events';
@@ -64,7 +65,7 @@ import { DEFENDER_AMBUSH } from '../../data/defenderEvents';
 import { DEFENDER_EVENT_HINTS, DEFENDER_EVENT_HOOKS, defenderEventLabel } from '../../data/defenderEventCopy';
 import { BAND_LABELS, CAPABILITY_LABELS, PRICE_UNPAYABLE, TOLL_PAID_PREFIX, eventHook, eventLabel, eventHint } from '../../data/eventCopy';
 import { NODE_KIND_WORDS } from '../../data/glyphLabels';
-import { capabilityBandChevron, capabilityChip, capabilityGlyph, nodeKindGlyph, rewardTierPips, tierChip } from '../chip';
+import { capabilityBandChevron, capabilityChip, capabilityGlyph, coinAmount, nodeKindGlyph, rewardTierPips, tierChip } from '../chip';
 import { el } from '../scene';
 import { spriteFigure } from '../sprites';
 
@@ -182,8 +183,7 @@ export function createEventScreen(): EventScreen {
          * requirement the gate chip already carries.
          */
         const attributes = el('span', 'event__choice-attributes');
-        const cost = costOf(choice, state);
-        if (cost) attributes.append(capabilityChip(cost));
+        if (choice.toll) attributes.append(priceChip(choice.toll, state));
         const [low, high] = rewardRangeOf(choice, event.rarity);
         attributes.append(rewardTierPips(low, high, rewardLabelOf(low, high)));
 
@@ -250,7 +250,7 @@ export function createEventScreen(): EventScreen {
         conclusion.textContent = '';
 
         const outcome = el('p', `event__outcome event__outcome--${toneOf(paid)}`);
-        outcome.textContent = describeOutcome(paid);
+        outcome.replaceChildren(...outcomeNodes(paid));
 
         /*
          * The consolation gets its own line, and so does the cost above it.
@@ -258,9 +258,8 @@ export function createEventScreen(): EventScreen {
          * something and giving nothing — the exact misread the retired
          * "unrewarded, not punished" rule existed to prevent.
          */
-        const cost = describeCost(paid);
-        const costLine = cost ? el('p', 'event__outcome event__outcome--bad') : null;
-        if (costLine) costLine.textContent = cost;
+        const costLine = paid.cost.length > 0 ? el('p', 'event__outcome event__outcome--bad') : null;
+        if (costLine) costLine.replaceChildren(...effectNodes(paid.cost));
 
         /*
          * **The price, restated as charged.**
@@ -287,7 +286,7 @@ export function createEventScreen(): EventScreen {
          * left the player counting their bag to find out which.
          */
         if (price && choice.toll) {
-          price.textContent = `${TOLL_PAID_PREFIX}: ${describePrice(choice.toll, state.backpack)}`;
+          price.replaceChildren(`${TOLL_PAID_PREFIX}: `, ...priceNodes(choice.toll, state));
         }
 
         const carry = document.createElement('button');
@@ -335,7 +334,7 @@ export function createEventScreen(): EventScreen {
          * recommendation, no highlight, no expected value.
          */
         const attributes = el('span', 'event__choice-attributes');
-        if (option.toll) attributes.append(capabilityChip(`Costs ${describePrice(option.toll, state.backpack)}`));
+        if (option.toll) attributes.append(priceChip(option.toll, state));
         if (option.odds !== null) {
           const odds = el('span', 'event__odds');
           odds.textContent = `${Math.round(option.odds * 100)}%`;
@@ -379,18 +378,17 @@ export function createEventScreen(): EventScreen {
         const lines: HTMLElement[] = [];
         if (option.toll) {
           const price = el('p', 'event__outcome event__outcome--bad');
-          price.textContent = `${TOLL_PAID_PREFIX}: ${describePrice(option.toll, state.backpack)}`;
+          price.replaceChildren(`${TOLL_PAID_PREFIX}: `, ...priceNodes(option.toll, state));
           lines.push(price);
         }
         if (paid) {
-          const cost = describeCost(paid);
-          if (cost) {
+          if (paid.cost.length > 0) {
             const costLine = el('p', 'event__outcome event__outcome--bad');
-            costLine.textContent = cost;
+            costLine.replaceChildren(...effectNodes(paid.cost));
             lines.push(costLine);
           }
           const outcome = el('p', `event__outcome event__outcome--${toneOf(paid)}`);
-          outcome.textContent = describeOutcome(paid);
+          outcome.replaceChildren(...outcomeNodes(paid));
           lines.push(outcome);
         }
 
@@ -409,7 +407,7 @@ export function createEventScreen(): EventScreen {
 }
 
 /**
- * What this button costs, as an attribute, or null when it costs nothing.
+ * What this button costs, as an attribute. Called only where a Toll is set.
  *
  * Only a Toll has a price. Safe, Gamble and Attune are free, and saying "free"
  * on three of four buttons is noise rather than information.
@@ -420,8 +418,52 @@ export function createEventScreen(): EventScreen {
  * on a price that cannot be paid. A price the player can plan around is the
  * reason a price is on the button at all.
  */
-function costOf(option: EventOption, state: RunState): string | null {
-  return option.toll ? `Costs ${describePrice(option.toll, state.backpack)}` : null;
+function priceChip(toll: TollPrice, state: RunState): HTMLElement {
+  const chip = capabilityChip('Costs ');
+  chip.append(...priceNodes(toll, state));
+  return chip;
+}
+
+/**
+ * A price as the player reads it: a coin amount as the currency mark beside a
+ * bare number, everything else named against the bag. **2026-10-08.** A
+ * fixed-coin Toll read `Costs 40 coins` here while the shop's price, the
+ * map's payout and the coins card all wore the mark; section 2's currency row
+ * puts the mark *"wherever a coin amount appears"*. The exact amount is still
+ * the exact amount, which is what CLAUDE.md's *Prices* asks of a price. A
+ * share of the wallet (`25% of your coins`) is not an amount, and keeps its
+ * words.
+ */
+function priceNodes(toll: TollPrice, state: RunState): Node[] {
+  if (toll.kind === 'goldFixed') return [coinAmount(String(toll.amount))];
+  return [document.createTextNode(describePrice(toll, state.backpack))];
+}
+
+/**
+ * Effects as the player reads them, joined as `core/events.ts`'s
+ * `describeOutcome` joins them, with a coin amount drawn as the mark and a
+ * signed number in place of `+40 coins` (2026-10-08, the same section 2 row).
+ */
+function effectNodes(effects: readonly ResolvedEffect[]): Node[] {
+  return joinNodes(
+    effects.map((effect) =>
+      effect.kind === 'currency'
+        ? coinAmount(effect.amount >= 0 ? `+${effect.amount}` : String(effect.amount))
+        : document.createTextNode(describeEffect(effect)),
+    ),
+  );
+}
+
+/** An outcome's grants, with `describeOutcome`'s rule for an empty one. */
+function outcomeNodes(outcome: EventOutcome): Node[] {
+  const grants = outcome.grant.filter((effect) => describeEffect(effect) !== NOTHING_HAPPENS);
+  return grants.length > 0 ? effectNodes(grants) : [document.createTextNode(NOTHING_HAPPENS)];
+}
+
+const NOTHING_HAPPENS = describeEffect({ kind: 'nothing' });
+
+function joinNodes(parts: readonly Node[]): Node[] {
+  return parts.flatMap((part, index) => (index === 0 ? [part] : [document.createTextNode(' + '), part]));
 }
 
 /**

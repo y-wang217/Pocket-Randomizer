@@ -965,12 +965,6 @@ export function describeOutcome(outcome: EventOutcome): string {
   return grants.length > 0 ? grants.join(' + ') : 'Nothing happens';
 }
 
-/** What an outcome cost, as one line, or null when it cost nothing. */
-export function describeCost(outcome: EventOutcome): string | null {
-  if (outcome.cost.length === 0) return null;
-  return outcome.cost.map(describeEffect).join(' + ');
-}
-
 /**
  * The exact price a Toll charges, as a line the player reads before pressing.
  *

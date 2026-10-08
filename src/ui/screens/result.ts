@@ -45,7 +45,6 @@ import type { AcquisitionDecision, AcquisitionOffer } from '../../core/acquisiti
 import {
   CARDS_ONLY_BLURB,
   CARDS_ONLY_TITLE,
-  currencyLine,
   FAINTED,
   faintedLine,
   hpStateBare,
@@ -53,10 +52,10 @@ import {
   RUN_ENDS,
   TAKE_ONE,
 } from '../../core/hpCopy';
-import { statusChip } from '../chip';
+import { currencyAmount, statusChip } from '../chip';
 import { ppTotals } from '../../core/party';
 import type { BerryPick, Reward, RewardOffer } from '../../core/rewards';
-import { partyCapacity, type BattleReview, type RunState } from '../../core/run';
+import { partyAfterRestore, partyCapacity, type BattleReview, type RunState } from '../../core/run';
 import type { BattleMemberState, PokemonState } from '../../core/types';
 import { BERRY_PICK_CLAIM_COPY } from '../copy/screens';
 import { el } from '../scene';
@@ -208,7 +207,7 @@ export function createResultScreen(): ResultScreen {
       if (review) {
         title.textContent = outcomeTitle(won);
         title.dataset['outcome'] = won ? 'win' : 'loss';
-        blurb.textContent = describeCost(review, state);
+        blurb.replaceChildren(...describeCost(review, state));
       } else {
         title.textContent = CARDS_ONLY_TITLE;
         delete title.dataset['outcome'];
@@ -261,6 +260,8 @@ export function createResultScreen(): ResultScreen {
             // The balance the header prints: the payout is not folded into
             // `state` until the node resolves. QA-003.
             carrying: state.currency + (review?.currencyEarned ?? 0),
+            // The party the restore would leave, the fight folded in first.
+            restorePreview: (fraction) => partyAfterRestore(state, fraction, review),
           }),
         );
       } else if (berryPrompt) {
@@ -433,9 +434,23 @@ function renderTradeReveal(prompt: TradePrompt, state: RunState): HTMLElement {
  * Every string comes from `core/hpCopy.ts`, which is the copy module the round
  * 2 patch established, and none is inlined here.
  */
-function describeCost(review: BattleReview, state: RunState): string {
+function describeCost(review: BattleReview, state: RunState): Node[] {
   const fainted = review.party.filter((member) => member.fainted).length;
-  const parts: string[] = [currencyLine(review.currencyEarned, state.currency + review.currencyEarned)];
+  /*
+   * **The payout and the wallet wear the currency mark. 2026-10-08.**
+   *
+   * This line read `+29 · 90`, two bare numbers, while the coins card under
+   * it read `+41` beside the mark: the same unit printed two ways on one
+   * screen, which is the feature request that moved it. Section 2's currency
+   * row already said *"one mark, beside a bare number wherever a coin amount
+   * appears"*, the wallet named in it, so this is the screen reaching the
+   * bible rather than a new encoding. Both numbers stay (C2); the mark is the
+   * map's `currencyAmount`, so a long press names each the way the map does.
+   */
+  const parts: Node[] = [
+    currencyAmount(review.currencyEarned, 'earned', true),
+    currencyAmount(state.currency + review.currencyEarned, 'wallet'),
+  ];
   /*
    * **`Nobody went down.` is gone, and R4 is the whole argument. M5.4.**
    *
@@ -450,9 +465,9 @@ function describeCost(review: BattleReview, state: RunState): string {
    * below is measured without it, and this comment is the record of that
    * rather than a claim the screen is at 6 in every state.
    */
-  if (fainted > 0) parts.push(faintedLine(fainted));
-  if (!review.won) parts.push(RUN_ENDS);
-  return parts.join(' · ');
+  if (fainted > 0) parts.push(document.createTextNode(faintedLine(fainted)));
+  if (!review.won) parts.push(document.createTextNode(RUN_ENDS));
+  return parts.flatMap((part, index) => (index === 0 ? [part] : [document.createTextNode(' · '), part]));
 }
 
 /**
@@ -472,9 +487,22 @@ function describeCost(review: BattleReview, state: RunState): string {
  * Number beside PP glyph"* — so the one place the two numbers could be
  * confused for each other is the one place a mark is spent.
  */
-function memberReading(member: BattleMemberState): string {
+function memberReading(member: BattleMemberState): (string | Node)[] {
   const pp = ppTotals(member);
-  return member.fainted
-    ? `${FAINTED} · ${pp.pp}/${pp.maxPp}`
-    : `${hpStateBare(member.hp, member.maxHp)} · ${pp.pp}/${pp.maxPp}`;
+  return [member.fainted ? FAINTED : hpStateBare(member.hp, member.maxHp), ppReading(pp.pp, pp.maxPp)];
+}
+
+/**
+ * PP beside its glyph, as the paragraph above has always said it was. The
+ * line drew `71/88` bare until 2026-10-08, beside an HP reading of the same
+ * shape, so the one number on the slot a player could misread for HP was the
+ * one with nothing marking it.
+ */
+function ppReading(pp: number, maxPp: number): HTMLElement {
+  const reading = el('span', 'slot__pp');
+  const mark = glyphNode('pp');
+  if (mark) reading.append(mark);
+  reading.append(`${pp}/${maxPp}`);
+  reading.setAttribute('aria-label', `PP ${pp}/${maxPp}`);
+  return reading;
 }

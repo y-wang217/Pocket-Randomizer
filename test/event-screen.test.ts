@@ -197,7 +197,12 @@ describe('the event screen', () => {
            * price reads as a charge that never happened — which is the
            * playtest report `TOLL_PAID_PREFIX` was added for.
            */
-          expect(outcomes[outcomes.length - 1]).toBe(describeOutcome(paid));
+          expect(outcomes[outcomes.length - 1]).toBe(markedCoins(describeOutcome(paid)));
+          // A coin amount wears the currency mark, never the word (2026-10-08).
+          const payout = [...screen.root.querySelectorAll('.event__outcome')].at(-1);
+          expect(Boolean(payout?.querySelector('.coin-amount [data-glyph="currency-coin"]'))).toBe(
+            paid.grant.some((effect) => effect.kind === 'currency'),
+          );
           expect(outcomes, `${event.eventId} ${band} ${index}`).toHaveLength(
             1 + (choice.toll ? 1 : 0) + (paid.cost.length > 0 ? 1 : 0),
           );
@@ -209,7 +214,7 @@ describe('the event screen', () => {
              * which is the bag the charge came out of.
              */
             expect(outcomes[0], `${event.eventId} ${band} ${index} price`).toBe(
-              `${TOLL_PAID_PREFIX}: ${describePrice(choice.toll, state.backpack)}`,
+              `${TOLL_PAID_PREFIX}: ${markedCoins(describePrice(choice.toll, state.backpack))}`,
             );
           }
 
@@ -340,3 +345,13 @@ describe('the attribute row', () => {
     expect(screen.root.textContent ?? '').not.toMatch(/expected|average|EV\b/i);
   });
 });
+
+/**
+ * The screen's reading of a `core/events.ts` description: a coin amount is
+ * the currency mark beside the signed number, so `+45 coins` reads `+45` in
+ * text (the mark has none). A share of the wallet, `25% of your coins`, is not
+ * an amount and keeps its words.
+ */
+function markedCoins(text: string): string {
+  return text.replace(/([+-]?\d+) coins\b/g, '$1');
+}

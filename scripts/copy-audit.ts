@@ -103,7 +103,6 @@ import {
   KIND_HINTS,
   CAPTURE_FULL,
   RELEASE_LABEL,
-  RETURNS_TO_BAG,
   EVOLUTION_HEADING,
   EVOLUTION_LINE,
   EVOLUTION_CHOICE,
@@ -399,8 +398,6 @@ section({
     { key: 'hpEventDelta', text: hpCopy.hpEventDelta(-0.2) },
     { key: 'outcomeTitle (won)', text: hpCopy.outcomeTitle(true) },
     { key: 'outcomeTitle (lost)', text: hpCopy.outcomeTitle(false) },
-    { key: 'currencyLine', text: hpCopy.currencyLine(17, 63) },
-    { key: 'currencyLine (none)', text: hpCopy.currencyLine(0, 63) },
     { key: 'faintedLine (none)', text: hpCopy.faintedLine(0) },
     { key: 'faintedLine (one)', text: hpCopy.faintedLine(1) },
     { key: 'RUN_ENDS', text: hpCopy.RUN_ENDS },
@@ -452,7 +449,6 @@ section({
     ...proseRows(CAPTURE_SOURCE),
     { key: 'CAPTURE_FULL', text: CAPTURE_FULL.long, short: CAPTURE_FULL.short },
     { key: 'RELEASE_LABEL', text: RELEASE_LABEL('Swablu').long, short: RELEASE_LABEL('Swablu').short },
-    { key: 'RETURNS_TO_BAG', text: RETURNS_TO_BAG.long, short: RETURNS_TO_BAG.short },
   ],
 });
 

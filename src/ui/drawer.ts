@@ -53,6 +53,7 @@ import type { Tuning } from '../data/tuning';
 import { el } from './scene';
 import { setProse } from './dom';
 import { createOverlay } from './overlay';
+import { walletFigure } from './chip';
 import { DRAWER_BAG_HEADING, DRAWER_COPY, PARTY_LABELS } from './copy/screens';
 import { itemById } from '../data/items';
 import { itemIcon, renderSlots, slotNumber } from './slots';
@@ -68,6 +69,8 @@ export interface DrawerView {
   holding: readonly (ItemId | null)[];
   /** The run's relics. See the layout note in `render`. */
   relics: readonly RelicId[];
+  /** The coins held, at the top of both tabs (2026-10-08). Absent, no wallet is drawn. */
+  currency?: number;
   /**
    * The backpack's loose items and the TMs carried, for the Bag tab's
    * readout. **Stage 5.0/1.** Read-only here like everything else: the party
@@ -160,7 +163,12 @@ export function createDrawer(): Drawer {
   setProse(note, DRAWER_COPY.note);
 
   const held = el('div', 'drawer__held-section');
-  overlay.body.append(blurb, members, relics, held, bag, note);
+  // The coins, at the right end of the blurb's line on both tabs
+  // (2026-10-08), so the sheet grows by nothing.
+  const wallet = el('div', 'drawer__wallet');
+  const lead = el('div', 'drawer__lead');
+  lead.append(blurb, wallet);
+  overlay.body.append(lead, members, relics, held, bag, note);
 
   return {
     root: overlay.root,
@@ -187,6 +195,8 @@ export function createDrawer(): Drawer {
 
     open(view, opener) {
       setProse(blurb, view.inBattle ? DRAWER_COPY.inBattle : DRAWER_COPY.carrying);
+      wallet.hidden = view.currency === undefined;
+      wallet.replaceChildren(...(view.currency === undefined ? [] : [walletFigure(view.currency)]));
 
       const focus = view.focus ?? 'team';
       overlay.root.dataset['focus'] = focus;

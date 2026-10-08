@@ -24,6 +24,7 @@ import { createOverlay, type Overlay } from './overlay';
 import { renderHeading } from './screens/run-map';
 import { nextChallengerOf, renderNextChallenger } from './next-challenger';
 import { formatBuildStamp } from './stamps';
+import { walletFigure } from './chip';
 
 /**
  * The feed as a list, newest first, with a heading wherever the segment
@@ -58,6 +59,8 @@ export function renderFeed(entries: readonly FeedEntry[], limit?: number): HTMLE
 export interface RunInfoView {
   state: RunState;
   entries: readonly FeedEntry[];
+  /** The coins held, the node's undecided payout folded in (2026-10-08). Defaults to the run's. */
+  currency?: number;
 }
 
 export interface RunInfo {
@@ -88,7 +91,11 @@ export function createRunInfo(): RunInfo {
     overlay,
     open(view, opener) {
       const segment = view.state.segments[view.state.currentSegment];
-      heading.replaceChildren(...(segment ? renderHeading(view.state, segment) : []));
+      // The wallet beside the heading, as the map carries it (2026-10-08).
+      heading.replaceChildren(
+        ...(segment ? renderHeading(view.state, segment) : []),
+        walletFigure(view.currency ?? view.state.currency, 'map__wallet'),
+      );
       rail.replaceChildren(renderNextChallenger(nextChallengerOf(view.state)));
       facts.replaceChildren(...fact(RUN_INFO_COPY.seed, formatSeedString(view.state.seed)), ...fact(RUN_INFO_COPY.build, formatBuildStamp()));
       feed.replaceChildren(renderFeed(view.entries));

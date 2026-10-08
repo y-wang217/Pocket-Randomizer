@@ -49,7 +49,7 @@ import type { PokemonSpec, PokemonState } from '../../core/types';
 import { el, levelAria, levelText, movePower } from '../scene';
 import { statBlock, type StatValues } from '../stat-block';
 import { prose } from '../dom';
-import { CAPTURE_FULL, CAPTURE_SOURCE, RELEASE_LABEL, RETURNS_TO_BAG } from '../copy/screens';
+import { CAPTURE_FULL, CAPTURE_SOURCE, RELEASE_LABEL } from '../copy/screens';
 import { hpTip } from '../member-card';
 import { slotNumber } from '../slots';
 import { abilityChip, monTypeChip } from '../chip';
@@ -423,13 +423,21 @@ function renderExisting(
 
   const item = heldItem(member);
   if (item) {
-    // Stage 4.5.1: the item is *not* part of the price. Releasing is still
-    // permanent — there is no box and no retrieval — but what they were
-    // holding goes back to the bag, because an item is destroyed only by an
-    // explicit discard and letting a Pokemon go is not one.
-    const note = el('span', 'party__item-note');
-    note.append(prose(RETURNS_TO_BAG));
-    meta.append(neutralChip(item.name, 'item', { tip: `item:${item.id}` }), note);
+    /*
+     * Stage 4.5.1: the item is *not* part of the price. Releasing is still
+     * permanent — there is no box and no retrieval — but what they were
+     * holding goes back to the bag, because an item is destroyed only by an
+     * explicit discard and letting a Pokemon go is not one.
+     *
+     * **Said in the release band, not beside the chip. 2026-10-08.** A
+     * `to bag` sat here at rest, two words beside a boxed item name, and read
+     * as a control that did nothing when pressed (the bug report in
+     * `docs/spec/gymrun-patch-wallet-on-tabs-and-to-bag.md`). Section 4 gives
+     * the capture card no words at rest, and the band that confirms a release
+     * already carried the fact; it now names the item, so the fact is where
+     * the decision is committed and is more exact than it was (C2).
+     */
+    meta.append(neutralChip(item.name, 'item', { tip: `item:${item.id}` }));
   }
 
   // The body, phased by slot as the party screen's cards are. Idle-sprites patch.
@@ -454,7 +462,7 @@ function renderExisting(
     release.addEventListener('click', () =>
       openBand({
         title: `Release ${detail.species}?`,
-        detail: 'For good, to make room. Anything held goes back to the bag.',
+        detail: item ? `For good, to make room. ${item.name} goes back to the bag.` : 'For good, to make room.',
         confirm: 'Release',
         cancel: 'Keep',
         onConfirm: () => onDecide({ kind: 'release', slot: index }),
