@@ -45,6 +45,8 @@ import { describeMove } from '../../core/battle/driver';
 import { moveCardData } from '../move-detail';
 import type { OfferBadge, Reward } from '../../core/rewards';
 import type { RunState } from '../../core/run';
+import type { PokemonState } from '../../core/types';
+import { hpStateBare } from '../../core/hpCopy';
 import { itemById } from '../../data/items';
 import { relicById } from '../../data/relics';
 import { CAPABILITY_LABELS } from '../../data/eventCopy';
@@ -60,7 +62,7 @@ import { createBar } from '../bar';
 import { capabilityGlyph, coinAmount, tierChip } from '../chip';
 import { CLAIM_COPY } from '../copy/screens';
 import { el, moveCard } from '../scene';
-import { itemIcon } from '../slots';
+import { itemIcon, renderSlots } from '../slots';
 import { typeChip } from './starter-select';
 
 /*
@@ -140,6 +142,33 @@ export interface RewardCardOptions {
    * band. The berry gym reward patch.
    */
   claim?: { title: string; confirm: string; cancel: string };
+  /**
+   * The party a restore would leave, for the claim band. **2026-10-08, the
+   * feature request *"show hp when using potion"*.** The caller owns the fold
+   * (`partyAfterRestore` in `core/run.ts`), because only the caller knows
+   * whether a fight is waiting to be folded in first.
+   */
+  restorePreview?: (fraction: number) => readonly PokemonState[];
+}
+
+/**
+ * The party as a restore leaves it: one slot a member, HP as the slot's detail
+ * line. **The content being traded**, which is what section 5's Confirm band
+ * row puts in the band; the species are proper nouns and the readings are
+ * numbers, so the band's budget of 6 is untouched. State, not delta, as
+ * `core/hpCopy.ts` has written HP since round 2: the slot says where the
+ * member stands, and the screen behind the band says where it stood.
+ */
+export function restorePreviewRow(party: readonly PokemonState[]): HTMLElement {
+  const row = el('div', 'restore-preview');
+  row.append(
+    renderSlots(
+      'party',
+      party.map((member) => ({ label: member.spec.species, detail: [hpStateBare(member.hp, member.maxHp)] })),
+      party.length,
+    ),
+  );
+  return row;
 }
 
 export function renderRewardCard(
@@ -397,9 +426,15 @@ export function renderOfferCards(
         if (claimed) return;
         select(index);
         const claim = cardOptions.claim ?? CLAIM_COPY;
+        const copy = renderRewardCard(reward, state, () => undefined, { ...cardOptions, inert: true });
+        let content: HTMLElement = copy;
+        if (reward.kind === 'heal' && cardOptions.restorePreview) {
+          content = el('div', 'reward-claim');
+          content.append(copy, restorePreviewRow(cardOptions.restorePreview(reward.fraction)));
+        }
         openBand({
           title: claim.title,
-          content: renderRewardCard(reward, state, () => undefined, { ...cardOptions, inert: true }),
+          content,
           confirm: claim.confirm,
           cancel: claim.cancel,
           onConfirm: () => {

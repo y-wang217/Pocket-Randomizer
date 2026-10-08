@@ -15,12 +15,13 @@
  * is what actually refuses an overdraft, because a replayed log has no buttons.
  */
 import { basketCost, type ShopStock } from '../../core/economy';
-import type { RunState } from '../../core/run';
+import { partyAfterPurchases, type RunState } from '../../core/run';
 import { openBand } from '../band';
 import { el } from '../scene';
 import { setProse } from '../dom';
 import { BUY_COPY, SHOP_COPY } from '../copy/screens';
-import { renderRewardCard } from './reward';
+import { renderRewardCard, restorePreviewRow } from './reward';
+import { coinAmount } from '../chip';
 
 export interface ShopScreen {
   root: HTMLElement;
@@ -141,10 +142,20 @@ export function createShopScreen(): ShopScreen {
           onLeave(basket);
           return;
         }
-        const content = el('div', 'shop__basket');
+        const cardsBought = el('div', 'shop__basket');
         for (const index of basket) {
           const item = stock.items[index];
-          if (item) content.append(renderRewardCard(item.reward, state, () => undefined, { price: item.price, inert: true }));
+          if (item) cardsBought.append(renderRewardCard(item.reward, state, () => undefined, { price: item.price, inert: true }));
+        }
+        /*
+         * A basket that heals shows the party it heals to (2026-10-08). The
+         * whole basket, through `applyPurchases` on a throwaway state, so two
+         * heals stack the way the run will stack them.
+         */
+        let content: HTMLElement = cardsBought;
+        if (basket.some((index) => stock.items[index]?.reward.kind === 'heal')) {
+          content = el('div', 'reward-claim');
+          content.append(cardsBought, restorePreviewRow(partyAfterPurchases(state, stock, basket)));
         }
         openBand({
           title: BUY_COPY.title,
@@ -164,9 +175,10 @@ function coin(label: string, amount: number, tone?: 'warn'): HTMLElement {
   const box = el('div', `shop__coin${tone ? ` shop__coin--${tone}` : ''}`);
   const key = el('span', 'shop__coin-label');
   key.textContent = label;
-  const value = el('span', 'shop__coin-value');
-  value.textContent = String(amount);
-  box.append(key, value);
+  // The currency mark beside the number, as the shelf's prices under it wear
+  // it (2026-10-08). The three words stay: they name which balance, and the
+  // mark names the unit.
+  box.append(key, coinAmount(String(amount), 'shop__coin-value'));
   return box;
 }
 

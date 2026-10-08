@@ -399,8 +399,6 @@ section({
     { key: 'hpEventDelta', text: hpCopy.hpEventDelta(-0.2) },
     { key: 'outcomeTitle (won)', text: hpCopy.outcomeTitle(true) },
     { key: 'outcomeTitle (lost)', text: hpCopy.outcomeTitle(false) },
-    { key: 'currencyLine', text: hpCopy.currencyLine(17, 63) },
-    { key: 'currencyLine (none)', text: hpCopy.currencyLine(0, 63) },
     { key: 'faintedLine (none)', text: hpCopy.faintedLine(0) },
     { key: 'faintedLine (one)', text: hpCopy.faintedLine(1) },
     { key: 'RUN_ENDS', text: hpCopy.RUN_ENDS },

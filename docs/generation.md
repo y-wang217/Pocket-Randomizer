@@ -15403,3 +15403,102 @@ vitest worker RPC timeout, which is not a test. `contentHash` holds at
 `76dc8f` and `test/visual-baseline.test.ts` replays every pinned run, SMOKE24
 included, byte identical. Shots as built:
 [`visual/reports/map-calm-down-1/`](visual/reports/map-calm-down-1/README.md).
+
+## 123. The restore claim shows the party's HP, and every coin amount wears the mark
+
+**2026-10-08**, on `claude/potion-hp-and-currency`, from `main` at `f660577`.
+Prompt
+[`spec/gymrun-patch-potion-hp-and-currency.md`](spec/gymrun-patch-potion-hp-and-currency.md),
+three sentences and a phone screenshot of the result screen. Presentation
+only: no draw, no logged decision and no table moves, so no version axis
+moves and `contentHash` holds. No bible amendment: nothing here needs a
+sentence at rest, a second explanation mechanism, a new glyph family or a
+third move-card call site.
+
+### The restore claim (*"show hp when using potion"*)
+
+- **What the player could not see.** A restore card says `+85%` and a shop
+  heal its share. Neither said what the party would stand on afterwards, and
+  the result screen's party row is the party *as the fight left it*, before
+  the node boundary revives anyone, clears status or pays a relic's mend. On
+  a phone that row also overran its boxes (below), so the HP the heal would
+  land on could not be read at all.
+- **`partyAfterRestore` and `partyAfterPurchases`**, in `core/run.ts` beside
+  `projectionOf`. Each runs the fold on a throwaway state through the
+  functions `resolveNode` calls, in its order for a node that is not a gym:
+  the battle folded in, `betweenNodes`, then `applyReward` or
+  `applyPurchases`. The preview is the fold, not a restatement of it, which is
+  CLAUDE.md's *Prices* discipline applied to a heal. A gym never offers a
+  restore (`data/rewardPools.ts`), so the gym's heal-then-level path is not
+  mirrored. Nothing is drawn and nothing is logged.
+- **Where it shows.** In the Confirm band's content, under the card being
+  claimed: one party slot per member, its HP as the restore leaves it
+  (`restorePreviewRow` in `ui/screens/reward.ts`). The result screen's claim
+  band and the shop's buy band, when the basket holds a heal; the basket is
+  previewed whole, so two heals stack as the run stacks them. State, not
+  delta, as `core/hpCopy.ts` has written HP since round 2. Section 5's
+  Confirm band row puts *"the content being traded"* in the band, and the
+  species are proper nouns and the readings numbers, so the band's budget of
+  6 is unchanged. No card face changes.
+- **Not covered.** Defender Mode's Potion, Super Potion and Hyper Potion are
+  used from the Team screen on one member whose HP is already on its card;
+  unchanged.
+
+### The party slot line
+
+- `61 / 76 · 80% · 71/88` was one `nowrap` string in a third-width slot, so
+  on a phone it ran out of the box and into its neighbour, which is how the
+  screenshot shows it. `SlotContent.detail` now takes parts
+  (`ui/slots.ts`); each stays whole and the line wraps between them with a
+  gap, never a trailing dot. The PP part wears the PP glyph, which
+  `memberReading`'s own comment and section 3's PP row already said it did
+  and it never had.
+- The result screen's party and the restore preview lay a party out three to
+  a row (`styles.css`), so six members are two rows rather than six slivers;
+  one member still takes the line.
+
+### One encoding for every coin amount (*"show money more consistently"*)
+
+Section 2's currency row has said since D54 that the mark sits *"beside a
+bare number wherever a coin amount appears"*. Three surfaces had not
+reached it. Every coin amount at rest, by surface:
+
+| Surface | Before | Now |
+|---|---|---|
+| Result header | `+29 · 90` | mark `+29` · mark `90`, each with the map's `currency:` long press (`earned`, new, and `wallet`) |
+| Coins card | mark `+41` | unchanged |
+| Map payout, map wallet, shelf price | mark and number | unchanged |
+| Shop wallet | `Carrying 60`, `Basket 0`, `Left 60` | the three words stay, each number beside the mark |
+| Event Toll, fixed coins | `Costs 40 coins`, `Paid: 40 coins` | `Costs` mark `40`, `Paid:` mark `40` |
+| Event outcome and cost, coins | `+45 coins`, `-30 coins` | mark `+45`, mark `-30` |
+| Event Toll, share of coins | `Costs 25% of your coins` | unchanged: a share is not an amount |
+| Long presses | words | unchanged: words are what inspect is for |
+
+`currencyLine` in `core/hpCopy.ts` is deleted with its two `copy-audit`
+rows, and `describeCost` in `core/events.ts`, whose one caller was the event
+screen; `docs/copy.md` is regenerated. `describeEffect`, `describeOutcome`
+and `describeToll` keep their words, because the run's refusal errors and
+the tests read them; `ui/screens/event.ts` draws the mark in their place on
+screen.
+
+### Bible rules touched
+
+C1 (the preview is a fact about the option, computed, never a ranking); C2
+(both result numbers stay; the word *coins* leaves only where the mark
+replaces it); R1, R2 and R3; R13 (HP is vital and is shown as numbers);
+section 2's currency row; section 3's coin amount and PP rows; section 4's
+result screen and Confirm band rows; section 5's Confirm band and reward
+card rows.
+
+### Tests
+
+- `test/restore-preview.test.ts`: across six seeds a policy takes every
+  restore offered and buys every heal it can pay for, previews each, and the
+  party `resolveNode` produces must equal the preview member for member
+  (some previews below full, so the comparison is not vacuous). On the
+  result screen: the header's two amounts wear the mark and their tips, the
+  restore claim carries the party at the previewed HP, a coins claim
+  carries none, and the slot's PP part wears its glyph.
+- `test/event-screen.test.ts`: the outcome and price lines are compared to
+  the core description with a coin amount read as the mark, and a coin
+  outcome must carry the mark.

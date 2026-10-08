@@ -131,36 +131,6 @@ export function outcomeTitle(won: boolean): string {
   return won ? 'Victory' : 'Defeated';
 }
 
-/**
- * What this node paid **and what the run now holds**.
- *
- * Both numbers, which is the Part 4 addition. "+40 coins" is a fact about the
- * node; "you have 216" is the fact the next shop decision is made on, and a
- * player who has to add the two in their head is doing arithmetic instead of
- * deciding.
- */
-export function currencyLine(earned: number, total: number): string {
-  /*
-   * **Two bare numbers and a sign. Milestone M5.4.**
-   *
-   * Section 4: *"Result screen | 6 | Outcome word, '+N' currency, continue."*
-   * The `coins` and `total` this used to carry were field labels on a screen
-   * whose budget names the `+N` and nothing around it, and R2 lists that kind
-   * of label first among the things it deletes.
-   *
-   * **Both numbers stay**, which is the half C2 binds: the brief's own
-   * reasoning is that *"a player adding two figures in their head is doing
-   * arithmetic instead of deciding"*, so the total the next shop is judged
-   * against is a decision fact. What goes is the words naming them — the sign
-   * says which is the change, and position says the rest (R1).
-   *
-   * `No coins` becomes `+0`, because a node that paid nothing is still the
-   * same fact in the same slot; R4's "renders nothing" is about a default, and
-   * a payout of zero beside a running total is not one.
-   */
-  return `+${earned} · ${total}`;
-}
-
 /** How many members went down, and what happens to them. */
 export function faintedLine(count: number): string {
   if (count === 0) return 'Nobody went down.';

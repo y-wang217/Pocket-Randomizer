@@ -6594,11 +6594,34 @@ button,
 .result__party .slot[data-fainted='true'] { opacity: 0.55; }
 
 .slot__detail {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  column-gap: var(--space-2);
+  max-width: 100%;
   font-family: var(--font-body);
   font-size: var(--fs-xs);
   color: var(--text-dim);
-  white-space: nowrap;
 }
+
+/* Each part of the reading stays whole; the line breaks between them, so a
+   third-width slot on a phone wraps rather than overrunning the box. The gap
+   is the separator, so a wrapped line never ends on a dangling dot. */
+.slot__detail-part { white-space: nowrap; }
+
+/* A party of up to six as rows of three, never six across a phone: the
+   result screen's party and the restore claim's (2026-10-08). One member
+   still takes the whole line. */
+.result__party .slots,
+.restore-preview .slots {
+  grid-auto-flow: row;
+  grid-template-columns: repeat(auto-fit, minmax(max(30%, 96px), 1fr));
+}
+.slot__pp { display: inline-flex; align-items: center; gap: var(--space-h); }
+
+/* The restore claim's party: each member's HP as the card would leave it. */
+.reward-claim { display: grid; gap: var(--space-2); justify-items: center; }
+.restore-preview { width: 100%; }
 
 /* ---------------------------------------------------------------------------
  * Stage 4.7 — legibility

@@ -88,8 +88,13 @@ export interface SlotContent {
   item?: ItemId | null;
   /** A `data-tip` key for the slot, so a tap names what is in it. */
   tip?: string;
-  /** A second, smaller line under the label: an HP and PP reading, say. */
-  detail?: string;
+  /**
+   * A second, smaller line under the label: an HP and PP reading, say. Given
+   * as parts, each part stays whole and the line breaks between them, so a
+   * third-width slot on a phone wraps `61 / 76 · 80%` above the PP rather
+   * than running the reading out of the box (2026-10-08).
+   */
+  detail?: string | readonly (string | Node)[];
 }
 
 /** The icon element for an item, positioned on the sheet by @pkmn/img. */
@@ -128,7 +133,12 @@ export function renderSlots(kind: 'party' | 'backpack', contents: readonly SlotC
       slot.append(label);
       if (content.detail) {
         const detail = el('span', 'slot__detail');
-        detail.textContent = content.detail;
+        const parts = typeof content.detail === 'string' ? [content.detail] : content.detail;
+        for (const part of parts) {
+          const piece = el('span', 'slot__detail-part');
+          piece.append(part);
+          detail.append(piece);
+        }
         slot.append(detail);
       }
       if (content.tip) {
