@@ -145,6 +145,20 @@ describe('the hash moves for a data edit and only for a data edit', () => {
     expect(contentHashOf(scratch)).toBe(baseline);
   });
 
+  /*
+   * **The map calm-down patch, its test 8** (bible Rev 31, D113): a vignette
+   * caption is copy, and rewording one must not refuse a shared seed. The loop
+   * below covers the file with a comment; this rewords a caption itself.
+   */
+  it('does not change for a reworded vignette caption', () => {
+    const path = 'src/data/vignetteCopy.ts';
+    const before = readFileSync(join(scratch, path), 'utf8');
+    edit(path, (text) => text.replace("return: 'Where to next?'", "return: 'Onward, then'"));
+    expect(readFileSync(join(scratch, path), 'utf8')).not.toBe(before);
+    expect(contentHashOf(scratch)).toBe(baseline);
+    writeFileSync(join(scratch, path), before, 'utf8');
+  });
+
   it('does not change for an edit to an excluded copy file', () => {
     for (const { path } of EXCLUDED) {
       const before = readFileSync(join(scratch, path), 'utf8');

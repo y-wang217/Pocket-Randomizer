@@ -684,6 +684,22 @@ export async function openApp(browser, url, seed, viewport = PHONE, contextOptio
    */
   const context = await browser.newContext({ ...contextFor(viewport, browser.browserType().name()), ...rest });
   if (!tutorial) await skipTutorialIn(context);
+  /*
+   * **A first launch with the journey vignettes off. The map calm-down
+   * patch, D113.** A test that asks for the tutorial asks for a first launch,
+   * and a first launch has the beats on, whose layer takes the clicks the
+   * walk aims at a map node. Only the beats are stored; the coach marks and
+   * the greeting stay first-launch.
+   */
+  else {
+    await context.addInitScript(() => {
+      try {
+        if (!globalThis.localStorage.getItem('gymrun.settings')) globalThis.localStorage.setItem('gymrun.settings', JSON.stringify({ vignettes: 'off' }));
+      } catch {
+        // Storage unavailable: the app falls back to its defaults.
+      }
+    });
+  }
   const page = await context.newPage();
   const problems = [];
   page.on('console', (msg) => {

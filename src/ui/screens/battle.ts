@@ -22,7 +22,7 @@ import type { Choice } from '../../core/types';
 import { abilityEffects } from '../../data/abilityEffects';
 import { AI_TIER_LABEL, aiTierFor } from '../../data/ai';
 import { GLYPH_LABELS, NODE_KIND_WORDS } from '../../data/glyphLabels';
-import { challengerMark, nodeKindGlyph } from '../chip';
+import { challengerMark } from '../chip';
 import { createBattleLog, type BattleLogView } from '../battle-log';
 import { createSpeciesIndex } from '../species-index';
 import { createFlagStrip, type FlagStrip } from '../flag-strip';
@@ -186,11 +186,19 @@ export function createBattleScreen(): BattleScreen {
       // A challenger wears its own sprite in the kind's slot (D106) and its
       // name beside it; the other kinds wear the kind's mark alone, and so
       // does a Defender Mode boss, which has no name (`leaderless`).
+      /*
+       * **The kind left this header for the node band in D113** (bible Rev
+       * 30, `ui/node-band.ts`): the band above the header carries the kind's
+       * silhouette in its colour, the same mark the map node wore, and a mark
+       * here too would be R3's double render. A challenger keeps their own
+       * sprite and name, which are who they are rather than what the node is.
+       */
       const kindLabel = NODE_KIND_WORDS[node.kind] ?? node.kind;
-      title.replaceChildren(node.kind === 'gym' ? challengerMark(node.encounter?.source ?? null, kindLabel, 16) : nodeKindGlyph(node.kind, kindLabel, 16));
+      title.replaceChildren(...(node.kind === 'gym' ? [challengerMark(node.encounter?.source ?? null, kindLabel, 16)] : []));
       if (node.kind === 'gym' && !leaderless) {
         title.append(document.createTextNode(node.encounter?.source?.name ?? node.label));
       }
+      title.hidden = title.childNodes.length === 0;
       /*
        * **The team size came off this header**, and it had to.
        *

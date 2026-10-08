@@ -15241,3 +15241,165 @@ The union, with nothing narrowed on either side.
 the visual baseline re-recorded; the attacker golden unchanged; the node suite
 and the strict trim, the build, `npm run smoke`, `scripts/smoke-defender.mjs`,
 and the browser family walk as recorded in the merge commit.
+
+
+## 122. The map calms down, and the run gets its journey vignettes
+
+**Renumbered on merge.** Written as section 116 under bible Rev 30, D109; `main`
+had taken sections 116 to 121, Rev 30 and D109 to D112 the same day for Defender
+Mode, so on merging it this became section 122, Rev 31 and D113. Nothing else in
+the section moved.
+
+**2026-10-07**, on `claude/vibrant-sagan-bg399f`, from `main` at `371dcfe`.
+Prompt
+[`spec/gymrun-patch-map-calm-down-and-journey-vignettes.md`](spec/gymrun-patch-map-calm-down-and-journey-vignettes.md),
+its report before code
+([`visual/reports/map-calm-down-0/README.md`](visual/reports/map-calm-down-0/README.md)),
+and the author's ruling on it with five node drawings
+([`spec/gymrun-patch-map-calm-down-rulings-d113.md`](spec/gymrun-patch-map-calm-down-rulings-d113.md)).
+Presentation only: no version axis moves, `contentHash` holds at `76dc8f`.
+Bible **Rev 31**, D113 (`design/bible-discrepancies.md`, `design/playtest-log.md`).
+
+### What the report found
+
+The prompt's hypothesis was that the map read badly because the painting
+competed with the nodes and every step had equal weight, with the
+disconfirmer *"nodes still blur together when the backdrop is replaced by a
+flat colour"*. It fired on all three seeds: on a flat colour every node was
+the same grey disc carrying a 24px cream glyph, and the kinds' glyphs were
+near-identical round shapes at thumbnail size. Node design was the primary
+fault and the painting a secondary one, worst in the mid-value regions. The
+edges already drew only the travelled path and the next step.
+
+### The map (part 1)
+
+- **Silhouettes.** `ui/assets/silhouettes/node-*.png` are the author's five
+  drawings converted to 32x32 by `scripts/visual/silhouettes.py`, keyed
+  `silhouette:<kind>` in the manifest. Rest has no drawing: its silhouette is
+  the tent's 8px ink mark drawn in rest's token. `ui/chip.ts` `nodeSilhouette`
+  wears them, with the kind's tip. A trainer who wears their sprite (D107)
+  still does, now as a whole cutout with no disc.
+- **Colour tokens.** `--kind-<kind>` in `src/ui/theme/tokens.css`, each the main
+  tone of the kind's drawing, none a type hue. The map's `.node--<kind>` sets
+  `--kind`, which the next-step glow, the node band and the vignette read.
+- **Three weights.** The step being chosen from at 48 in full colour with a
+  glow in its token, the only buttons; the node the player stands on
+  (`node--here`, new) at 32, solid, with the marker; later rows at 24 in grey,
+  and walked-past nodes greyer. The boss is the badge at 56, with the
+  challenger's sprite at 16 before their name on its label.
+- **The scrim.** `.map-graph::after`, the frame's fill at
+  `displayTuning.mapScrimOpacity` (0.5), published as `--map-scrim`. No blur.
+- **Removed**: the disc and its ring transition, the step-number markers
+  (each row keeps "Step n" as its accessible name), the entrance ellipse (its
+  anchor stays, drawn as nothing), the passed node's dashed outline, and the
+  facts plate's border. The next-step edges are now the cream, the travelled
+  path the dim cream; there are no others.
+- **Kept, against the prompt's "remove anything not listed"**: the next-step
+  row's payout, AI tier and shop shelf. They are decision facts and C2
+  forbids dropping them; the author took the report's recommendation.
+
+### The vignettes (part 2)
+
+- **`ui/vignette.ts`**: `createJourney(frame)` and `renderVignette(scene)`.
+  A beat is a crop of the region's map painting under the same scrim, one
+  sprite at 128 and the caption, on a layer over the whole frame (nav
+  included) at z-index 60. The sprite is the trainer's or the boss's own for
+  those moments, the lead's for rest and the return, and otherwise the
+  moment's manifest entry (`vignette:<moment>`: the kind's silhouette, and
+  for the return a lettered chip, the one placeholder the manifest test now
+  names).
+- **Input.** A pointerdown on the layer is taken in its capture phase and
+  ends the beat; the click the browser sends after the same tap is swallowed
+  once at the window, with a 600ms guard so a later deliberate tap is never
+  eaten. A click or Escape, Enter or Space also ends it. The end-of-battle
+  hold's tap was never guarded this way, which the report found; this one is.
+- **Timing.** `displayTuning.vignetteMs` (900). Reduced motion sets
+  `data-still` and the entrance does not run; the hold is unchanged, and a
+  tap still ends it. The setting is `vignettes: 'on' | 'off'` in
+  `ui/settings.ts`, default on, with a picker in the settings sheet.
+- **Captions** are `data/vignetteCopy.ts`, on the `contentHash` exclusion
+  list. *"Stay safe, spend wisely"* stands as the prompt wrote it, by the
+  author's ruling (bible section 8's carve-out for vignette captions, D113).
+- **The seams** (`ui/app.ts`). `enterNode` runs after every map pick
+  (`chooseNode`, `chooseDoor`) and the gym's lead (`chooseLead`), before
+  `playRun` hears the answer, so the beat stands between the commit and the
+  node's screen. `arriveAtMap` is the only place a question shows the map;
+  when the last thing entered was a battle, a shop, an event or a region it
+  plays *Where to next?* with the map drawn beneath it. Rest plays its own
+  beat and does not chain into the return, because its map never left. The
+  locale answer arms the return for a region's first map. `core/` is
+  untouched: `test/boundaries.test.ts` still finds no timer there, and
+  `playRun` never reaches the app.
+
+### The node band (part 3)
+
+`ui/node-band.ts` `mountNodeBand(screen, kind, locale)`, mounted by `app.ts`
+on the battle, shop, event and pre-gym screens: the kind's token as ground
+and edge, the silhouette at 24 and the locale's name. No kind word (the
+report's item 3, taken): beside its silhouette it would be R3's double
+render. The battle header's kind mark moved into the band; a challenger
+keeps their sprite and name there, and an empty title is `hidden`. Rest has
+no screen and no band.
+
+### Deviations from the prompt
+
+- *"Header shows the node type name"*: no word, the silhouette instead, by
+  the ruling on the report's item 3.
+- *"Remove anything ... not one of the above"*: the next-step detail line
+  stays (C2), by the ruling on item 4.
+- The sprite size: the report proposed 64x64 for new art; the author's
+  drawings arrived at a grid of about 32, so the silhouettes are 32x32 and
+  the vignette draws them at four art pixels to the pixel.
+- *"Trainer sprite for gym"*: the vignette does use the challenger's sprite;
+  on the map the boss's slot is the badge (D113 amends D106 there), and the
+  sprite moved beside the name.
+- The trainer drawing (crossed pennants) is worn only where no sprite is,
+  an unwalked attacker trainer. The author's *"the trainer should be a
+  trainer sprite already so we'll have to reconcile that at some point"* is
+  carried open in `README.md` section 5.
+- *"On return to the map after a node resolves"*: also after the locale
+  screen, so a region's first map arrives with the beat; not after rest.
+- Driven browsers (`scripts/first-launch.mjs`) start with the vignettes off,
+  as they start with the tutorial skipped: the layer would take the clicks a
+  bot aims at a node. `test/visual-journey.test.ts` turns them on.
+
+### Tests
+
+- `test/map-calm-down.test.ts`: six kinds read off `NODE_KINDS` (the
+  manifest's record, held to the data's union by the compiler); every kind's
+  silhouette in the manifest, no two outlines alike by intersection over
+  union under 0.5; every kind's token, none shared and none a type hue, and
+  the map's `--kind` for each; every node drawn as its silhouette with no
+  step number or entrance mark; the step being chosen from the only controls;
+  one `node--here`; the badge with the challenger beside the name; the scrim.
+- `test/vignette.test.ts`: every moment's key and caption under five words;
+  the placeholder at the drawing's size; the region's painting; the hold,
+  the tap that ends it and the click it swallows once, the layer's own
+  click, `beneath` drawn first, no stacking; the setting off and reduced
+  motion.
+- `test/journey-seam.test.ts`: one `journey.play`, inside `beat`; the map
+  shown from a question only through `arriveAtMap`; every pick and the gym's
+  lead through `enterNode`; rest not arming the return.
+- `test/node-band.test.ts`: the band's silhouette, region and no kind word,
+  redrawn in place, mounted on the four screens.
+- `test/content-hash.test.ts`: a reworded caption leaves the hash unmoved.
+- `test/visual-journey.test.ts`, in Chromium at 390x844: every next-step node
+  at 44px or more and nothing else on the graph a target, no scroll; a commit
+  plays its kind's beat and a tap ends it inside 600ms; a tap aimed at a map
+  node during the return beat chooses nothing.
+- Updated, each with a comment naming this patch: `test/asset-manifest.test.ts`
+  (the one placeholder), `test/visual-tokens.test.ts` (16 durations, the
+  disc's ring transition gone).
+
+### Gates
+
+`npm run check`: lint, hedge, typecheck, `test:chromium` (every browser file,
+the new `visual-journey` included), `trim:browser`, build, smoke and census
+pass; WebKit skipped for no browser binary in this container. `test:node`
+and `trim:node` failed on one test, `test/boundaries.test.ts`'s doc-path
+check, on a path this section first wrote short (`src/ui/theme/tokens.css`);
+fixed, and the file then passes 23 of 23. Both node legs also logged a
+vitest worker RPC timeout, which is not a test. `contentHash` holds at
+`76dc8f` and `test/visual-baseline.test.ts` replays every pinned run, SMOKE24
+included, byte identical. Shots as built:
+[`visual/reports/map-calm-down-1/`](visual/reports/map-calm-down-1/README.md).

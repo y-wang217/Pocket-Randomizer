@@ -77,6 +77,15 @@ const PAST_EVERY_LABEL = 1_000;
  */
 export function notFirstLaunch() {
   return JSON.stringify({
+    /*
+     * **The journey vignettes off. The map calm-down patch, bible Rev 31,
+     * D113.** Not a once-only surface, but the same hazard the header names:
+     * a layer over every screen at every map commit, which a scripted click
+     * lands on instead of the node it meant. A driven browser measures the
+     * screens; the beat itself has its own browser test
+     * (`test/visual-journey.test.ts`), which turns them on.
+     */
+    vignettes: 'off',
     tutorial: { skipped: true, seen: [] },
     intro: { seenVersion: SEEN_EVERY_INTRO },
     exposure: { counts: Object.fromEntries(EXPOSED_FAMILIES.map((family) => [family, PAST_EVERY_LABEL])) },

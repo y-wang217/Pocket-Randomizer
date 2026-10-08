@@ -22,6 +22,8 @@
 import type { FieldKind } from '../core/battle/view';
 import { el } from './dom';
 import { opponentImg } from './sprites';
+import { assetIcon } from './assets/manifest';
+import type { NodeKind } from '../data/tuning';
 import type { EncounterRef } from '../core/types';
 import { categoryGlyphId, glyphNode, markFamily, typeGlyphId } from './theme/glyph';
 import { BAND_PIPS } from '../data/bandInfo';
@@ -54,6 +56,17 @@ export interface ChipOptions {
   tip?: string;
   /** Extra classes a slot needs (a legacy badge modifier, say). */
   extra?: string;
+}
+
+/**
+ * A node's mark on the map since D113: a cutout standing on the painting, not
+ * a chip, so it carries the kind's tip and none of the chip's fill or ring
+ * (`visual-v2`'s one neutral chip style stays one).
+ */
+function cutout(className: string, tip: string): HTMLElement {
+  const node = el('span', className);
+  node.dataset['tip'] = tip;
+  return node;
 }
 
 function build(variant: ChipVariant, legacy: string, text: string, options: ChipOptions = {}): HTMLElement {
@@ -365,13 +378,41 @@ export function challengerMark(source: EncounterRef | null, label: string, size:
  * as `nodeKindGlyph`, because it is the kind's mark.
  */
 export function trainerMark(sprite: string | null, label: string, size: 24 | 16): HTMLElement {
-  const node = build('node', 'node__kind node__kind--challenger node__kind--trainer', '', { tip: 'node:trainer' });
+  // A cutout on the map, not a chip since D113: no disc, no chip fill.
+  const node = cutout('node__kind node__kind--challenger node__kind--trainer', 'node:trainer');
   if (sprite) {
     node.append(opponentImg(sprite, size));
   } else {
     const mark = glyphNode('node-trainer', { label, size });
     if (mark) node.append(mark);
   }
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  return node;
+}
+
+/**
+ * A node kind as its coloured silhouette. **The map calm-down patch, bible
+ * Rev 31, D113: shape first, then colour.** The map's mark for every kind but
+ * a trainer who wears their sprite (D107), and the node band's and the
+ * vignette's: the cutout in the kind's own colours, so a player tells rest
+ * from a fight at thumbnail size without reading a glyph. Same wrapper and tip
+ * as `nodeKindGlyph`, because it is the kind's mark and opens the kind's
+ * inspect. The size is the caller's stylesheet's: the drawing fills the box.
+ */
+export function nodeSilhouette(kind: NodeKind, label: string): HTMLElement {
+  const node = cutout('node__kind node__kind--silhouette', `node:${kind}`);
+  node.dataset['kind'] = kind;
+  /*
+   * The drawing is the node family's mark here, so it reports the family the
+   * way `glyphNode` does: R7's exposure labels and the family walk find it by
+   * `data-family`, and `data-glyph` names which mark it is.
+   */
+  const art = assetIcon(`silhouette:${kind}`);
+  art.dataset['family'] = 'node';
+  art.dataset['glyph'] = `node-${kind}`;
+  art.setAttribute('aria-label', label);
+  node.append(art);
   node.setAttribute('role', 'img');
   node.setAttribute('aria-label', label);
   return node;

@@ -199,6 +199,27 @@ export interface DisplayTuning {
    * strip" can move it without refusing a shared seed.
    */
   logPullPx: number;
+
+  /**
+   * How strongly the flat scrim pushes the map's painting back, as an
+   * opacity from 0 (the painting as drawn) to 1 (the scrim alone). **The map
+   * calm-down patch, bible Rev 31, D113.**
+   *
+   * The painting sets the region's mood and must not compete with the marks:
+   * the report before the patch found it muddying the mid-value regions (Cave,
+   * Badlands) at the discs' own value. A flat colour, never a blur, and the
+   * stylesheet reads it through `--map-scrim`, published by `applyMotion`.
+   */
+  mapScrimOpacity: number;
+
+  /**
+   * How long a journey vignette holds before it gets out of the way, in
+   * milliseconds. **The map calm-down patch, D113.** One number for every
+   * beat. A tap ends a beat at once, and reduced motion keeps the frame still
+   * for the same time rather than shortening it: the beat is the picture, not
+   * the movement.
+   */
+  vignetteMs: number;
 }
 
 /**
@@ -278,4 +299,19 @@ export const DEFAULT_DISPLAY_TUNING: DisplayTuning = {
    * always there.
    */
   logPullPx: 24,
+
+  /*
+   * **0.5.** The map calm-down patch. Half way: the painting still names the
+   * region at a glance, and every node silhouette clears it on all eight
+   * locales in the report's three-seed shots. The number to move if a
+   * playtest says the map reads as a flat panel, or still as a painting.
+   */
+  mapScrimOpacity: 0.5,
+
+  /*
+   * **900ms**, the prompt's starting value. Long enough to read five words,
+   * short enough that a run of rests and fights does not drag; a tap is
+   * always faster. Not swept yet.
+   */
+  vignetteMs: 900,
 };

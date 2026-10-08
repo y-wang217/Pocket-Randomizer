@@ -212,8 +212,13 @@ describe('the token rule', () => {
    * faint are five more `animation` and `animation-delay` declarations, every
    * one of them a `calc` over `--motion-beat`, which is `--motion-duration`
    * over four. Nothing new to count.
+   *
+   * **16 since the map calm-down patch** (bible Rev 31, D113): the map node's
+   * disc is retired, and its 120ms ring transition went with it. The
+   * vignette's hold is `var(--vignette-duration)`, published from
+   * `data/displayTuning.ts`, so nothing new to count.
    */
-  const PRE_RELEASE_C_DURATIONS = 17;
+  const PRE_RELEASE_C_DURATIONS = 16;
 
   it('adds no duration that is not a token', () => {
     const found: string[] = [];

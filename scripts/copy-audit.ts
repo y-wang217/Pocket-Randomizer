@@ -44,6 +44,7 @@
  */
 import { writeFileSync } from 'node:fs';
 import { eventHook, eventLabel, eventHint } from '../src/data/eventCopy';
+import { VIGNETTE_CAPTIONS, VIGNETTE_MOMENTS } from '../src/data/vignetteCopy';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -91,6 +92,8 @@ import {
   TARGET_EFFECT,
   BATTLE_SPEED_HEADING,
   BATTLE_SPEED_COPY,
+  VIGNETTE_HEADING,
+  VIGNETTE_COPY,
   DRAWER_COPY,
   REWARD_COPY,
   CLAIM_COPY,
@@ -648,7 +651,23 @@ section({
       { key: `battleSpeed.${key} · name`, text: value.name },
       { key: `battleSpeed.${key} · description`, text: value.description },
     ]),
+    { key: `heading · ${VIGNETTE_HEADING}`, text: VIGNETTE_HEADING },
+    ...Object.entries(VIGNETTE_COPY).flatMap(([key, value]) => [
+      { key: `vignettes.${key} · name`, text: value.name },
+      { key: `vignettes.${key} · description`, text: value.description },
+    ]),
   ],
+});
+
+section({
+  title: 'Journey vignettes',
+  where: 'The beat between screens: one caption per node kind, and one for the return to the map (bible Rev 31, D113).',
+  source: 'src/data/vignetteCopy.ts',
+  note:
+    'Budgeted at 5 words by design bible section 4 and asserted by `test/vignette.test.ts`. Identical for '
+    + 'every node of its kind and shown only after the commit, so section 8\'s advice and hedge rule does not '
+    + 'reach them (D113). Off the `contentHash` glob: rewording one refuses no seed.',
+  rows: VIGNETTE_MOMENTS.map((moment) => ({ key: moment, text: VIGNETTE_CAPTIONS[moment] })),
 });
 
 section({

@@ -8,10 +8,10 @@
  * writes display settings and nothing else, so it may open over any decision
  * without touching it.
  */
-import { BATTLE_SPEED_COPY, BATTLE_SPEED_HEADING, SETTINGS_COPY } from './copy/screens';
+import { BATTLE_SPEED_COPY, BATTLE_SPEED_HEADING, SETTINGS_COPY, VIGNETTE_COPY, VIGNETTE_HEADING } from './copy/screens';
 import { el } from './dom';
 import { createOverlay, type Overlay } from './overlay';
-import { BATTLE_SPEEDS, getBattleSpeed, onSettingsChange, setBattleSpeed } from './settings';
+import { BATTLE_SPEEDS, getBattleSpeed, getVignettes, onSettingsChange, setBattleSpeed, setVignettes, VIGNETTE_MODES } from './settings';
 
 export interface SettingsSheet {
   overlay: Overlay;
@@ -29,7 +29,7 @@ export function createSettingsSheet(): SettingsSheet {
   replay.addEventListener('click', () => {
     for (const listener of listeners) listener();
   });
-  overlay.body.append(createBattleSpeedPicker(), replay);
+  overlay.body.append(createBattleSpeedPicker(), createVignettePicker(), replay);
   return {
     overlay,
     onReplayTutorial(listener) {
@@ -75,6 +75,18 @@ function createBattleSpeedPicker(): HTMLElement {
  * seeing five buttons and two nulls. A suite that names one picker must keep
  * finding one picker.
  */
+/** The journey vignettes, on or off (bible Rev 31, D113). */
+function createVignettePicker(): HTMLElement {
+  return createPicker({
+    heading: VIGNETTE_HEADING,
+    block: 'vignettes',
+    attribute: 'vignettes',
+    options: VIGNETTE_MODES.map((mode) => ({ value: mode, ...VIGNETTE_COPY[mode] })),
+    read: getVignettes,
+    write: setVignettes,
+  });
+}
+
 export function createPicker<T extends string>(spec: {
   heading: string;
   block: string;

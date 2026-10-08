@@ -65,6 +65,7 @@ import { CAPABILITIES, type Capability } from '../../data/capabilities';
 import { LOCALES, type LocaleId } from '../../data/locales';
 import { RELICS, type RelicId } from '../../data/relics';
 import type { NodeKind } from '../../data/tuning';
+import { VIGNETTE_MOMENTS, type VignetteMoment } from '../../data/vignetteCopy';
 
 export interface NativeSize {
   width: number;
@@ -106,6 +107,8 @@ export const NATIVE = {
   nav: { width: 12, height: 12 },
   currency: { width: 8, height: 8 },
   wordmark: { width: 96, height: 16 },
+  /** A node kind's coloured cutout (D113): the map, the node band, the vignette. */
+  silhouette: { width: 32, height: 32 },
 } as const satisfies Record<string, NativeSize>;
 
 /** The five tabs of the shell nav, in order. */
@@ -125,6 +128,13 @@ const NODE_LETTERS: Readonly<Record<NodeKind, string>> = {
   shop: '$',
   event: '?',
 };
+
+/**
+ * Every node kind, read off the letters' record, which the compiler holds to
+ * the data's own union: a kind added to the game without an entry here fails
+ * to build. The calm-down patch's tests read their kind list from this (D113).
+ */
+export const NODE_KINDS: readonly NodeKind[] = Object.keys(NODE_LETTERS) as NodeKind[];
 
 const NAV_LETTERS: Readonly<Record<NavTab, string>> = {
   map: 'M',
@@ -173,6 +183,29 @@ const icon = (file: string, native: NativeSize, tone: Tone, letter: string): Art
   letter,
 });
 
+/**
+ * A node kind's silhouette. **The map calm-down patch, bible Rev 31, D113:
+ * shape first, then colour.** The five drawings are the author's, converted
+ * to 32x32 by `scripts/visual/silhouettes.py`, in their own colours. Rest
+ * has no drawing yet, so its silhouette is the tent's 8px ink mark, drawn in
+ * rest's colour token through the mask: art never blocks code, and a
+ * drawing dropped in later is this one line.
+ */
+const silhouette = (kind: NodeKind): ArtFile =>
+  kind === 'rest'
+    ? icon('glyphs/node-rest.png', NATIVE.node, 'mask', NODE_LETTERS[kind])
+    : icon(`silhouettes/node-${kind}.png`, NATIVE.silhouette, 'colour', NODE_LETTERS[kind]);
+
+/**
+ * A vignette's sprite (D113). Where the moment has a person to show, the
+ * vignette shows them instead (a trainer's sprite, the lead's), and this is
+ * what it falls back to. A kind's moment is its silhouette; the return to the
+ * map has no drawing, so it ships as the lettered chip at the silhouette's
+ * size, the placeholder rule, until one arrives.
+ */
+const vignette = (moment: VignetteMoment): Asset =>
+  moment === 'return' ? { kind: 'placeholder', letter: '→', native: NATIVE.silhouette } : silhouette(moment);
+
 export type AssetKey =
   | `map-backdrop:${LocaleId}`
   | `battle-backdrop:${LocaleId | 'gym'}`
@@ -182,7 +215,9 @@ export type AssetKey =
   | `relic:${RelicId}`
   | `nav:${NavTab}`
   | 'currency'
-  | 'wordmark';
+  | 'wordmark'
+  | `silhouette:${NodeKind}`
+  | `vignette:${VignetteMoment}`;
 
 function build(): ReadonlyMap<AssetKey, Asset> {
   const entries: [AssetKey, Asset][] = [];
@@ -204,6 +239,8 @@ function build(): ReadonlyMap<AssetKey, Asset> {
   for (const tab of NAV_TABS) entries.push([`nav:${tab}`, icon(`icons/nav-${tab}.png`, NATIVE.nav, 'mask', NAV_LETTERS[tab])]);
   entries.push(['currency', icon('glyphs/currency-coin.png', NATIVE.currency, 'mask', '¢')]);
   entries.push(['wordmark', icon('icons/wordmark.png', NATIVE.wordmark, 'mask', 'GYMRUN')]);
+  for (const kind of Object.keys(NODE_LETTERS) as NodeKind[]) entries.push([`silhouette:${kind}`, silhouette(kind)]);
+  for (const moment of VIGNETTE_MOMENTS) entries.push([`vignette:${moment}`, vignette(moment)]);
   return new Map(entries);
 }
 

@@ -24,7 +24,7 @@
  * forms — `test/boundaries.test.ts` reads both.
  */
 import type { Prose } from '../dom';
-import type { BattleSpeed } from '../settings';
+import type { BattleSpeed, VignetteMode } from '../settings';
 
 export const STARTER_COPY = {
   blurb: {
@@ -244,6 +244,16 @@ export const BATTLE_SPEED_COPY: Readonly<Record<BattleSpeed, { name: string; des
   swift: { name: 'Swift', description: 'Beats go by quickly. The turn is out of the way sooner.' },
   even: { name: 'Even', description: 'The shipped pace. Each beat of a turn reads on its own.' },
   patient: { name: 'Patient', description: 'Beats hold longer. More time to read what happened.' },
+};
+
+export const VIGNETTE_HEADING = 'Journey beats';
+/*
+ * The journey vignettes' switch (bible Rev 31, D113). Descriptions of what
+ * happens, not advice on which to pick.
+ */
+export const VIGNETTE_COPY: Readonly<Record<VignetteMode, { name: string; description: string }>> = {
+  on: { name: 'On', description: 'A short picture between the map and each stop. A tap skips it.' },
+  off: { name: 'Off', description: 'Straight from the map to each stop and back.' },
 };
 
 export const DRAWER_COPY = {

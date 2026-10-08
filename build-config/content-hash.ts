@@ -170,7 +170,11 @@ export const EXCLUDED: ReadonlyArray<{ path: string; why: string }> = [
   },
   {
     path: 'src/data/displayTuning.ts',
-    why: "how long a battle beat lingers and the chip legibility floors; read by ui/theme/motion.ts and the visual tests only, and a number parked for a playtest must be movable when the playtest arrives without refusing every shared seed",
+    why: "how long a battle beat lingers, the chip legibility floors, the map's scrim and the vignette's hold; read by ui/theme/motion.ts and the visual tests only, and a number parked for a playtest must be movable when the playtest arrives without refusing every shared seed",
+  },
+  {
+    path: 'src/data/vignetteCopy.ts',
+    why: "the journey vignettes' captions (bible Rev 31, D113), one per node kind and one for the return to the map; read by ui/vignette.ts and tests only, and a reworded caption must not refuse a shared seed",
   },
   {
     path: 'src/data/statStages.ts',

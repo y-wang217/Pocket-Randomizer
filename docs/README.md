@@ -68,6 +68,20 @@ and run log structure. Where `CLAUDE.md` states an architecture invariant,
 
 **In flight: Stage 5.0, the visual redesign ([`spec/gymrun-stage5.0-visual-redesign.md`](spec/gymrun-stage5.0-visual-redesign.md)). 5.0/0, the spike and audit, is done on `claude/hopeful-shannon-kch3gw` and stopped for review.** The report is [`visual/reports/5.0-stage0-spike.md`](visual/reports/5.0-stage0-spike.md). It filed D50 to D76 in the discrepancy register. The author ruled D50 and D52 to D55 the same day ([`spec/gymrun-stage5.0-rulings-d50-d55.md`](spec/gymrun-stage5.0-rulings-d50-d55.md)); the bible is at **Rev 15** (one face and no density setting, tabs open screens, a mid-run Run Info screen, a `currency` family, and Run Progress as a decision feed replayed from the run log), recorded in [`generation.md` §87](generation.md). **5.0/1 is built and stopped for review**: one face with the density setting deleted, the shell nav with its read-only guard, the decision feed, Run Info and Settings screens, the desktop sidebar, the light palette and the asset manifest. Report [`visual/reports/5.0-stage1.md`](visual/reports/5.0-stage1.md), record [`generation.md` §87](generation.md). **D56 to D60 were ruled the same day** ([`spec/gymrun-stage5.0-rulings-d56-d60.md`](spec/gymrun-stage5.0-rulings-d56-d60.md)): the HP box is the panel restyled with every fact, the move button is the full move card, the header stays above the stage, D26's log handle stands with no Info button, and the World stays behind the frame while the painted backdrops live inside it. Bible **Rev 16**, [`generation.md` §88](generation.md). The author confirmed D60's reading and ruled D62 option 1 everywhere ([`spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md`](spec/gymrun-stage5.0-rulings-d60-d62-and-stage2.md)). **5.0/2, the battle screen, is built on `claude/wizardly-wright-cum8e0` and stopped for review**: the stage on its scene backdrop with platforms, the HP boxes and move buttons restyled with every fact kept, the header row with section 6's turn header built for the first time, the strip under the stage, and the bench behind a Switch button. The nine battle backdrops came forward from 5.0/5 into this stage at the author's request, converted from paintings at 224x136, with notes for the asset pipeline in the report. Report [`visual/reports/5.0-stage2.md`](visual/reports/5.0-stage2.md), record [`generation.md` §88](generation.md). WebKit and a real iPhone are the reviewer's. 5.0/0 and 5.0/1 merged as #77, 5.0/2 as #78. **5.0/3, the reward, result and shop cards, is built on `claude/stage-5.0-3-cards` and stopped for review**, after the author took every recommendation on D65 to D71 ([`spec/gymrun-stage5.0-rulings-d65-d71.md`](spec/gymrun-stage5.0-rulings-d65-d71.md), bible **Rev 17**): a card's face is its mark with the name and effect on the long press, a tap selects and the confirm band claims, the relic card carries its capability glyph, and the currency family is drawn. Report [`visual/reports/5.0-stage3.md`](visual/reports/5.0-stage3.md), record [`generation.md` §89](generation.md). No version axis moved; `contentHash` holds at `715122`. 5.0/4 (map) waits on D61, D63, D64, D72 and D75.
 
+**Patched 2026-10-07, the map calm-down and journey vignettes.** Branch
+`claude/vibrant-sagan-bg399f`, prompt
+[`spec/gymrun-patch-map-calm-down-and-journey-vignettes.md`](spec/gymrun-patch-map-calm-down-and-journey-vignettes.md),
+report [`visual/reports/map-calm-down-0/README.md`](visual/reports/map-calm-down-0/README.md),
+rulings [`spec/gymrun-patch-map-calm-down-rulings-d113.md`](spec/gymrun-patch-map-calm-down-rulings-d113.md),
+record [`generation.md`](generation.md) section 122, bible **Rev 31** (D113).
+Every node kind is its own coloured silhouette, from the author's drawings,
+with its own colour token; the map has three weights (the next step at 48
+with a glow, where the player stands at 32, later rows at 24 in grey) under
+a flat scrim; the boss is the badge. A skippable beat with a caption of at
+most five words plays at every map commit, the gym's entry and the return to
+the map (`ui/vignette.ts`, three seams in `ui/app.ts`), and each node screen
+wears a band in its kind's token. Presentation only; no axis moves.
+
 **Patched 2026-10-06, the per-move replay and the map's sprites.** Same
 branch, prompt
 [`spec/gymrun-patch-per-move-replay-and-map-sprites.md`](spec/gymrun-patch-per-move-replay-and-map-sprites.md),
@@ -1440,6 +1454,17 @@ rule; report and screenshots in
 ## 5. Open items
 
 One line each. The analysis lives where the pointer goes, not here.
+
+0. **The trainer node: pennants or a sprite.** The author, 2026-10-07: *"the
+   trainer should be a trainer sprite already so we'll have to reconcile that
+   at some point. it doesn't matter now."* An unwalked attacker trainer wears
+   the crossed pennants because its record's sprite would reveal who is behind
+   the node before the choice (D107). `generation.md` section 122.
+
+0. **Two drawings the vignettes wait on.** Rest has no silhouette (the tent's
+   8px mark stands in, in rest's token) and the return to the map has no
+   sprite of its own (the lead stands in; its manifest entry is the lettered
+   chip). Each is one manifest line and a file drop. `generation.md` section 122.
 
 0. **Looping music.** Asked 2026-10-06 with the defender map patch. The app
    plays no audio anywhere. The smallest lift is one new module under `ui/`: a looped
