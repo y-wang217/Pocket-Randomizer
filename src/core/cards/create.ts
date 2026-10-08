@@ -1,14 +1,19 @@
 /**
- * Building a battle. Checkpoint 1 has the layout only: units and enemies on
- * their tiles, every card in the draw pile in deck order, no hand, no
- * telegraph. The shuffle, the starting steps and the first hand join it at
- * checkpoint 2 as `createBattle`.
+ * Building a battle. `layoutBattle` is the board before anything is drawn:
+ * units and enemies on their tiles, every card in the draw pile in deck order.
+ * `createBattle` rolls each enemy's starting step (E6), shuffles, and runs the
+ * next-hand phase once, so the battle opens on round 1 with a hand. The first
+ * enemy move and telegraph join it at checkpoint 3.
  */
 import { CARDS, DECKS } from '../../cardData/cards';
 import { ENCOUNTERS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
+import type { BattleEvent } from './events';
+import type { Ctx } from './keywords';
+import { nextHand } from './resolve';
+import { shuffled, withStream } from './random';
 import type { BattleState, CardInstance } from './state';
 
 /** The unshuffled battle for an encounter, or `null` for an unknown id. */
@@ -59,4 +64,20 @@ export function layoutBattle(encounterId: string, seed: string): BattleState | n
     plan: [],
     pendingDraws: [],
   };
+}
+
+export type CreateResult = { ok: true; state: BattleState; events: BattleEvent[] } | { ok: false; reason: 'unknownEncounter' };
+
+/** A battle ready for its first plan, or a rejection for an unknown encounter. Never throws. */
+export function createBattle(encounterId: string, seed: string): CreateResult {
+  const s = typeof encounterId === 'string' && typeof seed === 'string' ? layoutBattle(encounterId, seed) : null;
+  if (!s) return { ok: false, reason: 'unknownEncounter' };
+  const ctx: Ctx = { s, events: [] };
+  withStream(s, (stream) => {
+    // E6: each enemy's starting step, in spawn order, then the opening shuffle.
+    for (const enemy of s.enemies) enemy.step = stream.nextInt(ENEMIES[enemy.def].script.steps.length);
+    s.piles.draw = shuffled(stream, s.piles.draw);
+  });
+  nextHand(ctx);
+  return { ok: true, state: s, events: ctx.events };
 }

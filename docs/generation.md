@@ -15678,3 +15678,40 @@ Deviations from the prompt, each a reading it left open:
 
 `step` and `createBattle` do not exist yet: `select` and `unselect` are the
 plan's two halves, and `commit` is checkpoint 2.
+
+### 125e. Checkpoint 2: `step`, the deck and hand, the resolvers
+
+- **`step(state, action)`** in `src/core/cards/step.ts` dispatches to
+  `select`, `unselect` and `commit` (`resolve.ts`), and rejects anything else
+  as `malformed` with the same state object. **It takes no RNG argument**, a
+  deviation from the prompt's signature: the battle's stream is rebuilt from
+  `state.seed` and `state.rngDraws` (`random.ts`), so stepping one state twice
+  gives the same result twice, which a stream object passed in and shared
+  across calls would not. `createBattle(encounterId, seed)` likewise takes no
+  deck id and no RNG: the encounter names its deck.
+- **Randomness** (125b, built). `cardBattleKey` joins `core/streamKeys.ts`; it
+  is opened only on a sandbox battle's own seed. `createBattle` draws each
+  enemy's starting step in spawn order, then the opening shuffle; each
+  reshuffle draws again. Nothing else draws.
+- **Phase order** is the prompt's section 3, with 5 to 7 left for checkpoint 3.
+  The battle opens by running phase 8 once: round 1, A's turn-1 MP, five cards.
+
+Readings the prompt left open:
+
+- **B's ability** applies to the card in B's first slot, in plan order, and
+  reads B's HP at the start of the turn (the author's card sheet: *"first card
+  played each turn gains pierce if HP full (turn start)"*). Command placed in
+  B's first slot fills it, so the card after it does not convert. Only a
+  Strike converts; no B card carries a Target, and a targeted Strike would not.
+- **Several hits land front to back**: column, then lane, from the player's
+  side.
+- **A card with nothing left to hit fizzles**, `nothingHit`, the same as one
+  whose chosen target is gone (`targetGone`): used, paid, retired. This is the
+  case where an earlier card in the same round killed everything in the
+  pattern.
+- **Every MP gain is capped** at R2, card grants and Focus included. A grant
+  the cap swallows is lost, not banked.
+- **The round cap** is checked as a round starts: a battle that would begin
+  round 31 is lost.
+- **Need Help's extra card** is drawn after the five, from what is left of the
+  draw pile, and the pile is never reshuffled for it (the author's ruling).
