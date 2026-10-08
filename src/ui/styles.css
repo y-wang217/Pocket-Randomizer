@@ -7539,7 +7539,6 @@ button,
 .run-info__heading > :not(.screen__title):not(.map__wallet),
 .map-drawer__body .map__heading > :not(.screen__title):not(.map__wallet) { order: 2; flex-basis: 100%; }
 .wallet {
-  display: inline-flex;
   padding: var(--space-h) var(--space-1h);
   background: var(--bg-raised);
   border: var(--rule-heavy) solid var(--border-heavy);
