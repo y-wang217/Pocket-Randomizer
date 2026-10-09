@@ -16010,3 +16010,38 @@ so it is refused, naming both values. None of the run's four axes moves.
   step in the order it resolved, numbered as the playback numbers it, with
   the quiet steps (round MP, an enemy that waits) listed dimmed. Replay round
   plays the last round back again.
+
+## 126. The Node leg's reporter timeout was one test, not load
+
+**2026-10-09**, on `claude/sharp-ritchie-qb95px`, from `main` at `f58835e`.
+Prompt [`spec/gymrun-patch-node-leg-rpc-timeout.md`](spec/gymrun-patch-node-leg-rpc-timeout.md).
+Test-only: nothing under `src/` changes, and no version axis moves.
+
+**This corrects sections 15, 17, 34, 36 and 47**, which recorded
+`[vitest-worker]: Timeout calling "onTaskUpdate"` as the runner under load, and
+the comment in `scripts/vitest-split.mjs` that capped the forks on that reading.
+
+- **The mechanism.** Vitest's worker RPC arms a 60s timer on every call, and
+  the reply is only read when the worker's event loop turns. `core/` has no
+  timers, so a `playRun` or `resumeRun` never turns it however `async` it is.
+  A test that runs for more than 60s therefore expires the timer for the update
+  sent when it started, vitest counts that as an unhandled error, and the leg
+  exits 1 with every test passed. That is the shape on `test:node` and
+  `trim:node` in every recent `check` run, which `scripts/check.mjs` reports as
+  ERRORED.
+- **Not load.** Reproduced on an idle box with one scratch file of seventy 1s
+  synchronous tests; the same file with one `setImmediate` before each test is
+  clean. The fork count does not enter into it.
+- **The test.** `test/party.test.ts`, "resumes from the save taken at every
+  forced switch to an identical run", resumes the whole run once per switch
+  save: 62 saves, 80 to 90s locally. Every other test in the Node half is under
+  36s; `test/run-replay.test.ts`'s every-point resume, at 35.6s, is the next
+  nearest.
+- **The fix.** That loop awaits one `setImmediate` before each resume. Every
+  forced switch is still checked. The longest stretch without a turn is now
+  the seed search ahead of the loop, 2.8s locally; the slowest resume is 2.3s.
+  Run alone, the test raised the error without the yield and does not with it.
+- **Not done here.** ERRORED and its guard in `scripts/check-tally.mjs`, which
+  would also pass a second unhandled error in the same output as green; the
+  two-fork cap in CI; the leaked `setTimeout` in `src/ui/scene.ts` that failed
+  run 37928075949 from `test/species-label.test.ts`. Each is its own change.
