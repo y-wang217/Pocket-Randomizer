@@ -12,14 +12,35 @@
  *
  * Battle start runs 6 and 7 once on the rolled starting step, without
  * advancing past it. Every tie-break is a fixed rule; nothing here draws.
+ * `openingSteps` names what the starting roll draws among; `create.ts` draws.
  */
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
-import type { ActRule, Cond, HuntTieBreak, Lane, MoveRule, Pos } from './defs';
+import type { ActRule, Cond, EnemyDef, HuntTieBreak, Lane, MoveRule, Pos } from './defs';
 import { damage, type Ctx } from './keywords';
 import { livingEnemies, livingUnits } from './plan';
 import type { BattleState, EnemyState, Intent, UnitState } from './state';
 import { inReach, laneFromSide, samePos, slashTiles, tile } from './zones';
+
+/** An act that can deal damage: a damaging keyword, or a condition with one on either branch. */
+export function actCanDamage(act: ActRule): boolean {
+  if ('if' in act) return actCanDamage(act.then) || actCanDamage(act.else);
+  return act.k !== 'none' && act.k !== 'shield';
+}
+
+/**
+ * The steps an enemy's starting step is rolled among (E6, A1). A Fast enemy
+ * has one: its first damaging step. Under opening grace any other enemy
+ * rolls among the steps whose act cannot deal damage; with grace off, among
+ * every step. The data test holds every non-Fast enemy to at least one such
+ * step and every Fast enemy to a damaging one, so the list is never empty.
+ */
+export function openingSteps(def: EnemyDef): number[] {
+  const steps = def.script.steps;
+  const all = steps.map((_, index) => index);
+  if (def.fast) return all.filter((i) => actCanDamage(steps[i]!.act)).slice(0, 1);
+  return RULES.openingGrace ? all.filter((i) => !actCanDamage(steps[i]!.act)) : all;
+}
 
 function occupied(s: BattleState, pos: Pos): boolean {
   return livingUnits(s).some((u) => samePos(u.pos, pos)) || livingEnemies(s).some((e) => samePos(e.pos, pos));

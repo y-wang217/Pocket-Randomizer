@@ -1,6 +1,11 @@
 /**
- * Drone and Lancer. Appendix A, Enemies. Each plays its steps in order, one per
- * round, then loops; the starting step is rolled per enemy (E6).
+ * The enemies. Each plays its steps in order, one per round, then loops; the
+ * starting step is rolled per enemy (E6), among its non-damaging steps under
+ * opening grace, and a Fast enemy starts on its first damaging step.
+ *
+ * Drone and Lancer are Appendix A. Every `grade` is provisional
+ * (`docs/spec/gymrun-patch-card-battle-grace-friendly-fire.md` A3): the bot's
+ * per-scenario numbers (Part B) are what correct them.
  */
 import type { EnemyDef, EnemyDefId } from '../core/cards/defs';
 
@@ -10,6 +15,7 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
     name: 'Drone',
     hp: 3,
     baseShield: 1,
+    grade: 2,
     script: {
       kind: 'cycle',
       steps: [
@@ -30,6 +36,7 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
     name: 'Lancer',
     hp: 2,
     baseShield: 0,
+    grade: 1,
     script: {
       kind: 'cycle',
       steps: [

@@ -96,6 +96,14 @@ export interface EnemyDef {
   name: string;
   hp: number;
   baseShield: number;
+  /**
+   * Starts on its first damaging step instead of rolling, so it attacks from
+   * round 1 (`docs/spec/gymrun-patch-card-battle-grace-friendly-fire.md` A1).
+   * A Fast enemy is designed to hit for 1.
+   */
+  fast?: true;
+  /** Difficulty, provisional: a scenario's grade total is the sum over its enemies. */
+  grade: number;
   script: EnemyScript;
 }
 
@@ -165,8 +173,11 @@ export interface Rules {
   mpFromCards: 'usableNextTurn';
   /** R13. */
   targetOnPattern: 'chosenUnitAnyRange';
-  /** R14. */
-  friendlyFire: boolean;
+  /**
+   * R14, for the player's Blast only: which player units on its tiles it
+   * damages. Strike, Pierce and Slash never hit an ally.
+   */
+  blastFriendlyFire: 'alliesExceptCaster' | 'allies' | 'none';
   /** R15. A Move of N reaches tiles 1 to N orthogonal steps away through empty tiles. */
   moveShape: 'orthogonalInsideReach';
   /** E1. */
@@ -181,6 +192,12 @@ export interface Rules {
   enemyShieldClears: 'ownNextAction';
   /** E6. */
   startingStep: 'rolledPerEnemy';
+  /**
+   * Opening grace: a non-Fast enemy's starting step is rolled only among the
+   * steps whose act cannot deal damage. Off, every step is in the roll, as in
+   * `cards-0.3.0`. A Fast enemy starts on its first damaging step either way.
+   */
+  openingGrace: boolean;
   /** A battle still running after this many rounds ends as a loss. */
   roundCap: number;
 }

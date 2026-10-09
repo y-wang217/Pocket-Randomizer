@@ -7,7 +7,9 @@
  * `createBattle` makes every draw the battle makes at creation, in one pass
  * and a fixed order: each enemy's starting step (E6), then a spawn tile for
  * each unplaced enemy in spawn order, then the shuffle. The count depends only
- * on the encounter. It then deals the round 1 hand and opens in `deploy`, so
+ * on the encounter. A starting step is one draw for every enemy, a Fast one
+ * included (it draws among the one step it may start on), so opening grace
+ * and Fast move no spawn tile and no card of the shuffle. It then deals the round 1 hand and opens in `deploy`, so
  * the player places its units seeing the hand and the enemies; `start`
  * (`deploy.ts`) runs the enemies' opening move and telegraph.
  */
@@ -16,6 +18,7 @@ import { ENCOUNTERS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
+import { openingSteps } from './enemies';
 import type { BattleEvent } from './events';
 import type { Ctx } from './keywords';
 import { nextHand } from './resolve';
@@ -82,8 +85,11 @@ export function createBattle(encounterId: string, seed: string): CreateResult {
   if (!s) return { ok: false, reason: 'unknownEncounter' };
   const ctx: Ctx = { s, events: [] };
   withStream(s, (stream) => {
-    // E6: each enemy's starting step, in spawn order.
-    for (const enemy of s.enemies) enemy.step = stream.nextInt(ENEMIES[enemy.def].script.steps.length);
+    // E6 and A1: each enemy's starting step, in spawn order, among the steps it may open on.
+    for (const enemy of s.enemies) {
+      const steps = openingSteps(ENEMIES[enemy.def]);
+      enemy.step = steps[stream.nextInt(steps.length)]!;
+    }
     // Spawns: each unplaced enemy, in spawn order, on a free tile of the spawn zone.
     for (const enemy of s.enemies) {
       if (enemy.pos) continue;

@@ -41,7 +41,9 @@ export const RULES: Rules = {
   baseShield: 'oneTime', // R11
   mpFromCards: 'usableNextTurn', // R12
   targetOnPattern: 'chosenUnitAnyRange', // R13
-  friendlyFire: false, // R14
+  // R14, Blast only: it hits allies on its tiles, not the unit that plays it
+  // (`docs/spec/gymrun-patch-card-battle-grace-friendly-fire.md` A2).
+  blastFriendlyFire: 'alliesExceptCaster',
   moveShape: 'orthogonalInsideReach', // R15
   huntTieBreak: ['nearestLane', 'lowestHp', 'upperLane'], // E1
   huntDistance: 'anyLanesBeforeBlocker', // E2
@@ -49,6 +51,8 @@ export const RULES: Rules = {
   advance: { cols: 1, limitCol: 3, ifBlocked: 'wait' }, // E4
   enemyShieldClears: 'ownNextAction', // E5
   startingStep: 'rolledPerEnemy', // E6
+  // Round 1: a non-Fast enemy opens on a step that deals no damage (A1).
+  openingGrace: true,
   // Not in the snapshot. The fun test expects 4 to 7 rounds; the cap only
   // guarantees a battle ends, and the fuzz gate asserts no bot reaches it.
   roundCap: 30,
