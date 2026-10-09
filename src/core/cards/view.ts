@@ -10,8 +10,24 @@ import { UNITS } from '../../cardData/units';
 import type { CardOwner, ClassId, EnemyDefId, Effect, Pos, Zone } from './defs';
 import { playBlock, playersOf } from './legal';
 import { cardDefOf, needsOf, project, slotsOf, type Needs } from './plan';
+import { enemyThreat, previewPlay, type PlayPreview } from './preview';
 import type { BattleState, CardIid, EnemyId, Intent, PlayBlock, UnitId } from './state';
 import { allTiles, samePos, zoneOf } from './zones';
+
+/**
+ * One enemy's telegraphed attack on one tile, as the board draws it. Unlike
+ * `telegraphedBy`, which is every tile the intent names, a Strike's threat
+ * ends on the first unit standing in its lane once the plan's moves land:
+ * that unit takes the hit and shelters the tiles behind it. A Pierce and a
+ * Slash light every tile they name.
+ */
+export interface TileThreat {
+  enemy: EnemyId;
+  act: 'strike' | 'pierce' | 'slash';
+  n: number;
+  /** The tile where a Strike stops, on the unit it will hit. */
+  stop: boolean;
+}
 
 export type Occupant = { kind: 'unit'; id: UnitId } | { kind: 'enemy'; id: EnemyId; def: EnemyDefId };
 
@@ -22,6 +38,8 @@ export interface TileView {
   occupant: Occupant | null;
   /** Enemies whose telegraphed action lights this tile. */
   telegraphedBy: EnemyId[];
+  /** The attacks lighting this tile, by kind, in spawn order. */
+  threats: TileThreat[];
   /** A unit whose planned moves end here. */
   planGhost?: UnitId;
 }
@@ -90,6 +108,12 @@ export interface HandGroupView {
   cards: HandCardView[];
 }
 
+/** A planned play's own telegraph: the tiles its attack lights and the units it lands on. */
+export interface PlanPreview extends PlayPreview {
+  planIndex: number;
+  unit: UnitId;
+}
+
 export interface BattleView {
   round: number;
   phase: BattleState['phase'];
@@ -98,12 +122,16 @@ export interface BattleView {
   units: UnitView[];
   enemies: EnemyView[];
   hand: HandGroupView[];
+  /** One per planned play, in plan order. */
+  previews: PlanPreview[];
   piles: { draw: number; discard: number; spent: number; removed: number };
 }
 
 export function viewOf(state: BattleState): BattleView {
   const projection = project(state);
   const live = state.phase === 'plan';
+  const threatened = state.enemies.map((enemy) => ({ enemy, tiles: enemyThreat(state, enemy, projection) }));
+  const previews: PlanPreview[] = state.plan.map((play, planIndex) => ({ planIndex, unit: play.unit, ...previewPlay(state, play) }));
 
   const tiles: TileView[] = allTiles().map((pos) => {
     const unit = state.units.find((u) => samePos(u.pos, pos));
@@ -114,6 +142,12 @@ export function viewOf(state: BattleState): BattleView {
       zone: zoneOf(pos),
       occupant,
       telegraphedBy: state.enemies.filter((e) => e.pos && e.intent?.tiles.some((t) => samePos(t, pos))).map((e) => e.id),
+      threats: threatened.flatMap(({ enemy, tiles }) => {
+        const hit = tiles.find((t) => samePos(t.pos, pos));
+        const act = enemy.intent?.act;
+        if (!hit || (act !== 'strike' && act !== 'pierce' && act !== 'slash')) return [];
+        return [{ enemy: enemy.id, act, n: enemy.intent!.n, stop: hit.stop }];
+      }),
     };
     const ghost = state.units.find((u) => u.pos && !samePos(u.pos, projection[u.id]) && samePos(projection[u.id], pos));
     if (ghost) view.planGhost = ghost.id;
@@ -185,6 +219,7 @@ export function viewOf(state: BattleState): BattleView {
     units,
     enemies,
     hand,
+    previews,
     piles: {
       draw: state.piles.draw.length,
       discard: state.piles.discard.length,

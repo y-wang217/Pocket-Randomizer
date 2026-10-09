@@ -15871,3 +15871,84 @@ carries a script, an external reference or text; every icon draws in
 Measured: the main bundle is byte identical to checkpoint 5's (4,198,984
 bytes); the sandbox chunk is 70,360 bytes of script with the pack inlined and
 11,300 of style. The phone fit and the 44px floor hold with the art in.
+
+### 125j. Sides, panel colours and telegraph kinds
+
+**2026-10-09.** From
+[`gymrun-patch-card-battle-sides-and-telegraphs.md`](spec/gymrun-patch-card-battle-sides-and-telegraphs.md).
+Sandbox presentation only; the engine's rules, the log and every version axis
+are unchanged.
+
+- **Sides.** The unit panels stand in the left column and the enemy panels in
+  the right; the board is unchanged between them. The containers are named for
+  their side, `cb-units` and `cb-enemies`, not for left and right.
+- **Panel colours.** Unit panels keep the pack's light frame. Enemy panels
+  draw no frame: they are the ink colour itself, with light text, a lightened
+  bar track and a lighter red for the target ring. The pack has no dark frame,
+  so this is the stylesheet's, not an asset.
+- **Telegraph kinds.** `viewOf` gains `threats` on every tile: each enemy
+  attack that lights it, by act and number, and whether a Strike stops there.
+  `telegraphedBy` is unchanged and still names every tile an intent names.
+  - A **Strike** runs from the enemy's side down its lane and stops on the
+    first unit standing there **once the plan's moves land** (the projection),
+    since phase 5 hits only that unit; the tiles behind it are unlit. It draws
+    as a solid red wash with a bar on the tile it stops on. With no unit in the
+    lane it lights every tile.
+  - A **Pierce** lights every tile it names and draws as the pack's red hatch
+    with a line running on through the tile.
+  - A **Slash** draws as a dashed purple wash.
+  - Every lit tile carries a chip per attack in its corner, the keyword's icon
+    and its number. The enemy's intent pill takes purple for a Slash.
+- **The Strike's stop is a forecast.** It reads the board after the plan's
+  moves and before any enemy acts. An earlier enemy's action fainting the unit
+  it stops on lets the Strike through to the next unit at resolution; the
+  board does not draw that case.
+- **Measured.** The node suite passes under strict trim, 2,383 tests; the run
+  also printed one vitest worker RPC timeout (`onTaskUpdate`), the container
+  under load, not a test.
+
+### 125k. A selected card shows what it will do
+
+**2026-10-09.** From the follow-up in
+[`gymrun-patch-card-battle-sides-and-telegraphs.md`](spec/gymrun-patch-card-battle-sides-and-telegraphs.md).
+Sandbox presentation only; the engine's rules, the log and every version axis
+are unchanged.
+
+- **`src/core/cards/preview.ts`** answers every question the screen asks
+  before a round resolves, from the same rules the round applies:
+  `enemyThreat` (moved here from `core/cards/view.ts`, unchanged), `previewPlay` and
+  `interceptsFor`. `resolve.ts` exports `firstSlots` so B's conversion is read
+  the one way.
+- **Attacks light their tiles in the telegraph's look**, in teal: a Strike's
+  wash runs up the lane and stops on the first enemy with a bar on its near
+  edge; a Pierce is hatched with a line running through; a Slash is dashed and
+  a Blast dotted. Each lit tile carries a chip, the keyword's icon and number,
+  in its lower left corner, clear of the enemy's chips in the upper right.
+  Attacks fire from where the plan's moves leave the unit, since moves
+  resolve first, and B's first card reads as a Pierce while B is at full HP.
+  **Every planned attack stays lit**, as the enemy's do; the card being chosen
+  pulses until placed, and holds steady under reduced motion. While the player picks who
+  plays a Neutral attack, each candidate's footprint shows at once.
+- **A card that deals no damage holds a reticle** on what it lands on, the
+  same reticle a target being picked wears: a self Shield or MP card on its
+  unit, a friendly Shield or Command on the chosen ally. A Target attack holds
+  one on its enemy. A Move or Need Help holds none; a Move's destination
+  already shows as the ghost.
+- **Open tiles read louder**: a firmer teal wash and a dot in the middle on top
+  of the pack's dashed outline.
+- **The intercept.** While a Move's tile is being picked, a destination that
+  puts the moving unit in front of a telegraphed Strike aimed at an ally wears
+  a teal shield, and the prompt line reads "Pick a tile · a shield blocks a
+  Strike". Each candidate is selected on a copy of the plan and the Strikes'
+  victims compared, so the answer is the round's own projection. A tile where
+  the mover is struck anyway, or a Pierce, is never an intercept.
+- **"In front" is the engine's front.** A Strike hits the first unit counted
+  from the enemy's edge of its lane, and its lane includes a player-reach tile
+  behind the enemy that telegraphs it. A unit standing there is hit first, so
+  that tile intercepts too, though it reads as behind the drone. The preview
+  draws the rule as it is; whether the rule should change is the author's call.
+- **Rare in the test encounter.** The three units open side by side and most
+  moves are one tile, so a sideways step into another lane's Strike is
+  uncommon: no intercept appeared in round 1 of 3,000 seeds, or in the first
+  four rounds of 400 seeds with an empty plan. One turned up under the random
+  bot on `GYMRUN-000000-INT4`, round 8, and the screen was checked there.

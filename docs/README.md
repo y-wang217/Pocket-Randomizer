@@ -138,6 +138,16 @@ screen, is built and stopped for review. Open it with `#test` on load, or
 ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Enter on starter select; replay a
 copied log with `npm run cards:replay -- <file>`. No version axis moves.
 
+**Card battle sandbox: sides, telegraph kinds and card previews.** Branch
+`claude/card-battler-ui-layout-yejhur`, feedback
+[`spec/gymrun-patch-card-battle-sides-and-telegraphs.md`](spec/gymrun-patch-card-battle-sides-and-telegraphs.md),
+record [`generation.md`](generation.md) sections 125j and 125k. Units left on
+light panels, enemies right on dark ones; enemy telegraphs drawn by kind, a
+Strike stopping on the unit it will hit; planned attacks lit in teal in the
+same looks, a held reticle on what other cards land on, louder move tiles and
+a shield on a Move tile that blocks a Strike aimed at an ally. Built and
+stopped for review. No version axis moves.
+
 **Also in flight: Defender Mode v0, a fun test.** Branch
 `claude/eager-turing-0059br`, prompt
 [`spec/gymrun-defender-mode-v0-fun-test.md`](spec/gymrun-defender-mode-v0-fun-test.md),

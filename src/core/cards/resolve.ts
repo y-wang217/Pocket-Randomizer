@@ -22,7 +22,7 @@ import { shuffled, withStream } from './random';
 import type { BattleState, PlannedPlay, UnitId } from './state';
 
 /** The index in the plan of the first play that fills each unit's first slot. */
-function firstSlots(s: BattleState, plan: readonly PlannedPlay[]): Partial<Record<UnitId, number>> {
+export function firstSlots(s: BattleState, plan: readonly PlannedPlay[]): Partial<Record<UnitId, number>> {
   const first: Partial<Record<UnitId, number>> = {};
   plan.forEach((play, index) => {
     const def = cardDefOf(s, play.card)!;

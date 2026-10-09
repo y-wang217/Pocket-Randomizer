@@ -31,6 +31,7 @@ export const CARD_COPY = {
   pickTarget: 'Pick a target',
   pickAlly: 'Pick an ally',
   pickTile: 'Pick a tile',
+  pickTileBlock: 'Pick a tile · a shield blocks a Strike',
   inspectHint: 'Tap a card to inspect it',
   once: 'Once',
   neutral: 'Neutral',
