@@ -19,6 +19,7 @@ export const CARD_COPY = {
   scenario: 'Scenario',
   /** A scenario's grade total, the sum of its enemies' provisional grades. */
   grade: (n: number) => `Grade ${n}`,
+  botTurn: 'Bot turn',
   undo: 'Undo',
   cancel: 'Cancel',
   inspect: 'Inspect',

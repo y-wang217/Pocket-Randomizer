@@ -16,7 +16,7 @@ Paste this whole file into that session first, then the log.
 Contents: what a log is (1), the board (2), the units, cards and enemies (3),
 how a battle and a round resolve (4), how to decode a log (5), a full worked
 translation (6), what that run shows (7), how to write a scenario (8), and
-what is still coming (9).
+what is built, the bot included (9).
 
 ---
 
@@ -735,16 +735,41 @@ Built in `cards-0.3.0`, at the author's request:
   the seed, which puts it anywhere on the six enemy backline tiles, not only
   on the row nearest the danger zone.
 
-Still coming, in this order, each on its own go-ahead:
+Also built, the **guard bot** and its tools, so a scenario can be tested
+before anyone plays it:
 
-- **A bot** that plays scenarios competently with a defensive style (cover
-  fragile units with high-HP and shielded ones, keep every unit alive), and
-  that improves its placement and positioning by playing many times and
-  keeping what wins. Its per-scenario numbers will correct the grades.
+- **The guard bot** plays to keep every unit alive. Each round it tries
+  plans, plays each one out on a copy through the real engine, and scores
+  the board it leaves: units kept and their HP, damage done, and the
+  telegraphs aimed at its units, where damage aimed at a fragile unit costs
+  more than the same damage aimed at a sturdy one. It sees only what a
+  player sees: never the next hand. It places its units the same way before
+  Start. In the sandbox, Menu → **Bot turn** has it place or play the round.
+- **Training.** Its scoring weights are tuned by playing every scenario on
+  many seeds and keeping changes that do better, then checked on seeds it
+  never trained on (`npm run cards:train`).
+- **The bench** (`npm run cards:bench`) prints, per scenario, the bot's wins,
+  units kept, rounds to a win, and where it placed each unit. That last line
+  is the "pattern" it learned: today it puts the Commander (1 HP) on the back
+  row in 98 to 100% of battles, mostly in lane 1.
+- **The solver** (`npm run cards:solve -- <scenario> <seed>`) plays one seed
+  ahead round after round and finds the best line it can: a tool-assisted
+  run. Unlike the bot it sees what each line will draw, so it says whether a
+  seed can be won and how well, not how a person would play it. Its log
+  narrates like any other.
+
+**Designing a scenario to be hard:** today the bot wins all 180 of its
+held-out battles across the three scenarios, so they are easy for it. A
+scenario that makes it lose, or lose units, is a scenario that pushes on
+defence. When you send a new scenario, it can be benched on hundreds of
+seeds in a minute and the results sent back.
+
+Still coming, in this order:
+
 - **Waves**: a fight of several waves, HP carried between them.
 - **A boss**, the Colossus (two by two tiles), and a Harpoon card to pin it.
-- **A reskin** of the board, **card rewards**, and a **mini campaign**, each
-  waiting on a design session first.
+- **A reskin** of the board, after the waves and the boss.
+- **Card rewards** and a **mini campaign**, each waiting on a design session.
 
 A rules change moves the engine version, and older logs stop replaying, by
 design. This page is updated with each change.

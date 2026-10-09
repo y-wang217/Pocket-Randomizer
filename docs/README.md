@@ -167,15 +167,18 @@ battle log without the repo
 and `npm run cards:narrate`; the board is seven deep with a three-row danger
 zone; the player places its units on the home rows before Start; enemies the
 scenario does not place spawn anywhere on their backline from the seed; Menu
-lists the scenarios. Built and stopped for review; the learning bot is next.
-`CARD_ENGINE_VERSION` moves to `cards-0.3.0`; none of the run's four axes
-moves.
+lists the scenarios. Then the guard bot (section 125n): a defensive
+beam-search player that sees only what a player sees, its trainer
+(`npm run cards:train`), a per-scenario bench (`npm run cards:bench`), a
+one-seed solver (`npm run cards:solve`), and Bot turn under Menu. Built and
+stopped for review. `CARD_ENGINE_VERSION` moves to `cards-0.3.0`; none of the
+run's four axes moves.
 
 **Card battle sandbox: opening grace, friendly fire, new enemies and
 scenarios.** Branch `claude/vibrant-hopper-axlk79`, on top of `cards-0.3.0`,
 prompt
 [`spec/gymrun-patch-card-battle-grace-friendly-fire.md`](spec/gymrun-patch-card-battle-grace-friendly-fire.md),
-record [`generation.md`](generation.md) section 125n. Part A: in round 1 a
+record [`generation.md`](generation.md) section 125o. Part A: in round 1 a
 normal enemy opens on a step that deals no damage and a Fast one attacks for
 1; a player Blast hurts allies on its tiles, not its caster; Hound, Turret,
 Bulwark, Sniper and Pikeman with provisional grades; Turret Alley, Wall and

@@ -186,6 +186,22 @@ describe('the sandbox screen', () => {
     sandbox.close();
   });
 
+  it('Bot turn places the units, then plays a round, and the log keeps every action it took', () => {
+    const sandbox = openSandbox(document.body, { seed: 'BOTTURN' });
+    const root = sandbox.root;
+    const botTurn = () => {
+      all(root, '.cb-actions .cb-btn').at(-1)!.click();
+      all(root, '.cb-sheet .cb-btn').find((b) => b.textContent === 'Bot turn')!.click();
+      skip(root);
+    };
+    botTurn();
+    expect(root.querySelector('.cb-btn--primary')!.textContent).toBe('End Turn');
+    expect(root.querySelector('.cb-tile[data-col="1"] .cb-token[data-id="A"]')).not.toBeNull();
+    botTurn();
+    expect(root.querySelector('.cb-round')!.textContent).toBe('Round 2');
+    sandbox.close();
+  });
+
   it('the menu lists every scenario, and a tap opens it', () => {
     const sandbox = openSandbox(document.body, { seed: 'SCEN1' });
     const root = sandbox.root;
