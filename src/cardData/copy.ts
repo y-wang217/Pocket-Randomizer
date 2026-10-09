@@ -41,7 +41,17 @@ export const CARD_COPY = {
   pickTileBlock: 'Pick a tile · a shield blocks a Strike',
   pickTileAllies: 'Pick a tile · a marked tile hits an ally too',
   pickTargetAllies: 'Pick a target · a marked one hits an ally too',
-  inspectHint: 'Tap a card to inspect it',
+  inspectHint: 'Tap a card or an enemy to inspect it',
+  /** Round 1 under opening grace (A1, A7): the note line, while nothing else is said. */
+  graceBoard: 'Round 1: enemies are getting into position',
+  /** Inspect entries for the rules of the grace and friendly fire patch (A7). */
+  rule: {
+    grace: 'Round 1: most enemies set up instead of attacking.',
+    fast: 'Fast: attacks from round 1, for 1.',
+    blastAllies: 'Blast hits allies on its tiles too. Not the unit that plays it.',
+    blastAlliesCaster: 'Blast hits allies on its tiles too, the unit that plays it included.',
+  },
+  enemyStats: (hp: number, base: number) => `HP ${hp} · Base ${base}`,
   /** The unit filter (A6): tap a unit to see only what it can play. */
   filterShowing: (unit: string) => `Showing ${unit}`,
   filterShowAll: 'Show all',

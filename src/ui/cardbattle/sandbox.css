@@ -1403,3 +1403,34 @@
 .cb-filter-other {
   color: var(--cb-dim);
 }
+
+/* ------------------------------------------------------ inspect entries
+   A7: a Blast card's friendly fire line, and an enemy's own entry. */
+.cb-full-rule {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cb-warn);
+}
+.cb-enemy-card {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--cb-ink);
+  color: var(--cb-surface);
+}
+.cb-enemy-card-name {
+  font-size: 17px;
+  font-weight: 800;
+}
+.cb-enemy-card-line {
+  font-size: 12px;
+  font-weight: 700;
+}
+.cb-enemy-card-rule {
+  font-size: 13px;
+  font-weight: 700;
+}

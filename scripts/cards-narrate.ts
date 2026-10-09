@@ -15,6 +15,7 @@ import { readFileSync } from 'node:fs';
 import { CARDS } from '../src/cardData/cards';
 import { ENCOUNTERS } from '../src/cardData/encounters';
 import { ENEMIES } from '../src/cardData/enemies';
+import { RULES } from '../src/cardData/rules';
 import { UNITS } from '../src/cardData/units';
 import { createBattle, gradeTotal } from '../src/core/cards/create';
 import type { Pos } from '../src/core/cards/defs';
@@ -68,15 +69,23 @@ function narrate(log: BattleLog): string[] {
     if (c.unit) return ` -> on ${who(c.unit)}`;
     return c.tile ? ` -> ${at(c.tile)}` : '';
   };
+  // A friendly fire event names the Blast; the damage line after it says so.
+  let friendly: string | null = null;
   const event = (e: BattleEvent): string | null => {
     switch (e.t) {
+      case 'friendlyFire':
+        friendly = CARDS[s.cards[e.card]!.def]!.name;
+        return null;
+      case 'planPruned': return `${who(e.unit)} has fainted: ${card(e.card)} is not played`;
       case 'played': return `${who(e.unit)} plays ${card(e.card)}`;
       case 'moved': return `  ${who(e.unit)} moves ${at(e.from)} -> ${at(e.to)}`;
       case 'converted': return `  Gunner ability: the Strike becomes a Pierce`;
       case 'fizzled': return `  fizzles (${e.why === 'targetGone' ? 'target gone' : 'nothing to hit'})`;
       case 'damaged': {
         const parts = [e.shield && `shield -${e.shield}`, e.baseShield && `base shield -${e.baseShield}`, e.hp && `HP -${e.hp}`].filter(Boolean);
-        return `  ${who(e.target)} takes ${e.amount}: ${parts.join(', ') || 'nothing left to take'}`;
+        const from = friendly ? ` from ${friendly} (friendly fire)` : '';
+        friendly = null;
+        return `  ${who(e.target)} takes ${e.amount}${from}: ${parts.join(', ') || 'nothing left to take'}`;
       }
       case 'shielded': return `  ${who(e.unit)} gains shield ${e.amount}`;
       case 'defeated': return `  ${who(e.enemy)} is defeated`;
@@ -97,6 +106,11 @@ function narrate(log: BattleLog): string[] {
 
   out.push(`seed ${log.seed}  encounter ${log.encounterId} (grade ${gradeTotal(ENCOUNTERS[log.encounterId]!)})  deck ${log.deckId}  engine ${log.engineVersion}`);
   out.push(`enemy starting steps (rolled from the seed): ${s.enemies.map((e) => `${e.id} step ${e.step + 1} of ${ENEMIES[e.def].script.steps.length}`).join(', ')}`);
+  // Opening grace and Fast: how each enemy's starting step was chosen.
+  for (const e of s.enemies) {
+    if (ENEMIES[e.def].fast) out.push(`${who(e.id)} is Fast: starts on an attack step`);
+    else if (RULES.openingGrace) out.push(`grace: ${e.id} starts on a setup step`);
+  }
   board('DEPLOY (the units on their default tiles; the enemies have not moved yet)');
   let plan: string[] = [];
   log.actions.forEach((a, index) => {

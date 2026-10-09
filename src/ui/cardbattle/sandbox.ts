@@ -409,6 +409,15 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   }
 
   function tapTarget(id: TargetId): boolean {
+    // Inspect mode: an enemy shows its entry.
+    if (inspectMode) {
+      const enemy = viewOf(state).enemies.find((e) => e.id === id);
+      if (!enemy) return false;
+      inspectMode = false;
+      showEnemyInspect(enemy);
+      render();
+      return true;
+    }
     if (state.phase === 'deploy') {
       if (!state.units.some((u) => u.id === id)) return false;
       placing = placing === id ? null : (id as UnitId);
@@ -592,9 +601,14 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       el('span', 'cb-round', `${CARD_COPY.round} ${view.round}`),
       el('span', 'cb-piles', `${CARD_COPY.draw} ${view.piles.draw} · ${CARD_COPY.discard} ${view.piles.discard}`),
     );
-    const idle = state.phase === 'deploy' ? CARD_COPY.deployHint : '';
+    const idle = state.phase === 'deploy' ? CARD_COPY.deployHint : graceShowing(view) ? CARD_COPY.graceBoard : '';
     const note = el('div', 'cb-note', message || (inspectMode ? CARD_COPY.inspectHint : idle));
     top.replaceChildren(status, note, button('cb-btn cb-exit', CARD_COPY.exit, () => close()));
+  }
+
+  /** Round 1 under opening grace, with an enemy it held back: the note says so (A7). */
+  function graceShowing(view: BattleView): boolean {
+    return RULES.openingGrace && view.phase === 'plan' && view.round === 1 && view.enemies.some((e) => !e.fast && !e.dead);
   }
 
   function renderBoard(view: BattleView): void {
@@ -1006,6 +1020,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     body.append(el('div', 'cb-full-owner', card.owner === 'neutral' ? CARD_COPY.neutral : `${card.owner} ${UNITS[card.owner].name}`));
     for (const line of effectLines(card.effects)) body.append(el('div', 'cb-full-line', line));
     if (card.once) body.append(el('div', 'cb-full-line', CARD_COPY.once));
+    const allies = blastAlliesLine(card.effects);
+    if (allies) body.append(el('div', 'cb-full-rule', allies));
     if (card.reason) body.append(el('div', 'cb-full-reason', CARD_COPY.reasons[card.reason]));
     full.append(body);
     if (card.owner !== 'neutral') {
@@ -1014,6 +1030,31 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       full.append(badge);
     }
     inspect.replaceChildren(full);
+    inspect.hidden = false;
+  }
+
+  /** A Blast's friendly fire, as the rule table has it (R14). */
+  function blastAlliesLine(effects: readonly Effect[]): string | null {
+    if (!effects.some((e) => e.k === 'blast')) return null;
+    switch (RULES.blastFriendlyFire) {
+      case 'alliesExceptCaster':
+        return CARD_COPY.rule.blastAllies;
+      case 'allies':
+        return CARD_COPY.rule.blastAlliesCaster;
+      case 'none':
+        return null;
+    }
+  }
+
+  /** An enemy's Inspect entry: its numbers, its grade, and how it opens. */
+  function showEnemyInspect(enemy: BattleView['enemies'][number]): void {
+    const card = el('div', 'cb-enemy-card');
+    card.append(el('div', 'cb-enemy-card-name', `${enemy.name} ${state.enemies.find((e) => e.id === enemy.id)!.spawnIndex + 1}`));
+    const def = ENEMIES[enemy.def];
+    card.append(el('div', 'cb-enemy-card-line', `${CARD_COPY.enemyStats(def.hp, def.baseShield)} · ${CARD_COPY.grade(def.grade)}`));
+    if (enemy.fast) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.rule.fast));
+    else if (RULES.openingGrace) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.rule.grace));
+    inspect.replaceChildren(card);
     inspect.hidden = false;
   }
 

@@ -276,6 +276,34 @@ describe('the sandbox screen', () => {
     sandbox.close();
   });
 
+  it('shows the new rules: the round 1 grace note, an enemy entry under Inspect, and a Blast card naming its friendly fire', () => {
+    // A seed whose round 1 hand holds Fire!.
+    const seed = Array.from({ length: 200 }, (_, i) => `RULES${i}`).find((candidate) => {
+      const created = createBattle('the-pack', candidate);
+      return created.ok && created.state.piles.hand.some((iid) => created.state.cards[iid]!.def === 'fire');
+    })!;
+    const sandbox = openSandbox(document.body, { seed, encounter: 'the-pack' });
+    const root = sandbox.root;
+    begin(root);
+    expect(root.querySelector('.cb-note')!.textContent).toBe('Round 1: enemies are getting into position');
+    const inspectButton = () => all(root, '.cb-actions .cb-btn').find((b) => b.textContent === 'Inspect')!;
+    const entry = () => root.querySelector('.cb-inspect')!.textContent;
+
+    inspectButton().click();
+    all(root, '.cb-panel--enemy')[0]!.click();
+    expect(entry()).toContain('Hound 1');
+    expect(entry()).toContain('Grade 1');
+    expect(entry()).toContain('Fast: attacks from round 1, for 1.');
+    inspectButton().click();
+    all(root, '.cb-panel--enemy')[3]!.click();
+    expect(entry()).toContain('Pikeman 4');
+    expect(entry()).toContain('Round 1: most enemies set up instead of attacking.');
+    inspectButton().click();
+    all(root, '.cb-card[data-card="fire"]')[0]!.click();
+    expect(entry()).toContain('Blast hits allies on its tiles too. Not the unit that plays it.');
+    sandbox.close();
+  });
+
   it('Restart deals the same battle again, New seed a different one', () => {
     const sandbox = openSandbox(document.body, { seed: 'JSDOM4' });
     const root = sandbox.root;
