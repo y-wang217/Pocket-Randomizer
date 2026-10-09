@@ -59,7 +59,7 @@ describe('card data', () => {
     expect([UNITS.C.class, UNITS.C.hp, UNITS.C.baseShield]).toEqual(['melee', 3, 2]);
   });
 
-  it('matches the snapshot enemies', () => {
+  it('matches the snapshot enemies (the rest: test/cards-new-enemies.test.ts)', () => {
     expect([ENEMIES.drone.hp, ENEMIES.drone.baseShield, ENEMIES.drone.script.steps.length]).toEqual([3, 1, 6]);
     expect([ENEMIES.lancer.hp, ENEMIES.lancer.baseShield, ENEMIES.lancer.script.steps.length]).toEqual([2, 0, 3]);
   });

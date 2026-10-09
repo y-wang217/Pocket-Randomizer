@@ -27,7 +27,7 @@ import { ENCOUNTERS } from '../../cardData/encounters';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
 import { createBattle } from '../../core/cards/create';
-import type { Effect, Pos } from '../../core/cards/defs';
+import type { Effect, EnemyDefId, Pos } from '../../core/cards/defs';
 import { choicesFor } from '../../core/cards/legal';
 import { newLog, type BattleLog } from '../../core/cards/log';
 import { friendlyFireFor, interceptsFor, previewPlay, type AttackPreview, type FriendlyFire, type Intercept } from '../../core/cards/preview';
@@ -74,7 +74,15 @@ const LONG_PRESS_MS = 450;
 const STEP_MS: Record<Step['kind'], number> = { card: 900, enemy: 900, move: 600, next: 900, round: 700, end: 900 };
 
 const UNIT_MARKER: Record<UnitId, CardAssetId> = { A: 'marker-unit-commander', B: 'marker-unit-gunner', C: 'marker-unit-dasher' };
-const ENEMY_MARKER: Record<string, CardAssetId> = { drone: 'marker-enemy-drone', lancer: 'marker-enemy-lancer' };
+const ENEMY_MARKER: Record<EnemyDefId, CardAssetId> = {
+  drone: 'marker-enemy-drone',
+  lancer: 'marker-enemy-lancer',
+  hound: 'marker-enemy-hound',
+  turret: 'marker-enemy-turret',
+  bulwark: 'marker-enemy-bulwark',
+  sniper: 'marker-enemy-sniper',
+  pikeman: 'marker-enemy-pikeman',
+};
 const INTENT_ICON: Record<string, CardAssetId> = {
   strike: 'icon-strike',
   pierce: 'icon-pierce',

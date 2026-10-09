@@ -6,7 +6,7 @@
  * imported only by the lazily loaded sandbox, so neither its table nor any
  * file it resolves can reach the main bundle. Files live at
  * `src/ui/assets/cardbattle/{group}/{id}.svg`: the author's pack v1,
- * `cardbattle-assets-1`, 60 files. An ID whose file is missing still renders
+ * `cardbattle-assets-1`, 60 files, and five enemy marker placeholders. An ID whose file is missing still renders
  * a placeholder at its contract size, so a file dropped or removed never
  * breaks the screen.
  *
@@ -75,6 +75,14 @@ export const CARD_ASSET_GROUPS = {
       'marker-ring-selected',
       'marker-ring-destination',
       'marker-reticle',
+      // Not in the pack: placeholders drawn in its style, the diamond and a
+      // glyph, until the author's art arrives
+      // (`docs/spec/gymrun-patch-card-battle-grace-friendly-fire.md` A3).
+      'marker-enemy-hound',
+      'marker-enemy-turret',
+      'marker-enemy-bulwark',
+      'marker-enemy-sniper',
+      'marker-enemy-pikeman',
     ],
   },
 } as const;

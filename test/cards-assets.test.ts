@@ -21,6 +21,7 @@ const CONTRACT: Record<string, string[]> = {
   markers: [
     'marker-player-base', 'marker-enemy-base', 'marker-unit-commander', 'marker-unit-gunner', 'marker-unit-dasher', 'marker-enemy-drone',
     'marker-enemy-lancer', 'marker-ring-selected', 'marker-ring-destination', 'marker-reticle',
+    'marker-enemy-hound', 'marker-enemy-turret', 'marker-enemy-bulwark', 'marker-enemy-sniper', 'marker-enemy-pikeman',
   ],
 };
 

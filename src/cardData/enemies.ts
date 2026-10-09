@@ -3,8 +3,9 @@
  * starting step is rolled per enemy (E6), among its non-damaging steps under
  * opening grace, and a Fast enemy starts on its first damaging step.
  *
- * Drone and Lancer are Appendix A. Every `grade` is provisional
- * (`docs/spec/gymrun-patch-card-battle-grace-friendly-fire.md` A3): the bot's
+ * Drone and Lancer are Appendix A. The other five are
+ * `docs/spec/gymrun-patch-card-battle-grace-friendly-fire.md` A3, built from
+ * the existing vocabulary only. Every `grade` is provisional: the bot's
  * per-scenario numbers (Part B) are what correct them.
  */
 import type { EnemyDef, EnemyDefId } from '../core/cards/defs';
@@ -43,6 +44,85 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
         { move: 'none', act: { k: 'shield', n: 1 } },
         { move: 'hunt', act: { k: 'none' } },
         { move: 'none', act: { k: 'pierce', n: 1 } },
+      ],
+    },
+  },
+  hound: {
+    id: 'hound',
+    name: 'Hound',
+    hp: 2,
+    baseShield: 0,
+    fast: true,
+    grade: 1,
+    script: {
+      kind: 'cycle',
+      steps: [
+        { move: 'hunt', act: { k: 'strike', n: 1 } },
+        { move: 'advance', act: { k: 'none' } },
+      ],
+    },
+  },
+  turret: {
+    id: 'turret',
+    name: 'Turret',
+    hp: 4,
+    baseShield: 1,
+    grade: 2,
+    script: {
+      kind: 'cycle',
+      steps: [
+        { move: 'none', act: { k: 'shield', n: 1 } },
+        { move: 'none', act: { k: 'strike', n: 2 } },
+        { move: 'none', act: { k: 'none' } },
+      ],
+    },
+  },
+  bulwark: {
+    id: 'bulwark',
+    name: 'Bulwark',
+    hp: 4,
+    baseShield: 2,
+    grade: 2,
+    script: {
+      kind: 'cycle',
+      steps: [
+        { move: 'advance', act: { k: 'shield', n: 2 } },
+        {
+          move: { if: 'slashInRange', then: 'none', else: 'hunt' },
+          act: { if: 'slashInRange', then: { k: 'slash', n: 1 }, else: { k: 'shield', n: 1 } },
+        },
+        { move: 'none', act: { k: 'none' } },
+      ],
+    },
+  },
+  sniper: {
+    id: 'sniper',
+    name: 'Sniper',
+    hp: 2,
+    baseShield: 0,
+    grade: 3,
+    script: {
+      kind: 'cycle',
+      steps: [
+        { move: 'hunt', act: { k: 'none' } },
+        { move: 'none', act: { k: 'none' } },
+        { move: 'none', act: { k: 'strike', n: 3 } },
+      ],
+    },
+  },
+  pikeman: {
+    id: 'pikeman',
+    name: 'Pikeman',
+    hp: 3,
+    baseShield: 1,
+    grade: 3,
+    script: {
+      kind: 'cycle',
+      steps: [
+        { move: 'none', act: { k: 'shield', n: 1 } },
+        { move: 'hunt', act: { k: 'none' } },
+        { move: 'none', act: { k: 'none' } },
+        { move: 'none', act: { k: 'pierce', n: 2 } },
       ],
     },
   },
