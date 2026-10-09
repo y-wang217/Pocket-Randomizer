@@ -23,6 +23,8 @@ export type BattleEvent =
   | { t: 'converted'; unit: UnitId; card: CardIid; from: 'strike'; to: 'pierce' }
   /** A card that resolved with nothing to act on: its target is gone or its pattern is empty. */
   | { t: 'fizzled'; card: CardIid; unit: UnitId; why: 'targetGone' | 'nothingHit' }
+  /** R14: a Blast hits an ally on its tiles. Its `damaged` follows. */
+  | { t: 'friendlyFire'; card: CardIid; unit: UnitId }
   | { t: 'damaged'; target: TargetId; amount: number; shield: number; baseShield: number; hp: number }
   | { t: 'shielded'; unit: TargetId; amount: number }
   | { t: 'defeated'; enemy: EnemyId }
@@ -36,7 +38,7 @@ export type BattleEvent =
   /** A telegraphed hit that found nobody on its lit tiles: dodged. */
   | { t: 'enemyMissed'; enemy: EnemyId; act: Intent['act'] }
   | { t: 'enemyMoved'; enemy: EnemyId; from: Pos; to: Pos; rule: 'hunt' | 'advance' }
-  | { t: 'enemyWaited'; enemy: EnemyId; why: 'noLane' | 'blocked' | 'limit' }
+  | { t: 'enemyWaited'; enemy: EnemyId; why: 'noLane' | 'blocked' | 'limit' | 'pinned' }
   | { t: 'telegraphed'; enemy: EnemyId; step: number; intent: Intent }
   // The next hand.
   | { t: 'roundStarted'; round: number }
@@ -46,6 +48,21 @@ export type BattleEvent =
   | { t: 'drew'; cards: CardIid[] }
   | { t: 'extraDrew'; card: CardIid }
   | { t: 'extraDrawFizzled' }
+  // Part D.
+  /** A Harpoon lands: the boss is pinned and its shields are taken. */
+  | { t: 'harpooned'; enemy: EnemyId; card: CardIid; turns: number; shields: number }
+  | { t: 'shieldsReturned'; enemy: EnemyId; amount: number }
+  | { t: 'pinEnded'; enemy: EnemyId }
+  /** Its one stalk begins, at half HP (D3). Each step follows as a `stomped`. */
+  | { t: 'stalked'; enemy: EnemyId }
+  /** One stalk step: the tiles it stomps, and where it moved, or `null` when something there stopped it. */
+  | { t: 'stomped'; enemy: EnemyId; tiles: Pos[]; from: Pos; to: Pos | null }
+  /** A card an enemy grants enters the hand. */
+  | { t: 'granted'; card: CardIid }
+  /** A card with Uses has none left: spent until the next wave. */
+  | { t: 'usedUp'; card: CardIid }
+  /** Part C: the last enemy of a wave fell and the next arrives; the battle is back in deploy. */
+  | { t: 'waveStarted'; wave: number }
   // The end.
   | { t: 'won' }
   | { t: 'lost'; why: 'allFainted' | 'roundCap' };

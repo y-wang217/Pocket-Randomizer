@@ -14,10 +14,12 @@
  */
 import { CARDS } from '../../cardData/cards';
 import { CARD_COPY } from '../../cardData/copy';
+import { RULES } from '../../cardData/rules';
 import { ENEMIES } from '../../cardData/enemies';
 import type { Pos } from '../../core/cards/defs';
 import type { BattleEvent } from '../../core/cards/events';
 import { previewPlay } from '../../core/cards/preview';
+import { enemyNumber } from '../../core/cards/view';
 import type { BattleState, Intent, TargetId } from '../../core/cards/state';
 
 export type StepKind = 'card' | 'enemy' | 'move' | 'next' | 'round' | 'end';
@@ -62,6 +64,7 @@ const ACT_WORD: Record<Exclude<Intent['act'], 'none'>, string> = {
   pierce: CARD_COPY.keyword.pierce,
   slash: CARD_COPY.keyword.slash,
   shield: CARD_COPY.keyword.shield,
+  scream: CARD_COPY.keyword.scream,
 };
 
 function actWord(act: Intent['act'], n: number): string {
@@ -72,7 +75,7 @@ function actWord(act: Intent['act'], n: number): string {
 export function whoOf(state: BattleState, id: string): string {
   if (state.units.some((u) => u.id === id)) return id;
   const enemy = state.enemies.find((e) => e.id === id);
-  return enemy ? `${ENEMIES[enemy.def].name} ${enemy.spawnIndex + 1}` : id;
+  return enemy ? `${ENEMIES[enemy.def].name} ${enemyNumber(state, id)}` : id;
 }
 
 /**
@@ -97,6 +100,7 @@ export function roundSteps(before: BattleState, events: readonly BattleEvent[], 
   // Cast so the checker does not narrow it to `null`: `begin` reassigns it.
   let open = null as Step | null;
   const roundMp: { step?: Step; units: string[] } = { units: [] };
+  let stomps = 0;
 
   const begin = (kind: StepKind, title: string, extra: Partial<Step> = {}): Step => {
     open = { kind, state: draft, tiles: [], hits: [], moves: [], title, lines: [], quiet: false, ...extra };
@@ -143,6 +147,58 @@ export function roundSteps(before: BattleState, events: readonly BattleEvent[], 
       case 'fizzled':
         current('card', '').lines.push(event.why === 'targetGone' ? L.fizzledGone : L.fizzledNothing);
         break;
+      case 'harpooned': {
+        const boss = enemyOf(event.enemy);
+        if (boss) {
+          boss.pinned = event.turns;
+          boss.stripped = boss.baseShield;
+          boss.baseShield = 0;
+          boss.shield = 0;
+        }
+        current('card', '').lines.push(L.harpooned(who(event.enemy), event.turns));
+        break;
+      }
+      case 'shieldsReturned': {
+        const boss = enemyOf(event.enemy);
+        if (boss) boss.baseShield = event.amount;
+        begin('enemy', L.shieldsReturned(who(event.enemy), event.amount), { actor: event.enemy });
+        break;
+      }
+      case 'pinEnded':
+        begin('move', L.pinEnded(who(event.enemy)), { actor: event.enemy });
+        break;
+      case 'stalked':
+        begin('move', L.stalked(who(event.enemy)), { actor: event.enemy });
+        break;
+      case 'stomped': {
+        // One beat per step, lit like a Slash (the author: "3 separate animations, kind of like slashes").
+        const enemy = enemyOf(event.enemy);
+        if (enemy && event.to) enemy.pos = { ...event.to };
+        stomps += 1;
+        begin('enemy', L.stomp(who(event.enemy), stomps, RULES.stalk.steps), {
+          actor: event.enemy,
+          act: 'slash',
+          tiles: event.tiles.map((t) => ({ ...t })),
+          moves: event.to ? [{ id: event.enemy, from: event.from, to: event.to }] : [],
+        });
+        break;
+      }
+      case 'granted':
+        (open ?? begin('round', '')).lines.push(L.granted(CARDS[draft.cards[event.card]!.def]!.name));
+        break;
+      case 'usedUp':
+        current('card', '').lines.push(L.usedUp(CARDS[draft.cards[event.card]!.def]!.name));
+        break;
+      case 'friendlyFire':
+        current('card', '').lines.push(L.friendlyFire(who(event.unit)));
+        break;
+      case 'planPruned': {
+        // Only a commit prunes with a reason of `fainted`: a unit a Blast felled earlier in the round.
+        const def = CARDS[draft.cards[event.card]!.def]!;
+        begin('card', L.plays(event.unit, def.name), { actor: event.unit }).lines.push(L.notPlayed);
+        draft.plan = draft.plan.filter((p) => p.card !== event.card);
+        break;
+      }
       case 'damaged': {
         const hit = target(event.target);
         const pos = hit?.pos ? { ...hit.pos } : null;
@@ -245,6 +301,9 @@ export function roundSteps(before: BattleState, events: readonly BattleEvent[], 
         current('next', L.next).lines.push(L.telegraph(who(event.enemy), actWord(event.intent.act, event.intent.n)));
         break;
       }
+      case 'waveStarted':
+        begin('round', L.wave(event.wave + 1));
+        break;
       case 'roundStarted':
         draft.round = event.round;
         begin('round', L.round(event.round));

@@ -13,7 +13,7 @@ import { playBlock, playersOf } from './legal';
 import { cardDefOf, needsOf, project, slotsOf, type Needs } from './plan';
 import { enemyThreat, previewPlay, type PlayPreview } from './preview';
 import type { BattleState, CardIid, EnemyId, Intent, PlayBlock, UnitId } from './state';
-import { allTiles, samePos, zoneOf } from './zones';
+import { allTiles, covers, samePos, zoneOf } from './zones';
 
 /**
  * One enemy's telegraphed attack on one tile, as the board draws it. Unlike
@@ -24,13 +24,14 @@ import { allTiles, samePos, zoneOf } from './zones';
  */
 export interface TileThreat {
   enemy: EnemyId;
-  act: 'strike' | 'pierce' | 'slash';
+  act: 'strike' | 'pierce' | 'slash' | 'scream';
   n: number;
   /** The tile where a Strike stops, on the unit it will hit. */
   stop: boolean;
 }
 
-export type Occupant = { kind: 'unit'; id: UnitId } | { kind: 'enemy'; id: EnemyId; def: EnemyDefId };
+/** An enemy covers each tile of its footprint; `anchor` is the tile its token is drawn from (its position). */
+export type Occupant = { kind: 'unit'; id: UnitId } | { kind: 'enemy'; id: EnemyId; def: EnemyDefId; anchor: boolean };
 
 export interface TileView {
   pos: Pos;
@@ -84,7 +85,15 @@ export interface EnemyView {
   baseShield: number;
   pos: Pos | null;
   dead: boolean;
-  intent: { icon: Intent['act']; n: number; tiles: Pos[] } | null;
+  /** Starts on its first damaging step, so it attacks from round 1 (A1). */
+  fast: boolean;
+  /** Its footprint, lanes by columns: 1 by 1 for most, 2 by 2 for the Colossus. */
+  size: { lanes: number; cols: number };
+  /** Turns of a Harpoon's pin left (D). */
+  pinned: number;
+  /** The HP at which its one stalk comes, while it has not come (D3); `null` for an enemy that never stalks. */
+  stalkAt: number | null;
+  intent: { icon: Intent['act']; n: number; tiles: Pos[]; label?: string } | null;
 }
 
 export interface HandCardView {
@@ -93,7 +102,11 @@ export interface HandCardView {
   name: string;
   cost: number;
   owner: CardOwner;
-  once: boolean;
+  /** Uses left and the card's total, or `null` for a card without the keyword (D7). */
+  uses: { left: number; of: number } | null;
+  retain: boolean;
+  /** Granted by an enemy rather than dealt from the deck: its frame is black. */
+  granted: boolean;
   effects: readonly Effect[];
   /** In the plan already. */
   planned: boolean;
@@ -119,6 +132,9 @@ export interface PlanPreview extends PlayPreview {
 
 export interface BattleView {
   round: number;
+  /** The wave being fought, from 0, and how many the scenario has (Part C). */
+  wave: number;
+  waves: number;
   phase: BattleState['phase'];
   canCommit: boolean;
   /** Before the battle starts: the tiles a unit may be placed on. Empty once it has. */
@@ -129,7 +145,13 @@ export interface BattleView {
   hand: HandGroupView[];
   /** One per planned play, in plan order. */
   previews: PlanPreview[];
-  piles: { draw: number; discard: number; spent: number; removed: number };
+  piles: { draw: number; discard: number; spent: number; removed: number; reserve: number };
+}
+
+/** An enemy's number as the screen shows it: its place in its wave, from 1 (the wave's first is 1). */
+export function enemyNumber(state: BattleState, id: EnemyId): number {
+  const enemy = state.enemies.find((e) => e.id === id);
+  return enemy ? state.enemies.filter((e) => e.wave === enemy.wave).indexOf(enemy) + 1 : 0;
 }
 
 export function viewOf(state: BattleState): BattleView {
@@ -140,8 +162,12 @@ export function viewOf(state: BattleState): BattleView {
 
   const tiles: TileView[] = allTiles().map((pos) => {
     const unit = state.units.find((u) => samePos(u.pos, pos));
-    const enemy = state.enemies.find((e) => samePos(e.pos, pos));
-    const occupant: Occupant | null = unit ? { kind: 'unit', id: unit.id } : enemy ? { kind: 'enemy', id: enemy.id, def: enemy.def } : null;
+    const enemy = state.enemies.find((e) => covers(e, pos));
+    const occupant: Occupant | null = unit
+      ? { kind: 'unit', id: unit.id }
+      : enemy
+        ? { kind: 'enemy', id: enemy.id, def: enemy.def, anchor: samePos(enemy.pos, pos) }
+        : null;
     const view: TileView = {
       pos,
       zone: zoneOf(pos),
@@ -150,7 +176,7 @@ export function viewOf(state: BattleState): BattleView {
       threats: threatened.flatMap(({ enemy, tiles }) => {
         const hit = tiles.find((t) => samePos(t.pos, pos));
         const act = enemy.intent?.act;
-        if (!hit || (act !== 'strike' && act !== 'pierce' && act !== 'slash')) return [];
+        if (!hit || (act !== 'strike' && act !== 'pierce' && act !== 'slash' && act !== 'scream')) return [];
         return [{ enemy: enemy.id, act, n: enemy.intent!.n, stop: hit.stop }];
       }),
     };
@@ -192,7 +218,8 @@ export function viewOf(state: BattleState): BattleView {
     };
   });
 
-  const enemies: EnemyView[] = state.enemies.map((e) => ({
+  // The current wave's enemies: an earlier wave's are gone, a later one's not here yet.
+  const enemies: EnemyView[] = state.enemies.filter((e) => e.wave === state.wave).map((e) => ({
     id: e.id,
     def: e.def,
     name: ENEMIES[e.def].name,
@@ -202,7 +229,11 @@ export function viewOf(state: BattleState): BattleView {
     baseShield: e.baseShield,
     pos: e.pos,
     dead: e.pos === null,
-    intent: e.pos && e.intent ? { icon: e.intent.act, n: e.intent.n, tiles: e.intent.tiles } : null,
+    fast: ENEMIES[e.def].fast === true,
+    size: ENEMIES[e.def].size ?? { lanes: 1, cols: 1 },
+    pinned: e.pinned,
+    stalkAt: ENEMIES[e.def].stalks && !e.stalked ? Math.floor(ENEMIES[e.def].hp * RULES.stalk.atHpShare) : null,
+    intent: e.pos && e.intent ? { icon: e.intent.act, n: e.intent.n, tiles: e.intent.tiles, ...(e.intent.label ? { label: e.intent.label } : {}) } : null,
   }));
 
   // Grouped by owner in the deck's unit order, Neutrals last.
@@ -218,6 +249,8 @@ export function viewOf(state: BattleState): BattleView {
 
   return {
     round: state.round,
+    wave: state.wave,
+    waves: Math.max(...state.enemies.map((e) => e.wave)) + 1,
     phase: state.phase,
     canCommit: live,
     deployTiles: state.phase === 'deploy' ? deployTiles() : [],
@@ -231,6 +264,7 @@ export function viewOf(state: BattleState): BattleView {
       discard: state.piles.discard.length,
       spent: state.piles.spent.length,
       removed: state.piles.removed.length,
+      reserve: state.piles.reserve.length,
     },
   };
 }
@@ -247,7 +281,9 @@ function cardView(state: BattleState, iid: CardIid, live: boolean): HandCardView
     name: def.name,
     cost: def.cost,
     owner: def.owner,
-    once: def.once === true,
+    uses: def.uses === undefined ? null : { left: state.uses[iid] ?? def.uses, of: def.uses },
+    retain: def.retain === true,
+    granted: state.cards[iid]!.granted === true,
     effects: def.effects,
     planned,
     playable: players.length > 0,

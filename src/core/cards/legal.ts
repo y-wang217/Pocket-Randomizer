@@ -7,7 +7,7 @@ import type { CardDef } from './defs';
 import { asPlayBlock, cardDefOf, checkAppend, checkPlan, livingEnemies, livingUnits, needsOf, project } from './plan';
 import type { Action, BattleState, CardIid, Choice, PlayBlock, TargetId, UnitId } from './state';
 import { deployTiles } from './deploy';
-import { blastCentres, moveDestinations, samePos } from './zones';
+import { blastCentres, enemyTiles, moveDestinations, samePos } from './zones';
 
 export interface Choices {
   units: TargetId[];
@@ -34,7 +34,7 @@ function candidateTiles(state: BattleState, def: CardDef, mover: UnitId): Pos[] 
   if (move) {
     const occupied = [
       ...Object.entries(projection).flatMap(([id, pos]) => (id !== mover && pos ? [pos] : [])),
-      ...livingEnemies(state).map((e) => e.pos!),
+      ...livingEnemies(state).flatMap((e) => enemyTiles(e)),
     ];
     return moveDestinations('player', from, move.n, occupied);
   }
@@ -54,7 +54,7 @@ export function choicesFor(state: BattleState, card: CardIid, unit: UnitId, chos
     case 'none':
       return NONE;
     case 'unit': {
-      const pool = def.effects.some((e) => e.k === 'target') ? livingEnemies(state).map((e) => e.id) : friendlies;
+      const pool = def.effects.some((e) => e.k === 'target' || e.k === 'harpoon') ? livingEnemies(state).map((e) => e.id) : friendlies;
       return { units: pool.filter((u) => fits(state, card, unit, { unit: u })), tiles: [] };
     }
     case 'tile':

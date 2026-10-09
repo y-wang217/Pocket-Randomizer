@@ -174,6 +174,25 @@ one-seed solver (`npm run cards:solve`), and Bot turn under Menu. Built and
 stopped for review. `CARD_ENGINE_VERSION` moves to `cards-0.3.0`; none of the
 run's four axes moves.
 
+**Card battle sandbox: opening grace, friendly fire, new enemies and
+scenarios.** Branch `claude/vibrant-hopper-axlk79`, on top of `cards-0.3.0`,
+prompt
+[`spec/gymrun-patch-card-battle-grace-friendly-fire.md`](spec/gymrun-patch-card-battle-grace-friendly-fire.md),
+record [`generation.md`](generation.md) section 125o. Part A: in round 1 a
+normal enemy opens on a step that deals no damage and a Fast one attacks for
+1; a player Blast hurts allies on its tiles, not its caster; Hound, Turret,
+Bulwark, Sniper and Pikeman with provisional grades; Turret Alley, Wall and
+Gun and The Pack, each scenario showing its grade total; owner colours on
+cards, panels and tokens; a tap on a unit filters the hand. Built and stopped
+for review. Then, after merging `main` (#106, the guard bot) and the author's
+rulings ([`spec/gymrun-card-battle-rulings-waves-boss-reskin.md`](spec/gymrun-card-battle-rulings-waves-boss-reskin.md)):
+**waves** and **Siege**, three waves ending in **the Colossus**, a 2x2 boss
+that stalks once at half HP, and **the Harpoon** it grants, which pins it
+(record [`generation.md`](generation.md) section 125p), and **the reskin** on
+the meadow art pack: roster on top, a full-width board, unit panels below,
+illustrated cards with owner bands (section 125q). `CARD_ENGINE_VERSION` moves to `cards-0.4.0`; none of the
+run's four axes moves, `contentHash` holds at `865d3b`.
+
 **Also in flight: Defender Mode v0, a fun test.** Branch
 `claude/eager-turing-0059br`, prompt
 [`spec/gymrun-defender-mode-v0-fun-test.md`](spec/gymrun-defender-mode-v0-fun-test.md),

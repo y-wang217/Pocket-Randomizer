@@ -68,7 +68,7 @@ describe('previewPlay', () => {
 
   it('holds a reticle on what a card that deals no damage lands on', () => {
     const state = quiet(board({ hand: ['prep'] }));
-    expect(previewPlay(state, { card: iidOf(state, 'prep'), unit: 'C' })).toEqual({ attack: null, targets: ['C'] });
+    expect(previewPlay(state, { card: iidOf(state, 'prep'), unit: 'C' })).toEqual({ attack: null, targets: ['C'], allies: [] });
   });
 });
 

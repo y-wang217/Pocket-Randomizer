@@ -11,16 +11,27 @@ import { CARD_ASSET_GROUPS, cardAsset, cardAssetPath, cardAssetUrl, renderSize, 
 
 const CONTRACT: Record<string, string[]> = {
   tiles: ['tile-player-backline', 'tile-danger-zone', 'tile-enemy-backline', 'tile-overlay-selectable', 'tile-overlay-selected', 'tile-overlay-telegraph', 'tile-overlay-unavailable'],
-  cards: ['card-frame-compact', 'card-frame-full', 'card-overlay-selected', 'card-overlay-unavailable', 'card-badge-corner'],
-  ui: ['panel-frame', 'pill-badge', 'bar-track', 'bar-fill', 'pip-empty', 'pip-filled', 'slot-empty', 'slot-filled', 'button-default', 'button-pressed', 'button-unavailable'],
+  cards: ['card-frame-compact', 'card-frame-full', 'card-overlay-selected', 'card-overlay-unavailable', 'card-badge-corner', 'card-band-compact', 'card-band-full'],
+  ui: [
+    'panel-frame', 'pill-badge', 'bar-track', 'bar-fill', 'pip-empty', 'pip-filled', 'slot-empty', 'slot-filled', 'button-default', 'button-pressed', 'button-unavailable',
+    'button-primary-default', 'button-primary-pressed', 'button-primary-unavailable', 'background-meadow',
+  ],
   icons: [
     'icon-hp', 'icon-shield', 'icon-mp', 'icon-strike', 'icon-pierce', 'icon-slash', 'icon-blast', 'icon-move', 'icon-target', 'icon-stealth',
     'icon-repair', 'icon-once', 'icon-draw', 'icon-hunt', 'icon-wait', 'icon-class-special', 'icon-class-ranged', 'icon-class-melee',
     'icon-type-fire', 'icon-type-plasma', 'icon-type-water', 'icon-inspect', 'icon-confirm', 'icon-cancel', 'icon-end-turn', 'icon-deck', 'icon-discard',
+    'icon-shovel', 'icon-harpoon', 'icon-scream',
+    'icon-fast', 'icon-pinned', 'icon-retain', 'icon-undo', 'icon-menu',
   ],
   markers: [
     'marker-player-base', 'marker-enemy-base', 'marker-unit-commander', 'marker-unit-gunner', 'marker-unit-dasher', 'marker-enemy-drone',
     'marker-enemy-lancer', 'marker-ring-selected', 'marker-ring-destination', 'marker-reticle',
+    'marker-enemy-hound', 'marker-enemy-turret', 'marker-enemy-bulwark', 'marker-enemy-sniper', 'marker-enemy-pikeman',
+    'marker-enemy-colossus', 'marker-enemy-colossus-pinned', 'portrait-commander', 'portrait-gunner', 'portrait-dasher',
+  ],
+  art: [
+    'art-call-medic', 'art-command', 'art-focus', 'art-moon-strike', 'art-shoot', 'art-resupply', 'art-artillery', 'art-fire',
+    'art-dash', 'art-slash', 'art-need-help', 'art-prep', 'art-move', 'art-dig-in', 'art-attack', 'art-harpoon',
   ],
 };
 
@@ -39,7 +50,7 @@ describe('card battle assets', () => {
   });
 
   it('renders a missing file as a placeholder of the contract size', () => {
-    const sizes: Record<string, string> = { tiles: '64x64', cards: '72x101', icons: '24x24', markers: '48x48' };
+    const sizes: Record<string, string> = { tiles: '64x64', cards: '72x101', icons: '24x24', markers: '48x48', art: '60x50' };
     for (const [group, ids] of Object.entries(CONTRACT)) {
       for (const id of ids) {
         const el = cardAsset(id as CardAssetId, undefined, {});
@@ -80,5 +91,17 @@ describe('card battle assets', () => {
     const tile = cardAsset('tile-danger-zone', undefined, files);
     expect(tile.classList.contains('cb-asset--art')).toBe(true);
     expect(tile.style.getPropertyValue('--cb-asset-image')).toContain('/a/tile-danger-zone.svg');
+  });
+
+  it("prefers the meadow pack's WebP to the first pack's SVG, and slices it at its own insets", () => {
+    const files = {
+      '../assets/cardbattle/tiles/tile-danger-zone.svg': '/a/old.svg',
+      '../assets/cardbattle/tiles/tile-danger-zone.webp': '/a/new.webp',
+      '../assets/cardbattle/ui/panel-frame.webp': '/a/panel.webp',
+    };
+    expect(cardAssetUrl('tile-danger-zone', files)).toBe('/a/new.webp');
+    const panel = cardAsset('panel-frame', 'fill', files);
+    expect(panel.style.borderImage).toContain('30');
+    expect(panel.style.borderWidth).toBe('12px');
   });
 });

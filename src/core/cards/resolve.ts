@@ -5,6 +5,8 @@
  *   1-2. Every planned card in plan order, Moves and Command's included: the
  *      order the player made the plan is the order it plays. A card whose
  *      target is gone fizzles: it is still used and its MP is not refunded.
+ *      A play by a unit that fainted earlier in the round (a Blast's friendly
+ *      fire, R14) is pruned instead.
  *   3. Win check. Dead enemies never act.
  *   4. MP gain, capped.
  *   5-7. Enemy actions, moves and telegraph (`enemies.ts`).
@@ -13,6 +15,9 @@
  * The whole round resolves in this one call and returns every event, so the
  * UI never waits on an intermediate state.
  */
+import { CARDS } from '../../cardData/cards';
+import { ENCOUNTERS } from '../../cardData/encounters';
+import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
 import { enemyActions, enemyMovesAndTelegraph } from './enemies';
@@ -49,7 +54,15 @@ export function draftOf(state: BattleState): BattleState {
       conds: { ...e.conds },
       intent: e.intent && { ...e.intent, tiles: e.intent.tiles.map((t) => ({ ...t })) },
     })),
-    piles: { draw: [...state.piles.draw], hand: [...state.piles.hand], discard: [...state.piles.discard], spent: [...state.piles.spent], removed: [...state.piles.removed] },
+    piles: {
+      draw: [...state.piles.draw],
+      hand: [...state.piles.hand],
+      discard: [...state.piles.discard],
+      spent: [...state.piles.spent],
+      removed: [...state.piles.removed],
+      reserve: [...state.piles.reserve],
+    },
+    uses: { ...state.uses },
     plan: [...state.plan],
     pendingDraws: state.pendingDraws.map((d) => ({ ...d })),
   };
@@ -75,13 +88,23 @@ export function commit(state: BattleState): StepResult {
   // 1 and 2. Every card, Moves included, in plan order.
   plan.forEach((play, index) => {
     if (s.phase !== 'plan') return;
+    // A unit a Blast made faint earlier in the round plays nothing more: its
+    // own cards left with it, and a Neutral it held stays in hand.
+    if (unitOf(s, play.unit)?.fainted) {
+      ctx.events.push({ t: 'planPruned', card: play.card, unit: play.unit, reason: 'fainted' });
+      return;
+    }
     const def = cardDefOf(s, play.card)!;
     if (isMoveCard(def)) playCard(ctx, play, () => resolveMove(ctx, play, def));
     else playCard(ctx, play, () => resolveEffects(ctx, play, def, converts(play, index)));
   });
 
-  // 3. Win check.
+  // 3. Win check: the last enemy of a wave brings the next wave, of the last wave wins.
   if (livingEnemies(s).length === 0 && s.phase === 'plan') {
+    if (s.enemies.some((e) => e.wave > s.wave)) {
+      startWave(ctx, s.wave + 1);
+      return { ok: true, state: s, events: ctx.events };
+    }
     s.phase = 'won';
     ctx.events.push({ t: 'won' });
   }
@@ -100,12 +123,63 @@ export function commit(state: BattleState): StepResult {
   return { ok: true, state: s, events: ctx.events };
 }
 
+/**
+ * The next wave arrives (Part C; `RULES.betweenWaves`). Each living unit keeps
+ * its HP, loses its card shield, gets its base shield back, goes to 0 MP and
+ * back to its scenario tile; owed MP and extra draws clear; every card a faint
+ * did not remove, Once cards included, is shuffled into a fresh draw pile, in
+ * deck order first so the shuffle reads no history. Then the round count
+ * starts again with round 1's hand, and the battle is back in `deploy`: the
+ * player places again and Start brings the wave's opening moves, under grace.
+ */
+export function startWave(ctx: Ctx, wave: number): void {
+  const { s } = ctx;
+  s.wave = wave;
+  s.plan = [];
+  s.pendingDraws = [];
+  const encounter = ENCOUNTERS[s.encounterId]!;
+  for (const unit of livingUnits(s)) {
+    unit.shield = 0;
+    unit.baseShield = UNITS[unit.id].baseShield;
+    unit.mp = RULES.mp.start;
+    unit.pendingMp = [];
+    unit.pos = { ...encounter.units.find((u) => u.def === unit.id)!.pos };
+  }
+  for (const enemy of s.enemies) {
+    if (enemy.wave === wave) enemy.pos = { ...enemy.spawn! };
+  }
+  const index = (iid: string): number => Number(iid.slice(1));
+  const deck = [...s.piles.draw, ...s.piles.hand, ...s.piles.discard, ...s.piles.spent].sort((a, b) => index(a) - index(b));
+  s.piles = { draw: withStream(s, (stream) => shuffled(stream, deck)), hand: [], discard: [], spent: [], removed: s.piles.removed, reserve: s.piles.reserve };
+  // Uses come back with the reshuffle (C4).
+  for (const iid of Object.keys(s.uses)) s.uses[iid] = CARDS[s.cards[iid]!.def]!.uses!;
+  ctx.events.push({ t: 'waveStarted', wave });
+  grantWave(ctx);
+  s.round = 0;
+  nextHand(ctx);
+  s.phase = 'deploy';
+}
+
+/** The cards the arriving wave's enemies grant leave the reserve for the hand. */
+export function grantWave(ctx: Ctx): void {
+  const { s } = ctx;
+  for (const enemy of s.enemies) {
+    const def = ENEMIES[enemy.def];
+    if (enemy.wave !== s.wave || !def.grants) continue;
+    const iid = s.piles.reserve.find((c) => s.cards[c]!.def === def.grants);
+    if (!iid) continue;
+    s.piles.reserve = s.piles.reserve.filter((c) => c !== iid);
+    s.piles.hand.push(iid);
+    ctx.events.push({ t: 'granted', card: iid });
+  }
+}
+
 function playCard(ctx: Ctx, play: PlannedPlay, resolve: () => void): void {
   const def = cardDefOf(ctx.s, play.card)!;
   payFor(unitOf(ctx.s, play.unit), def);
   ctx.events.push({ t: 'played', card: play.card, unit: play.unit });
   resolve();
-  retire(ctx.s, play);
+  retire(ctx, play);
 }
 
 /** Draw `n` from the top of the draw pile, reshuffling the discard in when it runs out. */
@@ -165,13 +239,16 @@ export function nextHand(ctx: Ctx): void {
     unit.pendingMp = unit.pendingMp.map((grant) => ({ ...grant, turns: grant.turns - 1 })).filter((grant) => grant.turns > 0);
   }
 
-  if (s.piles.hand.length > 0) {
-    ctx.events.push({ t: 'discarded', cards: [...s.piles.hand] });
-    s.piles.discard.push(...s.piles.hand);
-    s.piles.hand = [];
+  // Retain: an unplayed copy stays, holding one of the hand's places.
+  const kept = s.piles.hand.filter((iid) => CARDS[s.cards[iid]!.def]!.retain);
+  const gone = s.piles.hand.filter((iid) => !kept.includes(iid));
+  if (gone.length > 0) {
+    ctx.events.push({ t: 'discarded', cards: gone });
+    s.piles.discard.push(...gone);
   }
+  s.piles.hand = kept;
 
-  drawCards(ctx, RULES.handSize);
+  drawCards(ctx, Math.max(0, RULES.handSize - kept.length));
 
   for (const owed of s.pendingDraws) {
     for (let i = 0; i < owed.n; i++) {

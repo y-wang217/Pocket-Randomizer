@@ -23,22 +23,24 @@
  */
 import './sandbox.css';
 
+import { CARDS } from '../../cardData/cards';
 import { CARD_COPY } from '../../cardData/copy';
 import { ENCOUNTERS } from '../../cardData/encounters';
+import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
-import { createBattle } from '../../core/cards/create';
+import { createBattle, gradeTotal } from '../../core/cards/create';
+import type { Effect, EnemyDefId, Pos } from '../../core/cards/defs';
 import { planDeploy, planRound } from '../../core/cards/guard';
-import type { Effect, Pos } from '../../core/cards/defs';
 import { choicesFor } from '../../core/cards/legal';
 import { newLog, type BattleLog } from '../../core/cards/log';
-import { interceptsFor, previewPlay, type AttackPreview, type Intercept } from '../../core/cards/preview';
+import { friendlyFireFor, interceptsFor, previewPlay, type AttackPreview, type FriendlyFire, type Intercept } from '../../core/cards/preview';
 import type { Action, BattleState, CardIid, TargetId, UnitId } from '../../core/cards/state';
 import { step } from '../../core/cards/step';
-import { viewOf, type BattleView, type HandCardView, type TileThreat, type TileView } from '../../core/cards/view';
+import { enemyNumber, viewOf, type BattleView, type HandCardView, type TileThreat, type TileView } from '../../core/cards/view';
 import { samePos } from '../../core/cards/zones';
 import { newSeed } from '../seed';
-import { cardAsset, type CardAssetId } from './assets';
+import { CARD_ASSET_GROUPS, cardAsset, cardAssetUrl, type CardAssetId } from './assets';
 import { roundSteps, type RoundRecord, type Step } from './playback';
 
 export interface Sandbox {
@@ -65,6 +67,8 @@ interface Pending {
   intercepts?: Intercept[];
   /** While assigning a Neutral: the units that may play it but cannot now, and why. */
   blocked?: HandCardView['blocked'];
+  /** For a Blast: the tiles or enemies it could take that would also hit an ally (R14). */
+  friendly?: FriendlyFire[];
 }
 
 /** The scenario the sandbox opens on: enemies drawn anywhere on their backline. */
@@ -74,22 +78,35 @@ const LONG_PRESS_MS = 450;
 const STEP_MS: Record<Step['kind'], number> = { card: 900, enemy: 900, move: 600, next: 900, round: 700, end: 900 };
 
 const UNIT_MARKER: Record<UnitId, CardAssetId> = { A: 'marker-unit-commander', B: 'marker-unit-gunner', C: 'marker-unit-dasher' };
-const ENEMY_MARKER: Record<string, CardAssetId> = { drone: 'marker-enemy-drone', lancer: 'marker-enemy-lancer' };
+const UNIT_PORTRAIT: Record<UnitId, CardAssetId> = { A: 'portrait-commander', B: 'portrait-gunner', C: 'portrait-dasher' };
+const ENEMY_MARKER: Record<EnemyDefId, CardAssetId> = {
+  drone: 'marker-enemy-drone',
+  lancer: 'marker-enemy-lancer',
+  hound: 'marker-enemy-hound',
+  turret: 'marker-enemy-turret',
+  bulwark: 'marker-enemy-bulwark',
+  sniper: 'marker-enemy-sniper',
+  pikeman: 'marker-enemy-pikeman',
+  colossus: 'marker-enemy-colossus',
+};
 const INTENT_ICON: Record<string, CardAssetId> = {
   strike: 'icon-strike',
   pierce: 'icon-pierce',
   slash: 'icon-slash',
   blast: 'icon-blast',
   shield: 'icon-shield',
+  scream: 'icon-scream',
   none: 'icon-wait',
 };
-const THREAT_ORDER: readonly TileThreat['act'][] = ['pierce', 'slash', 'strike'];
+const THREAT_ORDER: readonly TileThreat['act'][] = ['pierce', 'slash', 'scream', 'strike'];
 const THREAT_ORDER_ALL: readonly AttackPreview['act'][] = ['pierce', 'slash', 'blast', 'strike'];
 
 interface OwnAttack {
   pos: Pos;
   act: AttackPreview['act'];
   n: number;
+  /** The unit that plays it: its owner colour. */
+  unit: UnitId;
   stop: boolean;
   /** From the card being chosen, not yet in the plan. */
   pending: boolean;
@@ -110,9 +127,10 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, t
 function button(className: string, label: string, onTap: () => void): HTMLButtonElement {
   const node = el('button', className);
   node.type = 'button';
-  // The pack's three button states; the stylesheet shows the one that applies.
+  // The pack's three button states; the stylesheet shows the one that applies. The primary button is green.
+  const primary = className.includes('cb-btn--primary');
   for (const state of ['button-default', 'button-pressed', 'button-unavailable'] as const) {
-    const layer = cardAsset(state, 'fill');
+    const layer = cardAsset(primary ? (state.replace('button-', 'button-primary-') as CardAssetId) : state, 'fill');
     layer.dataset['state'] = state;
     node.append(layer);
   }
@@ -121,8 +139,13 @@ function button(className: string, label: string, onTap: () => void): HTMLButton
   return node;
 }
 
-/** The icon and number a card's face shows: its first effect that has one. */
-export function faceOf(effects: readonly Effect[]): { icon: CardAssetId; n: number | null; targeted: boolean } {
+/** The icon and number a card's face shows: its first effect that has one, its picture for flavour when it names one. */
+export function faceOf(effects: readonly Effect[], face?: 'shovel' | 'harpoon'): { icon: CardAssetId; n: number | null; targeted: boolean } {
+  const shown = effectFace(effects);
+  return face ? { ...shown, icon: `icon-${face}` } : shown;
+}
+
+function effectFace(effects: readonly Effect[]): { icon: CardAssetId; n: number | null; targeted: boolean } {
   const targeted = effects.some((e) => e.k === 'target');
   for (const effect of effects) {
     switch (effect.k) {
@@ -141,6 +164,8 @@ export function faceOf(effects: readonly Effect[]): { icon: CardAssetId; n: numb
         return { icon: 'icon-mp', n: effect.n, targeted };
       case 'drawNext':
         return { icon: 'icon-draw', n: effect.n, targeted };
+      case 'harpoon':
+        return { icon: 'icon-harpoon', n: null, targeted };
       default:
         break;
     }
@@ -183,6 +208,9 @@ export function effectLines(effects: readonly Effect[]): string[] {
       case 'drawNext':
         lines.push(CARD_COPY.effect.drawNext(effect.n));
         break;
+      case 'harpoon':
+        lines.push(CARD_COPY.effect.harpoon(effect.range, effect.pin));
+        break;
       default:
         break;
     }
@@ -195,6 +223,12 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   let encounterId = options.encounter && Object.hasOwn(ENCOUNTERS, options.encounter) ? options.encounter : DEFAULT_ENCOUNTER;
   /** Deployment: the unit picked to place, before its tile is. */
   let placing: UnitId | null = null;
+  /**
+   * The unit filter (A6, provisional): the hand shows only what this unit can
+   * play now, the rest folded into one chip. Presentation only: it never
+   * reaches the engine or the log.
+   */
+  let filter: UnitId | null = null;
   let state!: BattleState;
   let log!: BattleLog;
   let pending: Pending | null = null;
@@ -221,7 +255,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   // The beats never take a tap: any tap anywhere skips them and still lands.
   const banner = el('div', 'cb-banner');
   banner.setAttribute('aria-live', 'polite');
-  mid.append(unitSide, board, enemySide, banner);
+  // Part E: the enemy roster on top, the board across the screen, the units below it.
+  mid.append(board, banner);
   const hand = el('div', 'cb-hand');
   const actions = el('footer', 'cb-actions');
   const sheet = el('div', 'cb-sheet');
@@ -229,7 +264,10 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   const inspect = el('div', 'cb-inspect');
   inspect.hidden = true;
   inspect.addEventListener('click', () => (inspect.hidden = true));
-  frame.append(top, mid, hand, actions);
+  frame.append(top, enemySide, mid, unitSide, hand, actions);
+  // The meadow behind everything (the reskin's background), when its file is in.
+  const meadow = cardAssetUrl('background-meadow');
+  if (meadow) root.style.setProperty('--cb-meadow', `url("${meadow}")`);
   root.append(sheet, inspect);
 
   const previousOverflow = document.documentElement.style.overflow;
@@ -270,6 +308,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     log = newLog(seed, encounterId, state.deckId);
     pending = null;
     placing = null;
+    filter = null;
     inspectMode = false;
     message = '';
     rounds = [];
@@ -291,6 +330,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     pending = null;
     placing = null;
     message = '';
+    // End Turn clears the filter, and so does the filtered unit fainting.
+    if (action.type === 'commit' || (filter && state.units.find((u) => u.id === filter)?.fainted)) filter = null;
     if (action.type === 'commit') {
       const record = { round: before.round, before, steps: roundSteps(before, result.events, state) };
       rounds.push(record);
@@ -332,6 +373,11 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       render();
       return;
     }
+    // The filter already names who plays it.
+    if (filter && card.players.includes(filter)) {
+      begin(card.iid, filter);
+      return;
+    }
     // A Neutral always asks who plays it, even when only one unit can: placing
     // it unasked reads as the card belonging to that unit.
     if (card.owner === 'neutral' || card.players.length > 1) {
@@ -352,12 +398,21 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         act({ type: 'select', card, unit });
         return;
       case 'unit':
-        pending = { card, unit, stage: 'unit', units: choices.units, tiles: [] };
-        message = CARD_COPY.pickTarget;
+        pending = { card, unit, stage: 'unit', units: choices.units, tiles: [], friendly: friendlyFireFor(state, card, unit, choices) };
+        message = pending.friendly!.length > 0 ? CARD_COPY.pickTargetAllies : CARD_COPY.pickTarget;
         break;
       case 'tile':
-        pending = { card, unit, stage: 'tile', units: [], tiles: choices.tiles, intercepts: intercepts(view, unit, choices.tiles) };
-        message = pending.intercepts!.length > 0 ? CARD_COPY.pickTileBlock : CARD_COPY.pickTile;
+        pending = {
+          card,
+          unit,
+          stage: 'tile',
+          units: [],
+          tiles: choices.tiles,
+          intercepts: intercepts(view, unit, choices.tiles),
+          friendly: friendlyFireFor(state, card, unit, choices),
+        };
+        message =
+          pending.intercepts!.length > 0 ? CARD_COPY.pickTileBlock : pending.friendly!.length > 0 ? CARD_COPY.pickTileAllies : CARD_COPY.pickTile;
         break;
       case 'unitThenTile':
         pending = { card, unit, stage: 'unit', units: choices.units, tiles: [] };
@@ -375,10 +430,28 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   }
 
   function tapTarget(id: TargetId): boolean {
+    // Inspect mode: an enemy shows its entry.
+    if (inspectMode) {
+      const enemy = viewOf(state).enemies.find((e) => e.id === id);
+      if (!enemy) return false;
+      inspectMode = false;
+      showEnemyInspect(enemy);
+      render();
+      return true;
+    }
     if (state.phase === 'deploy') {
       if (!state.units.some((u) => u.id === id)) return false;
       placing = placing === id ? null : (id as UnitId);
       message = placing ? CARD_COPY.placeUnit(placing) : '';
+      render();
+      return true;
+    }
+    // With nothing being chosen, a unit's panel or token filters the hand to it; again, it clears.
+    if (!pending && state.phase === 'plan' && !inspectMode) {
+      const unit = state.units.find((u) => u.id === id && !u.fainted);
+      if (!unit) return false;
+      filter = filter === unit.id ? null : unit.id;
+      message = '';
       render();
       return true;
     }
@@ -546,12 +619,17 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   function renderTop(view: BattleView): void {
     const status = el('div', 'cb-status');
     status.append(
-      el('span', 'cb-round', `${CARD_COPY.round} ${view.round}`),
+      el('span', 'cb-round', view.waves > 1 ? `${CARD_COPY.wave(view.wave + 1, view.waves)} · ${CARD_COPY.round} ${view.round}` : `${CARD_COPY.round} ${view.round}`),
       el('span', 'cb-piles', `${CARD_COPY.draw} ${view.piles.draw} · ${CARD_COPY.discard} ${view.piles.discard}`),
     );
-    const idle = state.phase === 'deploy' ? CARD_COPY.deployHint : '';
+    const idle = state.phase === 'deploy' ? CARD_COPY.deployHint : graceShowing(view) ? CARD_COPY.graceBoard : '';
     const note = el('div', 'cb-note', message || (inspectMode ? CARD_COPY.inspectHint : idle));
     top.replaceChildren(status, note, button('cb-btn cb-exit', CARD_COPY.exit, () => close()));
+  }
+
+  /** Round 1 under opening grace, with an enemy it held back: the note says so (A7). */
+  function graceShowing(view: BattleView): boolean {
+    return RULES.openingGrace && view.phase === 'plan' && view.round === 1 && view.enemies.some((e) => !e.fast && !e.dead);
   }
 
   function renderBoard(view: BattleView): void {
@@ -561,6 +639,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     const own = ownAttacks(view);
     // Every planned card's target holds a reticle, as a target being picked does.
     const held = new Set(view.previews.flatMap((p) => p.targets));
+    const warned = allyWarnings(view);
     const nodes: HTMLElement[] = [];
     // Enemy backline at the top: the last column first. Lanes left to right.
     for (let col = RULES.board.cols; col >= 1; col--) {
@@ -570,7 +649,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         node.type = 'button';
         node.dataset['lane'] = String(lane);
         node.dataset['col'] = String(col);
-        node.append(cardAsset(ZONE_TILE[tile.zone]));
+        node.append(cardAsset(ZONE_TILE[tile.zone], 'fill'));
         const selectable = choosing && (pending?.tiles ?? placeTiles).some((t) => samePos(t, tile.pos));
         const acts = threatActs(tile);
         for (const act of acts) node.append(threatLayer(tile, act));
@@ -580,6 +659,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
           if (hits.length === 0) continue;
           const wash = el('span', 'cb-ov cb-attack');
           wash.dataset['act'] = act;
+          wash.dataset['owner'] = hits[0]!.unit;
           if (hits.some((a) => a.stop)) wash.dataset['stop'] = 'true';
           if (hits.every((a) => a.pending)) wash.dataset['pending'] = 'true';
           node.append(wash);
@@ -594,7 +674,12 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         }
         const block = pending?.intercepts?.find((i) => samePos(i.pos, tile.pos));
         if (selectable && block) node.append(interceptMark());
-        if (tile.occupant) node.append(token(view, tile, held));
+        const risky = selectable ? pending?.friendly?.find((f) => samePos(f.tile, tile.pos)) : undefined;
+        if (risky) node.append(friendlyMark(risky));
+        // A big enemy's token is drawn once, from its anchor tile, over its whole footprint.
+        if (tile.occupant && (tile.occupant.kind === 'unit' || tile.occupant.anchor)) node.append(token(view, tile, held, warned));
+        // Each tile is its own stacking context, so the tile a big token is drawn from sits over its neighbours.
+        if (tile.occupant?.kind === 'enemy' && tile.occupant.anchor && ENEMIES[tile.occupant.def].size) node.dataset['big'] = 'true';
         if (acts.length > 0) node.append(threatChips(tile));
         if (mine.length > 0) node.append(attackChips(mine));
         node.addEventListener('click', () => tapTile(tile));
@@ -616,6 +701,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
    */
   function threatLayer(tile: TileView, act: TileThreat['act']): HTMLElement {
     const node = act === 'pierce' ? layer('tile-overlay-telegraph', 'cb-ov cb-threat') : el('span', 'cb-ov cb-threat');
+    // Scream: hatched in the deeper red with a dotted edge, on every tile touching the pinned boss.
     node.dataset['act'] = act;
     if (act === 'strike' && tile.threats.some((t) => t.act === 'strike' && t.stop)) node.dataset['stop'] = 'true';
     return node;
@@ -628,15 +714,34 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
    */
   function ownAttacks(view: BattleView): OwnAttack[] {
     const out: OwnAttack[] = [];
-    const push = (attack: AttackPreview | null, pendingOne: boolean): void => {
-      for (const tile of attack?.tiles ?? []) out.push({ pos: tile.pos, act: attack!.act, n: attack!.n, stop: tile.stop, pending: pendingOne });
+    const push = (attack: AttackPreview | null, unit: UnitId, pendingOne: boolean): void => {
+      for (const tile of attack?.tiles ?? []) out.push({ pos: tile.pos, act: attack!.act, n: attack!.n, unit, stop: tile.stop, pending: pendingOne });
     };
-    for (const preview of view.previews) push(preview.attack, false);
+    for (const preview of view.previews) push(preview.attack, preview.unit, false);
     if (pending) {
       const players = pending.stage === 'assign' ? (pending.units as UnitId[]) : pending.unit ? [pending.unit] : [];
-      for (const unit of players) push(previewPlay(state, { card: pending.card, unit }).attack, true);
+      for (const unit of players) push(previewPlay(state, { card: pending.card, unit }).attack, unit, true);
     }
     return out;
+  }
+
+  /**
+   * The allies a Blast would hit (R14), with the most it would take: every
+   * planned Blast's, and while one is being aimed, every choice it could take.
+   */
+  function allyWarnings(view: BattleView): Map<UnitId, number> {
+    const out = new Map<UnitId, number>();
+    const add = (unit: UnitId, n: number): void => {
+      out.set(unit, Math.max(out.get(unit) ?? 0, n));
+    };
+    for (const preview of view.previews) for (const hit of preview.allies) add(hit.unit, hit.n);
+    for (const choice of pending?.friendly ?? []) for (const hit of choice.allies) add(hit.unit, hit.n);
+    return out;
+  }
+
+  /** A Blast centre that would hit an ally: the allies' letters, in the warning colour. */
+  function friendlyMark(choice: FriendlyFire): HTMLElement {
+    return el('span', 'cb-friendly', choice.allies.map((a) => a.unit).join(''));
   }
 
   /** A Move destination that steps in front of a Strike: a shield, in the player's colour. */
@@ -652,22 +757,33 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     for (const attack of attacks) {
       const chip = el('span', 'cb-attack-chip');
       chip.dataset['act'] = attack.act;
+      chip.dataset['owner'] = attack.unit;
       chip.append(cardAsset(INTENT_ICON[attack.act]!, { width: 11, height: 11 }), el('span', '', String(attack.n)));
       chips.append(chip);
     }
     return chips;
   }
 
-  /** Each attack on a tile as its keyword's icon and number, in the tile's corner. */
+  /** Each attack on a tile as its keyword's icon and number and the enemy it is from, in the tile's corner. */
   function threatChips(tile: TileView): HTMLElement {
     const chips = el('span', 'cb-threat-chips');
     for (const threat of tile.threats) {
       const chip = el('span', 'cb-threat-chip');
       chip.dataset['act'] = threat.act;
-      chip.append(cardAsset(INTENT_ICON[threat.act]!, { width: 11, height: 11 }), el('span', '', String(threat.n)));
+      chip.append(
+        cardAsset(INTENT_ICON[threat.act]!, { width: 11, height: 11 }),
+        el('span', '', String(threat.n)),
+        el('span', 'cb-threat-from', enemyLabel(threat.enemy)),
+      );
       chips.append(chip);
     }
     return chips;
+  }
+
+  /** An enemy as its token names it: its name's initial and spawn number. */
+  function enemyLabel(id: string): string {
+    const enemy = state.enemies.find((e) => e.id === id);
+    return enemy ? `${ENEMIES[enemy.def].name[0]}${enemyNumber(state, id)}` : id;
   }
 
   function layer(id: CardAssetId, className: string): HTMLElement {
@@ -676,27 +792,41 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     return wrap;
   }
 
-  function token(view: BattleView, tile: TileView, held: ReadonlySet<TargetId>): HTMLElement {
+  function token(view: BattleView, tile: TileView, held: ReadonlySet<TargetId>, warned: ReadonlyMap<UnitId, number>): HTMLElement {
     const occupant = tile.occupant!;
     const isUnit = occupant.kind === 'unit';
     const node = el('span', `cb-token cb-token--${occupant.kind}`);
     node.dataset['id'] = occupant.id;
-    const marker = isUnit ? UNIT_MARKER[occupant.id] : (ENEMY_MARKER[occupant.def] ?? 'marker-enemy-base');
-    node.append(cardAsset(marker));
+    if (isUnit) node.dataset['owner'] = occupant.id;
+    const pinnedBoss = !isUnit && (view.enemies.find((e) => e.id === occupant.id)?.pinned ?? 0) > 0 && occupant.def === 'colossus';
+    const marker = isUnit ? UNIT_MARKER[occupant.id] : pinnedBoss ? 'marker-enemy-colossus-pinned' : (ENEMY_MARKER[occupant.def] ?? 'marker-enemy-base');
+    // A big enemy's marker stretches over its footprint.
+    const big = occupant.kind === 'enemy' && !!ENEMIES[occupant.def].size;
+    node.append(cardAsset(marker, big ? 'fill' : undefined));
     let label = occupant.id;
     if (!isUnit) {
       const enemy = view.enemies.find((e) => e.id === occupant.id)!;
-      label = `${enemy.name[0]}${state.enemies.find((e) => e.id === occupant.id)!.spawnIndex + 1}`;
+      label = enemyLabel(occupant.id);
+      if (enemy.size.lanes > 1 || enemy.size.cols > 1) node.dataset['size'] = `${enemy.size.lanes}x${enemy.size.cols}`;
       node.append(el('span', 'cb-token-hp', String(enemy.hp)));
+      if (enemy.fast) node.append(el('span', 'cb-fast cb-token-fast', CARD_COPY.fast));
     } else {
       const unit = view.units.find((u) => u.id === occupant.id)!;
       node.append(el('span', 'cb-token-hp', String(unit.hp)));
+      const warn = warned.get(unit.id);
+      if (warn !== undefined) {
+        node.dataset['warn'] = 'true';
+        node.append(el('span', 'cb-token-warn', `-${warn}`));
+      }
     }
     node.append(el('span', 'cb-token-label', label));
     node.setAttribute('aria-label', label);
     if (pending?.unit === occupant.id || pending?.ally === occupant.id || placing === occupant.id) node.append(ring('marker-ring-selected'));
     const picking = !!pending && pending.stage !== 'tile' && pending.units.includes(occupant.id);
     if (picking || held.has(occupant.id)) node.append(ring('marker-reticle'));
+    // An enemy whose Target Blast would also hit an ally.
+    const risky = picking ? pending?.friendly?.find((f) => f.unit === occupant.id) : undefined;
+    if (risky) node.append(friendlyMark(risky));
     return node;
   }
 
@@ -707,6 +837,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   }
 
   function renderPanels(view: BattleView): void {
+    const warned = allyWarnings(view);
     enemySide.replaceChildren(
       ...view.enemies.map((enemy, index) => {
         const target = !!pending && pending.stage !== 'tile' && pending.units.includes(enemy.id);
@@ -715,15 +846,23 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         panel.dataset['id'] = enemy.id;
         if (enemy.dead) panel.dataset['dead'] = 'true';
         if (target) panel.dataset['target'] = 'true';
-        panel.append(el('div', 'cb-panel-name', `${enemy.name} ${index + 1}`));
-        panel.append(statLine(CARD_COPY.hp, `${enemy.hp}/${enemy.maxHp}`), bar(enemy.hp, enemy.maxHp));
-        panel.append(statLine(CARD_COPY.shield, `${enemy.shield} · ${CARD_COPY.baseShield} ${enemy.baseShield}`));
+        const name = el('div', 'cb-panel-name', `${enemy.name} ${index + 1}`);
+        if (enemy.fast) name.append(el('span', 'cb-fast', CARD_COPY.fast));
+        panel.append(name);
+        // One line, as a unit's: HP, then card shield plus base shield.
+        panel.append(statLine(CARD_COPY.hp, `${enemy.hp}/${enemy.maxHp} · ${CARD_COPY.shieldShort} ${enemy.shield}+${enemy.baseShield}`), bar(enemy.hp, enemy.maxHp));
+        // Part D: the pin's turns left, and the HP its one stalk comes at.
+        if (enemy.pinned > 0) panel.append(el('div', 'cb-boss-line cb-boss-line--pinned', CARD_COPY.pinned(enemy.pinned)));
+        else if (enemy.stalkAt !== null) panel.append(el('div', 'cb-boss-line', CARD_COPY.stalkAt(enemy.stalkAt)));
         if (enemy.intent) {
           const pill = el('div', 'cb-pill');
           pill.dataset['act'] = enemy.intent.icon;
           pill.append(cardAsset('pill-badge', 'fill'));
           pill.append(cardAsset(INTENT_ICON[enemy.intent.icon] ?? 'icon-wait', { width: 16, height: 16 }));
-          const word = enemy.intent.icon === 'none' ? CARD_COPY.intentNone : `${CARD_COPY.keyword[enemy.intent.icon as 'strike']} ${enemy.intent.n}`;
+          const word =
+            enemy.intent.icon === 'none'
+              ? CARD_COPY.intentNone
+              : `${enemy.intent.label ?? CARD_COPY.keyword[enemy.intent.icon as 'strike']} ${enemy.intent.n}`;
           pill.append(el('span', 'cb-pill-text', word));
           panel.append(pill);
         }
@@ -736,12 +875,17 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         const target = !!pending && pending.stage !== 'tile' && pending.units.includes(unit.id);
         const panel = el('div', 'cb-panel cb-panel--unit');
         panel.dataset['id'] = unit.id;
+        panel.dataset['owner'] = unit.id;
         panel.append(cardAsset('panel-frame', 'fill'));
         if (unit.fainted) panel.dataset['dead'] = 'true';
         if (target) panel.dataset['target'] = 'true';
         if (pending?.unit === unit.id || placing === unit.id) panel.dataset['assigning'] = 'true';
         if (pending?.blocked?.some((b) => b.unit === unit.id)) panel.dataset['blocked'] = 'true';
-        panel.append(el('div', 'cb-panel-name', `${unit.id} ${unit.name}`));
+        if (warned.has(unit.id)) panel.dataset['warn'] = 'true';
+        if (filter === unit.id) panel.dataset['filter'] = 'true';
+        const portrait = el('span', 'cb-panel-portrait');
+        portrait.append(cardAsset(UNIT_PORTRAIT[unit.id], 'fill'));
+        panel.append(portrait, el('div', 'cb-panel-name', `${unit.id} ${unit.name}`));
         panel.append(statLine(CARD_COPY.hp, `${unit.hp}/${unit.maxHp} · ${CARD_COPY.shieldShort} ${unit.shield}+${unit.baseShield}`), bar(unit.hp, unit.maxHp));
         const mp = el('div', 'cb-mp');
         mp.append(el('span', 'cb-mp-text', `${CARD_COPY.cost} ${unit.mp - unit.reserved}/${unit.mp}`));
@@ -795,29 +939,76 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     return line;
   }
 
+  /** What the unit filter keeps: the cards it has planned, and its own and Neutral cards it can play now. */
+  function inFilter(card: HandCardView, unit: UnitId): boolean {
+    if (card.planned) return state.plan.find((p) => p.card === card.iid)?.unit === unit;
+    return (card.owner === unit || card.owner === 'neutral') && card.players.includes(unit);
+  }
+
+  /** The filter's two chips: what it shows, which clears it, and the fold of the rest. */
+  function filterChips(unit: UnitId, others: number): HTMLElement {
+    const column = el('div', 'cb-filter');
+    column.dataset['owner'] = unit;
+    const clear = (): void => {
+      filter = null;
+      render();
+    };
+    const showing = el('button', 'cb-filter-chip cb-filter-showing');
+    showing.type = 'button';
+    showing.append(el('span', '', CARD_COPY.filterShowing(unit)), el('span', '', ` · ${CARD_COPY.filterShowAll}`));
+    showing.addEventListener('click', clear);
+    column.append(showing);
+    if (others > 0) {
+      const rest = el('button', 'cb-filter-chip cb-filter-other', CARD_COPY.filterOther(others));
+      rest.type = 'button';
+      rest.addEventListener('click', clear);
+      column.append(rest);
+    }
+    return column;
+  }
+
   function renderHand(view: BattleView): void {
-    const cards = view.hand.flatMap((group) => group.cards);
-    hand.dataset['count'] = String(cards.length);
+    const all = view.hand.flatMap((group) => group.cards);
+    const active = filter !== null && view.phase === 'plan' && !playback ? filter : null;
+    const cards = active ? all.filter((card) => inFilter(card, active)) : all;
+    // The chip column takes a card's place in the count, so the cards shrink to fit beside it.
+    hand.dataset['count'] = String(cards.length + (active ? 1 : 0));
+    if (active) hand.dataset['filter'] = active;
+    else delete hand.dataset['filter'];
     hand.replaceChildren(
+      ...(active ? [filterChips(active, all.length - cards.length)] : []),
       ...cards.map((card) => {
         const node = el('button', 'cb-card');
         node.type = 'button';
-        node.dataset['owner'] = card.owner;
+        // Player cards in their unit's colour, Neutrals grey, an enemy's grant black.
+        node.dataset['owner'] = card.granted ? 'enemy' : card.owner;
         node.dataset['card'] = card.def;
         node.setAttribute('aria-label', [card.name, `${card.cost} ${CARD_COPY.cost}`, ...effectLines(card.effects)].join(', '));
-        const face = faceOf(card.effects);
+        const face = faceOf(card.effects, CARDS[card.def]?.face);
+        // The card's illustration sits behind the frame's open art window.
+        node.append(cardArt(card.def));
         node.append(cardAsset('card-frame-compact', 'fill'));
+        // The owner's colour as the frame's band, and its letter in the badge: colour is never the only signal.
+        node.append(ownerBand('card-band-compact'));
         node.append(el('span', 'cb-card-cost', String(card.cost)));
         node.append(el('span', 'cb-card-n', face.n === null ? '' : String(face.n)));
         const field = el('span', 'cb-card-field');
         field.append(cardAsset(face.icon, 'fill'));
         if (face.targeted) field.append(cornerIcon('icon-target', 'cb-card-mark cb-card-mark--target'));
-        if (card.once) field.append(cornerIcon('icon-once', 'cb-card-mark cb-card-mark--once'));
+        if (card.uses) {
+          // Uses: the keyword's mark and the uses left.
+          const mark = cornerIcon('icon-once', 'cb-card-mark cb-card-mark--once');
+          mark.append(el('span', 'cb-card-uses', String(card.uses.left)));
+          field.append(mark);
+        }
         node.append(field);
         node.append(el('span', 'cb-card-name', card.name));
-        const badge = el('span', 'cb-card-badge');
-        badge.append(cardAsset('card-badge-corner', 'fill'), el('span', 'cb-card-owner', card.owner === 'neutral' ? 'N' : card.owner));
-        node.append(badge);
+        // A Neutral has a grey frame and no letter.
+        if (card.owner !== 'neutral' && !card.granted) {
+          const badge = el('span', 'cb-card-badge');
+          badge.append(cardAsset('card-badge-corner', 'fill'), el('span', 'cb-card-owner', card.owner));
+          node.append(badge);
+        }
         const order = card.planned ? orderOf(card.iid) : undefined;
         if (order !== undefined) node.append(el('span', 'cb-order cb-card-order', String(order)));
         if (card.planned || pending?.card === card.iid) {
@@ -861,9 +1052,10 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   }
 
   function showInspect(card: HandCardView): void {
-    const face = faceOf(card.effects);
+    const face = faceOf(card.effects, CARDS[card.def]?.face);
     const full = el('div', 'cb-full');
-    full.append(cardAsset('card-frame-full', 'fill'));
+    full.dataset['owner'] = card.granted ? 'enemy' : card.owner;
+    full.append(cardArt(card.def, 'cb-full-picture'), cardAsset('card-frame-full', 'fill'), ownerBand('card-band-full'));
     full.append(el('div', 'cb-full-cost', String(card.cost)), el('div', 'cb-full-n', face.n === null ? '' : String(face.n)));
     full.append(el('div', 'cb-full-name', card.name));
     const art = el('div', 'cb-full-art');
@@ -872,13 +1064,66 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     const body = el('div', 'cb-full-body');
     body.append(el('div', 'cb-full-owner', card.owner === 'neutral' ? CARD_COPY.neutral : `${card.owner} ${UNITS[card.owner].name}`));
     for (const line of effectLines(card.effects)) body.append(el('div', 'cb-full-line', line));
-    if (card.once) body.append(el('div', 'cb-full-line', CARD_COPY.once));
+    if (card.uses) body.append(el('div', 'cb-full-line', CARD_COPY.uses(card.uses.left, card.uses.of)));
+    if (card.retain) body.append(el('div', 'cb-full-line', CARD_COPY.retain));
+    const allies = blastAlliesLine(card.effects);
+    if (allies) body.append(el('div', 'cb-full-rule', allies));
     if (card.reason) body.append(el('div', 'cb-full-reason', CARD_COPY.reasons[card.reason]));
-    full.append(body);
-    const badge = el('span', 'cb-full-badge');
-    badge.append(cardAsset('card-badge-corner', 'fill'), el('span', 'cb-card-owner', card.owner === 'neutral' ? 'N' : card.owner));
-    full.append(badge);
-    inspect.replaceChildren(full);
+    if (card.owner !== 'neutral' && !card.granted) {
+      const badge = el('span', 'cb-full-badge');
+      badge.append(cardAsset('card-badge-corner', 'fill'), el('span', 'cb-card-owner', card.owner));
+      full.append(badge);
+    }
+    // The frame has no room for text beyond its name: the card's words sit under it.
+    const sheetOf = el('div', 'cb-full-wrap');
+    sheetOf.append(full, body);
+    inspect.replaceChildren(sheetOf);
+    inspect.hidden = false;
+  }
+
+  /** A card's illustration, or nothing for a card the pack has none for. */
+  function cardArt(def: string, className = 'cb-card-picture'): HTMLElement {
+    const wrap = el('span', className);
+    const id = `art-${def}` as CardAssetId;
+    if ((CARD_ASSET_GROUPS.art.ids as readonly string[]).includes(id)) wrap.append(cardAsset(id, 'fill'));
+    return wrap;
+  }
+
+  /** The owner band: the pack's white mask, tinted in the owner's colour by the stylesheet. */
+  function ownerBand(id: 'card-band-compact' | 'card-band-full'): HTMLElement {
+    const band = el('span', 'cb-card-edge');
+    const url = cardAssetUrl(id);
+    if (url) {
+      band.dataset['mask'] = 'true';
+      band.style.setProperty('--cb-band', `url("${url}")`);
+    }
+    return band;
+  }
+
+  /** A Blast's friendly fire, as the rule table has it (R14). */
+  function blastAlliesLine(effects: readonly Effect[]): string | null {
+    if (!effects.some((e) => e.k === 'blast')) return null;
+    switch (RULES.blastFriendlyFire) {
+      case 'alliesExceptCaster':
+        return CARD_COPY.rule.blastAllies;
+      case 'allies':
+        return CARD_COPY.rule.blastAlliesCaster;
+      case 'none':
+        return null;
+    }
+  }
+
+  /** An enemy's Inspect entry: its numbers, its grade, and how it opens. */
+  function showEnemyInspect(enemy: BattleView['enemies'][number]): void {
+    const card = el('div', 'cb-enemy-card');
+    card.append(el('div', 'cb-enemy-card-name', `${enemy.name} ${enemyNumber(state, enemy.id)}`));
+    const def = ENEMIES[enemy.def];
+    card.append(el('div', 'cb-enemy-card-line', `${CARD_COPY.enemyStats(def.hp, def.baseShield)} · ${CARD_COPY.grade(def.grade)}`));
+    if (enemy.fast) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.rule.fast));
+    else if (RULES.openingGrace) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.rule.grace));
+    if (def.stalks) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.bossRules.stalk));
+    if (def.boss) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.bossRules.pin));
+    inspect.replaceChildren(card);
     inspect.hidden = false;
   }
 
@@ -978,10 +1223,13 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     const list = el('div', 'cb-scenarios');
     list.append(el('div', 'cb-scenarios-title', CARD_COPY.scenario));
     for (const encounter of Object.values(ENCOUNTERS)) {
+      const grade = CARD_COPY.grade(gradeTotal(encounter));
       const pick = button('cb-btn cb-scenario', encounter.name, () => {
         encounterId = encounter.id;
         start(seed);
       });
+      pick.querySelector('.cb-btn-label')!.append(el('span', 'cb-scenario-grade', grade));
+      pick.setAttribute('aria-label', `${encounter.name}, ${grade}`);
       pick.title = encounter.blurb;
       if (encounter.id === encounterId) pick.dataset['on'] = 'true';
       list.append(pick);

@@ -12,17 +12,38 @@
  *
  * Battle start runs 6 and 7 once on the rolled starting step, without
  * advancing past it. Every tie-break is a fixed rule; nothing here draws.
+ * `openingSteps` names what the starting roll draws among; `create.ts` draws.
  */
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
-import type { ActRule, Cond, HuntTieBreak, Lane, MoveRule, Pos } from './defs';
-import { damage, type Ctx } from './keywords';
+import type { ActRule, Cond, EnemyDef, HuntTieBreak, Lane, MoveRule, Pos } from './defs';
+import { damage, screamTiles, type Ctx } from './keywords';
 import { livingEnemies, livingUnits } from './plan';
 import type { BattleState, EnemyState, Intent, UnitState } from './state';
-import { inReach, laneFromSide, samePos, slashTiles, tile } from './zones';
+import { covers, enemyTiles, inReach, laneFromSide, lanesOf, samePos, slashTiles, tile } from './zones';
+
+/** An act that can deal damage: a damaging keyword, or a condition with one on either branch. */
+export function actCanDamage(act: ActRule): boolean {
+  if ('if' in act) return actCanDamage(act.then) || actCanDamage(act.else);
+  return act.k !== 'none' && act.k !== 'shield';
+}
+
+/**
+ * The steps an enemy's starting step is rolled among (E6, A1). A Fast enemy
+ * has one: its first damaging step. Under opening grace any other enemy
+ * rolls among the steps whose act cannot deal damage; with grace off, among
+ * every step. The data test holds every non-Fast enemy to at least one such
+ * step and every Fast enemy to a damaging one, so the list is never empty.
+ */
+export function openingSteps(def: EnemyDef): number[] {
+  const steps = def.script.steps;
+  const all = steps.map((_, index) => index);
+  if (def.fast) return all.filter((i) => actCanDamage(steps[i]!.act)).slice(0, 1);
+  return RULES.openingGrace ? all.filter((i) => !actCanDamage(steps[i]!.act)) : all;
+}
 
 function occupied(s: BattleState, pos: Pos): boolean {
-  return livingUnits(s).some((u) => samePos(u.pos, pos)) || livingEnemies(s).some((e) => samePos(e.pos, pos));
+  return livingUnits(s).some((u) => samePos(u.pos, pos)) || livingEnemies(s).some((e) => covers(e, pos));
 }
 
 /** Player units on `tiles`, ordered from the enemy's side of the board. */
@@ -42,7 +63,65 @@ export function holds(s: BattleState, enemy: EnemyState, cond: Cond): boolean {
   switch (cond) {
     case 'slashInRange':
       // E3: from the danger zone, a player unit on one of the next column's tiles.
-      return RULES.enemySlashFromCols.includes(enemy.pos!.col) && unitsOn(s, slashTiles('enemy', enemy.pos!)).length > 0;
+      return RULES.enemySlashFromCols.includes(enemy.pos!.col) && unitsOn(s, enemySlashTiles(enemy)).length > 0;
+  }
+}
+
+/** An enemy's Slash: the next column toward the player, across its lanes and one either side. */
+function enemySlashTiles(enemy: EnemyState): Pos[] {
+  const lanes = lanesOf(enemy);
+  if (lanes.length === 1) return slashTiles('enemy', enemy.pos!);
+  const out: Pos[] = [];
+  for (let step = 1; step <= RULES.patterns.slashCols; step++) {
+    const col = enemy.pos!.col + RULES.forward.enemy * step;
+    for (let lane = Math.min(...lanes) - 1; lane <= Math.max(...lanes) + 1; lane++) {
+      const p = tile(lane, col);
+      if (p) out.push(p);
+    }
+  }
+  return out;
+}
+
+/** Whether `enemy` could stand at `to`: every tile on the board, in its reach, and free of anyone else. */
+function canStand(s: BattleState, enemy: EnemyState, to: Pos): boolean {
+  const tiles = enemyTiles({ def: enemy.def, pos: to });
+  const size = ENEMIES[enemy.def].size;
+  if (tiles.length !== (size ? size.lanes * size.cols : 1)) return false;
+  return tiles.every(
+    (t) =>
+      inReach('enemy', t) &&
+      !livingUnits(s).some((u) => samePos(u.pos, t)) &&
+      !livingEnemies(s).some((e) => e !== enemy && covers(e, t)),
+  );
+}
+
+/**
+ * D3: once, at half HP or under, the stalker comes on: up to `RULES.stalk.steps`
+ * rows toward the player. Each step stomps the tiles it is about to move into,
+ * hitting any unit there; a tile held by anyone, or the edge of its reach,
+ * stops it there, so a unit close enough is hit without being walked over.
+ */
+function stalk(ctx: Ctx, enemy: EnemyState): void {
+  const { s } = ctx;
+  enemy.stalked = true;
+  ctx.events.push({ t: 'stalked', enemy: enemy.id });
+  for (let i = 0; i < RULES.stalk.steps; i++) {
+    if (s.phase !== 'plan') return;
+    const from = enemy.pos!;
+    const to = tile(from.lane, from.col + RULES.forward.enemy);
+    const ahead = lanesOf(enemy).flatMap((lane) => {
+      const p = tile(lane, from.col + RULES.forward.enemy);
+      return p ? [p] : [];
+    });
+    if (ahead.length === 0) return;
+    const free = to !== null && canStand(s, enemy, to);
+    ctx.events.push({ t: 'stomped', enemy: enemy.id, tiles: ahead.map((t) => ({ ...t })), from: { ...from }, to: free ? { ...to } : null });
+    for (const unit of unitsOn(s, ahead)) {
+      if (s.phase !== 'plan') return;
+      damage(ctx, unit, RULES.stalk.damage);
+    }
+    if (!free) return;
+    enemy.pos = { ...to };
   }
 }
 
@@ -99,33 +178,66 @@ function moveEnemy(ctx: Ctx, enemy: EnemyState, to: Pos, rule: 'hunt' | 'advance
 /** Phase 6 for one enemy. `advance` is false only at battle start, on the rolled step. */
 function enemyMove(ctx: Ctx, enemy: EnemyState, advance: boolean): void {
   const { s } = ctx;
-  const steps = ENEMIES[enemy.def].script.steps;
+  const def = ENEMIES[enemy.def];
+  const steps = def.script.steps;
+  // D: a pinned enemy neither moves nor moves on in its script; the pin wears off a turn at a time.
+  if (enemy.pinned > 0) {
+    if (!advance) return;
+    enemy.pinned -= 1;
+    if (enemy.pinned === 0) ctx.events.push({ t: 'pinEnded', enemy: enemy.id });
+    else ctx.events.push({ t: 'enemyWaited', enemy: enemy.id, why: 'pinned' });
+    enemy.conds = { slashInRange: holds(s, enemy, 'slashInRange') };
+    return;
+  }
   if (advance) enemy.step = (enemy.step + 1) % steps.length;
   const current = steps[enemy.step]!;
   // Each condition is evaluated once, here, before the move; the act reads the stored result.
   enemy.conds = { slashInRange: holds(s, enemy, 'slashInRange') };
+  // D3: the stalk replaces the step's move, once.
+  if (advance && def.stalks && !enemy.stalked && enemy.hp <= def.hp * RULES.stalk.atHpShare) {
+    stalk(ctx, enemy);
+    if (enemy.pos) enemy.conds = { slashInRange: holds(s, enemy, 'slashInRange') };
+    return;
+  }
   const rule = pickMove(current.move, enemy);
   const from = enemy.pos!;
-  if (rule === 'hunt') {
+  if (rule === 'hunt' && def.size) {
+    // A big enemy has no hunt: it stands in two lanes of three.
+    ctx.events.push({ t: 'enemyWaited', enemy: enemy.id, why: 'noLane' });
+  } else if (rule === 'hunt') {
     const lane = huntLane(s, enemy);
     if (lane === null) ctx.events.push({ t: 'enemyWaited', enemy: enemy.id, why: 'noLane' });
     else moveEnemy(ctx, enemy, tile(lane, from.col)!, 'hunt');
   } else if (rule === 'advance') {
-    // E4: one column toward the player, never past the limit, waiting when blocked.
-    const col = from.col + RULES.forward.enemy * RULES.advance.cols;
-    const past = RULES.forward.enemy < 0 ? col < RULES.advance.limitCol : col > RULES.advance.limitCol;
-    const to = tile(from.lane, col);
-    if (past || !to || !inReach('enemy', to)) ctx.events.push({ t: 'enemyWaited', enemy: enemy.id, why: 'limit' });
-    else if (occupied(s, to)) ctx.events.push({ t: 'enemyWaited', enemy: enemy.id, why: 'blocked' });
-    else moveEnemy(ctx, enemy, to, 'advance');
+    // E4: one column toward the player per step, never past the limit, waiting when blocked.
+    for (let i = 0; i < (def.advanceSteps ?? 1); i++) {
+      const at = enemy.pos!;
+      const col = at.col + RULES.forward.enemy * RULES.advance.cols;
+      const past = RULES.forward.enemy < 0 ? col < RULES.advance.limitCol : col > RULES.advance.limitCol;
+      const to = tile(at.lane, col);
+      const why = past || !to || !inReach('enemy', to) ? 'limit' : !canStand(s, enemy, to) ? 'blocked' : null;
+      if (why) {
+        // Only a step that never got going is a wait.
+        if (i === 0) ctx.events.push({ t: 'enemyWaited', enemy: enemy.id, why });
+        break;
+      }
+      moveEnemy(ctx, enemy, to!, 'advance');
+    }
   }
 }
 
 /** Phase 7 for one enemy: the act rule, with its lit tiles from where the enemy now stands. */
 function telegraph(ctx: Ctx, enemy: EnemyState): void {
-  const act = pickAct(ENEMIES[enemy.def].script.steps[enemy.step]!.act, enemy);
-  const pos = enemy.pos!;
+  const step = ENEMIES[enemy.def].script.steps[enemy.step]!;
+  const act = pickAct(step.act, enemy);
+  const own = enemyTiles(enemy);
   let intent: Intent;
+  // D2: pinned, it Screams instead.
+  if (enemy.pinned > 0) {
+    enemy.intent = { act: 'scream', n: RULES.scream.n, tiles: screamTiles(enemy) };
+    ctx.events.push({ t: 'telegraphed', enemy: enemy.id, step: enemy.step, intent: { ...enemy.intent, tiles: enemy.intent.tiles.map((t) => ({ ...t })) } });
+    return;
+  }
   switch (act.k) {
     case 'none':
       intent = { act: 'none', n: 0, tiles: [] };
@@ -135,13 +247,14 @@ function telegraph(ctx: Ctx, enemy: EnemyState): void {
       break;
     case 'strike':
     case 'pierce':
-      // The lane in player reach, less the enemy's own tile: the danger zone is in both reaches.
-      intent = { act: act.k, n: act.n, tiles: laneTiles(pos.lane).filter((t) => !samePos(t, pos)) };
+      // Each lane it stands in, in player reach, less its own tiles: the danger zone is in both reaches.
+      intent = { act: act.k, n: act.n, tiles: lanesOf(enemy).flatMap((lane) => laneTiles(lane)).filter((t) => !own.some((o) => samePos(o, t))) };
       break;
     case 'slash':
-      intent = { act: 'slash', n: act.n, tiles: slashTiles('enemy', pos) };
+      intent = { act: 'slash', n: act.n, tiles: enemySlashTiles(enemy) };
       break;
   }
+  if (step.label && intent.act !== 'none') intent.label = step.label;
   enemy.intent = intent;
   ctx.events.push({ t: 'telegraphed', enemy: enemy.id, step: enemy.step, intent: { ...intent, tiles: intent.tiles.map((t) => ({ ...t })) } });
 }
@@ -153,9 +266,26 @@ function enemyAct(ctx: Ctx, enemy: EnemyState): void {
     ctx.events.push({ t: 'shieldCleared', unit: enemy.id, amount: enemy.shield });
     enemy.shield = 0;
   }
+  // D9: a pinned boss's shields renew on its second pinned turn.
+  if (enemy.pinned === 1 && enemy.stripped > 0) {
+    enemy.baseShield = enemy.stripped;
+    ctx.events.push({ t: 'shieldsReturned', enemy: enemy.id, amount: enemy.stripped });
+    enemy.stripped = 0;
+  }
   const intent = enemy.intent;
   if (!intent || intent.act === 'none') return;
   ctx.events.push({ t: 'enemyActed', enemy: enemy.id, act: intent.act, n: intent.n });
+  if (intent.act === 'scream') {
+    // D2: every unit and every other enemy on the tiles touching it.
+    const units = unitsOn(s, intent.tiles);
+    const others = livingEnemies(s).filter((e) => e !== enemy && intent.tiles.some((t) => covers(e, t)));
+    if (units.length + others.length === 0) ctx.events.push({ t: 'enemyMissed', enemy: enemy.id, act: 'scream' });
+    for (const target of [...units, ...others]) {
+      if (s.phase !== 'plan') return;
+      if (target.pos) damage(ctx, target, intent.n);
+    }
+    return;
+  }
   if (intent.act === 'shield') {
     enemy.shield += intent.n;
     ctx.events.push({ t: 'shielded', unit: enemy.id, amount: intent.n });

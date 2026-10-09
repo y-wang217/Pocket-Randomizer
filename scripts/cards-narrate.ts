@@ -13,9 +13,11 @@
 import { readFileSync } from 'node:fs';
 
 import { CARDS } from '../src/cardData/cards';
+import { ENCOUNTERS } from '../src/cardData/encounters';
 import { ENEMIES } from '../src/cardData/enemies';
+import { RULES } from '../src/cardData/rules';
 import { UNITS } from '../src/cardData/units';
-import { createBattle } from '../src/core/cards/create';
+import { createBattle, gradeTotal } from '../src/core/cards/create';
 import type { Pos } from '../src/core/cards/defs';
 import type { BattleEvent } from '../src/core/cards/events';
 import { type BattleLog, CARD_ENGINE_VERSION, formatReadout, summarize } from '../src/core/cards/log';
@@ -45,7 +47,7 @@ function narrate(log: BattleLog): string[] {
     if (i.act === 'shield') return `Shield ${i.n} (self)`;
     return `${i.act[0]!.toUpperCase()}${i.act.slice(1)} ${i.n} on ${tiles(i.tiles)}`;
   };
-  const board = (title = `ROUND ${s.round}`): void => {
+  const board = (title = s.wave > 0 ? `WAVE ${s.wave + 1} ROUND ${s.round}` : `ROUND ${s.round}`): void => {
     out.push('', title);
     for (const u of s.units) {
       out.push(u.fainted
@@ -67,15 +69,23 @@ function narrate(log: BattleLog): string[] {
     if (c.unit) return ` -> on ${who(c.unit)}`;
     return c.tile ? ` -> ${at(c.tile)}` : '';
   };
+  // A friendly fire event names the Blast; the damage line after it says so.
+  let friendly: string | null = null;
   const event = (e: BattleEvent): string | null => {
     switch (e.t) {
+      case 'friendlyFire':
+        friendly = CARDS[s.cards[e.card]!.def]!.name;
+        return null;
+      case 'planPruned': return `${who(e.unit)} has fainted: ${card(e.card)} is not played`;
       case 'played': return `${who(e.unit)} plays ${card(e.card)}`;
       case 'moved': return `  ${who(e.unit)} moves ${at(e.from)} -> ${at(e.to)}`;
       case 'converted': return `  Gunner ability: the Strike becomes a Pierce`;
       case 'fizzled': return `  fizzles (${e.why === 'targetGone' ? 'target gone' : 'nothing to hit'})`;
       case 'damaged': {
         const parts = [e.shield && `shield -${e.shield}`, e.baseShield && `base shield -${e.baseShield}`, e.hp && `HP -${e.hp}`].filter(Boolean);
-        return `  ${who(e.target)} takes ${e.amount}: ${parts.join(', ') || 'nothing left to take'}`;
+        const from = friendly ? ` from ${friendly} (friendly fire)` : '';
+        friendly = null;
+        return `  ${who(e.target)} takes ${e.amount}${from}: ${parts.join(', ') || 'nothing left to take'}`;
       }
       case 'shielded': return `  ${who(e.unit)} gains shield ${e.amount}`;
       case 'defeated': return `  ${who(e.enemy)} is defeated`;
@@ -85,17 +95,31 @@ function narrate(log: BattleLog): string[] {
       case 'enemyActed': return e.act === 'shield' ? null : `${who(e.enemy)} acts: ${e.act} ${e.n}`;
       case 'enemyMissed': return `  misses: nobody on the lit tiles`;
       case 'enemyMoved': return `${who(e.enemy)} ${e.rule}s ${at(e.from)} -> ${at(e.to)}`;
-      case 'enemyWaited': return `${who(e.enemy)} stays put (${{ noLane: 'no lane to hunt into', blocked: 'blocked', limit: 'at its advance limit' }[e.why]})`;
+      case 'enemyWaited': return `${who(e.enemy)} stays put (${{ noLane: 'no lane to hunt into', blocked: 'blocked', limit: 'at its advance limit', pinned: 'pinned by the Harpoon' }[e.why]})`;
       case 'reshuffled': return `(discard pile shuffled back into the draw pile)`;
       case 'extraDrew': return `(Need Help: extra card ${card(e.card)})`;
+      case 'harpooned': return `  ${who(e.enemy)} is HARPOONED: pinned for ${e.turns} turns, ${e.shields} shield gone`;
+      case 'shieldsReturned': return `${who(e.enemy)} gets its base shield ${e.amount} back`;
+      case 'pinEnded': return `${who(e.enemy)} tears the harpoon out`;
+      case 'stalked': return `${who(e.enemy)} is at half HP and STALKS`;
+      case 'stomped': return `  stomps ${tiles(e.tiles)}${e.to ? `, moves to ${at(e.to)}` : ', and is stopped there'}`;
+      case 'granted': return `(${card(e.card)} granted into the hand)`;
+      case 'usedUp': return `  ${card(e.card)} has no uses left this wave`;
+      case 'waveStarted': return `WAVE ${e.wave + 1} ARRIVES: HP carries over; shields, MP and the deck start again`;
       case 'won': return 'WON';
       case 'lost': return `LOST (${e.why === 'allFainted' ? 'every unit fainted' : 'round cap'})`;
       default: return null;
     }
   };
 
-  out.push(`seed ${log.seed}  encounter ${log.encounterId}  deck ${log.deckId}  engine ${log.engineVersion}`);
+  out.push(`seed ${log.seed}  encounter ${log.encounterId} (grade ${gradeTotal(ENCOUNTERS[log.encounterId]!)})  deck ${log.deckId}  engine ${log.engineVersion}`);
   out.push(`enemy starting steps (rolled from the seed): ${s.enemies.map((e) => `${e.id} step ${e.step + 1} of ${ENEMIES[e.def].script.steps.length}`).join(', ')}`);
+  // Opening grace and Fast: how each enemy's starting step was chosen.
+  for (const e of s.enemies) {
+    const wave = e.wave > 0 ? ` (wave ${e.wave + 1})` : '';
+    if (ENEMIES[e.def].fast) out.push(`${who(e.id)} is Fast: starts on an attack step${wave}`);
+    else if (RULES.openingGrace) out.push(`grace: ${e.id} starts on a setup step${wave}`);
+  }
   board('DEPLOY (the units on their default tiles; the enemies have not moved yet)');
   let plan: string[] = [];
   log.actions.forEach((a, index) => {
@@ -127,6 +151,7 @@ function narrate(log: BattleLog): string[] {
       plan = [];
       s = result.state;
       if (s.phase === 'plan') board();
+      if (s.phase === 'deploy') board(`WAVE ${s.wave + 1} DEPLOY (the units back on their default tiles)`);
     } else {
       s = result.state;
     }

@@ -6,7 +6,7 @@
  * imported only by the lazily loaded sandbox, so neither its table nor any
  * file it resolves can reach the main bundle. Files live at
  * `src/ui/assets/cardbattle/{group}/{id}.svg`: the author's pack v1,
- * `cardbattle-assets-1`, 60 files. An ID whose file is missing still renders
+ * `cardbattle-assets-1`, 60 files, and five enemy marker placeholders. An ID whose file is missing still renders
  * a placeholder at its contract size, so a file dropped or removed never
  * breaks the screen.
  *
@@ -32,7 +32,11 @@ export const CARD_ASSET_GROUPS = {
   cards: {
     viewBox: { width: 240, height: 336 },
     render: { width: 72, height: 101 },
-    ids: ['card-frame-compact', 'card-frame-full', 'card-overlay-selected', 'card-overlay-unavailable', 'card-badge-corner'],
+    ids: [
+      'card-frame-compact', 'card-frame-full', 'card-overlay-selected', 'card-overlay-unavailable', 'card-badge-corner',
+      // The meadow pack: the owner band, a white mask tinted per owner.
+      'card-band-compact', 'card-band-full',
+    ],
   },
   ui: {
     viewBox: null,
@@ -49,6 +53,11 @@ export const CARD_ASSET_GROUPS = {
       'button-default',
       'button-pressed',
       'button-unavailable',
+      // The meadow pack: the primary button in green, and the screen's background.
+      'button-primary-default',
+      'button-primary-pressed',
+      'button-primary-unavailable',
+      'background-meadow',
     ],
   },
   icons: {
@@ -59,6 +68,9 @@ export const CARD_ASSET_GROUPS = {
       'icon-target', 'icon-stealth', 'icon-repair', 'icon-once', 'icon-draw', 'icon-hunt', 'icon-wait',
       'icon-class-special', 'icon-class-ranged', 'icon-class-melee', 'icon-type-fire', 'icon-type-plasma',
       'icon-type-water', 'icon-inspect', 'icon-confirm', 'icon-cancel', 'icon-end-turn', 'icon-deck', 'icon-discard',
+      // Not in the pack: placeholders for Part D, until the reskin's art.
+      'icon-shovel', 'icon-harpoon', 'icon-scream',
+      'icon-fast', 'icon-pinned', 'icon-retain', 'icon-undo', 'icon-menu',
     ],
   },
   markers: {
@@ -75,6 +87,28 @@ export const CARD_ASSET_GROUPS = {
       'marker-ring-selected',
       'marker-ring-destination',
       'marker-reticle',
+      // Not in the pack: placeholders drawn in its style, the diamond and a
+      // glyph, until the author's art arrives
+      // (`docs/spec/gymrun-patch-card-battle-grace-friendly-fire.md` A3).
+      'marker-enemy-hound',
+      'marker-enemy-turret',
+      'marker-enemy-bulwark',
+      'marker-enemy-sniper',
+      'marker-enemy-pikeman',
+      'marker-enemy-colossus',
+      'marker-enemy-colossus-pinned',
+      'portrait-commander',
+      'portrait-gunner',
+      'portrait-dasher',
+    ],
+  },
+  /** The meadow pack's card illustrations, one per card, drawn in the frame's art window. */
+  art: {
+    viewBox: { width: 180, height: 150 },
+    render: { width: 60, height: 50 },
+    ids: [
+      'art-call-medic', 'art-command', 'art-focus', 'art-moon-strike', 'art-shoot', 'art-resupply', 'art-artillery', 'art-fire',
+      'art-dash', 'art-slash', 'art-need-help', 'art-prep', 'art-move', 'art-dig-in', 'art-attack', 'art-harpoon',
     ],
   },
 } as const;
@@ -111,6 +145,27 @@ export const SLICES: Partial<Record<CardAssetId, readonly [number, number, numbe
   'button-unavailable': [12, 12, 12, 12],
 };
 
+/**
+ * The meadow pack's pieces (`meadow-card-battler-assets`, `atlas.json`
+ * `nineSlice`): the insets in the file's pixels, then the width each is drawn
+ * at on the screen, top, right, bottom, left. Its files are about two and a
+ * half times the size they show at.
+ */
+export const MEADOW_SLICES: Partial<Record<CardAssetId, { inset: readonly [number, number, number, number]; width: readonly [number, number, number, number] }>> = {
+  'panel-frame': { inset: [30, 30, 30, 30], width: [12, 12, 12, 12] },
+  'pill-badge': { inset: [12, 24, 12, 24], width: [5, 11, 5, 11] },
+  'bar-track': { inset: [6, 10, 6, 10], width: [2, 4, 2, 4] },
+  'bar-fill': { inset: [6, 10, 6, 10], width: [2, 4, 2, 4] },
+  'slot-empty': { inset: [18, 18, 18, 18], width: [9, 9, 9, 9] },
+  'slot-filled': { inset: [18, 18, 18, 18], width: [9, 9, 9, 9] },
+  'button-default': { inset: [30, 30, 30, 30], width: [14, 14, 14, 14] },
+  'button-pressed': { inset: [30, 30, 30, 30], width: [14, 14, 14, 14] },
+  'button-unavailable': { inset: [30, 30, 30, 30], width: [14, 14, 14, 14] },
+  'button-primary-default': { inset: [30, 30, 30, 30], width: [14, 14, 14, 14] },
+  'button-primary-pressed': { inset: [30, 30, 30, 30], width: [14, 14, 14, 14] },
+  'button-primary-unavailable': { inset: [30, 30, 30, 30], width: [14, 14, 14, 14] },
+};
+
 /** The pack draws the corner badge on its own 48 by 48 grid, not the card's. */
 const OWN_SIZE: Partial<Record<CardAssetId, Size>> = {
   'card-badge-corner': { width: 48, height: 48 },
@@ -126,11 +181,26 @@ export function renderSize(id: CardAssetId): Size | null {
   return OWN_SIZE[id] ?? CARD_ASSET_GROUPS[groupOf(id)].render;
 }
 
-const FILES = import.meta.glob('../assets/cardbattle/**/*.svg', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+const FILES = import.meta.glob('../assets/cardbattle/**/*.{svg,webp}', { eager: true, query: '?url', import: 'default' }) as Record<
+  string,
+  string
+>;
+
+/** The meadow pack's file for an ID: `{group}/{id}.webp`, which wins over the first pack's `.svg`. */
+export function meadowPath(id: CardAssetId): string {
+  return `${groupOf(id)}/${id}.webp`;
+}
+
+function fileOf(id: CardAssetId, files: Record<string, string>): { url: string; meadow: boolean } | null {
+  const meadow = files[`../assets/cardbattle/${meadowPath(id)}`];
+  if (meadow) return { url: meadow, meadow: true };
+  const svg = files[`../assets/cardbattle/${cardAssetPath(id)}`];
+  return svg ? { url: svg, meadow: false } : null;
+}
 
 /** The bundled URL for an ID, or `null` while its file has not arrived. */
 export function cardAssetUrl(id: CardAssetId, files: Record<string, string> = FILES): string | null {
-  return files[`../assets/cardbattle/${cardAssetPath(id)}`] ?? null;
+  return fileOf(id, files)?.url ?? null;
 }
 
 /** What a placeholder shows: the ID's initials after its group prefix. */
@@ -157,17 +227,19 @@ export function cardAsset(id: CardAssetId, size?: Size | 'fill', files?: Record<
     el.style.width = `${box.width}px`;
     el.style.height = `${box.height}px`;
   }
-  const url = cardAssetUrl(id, files);
+  const file = fileOf(id, files ?? FILES);
+  const url = file?.url ?? null;
   // Small files are inlined as `data:` URLs that carry quotes and spaces, so
   // the URL is always quoted, and a double quote inside it escaped.
   const css = url ? `url("${url.replace(/"/g, '%22')}")` : '';
-  const slice = SLICES[id];
-  if (url && slice) {
-    const [top, right, bottom, left] = slice;
+  const sliced = file?.meadow ? MEADOW_SLICES[id] : SLICES[id] ? { inset: SLICES[id]!, width: SLICES[id]! } : undefined;
+  if (url && sliced) {
+    const [top, right, bottom, left] = sliced.inset;
+    const [wt, wr, wb, wl] = sliced.width;
     el.classList.add('cb-asset--slice');
     el.style.borderStyle = 'solid';
-    el.style.borderWidth = `${top}px ${right}px ${bottom}px ${left}px`;
-    el.style.borderImage = `${css} ${top} ${right} ${bottom} ${left} fill / ${top}px ${right}px ${bottom}px ${left}px stretch`;
+    el.style.borderWidth = `${wt}px ${wr}px ${wb}px ${wl}px`;
+    el.style.borderImage = `${css} ${top} ${right} ${bottom} ${left} fill / ${wt}px ${wr}px ${wb}px ${wl}px stretch`;
   } else if (url) {
     const mask = groupOf(id) === 'icons';
     el.classList.add(mask ? 'cb-asset--mask' : 'cb-asset--art');
