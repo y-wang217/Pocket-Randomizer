@@ -2,8 +2,10 @@
  * What a card or an enemy's intent will do, drawn before the round resolves:
  * the tiles an attack lights, the units a card lands on, and the move
  * destinations that step in front of a Strike. Every answer reads the same
- * rules the round applies (`keywords.ts`, `enemies.ts`, `resolve.ts`), on the
- * board as it stands once the plan's moves land, since moves resolve first.
+ * rules the round applies (`keywords.ts`, `enemies.ts`, `resolve.ts`). A
+ * planned card is read on the board as the Moves planned before it leave it,
+ * since the plan resolves in order; a card being chosen, which would go last,
+ * on the board after every planned Move.
  *
  * These are forecasts. A unit or enemy removed earlier in the same round can
  * change what a later attack hits; nothing here plays that out.
@@ -11,7 +13,7 @@
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
 import type { DamageKeyword, Pos } from './defs';
-import { cardDefOf, damageOf, livingEnemies, project, select, type Projection } from './plan';
+import { cardDefOf, damageOf, livingEnemies, project, projectAt, select, type Projection } from './plan';
 import { firstSlots } from './resolve';
 import type { BattleState, CardIid, EnemyId, EnemyState, PlannedPlay, TargetId, UnitId } from './state';
 import { blastTiles, laneFromSide, samePos, slashTiles } from './zones';
@@ -124,11 +126,12 @@ function convertsTo(state: BattleState, play: PlannedPlay, k: DamageKeyword, tar
 
 /**
  * What one play will do: the tiles its attack lights from where its unit
- * stands once moves land, and the units it lands on. The play may be in the
+ * stands once the Moves planned before plan index `at` land, and the units it
+ * lands on. The play may be in the
  * plan or a candidate not yet selected; a choice it has not made yet lights
  * nothing that depends on it.
  */
-export function previewPlay(state: BattleState, play: PlannedPlay): PlayPreview {
+export function previewPlay(state: BattleState, play: PlannedPlay, at: number = state.plan.length): PlayPreview {
   const def = cardDefOf(state, play.card);
   if (!def) return { attack: null, targets: [] };
   const targets: TargetId[] = [];
@@ -139,7 +142,7 @@ export function previewPlay(state: BattleState, play: PlannedPlay): PlayPreview 
 
   const dmg = damageOf(def);
   const targeted = def.effects.some((e) => e.k === 'target');
-  const from = project(state)[play.unit];
+  const from = projectAt(state, at)[play.unit];
   if (dmg && from) {
     const k = convertsTo(state, play, dmg.k, targeted);
     if (targeted) {

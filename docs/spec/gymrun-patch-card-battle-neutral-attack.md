@@ -54,3 +54,5 @@ pushed) and the session's read of the log. Filed before any work on them.
 > Do animations before we open the pr and push the riff through
 
 "riff" is read as "diff".
+
+> No i used camnanders shield on self. Check that this works in a self

@@ -133,7 +133,7 @@ export function viewOf(state: BattleState): BattleView {
   const projection = project(state);
   const live = state.phase === 'plan';
   const threatened = state.enemies.map((enemy) => ({ enemy, tiles: enemyThreat(state, enemy, projection) }));
-  const previews: PlanPreview[] = state.plan.map((play, planIndex) => ({ planIndex, unit: play.unit, ...previewPlay(state, play) }));
+  const previews: PlanPreview[] = state.plan.map((play, planIndex) => ({ planIndex, unit: play.unit, ...previewPlay(state, play, planIndex) }));
 
   const tiles: TileView[] = allTiles().map((pos) => {
     const unit = state.units.find((u) => samePos(u.pos, pos));

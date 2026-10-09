@@ -142,7 +142,7 @@ describe('log and replay', () => {
 
   it('refuses a log from another engine version, naming both values', () => {
     const { log } = playBattle('test', 'VERSION', bot('VERSION'));
-    expect(() => replay({ ...log, engineVersion: 'cards-0.0.9' })).toThrow(/cards-0\.0\.9.*cards-0\.1\.0/);
+    expect(() => replay({ ...log, engineVersion: 'cards-0.0.9' })).toThrow(/cards-0\.0\.9.*cards-0\.2\.0/);
   });
 
   it('refuses a log that does not replay, saying where', () => {

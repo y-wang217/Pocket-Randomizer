@@ -1,9 +1,10 @@
 /**
- * `commit`: one round, in the fixed phase order of the prompt's section 3.
+ * `commit`: one round, in the phase order of the prompt's section 3, as the
+ * author amended it (`docs/spec/gymrun-patch-card-battle-neutral-attack.md`).
  *
- *   1. Player moves, Command's included, in plan order.
- *   2. Every other planned card, in plan order. A card whose target is gone
- *      fizzles: it is still used and its MP is not refunded.
+ *   1-2. Every planned card in plan order, Moves and Command's included: the
+ *      order the player made the plan is the order it plays. A card whose
+ *      target is gone fizzles: it is still used and its MP is not refunded.
  *   3. Win check. Dead enemies never act.
  *   4. MP gain, capped.
  *   5-7. Enemy actions, moves and telegraph (`enemies.ts`).
@@ -71,17 +72,12 @@ export function commit(state: BattleState): StepResult {
   const converts = (play: PlannedPlay, index: number): boolean =>
     first[play.unit] === index && fullAtStart[play.unit] && UNITS[play.unit].abilities.some((a) => a.k === 'firstCardConverts');
 
-  // 1. Moves.
-  for (const play of plan) {
+  // 1 and 2. Every card, Moves included, in plan order.
+  plan.forEach((play, index) => {
+    if (s.phase !== 'plan') return;
     const def = cardDefOf(s, play.card)!;
     if (isMoveCard(def)) playCard(ctx, play, () => resolveMove(ctx, play, def));
-  }
-
-  // 2. Every other card.
-  plan.forEach((play, index) => {
-    const def = cardDefOf(s, play.card)!;
-    if (isMoveCard(def) || s.phase !== 'plan') return;
-    playCard(ctx, play, () => resolveEffects(ctx, play, def, converts(play, index)));
+    else playCard(ctx, play, () => resolveEffects(ctx, play, def, converts(play, index)));
   });
 
   // 3. Win check.

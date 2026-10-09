@@ -35,18 +35,25 @@ describe('previewPlay', () => {
     expect(preview.targets).toEqual([]);
   });
 
-  it('fires from where the plan moves the unit, since moves resolve first', () => {
+  it('fires from where the Moves planned before it leave the unit, since the plan resolves in order', () => {
     let state = quiet(board({ hand: ['attack', 'dash'], mp: { C: 2 }, units: { A: at(1, 1), B: at(2, 1), C: at(3, 1) }, enemies: [at(2, 5), null, null] }));
     const attack = { card: iidOf(state, 'attack'), unit: 'C' as const };
     // From where C stands now, its lane is empty: the Strike lights it all and stops nowhere.
     expect(previewPlay(state, attack).attack!.tiles.every((t) => t.pos.lane === 3 && !t.stop)).toBe(true);
     state = planned(state, { type: 'select', card: iidOf(state, 'dash'), unit: 'C', choice: { tile: at(2, 2) } });
     state = planned(state, { type: 'select', ...attack });
-    expect(previewPlay(state, state.plan[1]!).attack!.tiles).toEqual([
+    expect(previewPlay(state, state.plan[1]!, 1).attack!.tiles).toEqual([
       { pos: at(2, 3), stop: false },
       { pos: at(2, 4), stop: false },
       { pos: at(2, 5), stop: true },
     ]);
+  });
+
+  it('fires from where the unit stands when its Move is planned after it', () => {
+    let state = quiet(board({ hand: ['attack', 'dash'], mp: { C: 2 }, units: { A: at(1, 1), B: at(2, 1), C: at(3, 1) }, enemies: [at(3, 5), null, null] }));
+    state = planned(state, { type: 'select', card: iidOf(state, 'attack'), unit: 'C' });
+    state = planned(state, { type: 'select', card: iidOf(state, 'dash'), unit: 'C', choice: { tile: at(2, 2) } });
+    expect(previewPlay(state, state.plan[0]!, 0).attack!.tiles.at(-1)).toEqual({ pos: at(3, 5), stop: true });
   });
 
   it("reads B's first card as a Pierce while B is at full HP", () => {

@@ -168,7 +168,7 @@ describe('Puppeteer cards', () => {
     expect(events).toContainEqual({ t: 'shielded', unit: 'A', amount: 1 });
   });
 
-  it('Command: the ally moves in the move phase, A pays, the ally does not', () => {
+  it('Command: the ally moves where Command sits in the plan, A pays, the ally does not', () => {
     let state = board({ hand: ['command', 'attack'], mp: { A: 1, C: 1 }, units: { C: at(3, 2) } });
     state = play(state, 'command', 'A', { unit: 'C', tile: at(3, 3) });
     state = play(state, 'attack', 'C');
@@ -180,6 +180,18 @@ describe('Puppeteer cards', () => {
     const moveAt = events.findIndex((e) => e.t === 'moved');
     const attackAt = events.findIndex((e) => e.t === 'played' && e.card === iidOf(state, 'attack'));
     expect(moveAt).toBeLessThan(attackAt);
+  });
+
+  it('resolves the plan in the order it was made: a unit may shoot, then move', () => {
+    let state = board({ hand: ['attack', 'move'], mp: { C: 1 }, units: { C: at(3, 2) } });
+    state = play(state, 'attack', 'C');
+    state = play(state, 'move', 'C', { tile: at(3, 3) });
+    const { events } = commit(state);
+    const played = events.flatMap((e) => (e.t === 'played' ? [e.card] : []));
+    expect(played).toEqual([iidOf(state, 'attack'), iidOf(state, 'move')]);
+    const attackAt = events.findIndex((e) => e.t === 'played' && e.card === iidOf(state, 'attack'));
+    expect(events.findIndex((e) => e.t === 'damaged')).toBeGreaterThan(attackAt);
+    expect(events.findIndex((e) => e.t === 'damaged')).toBeLessThan(events.findIndex((e) => e.t === 'moved'));
   });
 
   it('Focus: A gains 1 more MP at the start of each of its next 2 turns', () => {

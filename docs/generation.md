@@ -15952,3 +15952,61 @@ are unchanged.
   uncommon: no intercept appeared in round 1 of 3,000 seeds, or in the first
   four rounds of 400 seeds with an empty plan. One turned up under the random
   bot on `GYMRUN-000000-INT4`, round 8, and the screen was checked there.
+
+### 125l. Play order, a Neutral asks who plays it, and the round played back
+
+**2026-10-09**, on `claude/neutral-attack-commander-bug-b3chim`, from `main`
+at `2dd6fd6`. Bug report and follow-ups
+[`spec/gymrun-patch-card-battle-neutral-attack.md`](spec/gymrun-patch-card-battle-neutral-attack.md),
+with the author's battle log, seed `X5A72HUA`. **`CARD_ENGINE_VERSION` moves
+from `cards-0.1.0` to `cards-0.2.0`**: a log from before replays differently,
+so it is refused, naming both values. None of the run's four axes moves.
+
+- **The bug.** A Neutral that only one living unit could pay for went
+  straight onto that unit. In round 1 of the report only A has MP (its
+  ability's 1), so Attack landed on A unasked, and the author read it as the
+  card belonging to the Commander: the log selects and unselects it on A seven
+  times. Now a Neutral always opens the pick step. The prompt names the units
+  that cannot play it and why ("Pick who plays it · B, C: Not enough MP"),
+  their panels dim, and a tap on one says why instead of playing. `viewOf`
+  carries each unit's reason as `blocked`, from the same `playBlock` the
+  playable flag reads.
+- **The rule, amended by the author: the plan resolves in the order it was
+  made.** Section 3 of the engine prompt resolved every Move, Command's
+  included, before any other card. Deleted, not flagged: a round now plays
+  every card in plan order, so a unit may shoot then move, and which comes
+  first is the player's call ("players can move or shoot first and that's
+  part of strategy"). `checkPlan` checks each play on the board as the Moves
+  before it leave it; a play appended last never changes what an earlier one
+  sees, so `select` no longer refuses a Move for breaking an earlier play.
+  `previewPlay` takes the play's plan index and fires from that board. B's
+  ability already read the first slot in plan order; it is now also the first
+  card to resolve.
+- **What the author's log shows.** Under `cards-0.1.0` it replays cleanly and
+  every step followed the rules then in force. What read as wrong was order:
+  Moves resolved before the cards planned ahead of them (round 6 planned
+  Slash, Attack, Move and played Move first). The Commander's Call Medic on
+  itself in round 4 did land, `A shield +1`; nothing attacked A that round,
+  and R3 clears a player's shield at the start of the next round, so it was
+  gone before Drone 1's Slash, telegraphed only at the end of round 4, landed
+  in round 5. Shield on self is covered by `test/cards-plan.test.ts` and
+  `test/cards-step.test.ts`. Two findings stand for the author: Resupply at
+  the 5 MP cap gains nothing and the screen does not say so, and 125k's "in
+  front is the engine's front" (a Strike reaching a unit behind the drone)
+  happened in round 6.
+- **Turn order shows.** Every planned card wears its place in the order, 1
+  up, on its slot and on the card in hand.
+- **The round plays back** (`ui/cardbattle/playback.ts`). The engine still
+  resolves a round in one call; the screen walks its events over a copy of
+  the state the round began from, one step per card played, enemy action and
+  enemy move, then the next telegraphs and the new round, each step with the
+  board as it stood once it was done. The actor pulses, its attack's tiles
+  flash in the telegraph's colours, a hit piece shakes under a float of what
+  it lost (`-1` red for HP, `Sh -1` for a shield or base shield), a moved
+  piece slides, and the banner reads the step's number, title and lines. A
+  tap skips to the end and lands on nothing; under reduced motion the round
+  lands at once. The one-line beats are deleted.
+- **The round log.** Menu holds a Round log: every committed round, step by
+  step in the order it resolved, numbered as the playback numbers it, with
+  the quiet steps (round MP, an enemy that waits) listed dimmed. Replay round
+  plays the last round back again.
