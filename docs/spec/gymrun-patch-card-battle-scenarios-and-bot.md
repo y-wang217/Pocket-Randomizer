@@ -33,3 +33,26 @@ The pasted log is replaced by a pointer to the asset; the asset is the text.
 > also, i won both with some simple strategy. let's design a bot that can actually complete the scenarios competently. strategy should be to always protect units with high hp/shield units, and preserve units as long as possible. defence wins games. also positioning is hard to create an ai for, so i'd love to have a bot run through many times and learn the patterns that do the best, like a TAS type but for turn based much easier to actually win
 >
 > make sense? start with the explanation doc so I can give the play log to a claude session
+
+---
+
+## Follow-up, verbatim
+
+The session's guide was committed at `691af20` first; it then asked three questions
+before building the mechanics: how the board grows to fit a danger zone three
+deep, whether units are placed anywhere in the two home rows, and what
+"bottom 3" meant. Filed before any work on the answer.
+
+> Danger zone 3 rows tall.
+> 2 home rows yes.
+> Yes 3 enemies should be positioned somewhere in the 6 available spots, but not always in the 3 closest to the danger zone.
+
+### How the session reads it
+
+The sandbox draws the board with the enemy backline at the top and the lanes
+as screen columns (`src/ui/cardbattle/sandbox.ts`), so the author's *rows* are
+the engine's columns. The board becomes seven deep: home C1-C2, danger C3-C5,
+enemy backline C6-C7. Units are placed by the player on any of the six home
+tiles before round 1. The three enemies start on tiles of the six enemy
+backline tiles, drawn from the battle's seed when the encounter does not fix
+them, so they are not always on the row nearest the danger zone.
