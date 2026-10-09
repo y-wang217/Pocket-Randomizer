@@ -16061,3 +16061,118 @@ tables stay outside `src/data/`.
   `npm run cards:narrate` prints the placements before round 1.
 - **Not built yet:** the defensive, learning bot the message asks for. It
   comes after review of this.
+
+### 125n. Opening grace, Fast, Blast friendly fire, five enemies, three scenarios, colour coding, the unit filter
+
+**2026-10-09**, on `claude/vibrant-hopper-axlk79` (the session's designated
+branch), from `claude/wizardly-cannon-l8fktg` at `6afdaa8` (`cards-0.3.0`).
+Prompt
+[`spec/gymrun-patch-card-battle-grace-friendly-fire.md`](spec/gymrun-patch-card-battle-grace-friendly-fire.md),
+Part A only; Parts B to G are queued and not begun. **`CARD_ENGINE_VERSION`
+moves from `cards-0.3.0` to `cards-0.4.0`**: starting steps and Blast
+resolution change, so an older log is refused, naming both values. None of
+the run's four axes moves; `contentHash` holds at `865d3b` (nothing under
+`src/data/` or `build-config/` changed).
+
+- **A1, grace and Fast.** `openingSteps(def)` (`core/cards/enemies.ts`) is
+  what a starting step is rolled among: under `RULES.openingGrace` the steps
+  whose act cannot deal damage (`actCanDamage`: a conditional counts as
+  damage when either branch deals it), every step with it off, and for a
+  `fast` enemy its first damaging step only. Every enemy still takes exactly
+  one draw (`nextInt` consumes one value whatever its bound), so spawns and
+  the shuffle are drawn exactly as in `cards-0.3.0`: same seed, same tiles,
+  same deck order, grace on or off (`test/cards-opening.test.ts`). The roll
+  stays at creation, where the shipped code makes it; the prompt's "when the
+  player presses Start" is where the rolled step first shows. The data test
+  holds every non-Fast enemy to a non-damaging step, naming it, and every
+  Fast enemy to attacks of 1. `RULES.friendlyFire` (R14, read by nothing)
+  is replaced by `blastFriendlyFire`.
+- **A2, Blast friendly fire.** A player Blast's footprint is fixed before
+  anything on it is hit; the enemies on it are damaged first, then the allies
+  `alliesOn` names under `RULES.blastFriendlyFire` (`'alliesExceptCaster'`,
+  the default; `'allies'`; `'none'`). A new `friendlyFire` event precedes each
+  ally's `damaged`. A Blast fizzles only when it hits nobody at all. A unit a
+  Blast fells faints as any unit does; **new:** the commit loop now skips
+  every later play by a fainted unit, with a `planPruned` event of reason
+  `fainted` (before this patch nothing could faint during the player's half
+  of a round, so the loop never had to). Legality is unchanged.
+  `PlayPreview.allies` carries the allies a Blast would hit, and
+  `friendlyFireFor` each tile or enemy a Blast being aimed could take that
+  would hit one. On screen: a dashed warning outline and the damage on each
+  such ally (token and panel), and the allies' letters on each such choice.
+- **A3, five enemies.** Hound (Fast), Turret, Bulwark, Sniper, Pikeman, from
+  the existing vocabulary; Bulwark's conditional with Shield as the else-act
+  needed no widening. `EnemyDef.grade` on all seven. Their markers are
+  placeholders drawn in the pack's style (the diamond and a glyph) under
+  `src/ui/assets/cardbattle/markers/`, five more IDs in the card battle
+  manifest, until the author's art arrives.
+- **A4, scenarios.** `turret-alley`, `wall-and-gun`, `the-pack`, spawns fixed
+  as listed. `gradeTotal(encounter)` (`core/cards/create.ts`) sums the
+  grades; Menu shows it under each scenario's name, the readout and
+  `cards:narrate` print it. **Deviation:** the prompt's heading says *Four
+  more scenarios*; its table lists three, and three are built.
+- **A5, colour coding.** Owner colour as `--cb-own` per `data-owner`:
+  Commander teal, Gunner blue, Sword dasher purple, Neutral the new
+  `--cb-grey`. A card wears it as its frame with the owner's letter in the
+  badge (a Neutral has no badge); a unit as its panel stripe and name, token
+  ring and label, filled slots, and its own attack previews. **Every enemy
+  telegraph is now hatched** (Strike was a solid wash, Slash a purple one; the
+  prompt's *telegraphs hatched, zones solid*), Slash in a deeper red, so purple
+  is the Sword dasher's alone; each telegraph chip names its enemy (`D1`), as
+  the token does. Zones keep their solid fills. **Contrast:** the pack's
+  teal, blue and red fail 4.5:1 as text on the paper (4.24, 3.76, 4.07) and
+  `--cb-dim` did too (3.70), so text and text-bearing chips use new darker
+  `-text` shades and `--cb-dim` goes from 0.62 to 0.8;
+  `test/cards-contrast.test.ts` holds twenty pairs to 4.5:1 off the
+  stylesheet's own tokens. Not covered: text drawn over the pack's art (a
+  card's cost disc), whose colours live in the SVGs. Enemy panels share the
+  column's height, so The Pack's four fit.
+- **A6, the unit filter.** Presentation only. With nothing being chosen, a
+  tap on a unit shows the cards it can play now (own and Neutral) and those it
+  has planned; the rest fold into `+N other`, beside `Showing B · Show all`.
+  The chip, the same unit again, End Turn, or the unit fainting clears it. A
+  card tapped under the filter skips *Pick who plays it* when the filtered unit
+  can play it.
+- **A7, communication.** Grace: the note line in round 1, an enemy's Inspect
+  entry (new: Inspect, then an enemy, shows its numbers, grade and how it
+  opens), and `grace: e1 starts on a setup step` in narrate. Fast: the badge,
+  the entry, `e1 Hound is Fast: starts on an attack step`. Friendly fire: the
+  aiming warning, the Blast card's entry, `B Gunner takes 1 from Fire!
+  (friendly fire)` and `... has fainted: c9 Slash is not played`. The round
+  playback says `B: friendly fire` and `Not played: fainted`. **Reading:** the
+  prompt's *round 1 intent strip* is built as the note line over the board,
+  the one place a round-wide notice already lives.
+- **A8.** The guide is at `cards-0.4.0`; its worked example stays the
+  `cards-0.2.0` game, with a note on what grace and friendly fire change,
+  because no `cards-0.4.0` game by a person exists yet.
+
+Measured at A8:
+
+| what | value |
+|---|---|
+| main chunk | 4,198,984 B before and after: **0 B delta** (the sandbox is lazy) |
+| sandbox chunk | 85,625 to 95,599 B minified (+9,974), 22.84 to 25.14 kB gzipped; its CSS 17,301 to 21,221 B |
+| board at 390x844 | `.cb-board` 448px (7 x 64), `.cb-mid` 448px, frame bottom 758px, no scroll, in all six scenarios and with the filter on |
+| `contentHash` | `865d3b`, unmoved |
+
+Starting steps under grace, seeds `GRACE0` to `GRACE1999` across all six
+scenarios (n is enemy-starts): Drone steps 2/4/6 at 33.3/33.3/33.4%
+(n 12,000); Lancer 1/2 at 50.5/49.5% (6,000); Turret 1/3 at 50.4/49.6%
+(4,000); Bulwark 1/3 at 50.4/49.6% (4,000); Sniper 1/2 at 48.8/51.3% (2,000);
+Pikeman 1/2/3 at 34.1/32.6/33.2% (2,000); Hound step 1 at 100% (8,000).
+
+Random-bot wins, battle seeds `RB0` to `RB1999`, bot seeds `RBB0` to
+`RBB1999`, 2,000 per scenario, on `cards-0.4.0` and, for comparison, with
+grace off and friendly fire `'none'` on the same seeds:
+
+| scenario | grade | wins, 0.4.0 rules | wins, grace off, no friendly fire |
+|---|---|---|---|
+| `skirmish` | 5 | 36 (1.80%) | 19 (0.95%) |
+| `test` | 5 | 33 (1.65%) | 27 (1.35%) |
+| `staggered` | 5 | 28 (1.40%) | 24 (1.20%) |
+| `turret-alley` | 5 | 21 (1.05%) | 17 (0.85%) |
+| `wall-and-gun` | 7 | 6 (0.30%) | 7 (0.35%) |
+| `the-pack` | 6 | 23 (1.15%) | 21 (1.05%) |
+
+Every scenario can be won. A random bot is a floor, not a difficulty
+measure; Part B's bot is what corrects the grades. Balance is not a gate.

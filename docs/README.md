@@ -171,6 +171,20 @@ lists the scenarios. Built and stopped for review; the learning bot is next.
 `CARD_ENGINE_VERSION` moves to `cards-0.3.0`; none of the run's four axes
 moves.
 
+**Card battle sandbox: opening grace, friendly fire, new enemies and
+scenarios.** Branch `claude/vibrant-hopper-axlk79`, on top of `cards-0.3.0`,
+prompt
+[`spec/gymrun-patch-card-battle-grace-friendly-fire.md`](spec/gymrun-patch-card-battle-grace-friendly-fire.md),
+record [`generation.md`](generation.md) section 125n. Part A: in round 1 a
+normal enemy opens on a step that deals no damage and a Fast one attacks for
+1; a player Blast hurts allies on its tiles, not its caster; Hound, Turret,
+Bulwark, Sniper and Pikeman with provisional grades; Turret Alley, Wall and
+Gun and The Pack, each scenario showing its grade total; owner colours on
+cards, panels and tokens; a tap on a unit filters the hand. Built and stopped
+for review; Part B, the bot, is next and waits for the merge.
+`CARD_ENGINE_VERSION` moves to `cards-0.4.0`; none of the run's four axes
+moves, `contentHash` holds at `865d3b`.
+
 **Also in flight: Defender Mode v0, a fun test.** Branch
 `claude/eager-turing-0059br`, prompt
 [`spec/gymrun-defender-mode-v0-fun-test.md`](spec/gymrun-defender-mode-v0-fun-test.md),
