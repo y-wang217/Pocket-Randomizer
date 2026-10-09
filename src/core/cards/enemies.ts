@@ -142,7 +142,7 @@ function telegraph(ctx: Ctx, enemy: EnemyState): void {
       break;
   }
   enemy.intent = intent;
-  ctx.events.push({ t: 'telegraphed', enemy: enemy.id, step: enemy.step, intent: structuredClone(intent) });
+  ctx.events.push({ t: 'telegraphed', enemy: enemy.id, step: enemy.step, intent: { ...intent, tiles: intent.tiles.map((t) => ({ ...t })) } });
 }
 
 /** Phase 5 for one enemy. */

@@ -3,9 +3,10 @@
  * bot or the UI is offered and the check `select` applies are one function.
  */
 import type { Pos } from './defs';
-import { asPlayBlock, cardDefOf, checkPlan, livingEnemies, livingUnits, needsOf } from './plan';
+import type { CardDef } from './defs';
+import { asPlayBlock, cardDefOf, checkAppend, checkPlan, livingEnemies, livingUnits, needsOf, project } from './plan';
 import type { Action, BattleState, CardIid, Choice, PlayBlock, TargetId, UnitId } from './state';
-import { allTiles } from './zones';
+import { blastCentres, moveDestinations } from './zones';
 
 export interface Choices {
   units: TargetId[];
@@ -16,7 +17,27 @@ const NONE: Choices = { units: [], tiles: [] };
 
 function fits(state: BattleState, card: CardIid, unit: UnitId, choice: Choice | undefined): boolean {
   const play = choice ? { card, unit, choice } : { card, unit };
-  return checkPlan(state, [...state.plan, play]).ok;
+  return checkAppend(state, play).ok;
+}
+
+/**
+ * The only tiles a choice could be: where a Move from the projected position
+ * can end, or where a Blast may be centred. A narrowing for speed, never a
+ * second rule: every candidate is still put through `checkPlan`.
+ */
+function candidateTiles(state: BattleState, def: CardDef, mover: UnitId): Pos[] {
+  const projection = project(state);
+  const from = projection[mover];
+  if (!from) return [];
+  const move = def.effects.find((e) => e.k === 'move' || e.k === 'grantMove');
+  if (move) {
+    const occupied = [
+      ...Object.entries(projection).flatMap(([id, pos]) => (id !== mover && pos ? [pos] : [])),
+      ...livingEnemies(state).map((e) => e.pos!),
+    ];
+    return moveDestinations('player', from, move.n, occupied);
+  }
+  return blastCentres('player', from);
 }
 
 /**
@@ -36,9 +57,10 @@ export function choicesFor(state: BattleState, card: CardIid, unit: UnitId, chos
       return { units: pool.filter((u) => fits(state, card, unit, { unit: u })), tiles: [] };
     }
     case 'tile':
-      return { units: [], tiles: allTiles().filter((tile) => fits(state, card, unit, { tile })) };
+      return { units: [], tiles: candidateTiles(state, def, unit).filter((tile) => fits(state, card, unit, { tile })) };
     case 'unitThenTile': {
-      const tilesFor = (ally: TargetId): Pos[] => allTiles().filter((tile) => fits(state, card, unit, { unit: ally, tile }));
+      const tilesFor = (ally: TargetId): Pos[] =>
+        candidateTiles(state, def, ally as UnitId).filter((tile) => fits(state, card, unit, { unit: ally, tile }));
       const allies = friendlies.filter((ally) => ally !== unit && tilesFor(ally).length > 0);
       return { units: allies, tiles: chosen !== undefined && allies.includes(chosen) ? tilesFor(chosen) : [] };
     }
@@ -46,7 +68,7 @@ export function choicesFor(state: BattleState, card: CardIid, unit: UnitId, chos
 }
 
 /** Every complete choice for a card and unit; `[undefined]` when it asks for none. */
-function completeChoices(state: BattleState, card: CardIid, unit: UnitId): (Choice | undefined)[] {
+export function completeChoices(state: BattleState, card: CardIid, unit: UnitId): (Choice | undefined)[] {
   const def = cardDefOf(state, card)!;
   switch (needsOf(def)) {
     case 'none':

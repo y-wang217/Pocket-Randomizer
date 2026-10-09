@@ -33,11 +33,32 @@ function firstSlots(s: BattleState, plan: readonly PlannedPlay[]): Partial<Recor
   return first;
 }
 
+/**
+ * A copy of everything a round can change. The card instance table is fixed
+ * once the battle is laid out, so the draft shares it; every other field is
+ * copied, so the state the caller holds is never touched.
+ */
+export function draftOf(state: BattleState): BattleState {
+  return {
+    ...state,
+    units: state.units.map((u) => ({ ...u, pos: u.pos && { ...u.pos }, pendingMp: u.pendingMp.map((g) => ({ ...g })) })),
+    enemies: state.enemies.map((e) => ({
+      ...e,
+      pos: e.pos && { ...e.pos },
+      conds: { ...e.conds },
+      intent: e.intent && { ...e.intent, tiles: e.intent.tiles.map((t) => ({ ...t })) },
+    })),
+    piles: { draw: [...state.piles.draw], hand: [...state.piles.hand], discard: [...state.piles.discard], spent: [...state.piles.spent], removed: [...state.piles.removed] },
+    plan: [...state.plan],
+    pendingDraws: state.pendingDraws.map((d) => ({ ...d })),
+  };
+}
+
 export function commit(state: BattleState): StepResult {
   if (state.phase !== 'plan') return { ok: false, state, reason: 'battleOver' };
   if (!checkPlan(state, state.plan).ok) return { ok: false, state, reason: 'breaksPlan' };
 
-  const s = structuredClone(state);
+  const s = draftOf(state);
   const ctx: Ctx = { s, events: [{ t: 'committed', round: s.round }] };
   const plan = s.plan;
   s.plan = [];

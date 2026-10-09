@@ -238,3 +238,9 @@ export function defenderRecruitKey(rank: number, gymType: string): string {
 export function cardBattleKey(encounterId: string): string {
   return `cards/${encounterId}`;
 }
+
+/**
+ * The card engine's random bot, on `policy`, opened on the bot's own seed. A
+ * scripted player, like `SIM_POLICY_KEY`: nothing a person plays reads it.
+ */
+export const CARD_BOT_KEY = 'cards/bot';

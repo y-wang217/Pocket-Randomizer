@@ -107,13 +107,25 @@ function obstacles(state: BattleState, positions: Projection, except: UnitId): P
   return out;
 }
 
-function checkMove(state: BattleState, play: PlannedPlay, def: CardDef, positions: Projection): IllegalReason | null {
+function checkMove(
+  state: BattleState,
+  play: PlannedPlay,
+  def: CardDef,
+  positions: Projection,
+  memo?: Map<string, Pos[]>,
+): IllegalReason | null {
   const granted = effect(def, 'grantMove');
   const mover = granted ? play.choice?.unit : play.unit;
   const n = granted ? granted.n : effect(def, 'move')!.n;
   const from = typeof mover === 'string' && Object.hasOwn(positions, mover) ? positions[mover as UnitId] : null;
   if (!from) return granted ? 'badChoice' : 'fainted';
-  const destinations = moveDestinations('player', from, n, obstacles(state, positions, mover as UnitId));
+  // `memo` is only passed for one fixed board, so a mover and a distance name one answer.
+  const key = `${mover}:${n}`;
+  let destinations = memo?.get(key);
+  if (!destinations) {
+    destinations = moveDestinations('player', from, n, obstacles(state, positions, mover as UnitId));
+    memo?.set(key, destinations);
+  }
   if (destinations.length === 0) return 'noTarget';
   if (!destinations.some((d) => samePos(d, play.choice?.tile))) return 'badChoice';
   positions[mover as UnitId] = { ...play.choice!.tile! };
@@ -156,60 +168,119 @@ function checkEffects(state: BattleState, play: PlannedPlay, def: CardDef, posit
   return null;
 }
 
-/** The one definition of a legal plan. See the header. */
-export function checkPlan(state: BattleState, plan: readonly PlannedPlay[]): PlanCheck {
+/** What a walk through the plan has spent so far. */
+interface Spent {
+  mpUsed: Partial<Record<UnitId, number>>;
+  slotsUsed: Partial<Record<UnitId, number>>;
+  seen: string[];
+}
+
+/** The checks every play passes in plan order: the card, the unit, MP, slots, the choice's shape. */
+function checkCommon(state: BattleState, play: PlannedPlay, def: CardDef | undefined, spent: Spent): IllegalReason | null {
+  const { mpUsed, slotsUsed, seen } = spent;
+  if (!def || !state.piles.hand.includes(play.card)) return 'notInHand';
+  if (seen.includes(play.card)) return 'alreadyPlanned';
+  seen.push(play.card);
+  const unit = unitOf(state, play.unit);
+  if (!unit) return 'malformed';
+  if (unit.fainted) return 'fainted';
+  if (def.owner !== 'neutral' && def.owner !== play.unit) return 'notOwner';
+
+  mpUsed[unit.id] = (mpUsed[unit.id] ?? 0) + def.cost;
+  if (mpUsed[unit.id]! > unit.mp) return 'noMp';
+  slotsUsed[unit.id] = (slotsUsed[unit.id] ?? 0) + 1;
+  if (slotsUsed[unit.id]! > slotsOf(unit.id)) return 'noSlot';
+
+  if (effect(def, 'grantMove')) {
+    // Command: another friendly unit's slot, none of its MP.
+    const ally = unitOf(state, play.choice?.unit);
+    if (!ally || ally.id === unit.id || ally.fainted) return 'badChoice';
+    slotsUsed[ally.id] = (slotsUsed[ally.id] ?? 0) + 1;
+    if (slotsUsed[ally.id]! > slotsOf(ally.id)) return 'noSlot';
+  }
+
+  return choiceFits(needsOf(def), play.choice) ? null : 'badChoice';
+}
+
+function walk(state: BattleState, plan: readonly PlannedPlay[]): { check: PlanCheck; spent: Spent; later: number[] } {
   const positions = Object.fromEntries(state.units.map((u) => [u.id, u.fainted || !u.pos ? null : { ...u.pos }])) as Projection;
-  const mpUsed: Partial<Record<UnitId, number>> = {};
-  const slotsUsed: Partial<Record<UnitId, number>> = {};
-  const seen: string[] = [];
+  const spent: Spent = { mpUsed: {}, slotsUsed: {}, seen: [] };
   const later: number[] = [];
 
   for (const [index, play] of plan.entries()) {
-    const fail = (reason: IllegalReason): PlanCheck => ({ ok: false, index, reason });
     const def = cardDefOf(state, play.card);
-    if (!def || !state.piles.hand.includes(play.card)) return fail('notInHand');
-    if (seen.includes(play.card)) return fail('alreadyPlanned');
-    seen.push(play.card);
-    const unit = unitOf(state, play.unit);
-    if (!unit) return fail('malformed');
-    if (unit.fainted) return fail('fainted');
-    if (def.owner !== 'neutral' && def.owner !== play.unit) return fail('notOwner');
-
-    mpUsed[unit.id] = (mpUsed[unit.id] ?? 0) + def.cost;
-    if (mpUsed[unit.id]! > unit.mp) return fail('noMp');
-    slotsUsed[unit.id] = (slotsUsed[unit.id] ?? 0) + 1;
-    if (slotsUsed[unit.id]! > slotsOf(unit.id)) return fail('noSlot');
-
-    if (effect(def, 'grantMove')) {
-      // Command: another friendly unit's slot, none of its MP.
-      const ally = unitOf(state, play.choice?.unit);
-      if (!ally || ally.id === unit.id || ally.fainted) return fail('badChoice');
-      slotsUsed[ally.id] = (slotsUsed[ally.id] ?? 0) + 1;
-      if (slotsUsed[ally.id]! > slotsOf(ally.id)) return fail('noSlot');
-    }
-
-    if (!choiceFits(needsOf(def), play.choice)) return fail('badChoice');
-
-    if (isMoveCard(def)) {
-      const reason = checkMove(state, play, def, positions);
-      if (reason) return fail(reason);
-    } else later.push(index);
+    const reason = checkCommon(state, play, def, spent) ?? (isMoveCard(def!) ? checkMove(state, play, def!, positions) : null);
+    if (reason) return { check: { ok: false, index, reason }, spent, later };
+    if (!isMoveCard(def!)) later.push(index);
   }
 
   for (const index of later) {
     const play = plan[index]!;
     const reason = checkEffects(state, play, cardDefOf(state, play.card)!, positions);
-    if (reason) return { ok: false, index, reason };
+    if (reason) return { check: { ok: false, index, reason }, spent, later };
+  }
+  return { check: { ok: true, positions }, spent, later };
+}
+
+/** The one definition of a legal plan. See the header. */
+export function checkPlan(state: BattleState, plan: readonly PlannedPlay[]): PlanCheck {
+  return walk(state, plan).check;
+}
+
+const walks = new WeakMap<BattleState, ReturnType<typeof walk> & { moves: Map<string, Pos[]> }>();
+
+/**
+ * `checkPlan(state, [...state.plan, play])`, answered faster, for the many
+ * candidate plays `legalActions` and `choicesFor` try against one state. The
+ * current plan is walked once and cached; the new play runs the same checks
+ * the full walk would give it, in the same order: its common checks, then a
+ * Move against the cached projection, then every earlier non-move play again
+ * if a Move changed the board, then its own effects. Same answers by
+ * construction, and the fuzz gate holds `select`, which takes the full walk,
+ * to every action this offers.
+ */
+export function checkAppend(state: BattleState, play: PlannedPlay): PlanCheck {
+  let base = walks.get(state);
+  if (!base) {
+    base = { ...walk(state, state.plan), moves: new Map() };
+    walks.set(state, base);
+  }
+  const def = cardDefOf(state, play.card);
+  if (!base.check.ok) return checkPlan(state, [...state.plan, play]);
+  const index = state.plan.length;
+  const fail = (reason: IllegalReason): PlanCheck => ({ ok: false, index, reason });
+  const spent: Spent = { mpUsed: { ...base.spent.mpUsed }, slotsUsed: { ...base.spent.slotsUsed }, seen: [...base.spent.seen] };
+  const common = checkCommon(state, play, def, spent);
+  if (common) return fail(common);
+  if (!isMoveCard(def!)) {
+    const reason = checkEffects(state, play, def!, base.check.positions);
+    return reason ? fail(reason) : base.check;
+  }
+  const positions = { ...base.check.positions };
+  const moved = checkMove(state, play, def!, positions, base.moves);
+  if (moved) return fail(moved);
+  for (const earlier of base.later) {
+    const prior = state.plan[earlier]!;
+    const reason = checkEffects(state, prior, cardDefOf(state, prior.card)!, positions);
+    if (reason) return { ok: false, index: earlier, reason };
   }
   return { ok: true, positions };
 }
 
 /** The board after every planned Move. The raw position for a plan that is somehow illegal. */
 export function project(state: BattleState): Projection {
+  // States are never mutated once returned, so one projection serves every
+  // question asked of the same state object. A cache, not state: nothing here
+  // reaches the JSON.
+  const cached = projections.get(state);
+  if (cached) return cached;
   const check = checkPlan(state, state.plan);
-  if (check.ok) return check.positions;
-  return Object.fromEntries(state.units.map((u) => [u.id, u.pos])) as Projection;
+  const positions = check.ok ? check.positions : (Object.fromEntries(state.units.map((u) => [u.id, u.pos])) as Projection);
+  projections.set(state, positions);
+  return positions;
 }
+
+const projections = new WeakMap<BattleState, Projection>();
 
 const PLAY_BLOCKS: readonly IllegalReason[] = ['noMp', 'noSlot', 'wrongZone', 'noTarget', 'fainted'];
 

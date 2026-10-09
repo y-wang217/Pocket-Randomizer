@@ -15749,3 +15749,44 @@ Readings the prompt left open:
 Measured on the shipped encounter: a player who only ends turns loses every
 one of five seeds inside the round cap. That is a termination check, not a
 balance number.
+
+### 125g. Checkpoint 4: random bot, fuzz, speed, log and replay, the readout
+
+- **`randomBot`** (`bots.ts`) picks End Turn, a play to take back, or a
+  card-and-unit pair at random, and for a pair one of its legal choices at
+  random. It is **not uniform over every legal action**, a deviation from the
+  plainest reading: listing every action every step to pick one cost half the
+  speed budget, and weighting by pair keeps it from spending most of its moves
+  on whichever card has the most tiles. Its draws come from its own seed under
+  `CARD_BOT_KEY`, never the battle's stream. `playBattle` drives any policy and
+  records the log.
+- **`checkInvariants`** (`invariants.ts`) is the prompt's list, plus: a fainted
+  unit has no tile, a dead enemy has none, no shield is negative, and a
+  finished battle holds no plan.
+- **The log** (`log.ts`) is every accepted action in order, selects and
+  unselects included, stamped `CARD_ENGINE_VERSION` (`cards-0.1.0`), which is
+  not one of the run's four axes. `replay` throws on a version mismatch naming
+  both values, on an unknown encounter, and on any action the engine refuses,
+  naming its index. `summarize` is the playtest readout; `formatReadout` is its
+  text, and `npm run cards:replay -- <file>` prints it.
+- **Speed.** `legalActions` tests candidate tiles only (Move destinations and
+  Blast centres from the projection) and asks `checkAppend`, which walks the
+  current plan once per state and checks each candidate against it. `select`
+  still takes the full walk, and the fuzz gate holds the two to the same
+  answers: every action `legalActions` offers is accepted, and random
+  well-formed actions are accepted exactly when it offers them. A round copies
+  only what it changes; the card table is shared.
+
+Readout readings: a unit's danger-zone round is one where it stood in columns
+3 to 4 when its round resolved (after its planned moves). A telegraph is
+*dodged* when the enemy's damaging action found nobody on its lit tiles and
+*taken* when it found anyone; a Pierce that hits two units is one taken. A
+no-choice round is one whose plan began with no card the player could play.
+
+Gate results, prefix `FUZZ` / `BOT`, 2,000 seeds: 0 invariant violations, 0
+refused bot actions, 0 battles the engine failed to end. **4 of 2,000 ended at
+the round cap**, each a single surviving unit stepping out of a lone Drone's
+telegraphed lane every round until round 30: a lone survivor with Move cards
+can dodge one Drone indefinitely. Recorded, not retuned (balance is not a
+gate). The random bot wins 49 of 2,000, mean 11.69 rounds. 1,000 battles run
+in about 1.4 seconds headless.
