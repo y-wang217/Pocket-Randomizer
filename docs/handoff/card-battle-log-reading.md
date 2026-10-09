@@ -637,7 +637,7 @@ before anyone plays it:
 - **The bench** (`npm run cards:bench`) prints, per scenario, the bot's wins,
   units kept, rounds to a win, and where it placed each unit. That last line
   is the "pattern" it learned: today it puts the Commander (1 HP) on the back
-  row in every scenario.
+  row in 98 to 100% of battles, mostly in lane 1.
 - **The solver** (`npm run cards:solve -- <scenario> <seed>`) plays one seed
   ahead round after round and finds the best line it can: a tool-assisted
   run. Unlike the bot it sees what each line will draw, so it says whether a

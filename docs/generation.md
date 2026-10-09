@@ -16113,10 +16113,12 @@ log replays to.
   lower held out, and was not written. The three scenarios are easy for the
   bot; training will say more on harder ones. Balance is not a gate: these
   are recorded, not targets.
-- **What it learned to do.** The bench's placement line: the Commander on
-  the back row in 100% of battles in every scenario (GB0..GB49), mostly lane
-  1; the Gunner and the Sword dasher split front and back. Asserted for six
-  battles in `test/cards-guard.test.ts`.
+- **What it learned to do.** The bench's placement line with the shipped
+  weights, GB0..GB49 in each scenario: the Commander on the back row in 100%
+  of skirmish and staggered battles and 98% of test, mostly lane 1; the
+  Gunner and the Sword dasher split front and back. Asserted for six battles
+  in `test/cards-guard.test.ts`. Same seeds: 150/150 won, units kept on a win
+  3.00 / 2.86 / 2.92, rounds to a win 7.9 / 8.6 / 7.8.
 - **The solver** (`core/cards/solve.ts`, `npm run cards:solve`). A
   tool-assisted run of one seed: a beam over whole rounds, each line
   branching into its best `branch` plans and the best `branch` placements,
