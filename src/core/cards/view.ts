@@ -84,6 +84,8 @@ export interface EnemyView {
   baseShield: number;
   pos: Pos | null;
   dead: boolean;
+  /** Starts on its first damaging step, so it attacks from round 1 (A1). */
+  fast: boolean;
   intent: { icon: Intent['act']; n: number; tiles: Pos[] } | null;
 }
 
@@ -202,6 +204,7 @@ export function viewOf(state: BattleState): BattleView {
     baseShield: e.baseShield,
     pos: e.pos,
     dead: e.pos === null,
+    fast: ENEMIES[e.def].fast === true,
     intent: e.pos && e.intent ? { icon: e.intent.act, n: e.intent.n, tiles: e.intent.tiles } : null,
   }));
 

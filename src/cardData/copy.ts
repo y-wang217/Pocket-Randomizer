@@ -51,6 +51,8 @@ export const CARD_COPY = {
   baseShield: 'Base',
   slots: 'Slots',
   intentNone: 'Wait',
+  /** The Fast badge on an enemy's token and panel. */
+  fast: 'Fast',
   reasons: {
     noMp: 'Not enough MP',
     noSlot: 'No free slot',

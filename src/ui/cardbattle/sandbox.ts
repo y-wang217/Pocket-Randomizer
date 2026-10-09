@@ -24,6 +24,7 @@ import './sandbox.css';
 
 import { CARD_COPY } from '../../cardData/copy';
 import { ENCOUNTERS } from '../../cardData/encounters';
+import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
 import { createBattle, gradeTotal } from '../../core/cards/create';
@@ -98,6 +99,8 @@ interface OwnAttack {
   pos: Pos;
   act: AttackPreview['act'];
   n: number;
+  /** The unit that plays it: its owner colour. */
+  unit: UnitId;
   stop: boolean;
   /** From the card being chosen, not yet in the plan. */
   pending: boolean;
@@ -598,6 +601,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
           if (hits.length === 0) continue;
           const wash = el('span', 'cb-ov cb-attack');
           wash.dataset['act'] = act;
+          wash.dataset['owner'] = hits[0]!.unit;
           if (hits.some((a) => a.stop)) wash.dataset['stop'] = 'true';
           if (hits.every((a) => a.pending)) wash.dataset['pending'] = 'true';
           node.append(wash);
@@ -648,13 +652,13 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
    */
   function ownAttacks(view: BattleView): OwnAttack[] {
     const out: OwnAttack[] = [];
-    const push = (attack: AttackPreview | null, pendingOne: boolean): void => {
-      for (const tile of attack?.tiles ?? []) out.push({ pos: tile.pos, act: attack!.act, n: attack!.n, stop: tile.stop, pending: pendingOne });
+    const push = (attack: AttackPreview | null, unit: UnitId, pendingOne: boolean): void => {
+      for (const tile of attack?.tiles ?? []) out.push({ pos: tile.pos, act: attack!.act, n: attack!.n, unit, stop: tile.stop, pending: pendingOne });
     };
-    for (const preview of view.previews) push(preview.attack, false);
+    for (const preview of view.previews) push(preview.attack, preview.unit, false);
     if (pending) {
       const players = pending.stage === 'assign' ? (pending.units as UnitId[]) : pending.unit ? [pending.unit] : [];
-      for (const unit of players) push(previewPlay(state, { card: pending.card, unit }).attack, true);
+      for (const unit of players) push(previewPlay(state, { card: pending.card, unit }).attack, unit, true);
     }
     return out;
   }
@@ -691,22 +695,33 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     for (const attack of attacks) {
       const chip = el('span', 'cb-attack-chip');
       chip.dataset['act'] = attack.act;
+      chip.dataset['owner'] = attack.unit;
       chip.append(cardAsset(INTENT_ICON[attack.act]!, { width: 11, height: 11 }), el('span', '', String(attack.n)));
       chips.append(chip);
     }
     return chips;
   }
 
-  /** Each attack on a tile as its keyword's icon and number, in the tile's corner. */
+  /** Each attack on a tile as its keyword's icon and number and the enemy it is from, in the tile's corner. */
   function threatChips(tile: TileView): HTMLElement {
     const chips = el('span', 'cb-threat-chips');
     for (const threat of tile.threats) {
       const chip = el('span', 'cb-threat-chip');
       chip.dataset['act'] = threat.act;
-      chip.append(cardAsset(INTENT_ICON[threat.act]!, { width: 11, height: 11 }), el('span', '', String(threat.n)));
+      chip.append(
+        cardAsset(INTENT_ICON[threat.act]!, { width: 11, height: 11 }),
+        el('span', '', String(threat.n)),
+        el('span', 'cb-threat-from', enemyLabel(threat.enemy)),
+      );
       chips.append(chip);
     }
     return chips;
+  }
+
+  /** An enemy as its token names it: its name's initial and spawn number. */
+  function enemyLabel(id: string): string {
+    const enemy = state.enemies.find((e) => e.id === id);
+    return enemy ? `${ENEMIES[enemy.def].name[0]}${enemy.spawnIndex + 1}` : id;
   }
 
   function layer(id: CardAssetId, className: string): HTMLElement {
@@ -720,13 +735,15 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     const isUnit = occupant.kind === 'unit';
     const node = el('span', `cb-token cb-token--${occupant.kind}`);
     node.dataset['id'] = occupant.id;
+    if (isUnit) node.dataset['owner'] = occupant.id;
     const marker = isUnit ? UNIT_MARKER[occupant.id] : (ENEMY_MARKER[occupant.def] ?? 'marker-enemy-base');
     node.append(cardAsset(marker));
     let label = occupant.id;
     if (!isUnit) {
       const enemy = view.enemies.find((e) => e.id === occupant.id)!;
-      label = `${enemy.name[0]}${state.enemies.find((e) => e.id === occupant.id)!.spawnIndex + 1}`;
+      label = enemyLabel(occupant.id);
       node.append(el('span', 'cb-token-hp', String(enemy.hp)));
+      if (enemy.fast) node.append(el('span', 'cb-fast cb-token-fast', CARD_COPY.fast));
     } else {
       const unit = view.units.find((u) => u.id === occupant.id)!;
       node.append(el('span', 'cb-token-hp', String(unit.hp)));
@@ -763,7 +780,9 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         panel.dataset['id'] = enemy.id;
         if (enemy.dead) panel.dataset['dead'] = 'true';
         if (target) panel.dataset['target'] = 'true';
-        panel.append(el('div', 'cb-panel-name', `${enemy.name} ${index + 1}`));
+        const name = el('div', 'cb-panel-name', `${enemy.name} ${index + 1}`);
+        if (enemy.fast) name.append(el('span', 'cb-fast', CARD_COPY.fast));
+        panel.append(name);
         panel.append(statLine(CARD_COPY.hp, `${enemy.hp}/${enemy.maxHp}`), bar(enemy.hp, enemy.maxHp));
         panel.append(statLine(CARD_COPY.shield, `${enemy.shield} · ${CARD_COPY.baseShield} ${enemy.baseShield}`));
         if (enemy.intent) {
@@ -784,6 +803,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         const target = !!pending && pending.stage !== 'tile' && pending.units.includes(unit.id);
         const panel = el('div', 'cb-panel cb-panel--unit');
         panel.dataset['id'] = unit.id;
+        panel.dataset['owner'] = unit.id;
         panel.append(cardAsset('panel-frame', 'fill'));
         if (unit.fainted) panel.dataset['dead'] = 'true';
         if (target) panel.dataset['target'] = 'true';
@@ -856,6 +876,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         node.setAttribute('aria-label', [card.name, `${card.cost} ${CARD_COPY.cost}`, ...effectLines(card.effects)].join(', '));
         const face = faceOf(card.effects);
         node.append(cardAsset('card-frame-compact', 'fill'));
+        // The owner's colour as the frame, and its letter in the badge: colour is never the only signal.
+        node.append(el('span', 'cb-card-edge'));
         node.append(el('span', 'cb-card-cost', String(card.cost)));
         node.append(el('span', 'cb-card-n', face.n === null ? '' : String(face.n)));
         const field = el('span', 'cb-card-field');
@@ -864,9 +886,12 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         if (card.once) field.append(cornerIcon('icon-once', 'cb-card-mark cb-card-mark--once'));
         node.append(field);
         node.append(el('span', 'cb-card-name', card.name));
-        const badge = el('span', 'cb-card-badge');
-        badge.append(cardAsset('card-badge-corner', 'fill'), el('span', 'cb-card-owner', card.owner === 'neutral' ? 'N' : card.owner));
-        node.append(badge);
+        // A Neutral has a grey frame and no letter.
+        if (card.owner !== 'neutral') {
+          const badge = el('span', 'cb-card-badge');
+          badge.append(cardAsset('card-badge-corner', 'fill'), el('span', 'cb-card-owner', card.owner));
+          node.append(badge);
+        }
         const order = card.planned ? orderOf(card.iid) : undefined;
         if (order !== undefined) node.append(el('span', 'cb-order cb-card-order', String(order)));
         if (card.planned || pending?.card === card.iid) {
@@ -912,7 +937,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   function showInspect(card: HandCardView): void {
     const face = faceOf(card.effects);
     const full = el('div', 'cb-full');
-    full.append(cardAsset('card-frame-full', 'fill'));
+    full.dataset['owner'] = card.owner;
+    full.append(cardAsset('card-frame-full', 'fill'), el('span', 'cb-card-edge'));
     full.append(el('div', 'cb-full-cost', String(card.cost)), el('div', 'cb-full-n', face.n === null ? '' : String(face.n)));
     full.append(el('div', 'cb-full-name', card.name));
     const art = el('div', 'cb-full-art');
@@ -924,9 +950,11 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     if (card.once) body.append(el('div', 'cb-full-line', CARD_COPY.once));
     if (card.reason) body.append(el('div', 'cb-full-reason', CARD_COPY.reasons[card.reason]));
     full.append(body);
-    const badge = el('span', 'cb-full-badge');
-    badge.append(cardAsset('card-badge-corner', 'fill'), el('span', 'cb-card-owner', card.owner === 'neutral' ? 'N' : card.owner));
-    full.append(badge);
+    if (card.owner !== 'neutral') {
+      const badge = el('span', 'cb-full-badge');
+      badge.append(cardAsset('card-badge-corner', 'fill'), el('span', 'cb-card-owner', card.owner));
+      full.append(badge);
+    }
     inspect.replaceChildren(full);
     inspect.hidden = false;
   }
@@ -1011,10 +1039,13 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     const list = el('div', 'cb-scenarios');
     list.append(el('div', 'cb-scenarios-title', CARD_COPY.scenario));
     for (const encounter of Object.values(ENCOUNTERS)) {
-      const pick = button('cb-btn cb-scenario', `${encounter.name} · ${CARD_COPY.grade(gradeTotal(encounter))}`, () => {
+      const grade = CARD_COPY.grade(gradeTotal(encounter));
+      const pick = button('cb-btn cb-scenario', encounter.name, () => {
         encounterId = encounter.id;
         start(seed);
       });
+      pick.querySelector('.cb-btn-label')!.append(el('span', 'cb-scenario-grade', grade));
+      pick.setAttribute('aria-label', `${encounter.name}, ${grade}`);
       pick.title = encounter.blurb;
       if (encounter.id === encounterId) pick.dataset['on'] = 'true';
       list.append(pick);

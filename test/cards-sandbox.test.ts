@@ -189,22 +189,44 @@ describe('the sandbox screen', () => {
     const sandbox = openSandbox(document.body, { seed: 'SCEN1' });
     const root = sandbox.root;
     all(root, '.cb-actions .cb-btn').at(-1)!.click();
-    const names = all(root, '.cb-scenario').map((b) => b.textContent);
+    const names = all(root, '.cb-scenario').map((b) => b.getAttribute('aria-label'));
     // Each with its grade total, a seeded-spawn scenario's included.
     expect(names).toEqual([
-      'Skirmish · Grade 5',
-      'Front line · Grade 5',
-      'Staggered · Grade 5',
-      'Turret Alley · Grade 5',
-      'Wall and Gun · Grade 7',
-      'The Pack · Grade 6',
+      'Skirmish, Grade 5',
+      'Front line, Grade 5',
+      'Staggered, Grade 5',
+      'Turret Alley, Grade 5',
+      'Wall and Gun, Grade 7',
+      'The Pack, Grade 6',
     ]);
-    all(root, '.cb-scenario').find((b) => b.textContent === 'Staggered · Grade 5')!.click();
+    expect(all(root, '.cb-scenario-grade').map((g) => g.textContent)).toEqual(['Grade 5', 'Grade 5', 'Grade 5', 'Grade 5', 'Grade 7', 'Grade 6']);
+    all(root, '.cb-scenario').find((b) => b.getAttribute('aria-label') === 'Staggered, Grade 5')!.click();
     const enemyRows = all(root, '.cb-token--enemy').map((t) => t.closest<HTMLElement>('.cb-tile')!.dataset['col']).sort();
     expect(enemyRows).toEqual(['6', '7', '7']);
     all(root, '.cb-actions .cb-btn').at(-1)!.click();
-    all(root, '.cb-scenario').find((b) => b.textContent === 'The Pack · Grade 6')!.click();
+    all(root, '.cb-scenario').find((b) => b.getAttribute('aria-label') === 'The Pack, Grade 6')!.click();
     expect(all(root, '.cb-token--enemy').map((t) => t.getAttribute('aria-label'))).toEqual(['P4', 'H1', 'H2', 'H3']);
+    sandbox.close();
+  });
+
+  it('marks every card, panel and token with its owner, a Neutral with no letter, and a Fast enemy with its badge', () => {
+    const sandbox = openSandbox(document.body, { seed: 'COLOUR1', encounter: 'the-pack' });
+    const root = sandbox.root;
+    for (const card of all(root, '.cb-card')) {
+      const owner = card.dataset['owner'];
+      expect(['A', 'B', 'C', 'neutral']).toContain(owner);
+      expect(card.querySelector('.cb-card-edge')).not.toBeNull();
+      expect(card.querySelector('.cb-card-owner')?.textContent ?? null).toBe(owner === 'neutral' ? null : owner);
+    }
+    expect(all(root, '.cb-panel--unit').map((p) => p.dataset['owner'])).toEqual(['A', 'B', 'C']);
+    expect(all(root, '.cb-token--unit').map((t) => t.dataset['owner']).sort()).toEqual(['A', 'B', 'C']);
+    // Three Hounds are Fast, the Pikeman is not: on the token and on the panel.
+    expect(all(root, '.cb-token--enemy .cb-token-fast')).toHaveLength(3);
+    expect(all(root, '.cb-panel--enemy .cb-fast')).toHaveLength(3);
+    begin(root);
+    // Round 1: each telegraph chip names the enemy it is from.
+    const from = new Set(all(root, '.cb-threat-from').map((c) => c.textContent));
+    expect([...from].every((label) => /^[HP][1-4]$/.test(label!))).toBe(true);
     sandbox.close();
   });
 
