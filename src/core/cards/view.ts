@@ -9,8 +9,9 @@ import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
 import type { CardOwner, ClassId, EnemyDefId, Effect, Pos, Zone } from './defs';
 import { playBlock, playersOf } from './legal';
-import { cardDefOf, needsOf, project, slotsOf, type Needs, type Projection } from './plan';
-import type { BattleState, CardIid, EnemyId, EnemyState, Intent, PlayBlock, UnitId } from './state';
+import { cardDefOf, needsOf, project, slotsOf, type Needs } from './plan';
+import { enemyThreat, previewPlay, type PlayPreview } from './preview';
+import type { BattleState, CardIid, EnemyId, Intent, PlayBlock, UnitId } from './state';
 import { allTiles, samePos, zoneOf } from './zones';
 
 /**
@@ -107,6 +108,12 @@ export interface HandGroupView {
   cards: HandCardView[];
 }
 
+/** A planned play's own telegraph: the tiles its attack lights and the units it lands on. */
+export interface PlanPreview extends PlayPreview {
+  planIndex: number;
+  unit: UnitId;
+}
+
 export interface BattleView {
   round: number;
   phase: BattleState['phase'];
@@ -115,34 +122,16 @@ export interface BattleView {
   units: UnitView[];
   enemies: EnemyView[];
   hand: HandGroupView[];
+  /** One per planned play, in plan order. */
+  previews: PlanPreview[];
   piles: { draw: number; discard: number; spent: number; removed: number };
-}
-
-/**
- * The tiles an enemy's attack threatens, given where the plan leaves the
- * units. A Strike hits only the first unit in its lane (`enemies.ts`, phase
- * 5), so its threat runs from the enemy's side and stops on that unit; with
- * no unit in the lane it lights every tile and misses.
- */
-function threatsOf(state: BattleState, enemy: EnemyState, projection: Projection): { pos: Pos; stop: boolean }[] {
-  const intent = enemy.intent;
-  if (!enemy.pos || !intent) return [];
-  if (intent.act !== 'strike') return intent.tiles.map((pos) => ({ pos, stop: false }));
-  const standing = state.units.filter((u) => !u.fainted).map((u) => projection[u.id]);
-  const fromEnemy = [...intent.tiles].sort((a, b) => (a.col - b.col) * RULES.forward.enemy || a.lane - b.lane);
-  const out: { pos: Pos; stop: boolean }[] = [];
-  for (const pos of fromEnemy) {
-    const stop = standing.some((p) => samePos(p, pos));
-    out.push({ pos, stop });
-    if (stop) break;
-  }
-  return out;
 }
 
 export function viewOf(state: BattleState): BattleView {
   const projection = project(state);
   const live = state.phase === 'plan';
-  const threatened = state.enemies.map((enemy) => ({ enemy, tiles: threatsOf(state, enemy, projection) }));
+  const threatened = state.enemies.map((enemy) => ({ enemy, tiles: enemyThreat(state, enemy, projection) }));
+  const previews: PlanPreview[] = state.plan.map((play, planIndex) => ({ planIndex, unit: play.unit, ...previewPlay(state, play) }));
 
   const tiles: TileView[] = allTiles().map((pos) => {
     const unit = state.units.find((u) => samePos(u.pos, pos));
@@ -230,6 +219,7 @@ export function viewOf(state: BattleState): BattleView {
     units,
     enemies,
     hand,
+    previews,
     piles: {
       draw: state.piles.draw.length,
       discard: state.piles.discard.length,

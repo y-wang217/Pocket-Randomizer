@@ -24,6 +24,7 @@ import type { Effect, Pos } from '../../core/cards/defs';
 import type { BattleEvent } from '../../core/cards/events';
 import { choicesFor } from '../../core/cards/legal';
 import { newLog, type BattleLog } from '../../core/cards/log';
+import { interceptsFor, previewPlay, type AttackPreview, type Intercept } from '../../core/cards/preview';
 import type { Action, BattleState, CardIid, TargetId, UnitId } from '../../core/cards/state';
 import { step } from '../../core/cards/step';
 import { viewOf, type BattleView, type HandCardView, type TileThreat, type TileView } from '../../core/cards/view';
@@ -49,6 +50,8 @@ interface Pending {
   ally?: TargetId;
   units: TargetId[];
   tiles: Pos[];
+  /** For a Move: the destinations that step in front of a Strike aimed at an ally. */
+  intercepts?: Intercept[];
 }
 
 const ENCOUNTER = 'test';
@@ -61,10 +64,21 @@ const INTENT_ICON: Record<string, CardAssetId> = {
   strike: 'icon-strike',
   pierce: 'icon-pierce',
   slash: 'icon-slash',
+  blast: 'icon-blast',
   shield: 'icon-shield',
   none: 'icon-wait',
 };
 const THREAT_ORDER: readonly TileThreat['act'][] = ['pierce', 'slash', 'strike'];
+const THREAT_ORDER_ALL: readonly AttackPreview['act'][] = ['pierce', 'slash', 'blast', 'strike'];
+
+interface OwnAttack {
+  pos: Pos;
+  act: AttackPreview['act'];
+  n: number;
+  stop: boolean;
+  /** From the card being chosen, not yet in the plan. */
+  pending: boolean;
+}
 const ZONE_TILE: Record<TileView['zone'], CardAssetId> = {
   playerBackline: 'tile-player-backline',
   danger: 'tile-danger-zone',
@@ -298,8 +312,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         message = CARD_COPY.pickTarget;
         break;
       case 'tile':
-        pending = { card, unit, stage: 'tile', units: [], tiles: choices.tiles };
-        message = CARD_COPY.pickTile;
+        pending = { card, unit, stage: 'tile', units: [], tiles: choices.tiles, intercepts: intercepts(view, unit, choices.tiles) };
+        message = pending.intercepts!.length > 0 ? CARD_COPY.pickTileBlock : CARD_COPY.pickTile;
         break;
       case 'unitThenTile':
         pending = { card, unit, stage: 'unit', units: choices.units, tiles: [] };
@@ -318,8 +332,9 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     if (pending.stage === 'unit') {
       const view = findCard(pending.card);
       if (view?.needs === 'unitThenTile') {
-        pending = { ...pending, stage: 'tile', ally: id, units: [], tiles: choicesFor(state, pending.card, pending.unit!, id).tiles };
-        message = CARD_COPY.pickTile;
+        const tiles = choicesFor(state, pending.card, pending.unit!, id).tiles;
+        pending = { ...pending, stage: 'tile', ally: id, units: [], tiles, intercepts: intercepts(view, pending.unit!, tiles, id) };
+        message = pending.intercepts!.length > 0 ? CARD_COPY.pickTileBlock : CARD_COPY.pickTile;
         render();
       } else act({ type: 'select', card: pending.card, unit: pending.unit!, choice: { unit: id } });
       return true;
@@ -339,6 +354,12 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       message = '';
       render();
     }
+  }
+
+  /** Only a Move can step in front of a Strike; any other tile choice has none. */
+  function intercepts(card: HandCardView, unit: UnitId, tiles: Pos[], ally?: TargetId): Intercept[] {
+    const moves = card.effects.some((e) => e.k === 'move' || e.k === 'grantMove');
+    return moves ? interceptsFor(state, card.iid, unit, tiles, ally) : [];
   }
 
   function findCard(iid: CardIid): HandCardView | undefined {
@@ -435,6 +456,9 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
 
   function renderBoard(view: BattleView): void {
     const choosing = pending?.stage === 'tile';
+    const own = ownAttacks(view);
+    // Every planned card's target holds a reticle, as a target being picked does.
+    const held = new Set(view.previews.flatMap((p) => p.targets));
     const nodes: HTMLElement[] = [];
     // Enemy backline at the top: column 6 first. Lanes left to right.
     for (let col = 6; col >= 1; col--) {
@@ -448,6 +472,16 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         const selectable = choosing && pending!.tiles.some((t) => samePos(t, tile.pos));
         const acts = threatActs(tile);
         for (const act of acts) node.append(threatLayer(tile, act));
+        const mine = own.filter((a) => samePos(a.pos, tile.pos));
+        for (const act of THREAT_ORDER_ALL) {
+          const hits = mine.filter((a) => a.act === act);
+          if (hits.length === 0) continue;
+          const wash = el('span', 'cb-ov cb-attack');
+          wash.dataset['act'] = act;
+          if (hits.some((a) => a.stop)) wash.dataset['stop'] = 'true';
+          if (hits.every((a) => a.pending)) wash.dataset['pending'] = 'true';
+          node.append(wash);
+        }
         if (selectable) node.append(layer('tile-overlay-selectable', 'cb-ov cb-ov--selectable'));
         else if (choosing) node.append(layer('tile-overlay-unavailable', 'cb-ov cb-ov--unavailable'));
         if (tile.planGhost) {
@@ -456,8 +490,11 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
           ghost.prepend(cardAsset('marker-ring-destination', { width: 48, height: 48 }));
           node.append(ghost);
         }
-        if (tile.occupant) node.append(token(view, tile));
+        const block = pending?.intercepts?.find((i) => samePos(i.pos, tile.pos));
+        if (selectable && block) node.append(interceptMark());
+        if (tile.occupant) node.append(token(view, tile, held));
         if (acts.length > 0) node.append(threatChips(tile));
+        if (mine.length > 0) node.append(attackChips(mine));
         node.addEventListener('click', () => tapTile(tile));
         nodes.push(node);
       }
@@ -482,6 +519,43 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     return node;
   }
 
+  /**
+   * The player's own telegraph: every planned attack, and the card being
+   * chosen. While the player picks who plays an attack, each candidate's
+   * footprint shows at once.
+   */
+  function ownAttacks(view: BattleView): OwnAttack[] {
+    const out: OwnAttack[] = [];
+    const push = (attack: AttackPreview | null, pendingOne: boolean): void => {
+      for (const tile of attack?.tiles ?? []) out.push({ pos: tile.pos, act: attack!.act, n: attack!.n, stop: tile.stop, pending: pendingOne });
+    };
+    for (const preview of view.previews) push(preview.attack, false);
+    if (pending) {
+      const players = pending.stage === 'assign' ? (pending.units as UnitId[]) : pending.unit ? [pending.unit] : [];
+      for (const unit of players) push(previewPlay(state, { card: pending.card, unit }).attack, true);
+    }
+    return out;
+  }
+
+  /** A Move destination that steps in front of a Strike: a shield, in the player's colour. */
+  function interceptMark(): HTMLElement {
+    const mark = el('span', 'cb-intercept');
+    mark.append(cardAsset('icon-shield', { width: 26, height: 26 }));
+    return mark;
+  }
+
+  /** The player's attacks on a tile, as chips in the tile's lower corner. */
+  function attackChips(attacks: OwnAttack[]): HTMLElement {
+    const chips = el('span', 'cb-attack-chips');
+    for (const attack of attacks) {
+      const chip = el('span', 'cb-attack-chip');
+      chip.dataset['act'] = attack.act;
+      chip.append(cardAsset(INTENT_ICON[attack.act]!, { width: 11, height: 11 }), el('span', '', String(attack.n)));
+      chips.append(chip);
+    }
+    return chips;
+  }
+
   /** Each attack on a tile as its keyword's icon and number, in the tile's corner. */
   function threatChips(tile: TileView): HTMLElement {
     const chips = el('span', 'cb-threat-chips');
@@ -500,7 +574,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     return wrap;
   }
 
-  function token(view: BattleView, tile: TileView): HTMLElement {
+  function token(view: BattleView, tile: TileView, held: ReadonlySet<TargetId>): HTMLElement {
     const occupant = tile.occupant!;
     const isUnit = occupant.kind === 'unit';
     const node = el('span', `cb-token cb-token--${occupant.kind}`);
@@ -518,7 +592,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     node.append(el('span', 'cb-token-label', label));
     node.setAttribute('aria-label', label);
     if (pending?.unit === occupant.id || pending?.ally === occupant.id) node.append(ring('marker-ring-selected'));
-    if (pending && pending.stage !== 'tile' && pending.units.includes(occupant.id)) node.append(ring('marker-reticle'));
+    const picking = !!pending && pending.stage !== 'tile' && pending.units.includes(occupant.id);
+    if (picking || held.has(occupant.id)) node.append(ring('marker-reticle'));
     if (hits.has(occupant.id)) node.dataset['hit'] = 'true';
     return node;
   }
