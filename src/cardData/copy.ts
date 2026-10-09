@@ -42,6 +42,10 @@ export const CARD_COPY = {
   pickTileAllies: 'Pick a tile · a marked tile hits an ally too',
   pickTargetAllies: 'Pick a target · a marked one hits an ally too',
   inspectHint: 'Tap a card to inspect it',
+  /** The unit filter (A6): tap a unit to see only what it can play. */
+  filterShowing: (unit: string) => `Showing ${unit}`,
+  filterShowAll: 'Show all',
+  filterOther: (n: number) => `+${n} other`,
   once: 'Once',
   neutral: 'Neutral',
   cost: 'MP',

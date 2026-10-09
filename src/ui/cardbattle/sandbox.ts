@@ -206,6 +206,12 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   let encounterId = options.encounter && Object.hasOwn(ENCOUNTERS, options.encounter) ? options.encounter : DEFAULT_ENCOUNTER;
   /** Deployment: the unit picked to place, before its tile is. */
   let placing: UnitId | null = null;
+  /**
+   * The unit filter (A6, provisional): the hand shows only what this unit can
+   * play now, the rest folded into one chip. Presentation only: it never
+   * reaches the engine or the log.
+   */
+  let filter: UnitId | null = null;
   let state!: BattleState;
   let log!: BattleLog;
   let pending: Pending | null = null;
@@ -281,6 +287,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     log = newLog(seed, encounterId, state.deckId);
     pending = null;
     placing = null;
+    filter = null;
     inspectMode = false;
     message = '';
     rounds = [];
@@ -302,6 +309,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     pending = null;
     placing = null;
     message = '';
+    // End Turn clears the filter, and so does the filtered unit fainting.
+    if (action.type === 'commit' || (filter && state.units.find((u) => u.id === filter)?.fainted)) filter = null;
     if (action.type === 'commit') {
       const record = { round: before.round, before, steps: roundSteps(before, result.events, state) };
       rounds.push(record);
@@ -341,6 +350,11 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       message = card.reason ? CARD_COPY.reasons[card.reason] : '';
       pending = null;
       render();
+      return;
+    }
+    // The filter already names who plays it.
+    if (filter && card.players.includes(filter)) {
+      begin(card.iid, filter);
       return;
     }
     // A Neutral always asks who plays it, even when only one unit can: placing
@@ -399,6 +413,15 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       if (!state.units.some((u) => u.id === id)) return false;
       placing = placing === id ? null : (id as UnitId);
       message = placing ? CARD_COPY.placeUnit(placing) : '';
+      render();
+      return true;
+    }
+    // With nothing being chosen, a unit's panel or token filters the hand to it; again, it clears.
+    if (!pending && state.phase === 'plan' && !inspectMode) {
+      const unit = state.units.find((u) => u.id === id && !u.fainted);
+      if (!unit) return false;
+      filter = filter === unit.id ? null : unit.id;
+      message = '';
       render();
       return true;
     }
@@ -810,6 +833,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         if (pending?.unit === unit.id || placing === unit.id) panel.dataset['assigning'] = 'true';
         if (pending?.blocked?.some((b) => b.unit === unit.id)) panel.dataset['blocked'] = 'true';
         if (warned.has(unit.id)) panel.dataset['warn'] = 'true';
+        if (filter === unit.id) panel.dataset['filter'] = 'true';
         panel.append(el('div', 'cb-panel-name', `${unit.id} ${unit.name}`));
         panel.append(statLine(CARD_COPY.hp, `${unit.hp}/${unit.maxHp} · ${CARD_COPY.shieldShort} ${unit.shield}+${unit.baseShield}`), bar(unit.hp, unit.maxHp));
         const mp = el('div', 'cb-mp');
@@ -864,10 +888,44 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     return line;
   }
 
+  /** What the unit filter keeps: the cards it has planned, and its own and Neutral cards it can play now. */
+  function inFilter(card: HandCardView, unit: UnitId): boolean {
+    if (card.planned) return state.plan.find((p) => p.card === card.iid)?.unit === unit;
+    return (card.owner === unit || card.owner === 'neutral') && card.players.includes(unit);
+  }
+
+  /** The filter's two chips: what it shows, which clears it, and the fold of the rest. */
+  function filterChips(unit: UnitId, others: number): HTMLElement {
+    const column = el('div', 'cb-filter');
+    column.dataset['owner'] = unit;
+    const clear = (): void => {
+      filter = null;
+      render();
+    };
+    const showing = el('button', 'cb-filter-chip cb-filter-showing');
+    showing.type = 'button';
+    showing.append(el('span', '', CARD_COPY.filterShowing(unit)), el('span', '', ` · ${CARD_COPY.filterShowAll}`));
+    showing.addEventListener('click', clear);
+    column.append(showing);
+    if (others > 0) {
+      const rest = el('button', 'cb-filter-chip cb-filter-other', CARD_COPY.filterOther(others));
+      rest.type = 'button';
+      rest.addEventListener('click', clear);
+      column.append(rest);
+    }
+    return column;
+  }
+
   function renderHand(view: BattleView): void {
-    const cards = view.hand.flatMap((group) => group.cards);
-    hand.dataset['count'] = String(cards.length);
+    const all = view.hand.flatMap((group) => group.cards);
+    const active = filter !== null && view.phase === 'plan' && !playback ? filter : null;
+    const cards = active ? all.filter((card) => inFilter(card, active)) : all;
+    // The chip column takes a card's place in the count, so the cards shrink to fit beside it.
+    hand.dataset['count'] = String(cards.length + (active ? 1 : 0));
+    if (active) hand.dataset['filter'] = active;
+    else delete hand.dataset['filter'];
     hand.replaceChildren(
+      ...(active ? [filterChips(active, all.length - cards.length)] : []),
       ...cards.map((card) => {
         const node = el('button', 'cb-card');
         node.type = 'button';

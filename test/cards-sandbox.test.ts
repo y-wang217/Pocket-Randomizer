@@ -8,6 +8,7 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 
+import { createBattle } from '../src/core/cards/create';
 import { replay, type BattleLog } from '../src/core/cards/log';
 import { openSandbox } from '../src/ui/cardbattle/sandbox';
 
@@ -227,6 +228,51 @@ describe('the sandbox screen', () => {
     // Round 1: each telegraph chip names the enemy it is from.
     const from = new Set(all(root, '.cb-threat-from').map((c) => c.textContent));
     expect([...from].every((label) => /^[HP][1-4]$/.test(label!))).toBe(true);
+    sandbox.close();
+  });
+
+  it('a tapped unit filters the hand to what it can play, skips who-plays-it, and clears three ways', () => {
+    // A seed whose round 1 hand holds the Neutral Move, which B can play.
+    const seed = Array.from({ length: 200 }, (_, i) => `FILTER${i}`).find((candidate) => {
+      const created = createBattle('test', candidate);
+      return created.ok && created.state.piles.hand.some((iid) => created.state.cards[iid]!.def === 'move');
+    })!;
+    const sandbox = openSandbox(document.body, { seed, encounter: 'test' });
+    const root = sandbox.root;
+    begin(root);
+    const panel = (id: string) => all(root, '.cb-panel--unit').find((p) => p.dataset['id'] === id)!;
+    const hand = () => all(root, '.cb-card').map((c) => c.dataset['card']);
+    const full = hand();
+
+    panel('B').click();
+    expect(panel('B').dataset['filter']).toBe('true');
+    expect(root.querySelector('.cb-filter-showing')!.textContent).toBe('Showing B · Show all');
+    const shown = all(root, '.cb-card');
+    expect(shown.length).toBeGreaterThan(0);
+    for (const card of shown) expect(['B', 'neutral']).toContain(card.dataset['owner']);
+    expect(shown.some((c) => c.dataset['card'] === 'move')).toBe(true);
+    const other = root.querySelector('.cb-filter-other');
+    expect(other?.textContent ?? '+0 other').toBe(`+${full.length - shown.length} other`);
+
+    // The filter names who plays the Neutral: no "Pick who plays it".
+    all(root, '.cb-card[data-card="move"]')[0]!.click();
+    expect(root.querySelector('.cb-note')!.textContent).not.toBe('Pick who plays it');
+    all(root, '.cb-tile').find((t) => t.querySelector('.cb-ov--selectable'))!.click();
+    expect(panel('B').querySelectorAll('.cb-slot--filled')).toHaveLength(1);
+    expect(root.querySelector('.cb-filter-showing')).not.toBeNull();
+
+    // Show all clears it; the same unit again clears it; End Turn clears it.
+    (root.querySelector('.cb-filter-showing') as HTMLElement).click();
+    expect(root.querySelector('.cb-filter')).toBeNull();
+    expect(hand()).toEqual(full);
+    panel('A').click();
+    expect(root.querySelector('.cb-filter-showing')!.textContent).toBe('Showing A · Show all');
+    panel('A').click();
+    expect(root.querySelector('.cb-filter')).toBeNull();
+    panel('C').click();
+    (all(root, '.cb-btn--primary')[0] as HTMLButtonElement).click();
+    skip(root);
+    expect(root.querySelector('.cb-filter')).toBeNull();
     sandbox.close();
   });
 
