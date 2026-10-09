@@ -16331,3 +16331,40 @@ the keyword.
   is hatched in the deeper red with a dotted edge. The panel shows *Pinned
   N*. Enemies are numbered within their wave, token and panel alike. New
   placeholders: the Colossus marker and the shovel, harpoon and scream icons.
+
+### 125q. Part E, the reskin on the meadow pack
+
+**2026-10-09**, on `claude/vibrant-hopper-axlk79`, after Parts C and D as ruled
+(E5), from the art the author had made from the session's prompt
+(`meadow-card-battler-assets`, 22 sheets and 96 sprites with an atlas),
+styled on the author's reference
+([`spec/assets/card-battle-reskin-reference.webp`](spec/assets/card-battle-reskin-reference.webp)).
+Presentation only: no engine, log or version change.
+
+- **The files.** 89 of the pack's sprites, converted to WebP (468 KB in all;
+  the 1170 by 2532 background down to 780 wide, 59 KB) and named by the
+  existing asset IDs under `src/ui/assets/cardbattle/{group}/`. A `.webp`
+  wins over the first pack's `.svg` of the same ID, so anything the meadow
+  pack does not draw (the card badge, the shovel) keeps its old file. New IDs:
+  the owner band masks, the green primary button, the background, five
+  icons, the pinned Colossus, three portraits, and an `art` group of the 16
+  card illustrations. The pack's nine-slice insets are in `MEADOW_SLICES`,
+  with the width each is drawn at.
+- **The layout** (the ruling's *enemy roster strip on top, unit panels below
+  the board*): the meadow behind; the status line on a cream plate (E4: no
+  header); the wave's enemies side by side; the board across the screen, three
+  lanes of about 120px and seven rows of **52px** (E2: shrunk from 64 and
+  checked readable at 390x844: tokens, chips and the 2x2 Colossus all read);
+  the three unit panels in a row, the Sword dasher's wider for its three 44px
+  slots, each with its portrait; the hand; the actions, End Turn in green.
+  The board is 388px tall and the screen fits 390x844 with no scroll.
+- **Cards** (E3, *"the colours can show better if the cards have a border"*):
+  the illustration behind the frame's open art window, the pack's owner band
+  tinted in the owner's colour (teal, blue, purple, Neutral grey, an enemy's
+  grant black), the keyword's icon in the art window's corner (the art is
+  flavour, the icon the rule), cost and power in the frame's discs, the name in
+  its strip, the owner letter in its badge. Inspect shows the full frame and
+  puts the card's words on a plate under it.
+- **Kept**, as Part E requires: enemy shields (now one line, *HP 3/3 · Sh
+  0+1*, as a unit's), MP numbers, telegraph chips naming their enemy, owner
+  letters. The Colossus shows its pinned art while pinned.

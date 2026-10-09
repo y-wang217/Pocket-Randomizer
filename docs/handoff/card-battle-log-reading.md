@@ -811,9 +811,11 @@ Then **waves**, **Siege** and **the Colossus** with its **Harpoon**
 (sections 3 and 4). The guard bot wins Siege 196 times in 200 (seeds
 SG0..SG199) and loses most HP in wave 3; a random bot never has.
 
-Still coming, in this order:
+Then **the reskin**: the meadow look, the enemies across the top, the board
+across the screen, the unit panels under it. The board diagram in section 2
+is still how the board reads: enemy rows at the top, lane 1 on the left.
 
-- **A reskin** of the board, waiting on its art.
+Still coming, in this order:
 - **Card rewards** and a **mini campaign**, each waiting on a design session.
 
 A rules change moves the engine version, and older logs stop replaying, by

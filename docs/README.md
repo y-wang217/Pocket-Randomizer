@@ -188,8 +188,9 @@ for review. Then, after merging `main` (#106, the guard bot) and the author's
 rulings ([`spec/gymrun-card-battle-rulings-waves-boss-reskin.md`](spec/gymrun-card-battle-rulings-waves-boss-reskin.md)):
 **waves** and **Siege**, three waves ending in **the Colossus**, a 2x2 boss
 that stalks once at half HP, and **the Harpoon** it grants, which pins it
-(record [`generation.md`](generation.md) section 125p). The reskin (Part E)
-waits on its art. `CARD_ENGINE_VERSION` moves to `cards-0.4.0`; none of the
+(record [`generation.md`](generation.md) section 125p), and **the reskin** on
+the meadow art pack: roster on top, a full-width board, unit panels below,
+illustrated cards with owner bands (section 125q). `CARD_ENGINE_VERSION` moves to `cards-0.4.0`; none of the
 run's four axes moves, `contentHash` holds at `865d3b`.
 
 **Also in flight: Defender Mode v0, a fun test.** Branch

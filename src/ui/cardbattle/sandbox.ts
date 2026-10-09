@@ -40,7 +40,7 @@ import { step } from '../../core/cards/step';
 import { enemyNumber, viewOf, type BattleView, type HandCardView, type TileThreat, type TileView } from '../../core/cards/view';
 import { samePos } from '../../core/cards/zones';
 import { newSeed } from '../seed';
-import { cardAsset, type CardAssetId } from './assets';
+import { CARD_ASSET_GROUPS, cardAsset, cardAssetUrl, type CardAssetId } from './assets';
 import { roundSteps, type RoundRecord, type Step } from './playback';
 
 export interface Sandbox {
@@ -78,6 +78,7 @@ const LONG_PRESS_MS = 450;
 const STEP_MS: Record<Step['kind'], number> = { card: 900, enemy: 900, move: 600, next: 900, round: 700, end: 900 };
 
 const UNIT_MARKER: Record<UnitId, CardAssetId> = { A: 'marker-unit-commander', B: 'marker-unit-gunner', C: 'marker-unit-dasher' };
+const UNIT_PORTRAIT: Record<UnitId, CardAssetId> = { A: 'portrait-commander', B: 'portrait-gunner', C: 'portrait-dasher' };
 const ENEMY_MARKER: Record<EnemyDefId, CardAssetId> = {
   drone: 'marker-enemy-drone',
   lancer: 'marker-enemy-lancer',
@@ -126,9 +127,10 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, t
 function button(className: string, label: string, onTap: () => void): HTMLButtonElement {
   const node = el('button', className);
   node.type = 'button';
-  // The pack's three button states; the stylesheet shows the one that applies.
+  // The pack's three button states; the stylesheet shows the one that applies. The primary button is green.
+  const primary = className.includes('cb-btn--primary');
   for (const state of ['button-default', 'button-pressed', 'button-unavailable'] as const) {
-    const layer = cardAsset(state, 'fill');
+    const layer = cardAsset(primary ? (state.replace('button-', 'button-primary-') as CardAssetId) : state, 'fill');
     layer.dataset['state'] = state;
     node.append(layer);
   }
@@ -253,7 +255,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   // The beats never take a tap: any tap anywhere skips them and still lands.
   const banner = el('div', 'cb-banner');
   banner.setAttribute('aria-live', 'polite');
-  mid.append(unitSide, board, enemySide, banner);
+  // Part E: the enemy roster on top, the board across the screen, the units below it.
+  mid.append(board, banner);
   const hand = el('div', 'cb-hand');
   const actions = el('footer', 'cb-actions');
   const sheet = el('div', 'cb-sheet');
@@ -261,7 +264,10 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   const inspect = el('div', 'cb-inspect');
   inspect.hidden = true;
   inspect.addEventListener('click', () => (inspect.hidden = true));
-  frame.append(top, mid, hand, actions);
+  frame.append(top, enemySide, mid, unitSide, hand, actions);
+  // The meadow behind everything (the reskin's background), when its file is in.
+  const meadow = cardAssetUrl('background-meadow');
+  if (meadow) root.style.setProperty('--cb-meadow', `url("${meadow}")`);
   root.append(sheet, inspect);
 
   const previousOverflow = document.documentElement.style.overflow;
@@ -643,7 +649,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         node.type = 'button';
         node.dataset['lane'] = String(lane);
         node.dataset['col'] = String(col);
-        node.append(cardAsset(ZONE_TILE[tile.zone]));
+        node.append(cardAsset(ZONE_TILE[tile.zone], 'fill'));
         const selectable = choosing && (pending?.tiles ?? placeTiles).some((t) => samePos(t, tile.pos));
         const acts = threatActs(tile);
         for (const act of acts) node.append(threatLayer(tile, act));
@@ -792,7 +798,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     const node = el('span', `cb-token cb-token--${occupant.kind}`);
     node.dataset['id'] = occupant.id;
     if (isUnit) node.dataset['owner'] = occupant.id;
-    const marker = isUnit ? UNIT_MARKER[occupant.id] : (ENEMY_MARKER[occupant.def] ?? 'marker-enemy-base');
+    const pinnedBoss = !isUnit && (view.enemies.find((e) => e.id === occupant.id)?.pinned ?? 0) > 0 && occupant.def === 'colossus';
+    const marker = isUnit ? UNIT_MARKER[occupant.id] : pinnedBoss ? 'marker-enemy-colossus-pinned' : (ENEMY_MARKER[occupant.def] ?? 'marker-enemy-base');
     // A big enemy's marker stretches over its footprint.
     const big = occupant.kind === 'enemy' && !!ENEMIES[occupant.def].size;
     node.append(cardAsset(marker, big ? 'fill' : undefined));
@@ -842,8 +849,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         const name = el('div', 'cb-panel-name', `${enemy.name} ${index + 1}`);
         if (enemy.fast) name.append(el('span', 'cb-fast', CARD_COPY.fast));
         panel.append(name);
-        panel.append(statLine(CARD_COPY.hp, `${enemy.hp}/${enemy.maxHp}`), bar(enemy.hp, enemy.maxHp));
-        panel.append(statLine(CARD_COPY.shield, `${enemy.shield} · ${CARD_COPY.baseShield} ${enemy.baseShield}`));
+        // One line, as a unit's: HP, then card shield plus base shield.
+        panel.append(statLine(CARD_COPY.hp, `${enemy.hp}/${enemy.maxHp} · ${CARD_COPY.shieldShort} ${enemy.shield}+${enemy.baseShield}`), bar(enemy.hp, enemy.maxHp));
         // Part D: the pin's turns left, and the HP its one stalk comes at.
         if (enemy.pinned > 0) panel.append(el('div', 'cb-boss-line cb-boss-line--pinned', CARD_COPY.pinned(enemy.pinned)));
         else if (enemy.stalkAt !== null) panel.append(el('div', 'cb-boss-line', CARD_COPY.stalkAt(enemy.stalkAt)));
@@ -876,7 +883,9 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         if (pending?.blocked?.some((b) => b.unit === unit.id)) panel.dataset['blocked'] = 'true';
         if (warned.has(unit.id)) panel.dataset['warn'] = 'true';
         if (filter === unit.id) panel.dataset['filter'] = 'true';
-        panel.append(el('div', 'cb-panel-name', `${unit.id} ${unit.name}`));
+        const portrait = el('span', 'cb-panel-portrait');
+        portrait.append(cardAsset(UNIT_PORTRAIT[unit.id], 'fill'));
+        panel.append(portrait, el('div', 'cb-panel-name', `${unit.id} ${unit.name}`));
         panel.append(statLine(CARD_COPY.hp, `${unit.hp}/${unit.maxHp} · ${CARD_COPY.shieldShort} ${unit.shield}+${unit.baseShield}`), bar(unit.hp, unit.maxHp));
         const mp = el('div', 'cb-mp');
         mp.append(el('span', 'cb-mp-text', `${CARD_COPY.cost} ${unit.mp - unit.reserved}/${unit.mp}`));
@@ -976,9 +985,11 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         node.dataset['card'] = card.def;
         node.setAttribute('aria-label', [card.name, `${card.cost} ${CARD_COPY.cost}`, ...effectLines(card.effects)].join(', '));
         const face = faceOf(card.effects, CARDS[card.def]?.face);
+        // The card's illustration sits behind the frame's open art window.
+        node.append(cardArt(card.def));
         node.append(cardAsset('card-frame-compact', 'fill'));
-        // The owner's colour as the frame, and its letter in the badge: colour is never the only signal.
-        node.append(el('span', 'cb-card-edge'));
+        // The owner's colour as the frame's band, and its letter in the badge: colour is never the only signal.
+        node.append(ownerBand('card-band-compact'));
         node.append(el('span', 'cb-card-cost', String(card.cost)));
         node.append(el('span', 'cb-card-n', face.n === null ? '' : String(face.n)));
         const field = el('span', 'cb-card-field');
@@ -1044,7 +1055,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     const face = faceOf(card.effects, CARDS[card.def]?.face);
     const full = el('div', 'cb-full');
     full.dataset['owner'] = card.granted ? 'enemy' : card.owner;
-    full.append(cardAsset('card-frame-full', 'fill'), el('span', 'cb-card-edge'));
+    full.append(cardArt(card.def, 'cb-full-picture'), cardAsset('card-frame-full', 'fill'), ownerBand('card-band-full'));
     full.append(el('div', 'cb-full-cost', String(card.cost)), el('div', 'cb-full-n', face.n === null ? '' : String(face.n)));
     full.append(el('div', 'cb-full-name', card.name));
     const art = el('div', 'cb-full-art');
@@ -1058,14 +1069,35 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     const allies = blastAlliesLine(card.effects);
     if (allies) body.append(el('div', 'cb-full-rule', allies));
     if (card.reason) body.append(el('div', 'cb-full-reason', CARD_COPY.reasons[card.reason]));
-    full.append(body);
     if (card.owner !== 'neutral' && !card.granted) {
       const badge = el('span', 'cb-full-badge');
       badge.append(cardAsset('card-badge-corner', 'fill'), el('span', 'cb-card-owner', card.owner));
       full.append(badge);
     }
-    inspect.replaceChildren(full);
+    // The frame has no room for text beyond its name: the card's words sit under it.
+    const sheetOf = el('div', 'cb-full-wrap');
+    sheetOf.append(full, body);
+    inspect.replaceChildren(sheetOf);
     inspect.hidden = false;
+  }
+
+  /** A card's illustration, or nothing for a card the pack has none for. */
+  function cardArt(def: string, className = 'cb-card-picture'): HTMLElement {
+    const wrap = el('span', className);
+    const id = `art-${def}` as CardAssetId;
+    if ((CARD_ASSET_GROUPS.art.ids as readonly string[]).includes(id)) wrap.append(cardAsset(id, 'fill'));
+    return wrap;
+  }
+
+  /** The owner band: the pack's white mask, tinted in the owner's colour by the stylesheet. */
+  function ownerBand(id: 'card-band-compact' | 'card-band-full'): HTMLElement {
+    const band = el('span', 'cb-card-edge');
+    const url = cardAssetUrl(id);
+    if (url) {
+      band.dataset['mask'] = 'true';
+      band.style.setProperty('--cb-band', `url("${url}")`);
+    }
+    return band;
   }
 
   /** A Blast's friendly fire, as the rule table has it (R14). */

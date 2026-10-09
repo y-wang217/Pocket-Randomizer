@@ -1487,3 +1487,245 @@
 .cb-tile[data-big='true'] {
   z-index: 2;
 }
+
+/* ===================================================================
+   Part E, the reskin (`docs/spec/gymrun-card-battle-rulings-waves-boss-reskin.md`,
+   the meadow pack `meadow-card-battler-assets`). The author's reference
+   (`docs/spec/assets/card-battle-reskin-reference.webp`): the meadow behind
+   everything, the enemy roster across the top, the board across the screen
+   with shorter rows (E2), the unit panels under it, the hand and the actions
+   last. Every fact the old layout carried stays: enemy shields, MP numbers,
+   telegraph chips naming their enemy, owner letters on the cards.
+   =================================================================== */
+.cb {
+  background: #9ad06b var(--cb-meadow, none) center top / cover no-repeat;
+}
+.cb-frame {
+  box-sizing: border-box;
+  padding: 0 6px;
+  gap: 5px;
+}
+/* The status line on a cream plate, so its text reads on the meadow. */
+.cb-top {
+  border-radius: 12px;
+  background: rgba(255, 252, 245, 0.94);
+  box-shadow: inset 0 0 0 2px var(--cb-ink);
+}
+
+/* The roster: one panel per enemy of the wave, side by side. */
+.cb-enemies {
+  height: auto;
+  min-height: 62px;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-rows: auto;
+  gap: 4px;
+}
+.cb-panel--enemy {
+  padding: 4px 6px 5px;
+  gap: 2px;
+}
+.cb-panel--enemy .cb-pill {
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+.cb-panel--enemy .cb-panel-name {
+  font-size: 10.5px;
+}
+
+/* The board: three lanes across, seven rows of 52px (E2: shorter tiles). */
+.cb-mid {
+  height: auto;
+  display: block;
+}
+.cb-board {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(7, 52px);
+  gap: 4px;
+}
+.cb-tile {
+  width: auto;
+  height: 52px;
+}
+/* The pack's grass, cropped to the wide tile, with the outline drawn here. */
+.cb-tile > .cb-asset--art {
+  background-size: cover;
+  background-position: center;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 2.5px var(--cb-ink);
+}
+.cb-tile > .cb-ov,
+.cb-threat,
+.cb-attack {
+  border-radius: 10px;
+}
+.cb-token,
+.cb-ghost {
+  left: calc(50% - 24px);
+  top: 3px;
+}
+.cb-token[data-size='2x2'] {
+  left: 4px;
+  top: auto;
+  bottom: 4px;
+  width: calc(200% - 4px);
+  height: calc(200% - 4px);
+}
+.cb-token[data-size='2x2'] > .cb-asset--art {
+  background-size: contain;
+  background-position: center;
+}
+.cb-banner {
+  left: 50%;
+  width: 240px;
+  transform: translateX(-50%);
+}
+
+/* The units: one panel each, the Sword dasher's wider for its three slots. */
+.cb-units {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.32fr;
+  gap: 4px;
+}
+.cb-panel--unit {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  grid-auto-rows: auto;
+  column-gap: 4px;
+  row-gap: 2px;
+  padding: 6px 5px 5px 8px;
+}
+.cb-panel--unit > :not(.cb-asset):not(.cb-panel-portrait) {
+  grid-column: 1 / -1;
+}
+.cb-panel--unit > .cb-panel-name {
+  grid-column: 2;
+  align-self: center;
+}
+.cb-panel-portrait {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px var(--cb-own);
+}
+.cb-slots {
+  display: flex;
+  gap: 2px;
+}
+
+/* Cards: the illustration behind the frame's art window, the owner band
+   tinted over the frame's grey (E3), text in the frame's own regions. */
+.cb-card-picture,
+.cb-full-picture {
+  position: absolute;
+  left: 8.33%;
+  top: 23.76%;
+  width: 83.33%;
+  height: 49.5%;
+}
+.cb-card-picture > .cb-asset--art,
+.cb-full-picture > .cb-asset--art {
+  background-size: contain;
+}
+.cb-card-edge[data-mask='true'] {
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--cb-own);
+  -webkit-mask: var(--cb-band) center / 100% 100% no-repeat;
+  mask: var(--cb-band) center / 100% 100% no-repeat;
+}
+.cb-card-cost,
+.cb-card-n {
+  top: 3.63%;
+  width: 16.67%;
+  height: 11.88%;
+}
+.cb-card-cost {
+  left: 4.63%;
+}
+.cb-card-n {
+  right: 4.63%;
+}
+/* The keyword's icon, small, in the art window's corner: the art is flavour, the icon the rule. */
+.cb-card-field {
+  left: 10%;
+  top: 25%;
+  width: 22%;
+  height: 16%;
+  border-radius: 50%;
+  background: rgba(255, 252, 245, 0.9);
+  box-shadow: 0 0 0 1.5px var(--cb-ink);
+}
+.cb-card-name {
+  left: 7.87%;
+  right: auto;
+  width: 84.26%;
+  top: 79.21%;
+  height: 12.54%;
+}
+.cb-card-badge {
+  left: 79.17%;
+  right: auto;
+  top: 86.47%;
+  bottom: auto;
+  width: 13%;
+}
+
+/* Inspect: the card on the full frame, its words on a plate under it. */
+.cb-full-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.cb-full-cost,
+.cb-full-n {
+  top: 12px;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+}
+.cb-full-cost {
+  left: 11px;
+}
+.cb-full-n {
+  right: 11px;
+}
+.cb-full-name {
+  left: 19px;
+  right: 19px;
+  top: 266px;
+  height: 42px;
+  line-height: 42px;
+}
+.cb-full-art {
+  display: none;
+}
+.cb-full-body {
+  position: static;
+  width: 240px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--cb-surface);
+  box-shadow: inset 0 0 0 2px var(--cb-ink);
+}
+.cb-full-badge {
+  left: 79.17%;
+  right: auto;
+  top: 86.47%;
+  bottom: auto;
+}
+/* The sheet and Inspect sit over the board, whose big-token tiles are raised. */
+.cb-sheet,
+.cb-inspect {
+  z-index: 10;
+}
+/* The art window is open in the frame: the card's paper shows behind the picture. */
+.cb-card-picture,
+.cb-full-picture {
+  background: var(--cb-surface);
+}
