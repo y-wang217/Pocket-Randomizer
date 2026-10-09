@@ -44,7 +44,9 @@ describe('card battle assets', () => {
       for (const id of ids) {
         const el = cardAsset(id as CardAssetId, undefined, {});
         expect(el.classList.contains('cb-asset--placeholder'), id).toBe(true);
-        if (sizes[group]) expect(`${parseInt(el.style.width)}x${parseInt(el.style.height)}`, id).toBe(sizes[group]);
+        // The corner badge is drawn on its own 48 grid in the pack, not the card's.
+        const want = id === 'card-badge-corner' ? '48x48' : sizes[group];
+        if (want) expect(`${parseInt(el.style.width)}x${parseInt(el.style.height)}`, id).toBe(want);
       }
     }
     expect(renderSize('panel-frame')).toBeNull();
@@ -52,6 +54,18 @@ describe('card battle assets', () => {
     expect(fill.classList.contains('cb-asset--fill')).toBe(true);
     const full = cardAsset('card-frame-full', { width: 240, height: 336 }, {});
     expect([full.style.width, full.style.height]).toEqual(['240px', '336px']);
+  });
+
+  it('draws every pack file the manifest names', () => {
+    for (const ids of Object.values(CONTRACT)) for (const id of ids) expect(cardAssetUrl(id as CardAssetId), id).not.toBeNull();
+  });
+
+  it('draws a sliced piece through its slice insets, keeping its corners', () => {
+    const files = { '../assets/cardbattle/ui/panel-frame.svg': 'data:image/svg+xml,%3Csvg%20a=\'b\'%3E' };
+    const panel = cardAsset('panel-frame', 'fill', files);
+    expect(panel.classList.contains('cb-asset--slice')).toBe(true);
+    expect(panel.style.borderImage).toContain('14');
+    expect(panel.style.borderWidth).toBe('14px');
   });
 
   it('draws an arrived file, an icon as a mask in currentColor and the rest as a picture', () => {

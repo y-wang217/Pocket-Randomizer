@@ -5,9 +5,10 @@
  * A separate manifest from `ui/assets/manifest.ts`, deliberately: this one is
  * imported only by the lazily loaded sandbox, so neither its table nor any
  * file it resolves can reach the main bundle. Files live at
- * `src/ui/assets/cardbattle/{group}/{id}.svg`. Until the pack arrives none
- * exists, and every ID renders a placeholder at its contract size; dropping
- * the pack into that directory is the whole integration.
+ * `src/ui/assets/cardbattle/{group}/{id}.svg`: the author's pack v1,
+ * `cardbattle-assets-1`, 60 files. An ID whose file is missing still renders
+ * a placeholder at its contract size, so a file dropped or removed never
+ * breaks the screen.
  *
  * Icons are ink: drawn through a mask in `currentColor`, tinted by the screen.
  * Everything else is a picture with its colours baked. No asset carries text;
@@ -94,6 +95,27 @@ export function groupOf(id: CardAssetId): CardAssetGroup {
   return 'ui';
 }
 
+/**
+ * The pieces the pack draws to be sliced rather than stretched, with their
+ * slice insets in the file's own units, top, right, bottom, left
+ * (the pack's `manifest.json`, `cardbattle-assets-1`). A sliced piece keeps
+ * its corners or caps at their drawn size and stretches only the middle.
+ */
+export const SLICES: Partial<Record<CardAssetId, readonly [number, number, number, number]>> = {
+  'panel-frame': [14, 14, 14, 14],
+  'pill-badge': [0, 12, 0, 12],
+  'bar-track': [0, 6, 0, 6],
+  'bar-fill': [0, 6, 0, 6],
+  'button-default': [12, 12, 12, 12],
+  'button-pressed': [12, 12, 12, 12],
+  'button-unavailable': [12, 12, 12, 12],
+};
+
+/** The pack draws the corner badge on its own 48 by 48 grid, not the card's. */
+const OWN_SIZE: Partial<Record<CardAssetId, Size>> = {
+  'card-badge-corner': { width: 48, height: 48 },
+};
+
 /** Where the file for an ID lives, relative to `src/ui/assets/cardbattle/`. */
 export function cardAssetPath(id: CardAssetId): string {
   return `${groupOf(id)}/${id}.svg`;
@@ -101,7 +123,7 @@ export function cardAssetPath(id: CardAssetId): string {
 
 /** The contract's render size for an ID, or `null` for a `ui` piece that stretches. */
 export function renderSize(id: CardAssetId): Size | null {
-  return CARD_ASSET_GROUPS[groupOf(id)].render;
+  return OWN_SIZE[id] ?? CARD_ASSET_GROUPS[groupOf(id)].render;
 }
 
 const FILES = import.meta.glob('../assets/cardbattle/**/*.svg', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -136,10 +158,20 @@ export function cardAsset(id: CardAssetId, size?: Size | 'fill', files?: Record<
     el.style.height = `${box.height}px`;
   }
   const url = cardAssetUrl(id, files);
-  if (url) {
+  // Small files are inlined as `data:` URLs that carry quotes and spaces, so
+  // the URL is always quoted, and a double quote inside it escaped.
+  const css = url ? `url("${url.replace(/"/g, '%22')}")` : '';
+  const slice = SLICES[id];
+  if (url && slice) {
+    const [top, right, bottom, left] = slice;
+    el.classList.add('cb-asset--slice');
+    el.style.borderStyle = 'solid';
+    el.style.borderWidth = `${top}px ${right}px ${bottom}px ${left}px`;
+    el.style.borderImage = `${css} ${top} ${right} ${bottom} ${left} fill / ${top}px ${right}px ${bottom}px ${left}px stretch`;
+  } else if (url) {
     const mask = groupOf(id) === 'icons';
     el.classList.add(mask ? 'cb-asset--mask' : 'cb-asset--art');
-    el.style.setProperty('--cb-asset-image', `url(${url})`);
+    el.style.setProperty('--cb-asset-image', css);
   } else {
     el.classList.add('cb-asset--placeholder', `cb-asset--${groupOf(id)}`);
     if (groupOf(id) === 'icons' || groupOf(id) === 'markers') el.textContent = letterOf(id);

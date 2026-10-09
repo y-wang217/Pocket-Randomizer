@@ -15840,3 +15840,34 @@ Deviations and measurements:
   `docs/architecture.md` and one here named the battle view by its bare
   filename, which the card engine's view now shares; both read
   `core/battle/view.ts`.
+
+### 125i. The asset pack, v1
+
+**2026-10-09.** The author's pack `cardbattle-assets-1` (60 SVGs, a manifest,
+a palette and a preview page) is in `src/ui/assets/cardbattle/`, the SVGs
+only. Every one of the contract's IDs is present and nothing else; no file
+carries a script, an external reference or text; every icon draws in
+`currentColor`.
+
+- **One size differs from the contract table**: the corner badge is drawn on
+  its own 48 by 48 grid, not the card's 240 by 336. It renders at that size.
+- **Sliced pieces.** The pack's manifest marks the panel frame and the three
+  button states nine-slice and the pill and both bar pieces three-slice, with
+  their insets. They draw through CSS `border-image` with those insets, so
+  corners and caps keep their drawn size; `SLICES` in `assets.ts` holds them.
+- **The palette** is the pack's: warm paper, navy ink, teal for the player and
+  a legal choice, red for the enemy and a telegraph. The sandbox stylesheet
+  takes its tokens from it; the earlier dark placeholder theme is gone.
+- **The card face follows the frame**: cost in the left disc, the first
+  effect's number in the right, its keyword's icon in the field, the name in
+  the bottom strip, the owner in the corner badge, and small Target and Once
+  marks on the field. The effect sentences moved to the inspect card, whose
+  frame has a description region for them.
+- **A filled slot's card name** rides a chip on the slot's bottom edge, clear
+  of the pack's check mark.
+- **Inlined files need quoted URLs.** Vite inlines small SVGs as `data:` URLs
+  carrying quotes, so the manifest quotes every `url()` it writes.
+
+Measured: the main bundle is byte identical to checkpoint 5's (4,198,984
+bytes); the sandbox chunk is 70,360 bytes of script with the pack inlined and
+11,300 of style. The phone fit and the 44px floor hold with the art in.

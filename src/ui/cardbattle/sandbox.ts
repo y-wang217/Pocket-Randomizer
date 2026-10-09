@@ -78,10 +78,44 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, t
 }
 
 function button(className: string, label: string, onTap: () => void): HTMLButtonElement {
-  const node = el('button', className, label);
+  const node = el('button', className);
   node.type = 'button';
+  // The pack's three button states; the stylesheet shows the one that applies.
+  for (const state of ['button-default', 'button-pressed', 'button-unavailable'] as const) {
+    const layer = cardAsset(state, 'fill');
+    layer.dataset['state'] = state;
+    node.append(layer);
+  }
+  node.append(el('span', 'cb-btn-label', label));
   node.addEventListener('click', onTap);
   return node;
+}
+
+/** The icon and number a card's face shows: its first effect that has one. */
+export function faceOf(effects: readonly Effect[]): { icon: CardAssetId; n: number | null; targeted: boolean } {
+  const targeted = effects.some((e) => e.k === 'target');
+  for (const effect of effects) {
+    switch (effect.k) {
+      case 'strike':
+      case 'pierce':
+      case 'slash':
+      case 'blast':
+        return { icon: `icon-${effect.k}`, n: effect.n, targeted };
+      case 'move':
+      case 'grantMove':
+        return { icon: 'icon-move', n: effect.n, targeted };
+      case 'shield':
+        return { icon: 'icon-shield', n: effect.n, targeted };
+      case 'gainMp':
+      case 'mpNextTurns':
+        return { icon: 'icon-mp', n: effect.n, targeted };
+      case 'drawNext':
+        return { icon: 'icon-draw', n: effect.n, targeted };
+      default:
+        break;
+    }
+  }
+  return { icon: 'icon-wait', n: null, targeted };
 }
 
 function reducedMotion(): boolean {
@@ -449,6 +483,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       node.append(el('span', 'cb-token-hp', String(unit.hp)));
     }
     node.append(el('span', 'cb-token-label', label));
+    node.setAttribute('aria-label', label);
     if (pending?.unit === occupant.id || pending?.ally === occupant.id) node.append(ring('marker-ring-selected'));
     if (pending && pending.stage !== 'tile' && pending.units.includes(occupant.id)) node.append(ring('marker-reticle'));
     if (hits.has(occupant.id)) node.dataset['hit'] = 'true';
@@ -470,7 +505,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         if (enemy.dead) panel.dataset['dead'] = 'true';
         if (target) panel.dataset['target'] = 'true';
         panel.append(el('div', 'cb-panel-name', `${enemy.name} ${index + 1}`));
-        panel.append(statLine(CARD_COPY.hp, `${enemy.hp}/${enemy.maxHp}`));
+        panel.append(statLine(CARD_COPY.hp, `${enemy.hp}/${enemy.maxHp}`), bar(enemy.hp, enemy.maxHp));
         panel.append(statLine(CARD_COPY.shield, `${enemy.shield} · ${CARD_COPY.baseShield} ${enemy.baseShield}`));
         if (enemy.intent) {
           const pill = el('div', 'cb-pill');
@@ -493,7 +528,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         if (target) panel.dataset['target'] = 'true';
         if (pending?.unit === unit.id) panel.dataset['assigning'] = 'true';
         panel.append(el('div', 'cb-panel-name', `${unit.id} ${unit.name}`));
-        panel.append(statLine(CARD_COPY.hp, `${unit.hp}/${unit.maxHp} · ${CARD_COPY.shieldShort} ${unit.shield}+${unit.baseShield}`));
+        panel.append(statLine(CARD_COPY.hp, `${unit.hp}/${unit.maxHp} · ${CARD_COPY.shieldShort} ${unit.shield}+${unit.baseShield}`), bar(unit.hp, unit.maxHp));
         const mp = el('div', 'cb-mp');
         mp.append(el('span', 'cb-mp-text', `${CARD_COPY.cost} ${unit.mp - unit.reserved}/${unit.mp}`));
         for (let i = 0; i < unit.mpCap; i++) {
@@ -507,9 +542,13 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         for (let i = 0; i < unit.slots; i++) {
           const play = unit.planned[i];
           if (play) {
-            const slot = button('cb-slot cb-slot--filled', '', () => act({ type: 'unselect', planIndex: play.planIndex }));
+            const slot = el('button', 'cb-slot cb-slot--filled');
+            slot.type = 'button';
             slot.append(cardAsset('slot-filled', 'fill'), el('span', 'cb-slot-name', play.name));
-            slot.addEventListener('click', (event) => event.stopPropagation());
+            slot.addEventListener('click', (event) => {
+              event.stopPropagation();
+              act({ type: 'unselect', planIndex: play.planIndex });
+            });
             slots.append(slot);
           } else {
             const slot = el('span', 'cb-slot cb-slot--empty');
@@ -522,6 +561,16 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         return panel;
       }),
     );
+  }
+
+  function bar(value: number, max: number): HTMLElement {
+    const track = el('div', 'cb-bar');
+    track.append(cardAsset('bar-track', 'fill'));
+    const fill = el('span', 'cb-bar-fill');
+    fill.style.width = `${max > 0 ? Math.round((Math.max(0, value) / max) * 100) : 0}%`;
+    fill.append(cardAsset('bar-fill', 'fill'));
+    track.append(fill);
+    return track;
   }
 
   function statLine(label: string, value: string): HTMLElement {
@@ -539,14 +588,20 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         node.type = 'button';
         node.dataset['owner'] = card.owner;
         node.dataset['card'] = card.def;
+        node.setAttribute('aria-label', [card.name, `${card.cost} ${CARD_COPY.cost}`, ...effectLines(card.effects)].join(', '));
+        const face = faceOf(card.effects);
         node.append(cardAsset('card-frame-compact', 'fill'));
-        const badge = el('span', 'cb-card-owner', card.owner === 'neutral' ? 'N' : card.owner);
-        badge.prepend(cardAsset('card-badge-corner', 'fill'));
-        node.append(el('span', 'cb-card-cost', String(card.cost)), badge, el('span', 'cb-card-name', card.name));
-        const body = el('span', 'cb-card-body');
-        for (const line of effectLines(card.effects)) body.append(el('span', 'cb-card-line', line));
-        if (card.once) body.append(el('span', 'cb-card-line cb-card-once', CARD_COPY.once));
-        node.append(body);
+        node.append(el('span', 'cb-card-cost', String(card.cost)));
+        node.append(el('span', 'cb-card-n', face.n === null ? '' : String(face.n)));
+        const field = el('span', 'cb-card-field');
+        field.append(cardAsset(face.icon, 'fill'));
+        if (face.targeted) field.append(cornerIcon('icon-target', 'cb-card-mark cb-card-mark--target'));
+        if (card.once) field.append(cornerIcon('icon-once', 'cb-card-mark cb-card-mark--once'));
+        node.append(field);
+        node.append(el('span', 'cb-card-name', card.name));
+        const badge = el('span', 'cb-card-badge');
+        badge.append(cardAsset('card-badge-corner', 'fill'), el('span', 'cb-card-owner', card.owner === 'neutral' ? 'N' : card.owner));
+        node.append(badge);
         if (card.planned || pending?.card === card.iid) {
           node.dataset['selected'] = 'true';
           node.append(layer('card-overlay-selected', 'cb-ov'));
@@ -588,20 +643,31 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   }
 
   function showInspect(card: HandCardView): void {
-    const face = el('div', 'cb-full');
-    face.append(cardAsset('card-frame-full', 'fill'));
-    face.append(
-      el('div', 'cb-full-cost', `${card.cost} ${CARD_COPY.cost}`),
-      el('div', 'cb-full-name', card.name),
-      el('div', 'cb-full-owner', card.owner === 'neutral' ? CARD_COPY.neutral : `${card.owner} ${UNITS[card.owner].name}`),
-    );
+    const face = faceOf(card.effects);
+    const full = el('div', 'cb-full');
+    full.append(cardAsset('card-frame-full', 'fill'));
+    full.append(el('div', 'cb-full-cost', String(card.cost)), el('div', 'cb-full-n', face.n === null ? '' : String(face.n)));
+    full.append(el('div', 'cb-full-name', card.name));
+    const art = el('div', 'cb-full-art');
+    art.append(cardAsset(face.icon, 'fill'));
+    full.append(art);
     const body = el('div', 'cb-full-body');
+    body.append(el('div', 'cb-full-owner', card.owner === 'neutral' ? CARD_COPY.neutral : `${card.owner} ${UNITS[card.owner].name}`));
     for (const line of effectLines(card.effects)) body.append(el('div', 'cb-full-line', line));
     if (card.once) body.append(el('div', 'cb-full-line', CARD_COPY.once));
     if (card.reason) body.append(el('div', 'cb-full-reason', CARD_COPY.reasons[card.reason]));
-    face.append(body);
-    inspect.replaceChildren(face);
+    full.append(body);
+    const badge = el('span', 'cb-full-badge');
+    badge.append(cardAsset('card-badge-corner', 'fill'), el('span', 'cb-card-owner', card.owner === 'neutral' ? 'N' : card.owner));
+    full.append(badge);
+    inspect.replaceChildren(full);
     inspect.hidden = false;
+  }
+
+  function cornerIcon(id: CardAssetId, className: string): HTMLElement {
+    const wrap = el('span', className);
+    wrap.append(cardAsset(id, 'fill'));
+    return wrap;
   }
 
   function renderActions(view: BattleView): void {
@@ -618,10 +684,10 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       pending = null;
       render();
     });
-    inspectButton.prepend(cardAsset('icon-inspect', { width: 16, height: 16 }));
+    inspectButton.querySelector('.cb-btn-label')!.prepend(cardAsset('icon-inspect', { width: 16, height: 16 }));
     if (inspectMode) inspectButton.dataset['on'] = 'true';
     const end = button('cb-btn cb-btn--primary', CARD_COPY.endTurn, () => act({ type: 'commit' }));
-    end.prepend(cardAsset('icon-end-turn', { width: 16, height: 16 }));
+    end.querySelector('.cb-btn-label')!.prepend(cardAsset('icon-end-turn', { width: 16, height: 16 }));
     end.disabled = !view.canCommit;
     actions.replaceChildren(undo, inspectButton, end, button('cb-btn', CARD_COPY.menu, () => openSheet()));
   }
