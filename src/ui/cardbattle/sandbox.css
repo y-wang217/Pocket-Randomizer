@@ -502,19 +502,142 @@
 .cb-ring > [data-asset='marker-ring-selected'].cb-asset--placeholder {
   box-shadow: 0 0 0 3px var(--cb-amber);
 }
-.cb-token[data-hit='true'] {
-  animation: cb-hit 420ms ease-out;
+/* ----------------------------------------------------------- playback
+   One step of a committed round at a time: the actor pulses, its attack's
+   tiles flash in the telegraph's colours, a hit piece shakes under a float
+   of what it lost. */
+.cb-token[data-anim='act'] {
+  animation: cb-act 700ms ease-in-out;
+  z-index: 3;
 }
-@keyframes cb-hit {
+.cb-token[data-anim='hit'] {
+  animation: cb-hit 520ms ease-out;
+}
+.cb-panel[data-anim='act'] {
+  box-shadow: inset 0 0 0 3px var(--cb-amber);
+  border-radius: 12px;
+}
+.cb-panel[data-anim='hit'] {
+  animation: cb-hit 520ms ease-out;
+}
+@keyframes cb-act {
   0%,
-  60% {
-    filter: brightness(1.5) saturate(1.4);
-    transform: scale(1.1);
-  }
   100% {
-    filter: none;
     transform: none;
   }
+  40% {
+    transform: scale(1.18);
+    filter: drop-shadow(0 0 6px var(--cb-amber));
+  }
+}
+@keyframes cb-hit {
+  0% {
+    transform: none;
+    filter: brightness(1.6) saturate(1.4);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-2px);
+    filter: brightness(1.3);
+  }
+  100% {
+    transform: none;
+    filter: none;
+  }
+}
+.cb-tile[data-flash]::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 8px;
+  pointer-events: none;
+  animation: cb-flash 700ms ease-out;
+}
+.cb-tile[data-flash='strike']::after {
+  background: rgba(200, 90, 80, 0.55);
+}
+.cb-tile[data-flash='pierce']::after {
+  background: rgba(200, 90, 80, 0.55);
+  box-shadow: inset 0 0 0 3px var(--cb-ink);
+}
+.cb-tile[data-flash='slash']::after {
+  background: rgba(134, 100, 172, 0.55);
+}
+@keyframes cb-flash {
+  0% {
+    opacity: 0;
+  }
+  25%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.35;
+  }
+}
+.cb-float {
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  z-index: 4;
+  transform: translateX(-50%);
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: var(--cb-ink);
+  color: var(--cb-surface);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: cb-float 800ms ease-out forwards;
+}
+.cb-float[data-hp='true'] {
+  background: var(--cb-red);
+}
+@keyframes cb-float {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -6px);
+  }
+}
+
+/* A planned card's place in the order the plan resolves. */
+.cb-order {
+  position: absolute;
+  z-index: 2;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: var(--cb-amber);
+  color: var(--cb-ink);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+  pointer-events: none;
+}
+.cb-slot-order {
+  left: -4px;
+  top: -4px;
+}
+.cb-card-order {
+  left: 50%;
+  top: -8px;
+  transform: translateX(-50%);
 }
 
 .cb-banner {
@@ -526,6 +649,7 @@
   pointer-events: none;
 }
 .cb-banner[data-on='true'] {
+  z-index: 5;
   padding: 6px 4px;
   min-height: 44px;
   background: var(--cb-ink);
@@ -534,6 +658,17 @@
   font-weight: 800;
   display: grid;
   place-items: center;
+}
+.cb-banner-count {
+  font-size: 9px;
+  opacity: 0.7;
+}
+.cb-banner-title {
+  font-size: 13px;
+}
+.cb-banner-line {
+  font-size: 10px;
+  font-weight: 600;
 }
 
 /* ------------------------------------------------------------- panels */
@@ -582,6 +717,9 @@
 }
 .cb-panel[data-dead='true'] {
   opacity: 0.4;
+}
+.cb-panel[data-blocked='true'] {
+  opacity: 0.6;
 }
 .cb-panel-name {
   font-weight: 800;
@@ -895,6 +1033,42 @@
   color: var(--cb-teal);
   font-weight: 700;
 }
+.cb-sheet-panel--log {
+  max-height: calc(100% - 32px);
+}
+.cb-roundlog {
+  flex: 1;
+  min-height: 0;
+  max-height: 60vh;
+  overflow-y: auto;
+  font-size: 11px;
+  line-height: 1.3;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.cb-roundlog-round {
+  margin-top: 8px;
+  font-weight: 800;
+  font-size: 12px;
+}
+.cb-roundlog-steps {
+  margin: 2px 0 0;
+  padding-left: 20px;
+}
+.cb-roundlog-step {
+  margin: 2px 0;
+}
+.cb-roundlog-step[data-quiet='true'] {
+  color: var(--cb-dim);
+}
+.cb-roundlog-title {
+  display: block;
+  font-weight: 700;
+}
+.cb-roundlog-line {
+  display: block;
+  color: var(--cb-dim);
+}
 .cb-log {
   height: 80px;
   font: 10px/1.2 ui-monospace, monospace;
@@ -975,7 +1149,10 @@
   .cb-attack[data-pending='true'] {
     animation: none;
   }
-  .cb-token[data-hit='true'] {
+  .cb-token[data-anim],
+  .cb-panel[data-anim],
+  .cb-tile[data-flash]::after,
+  .cb-float {
     animation: none;
   }
   .cb-card[data-selected='true'] {

@@ -20,7 +20,7 @@ import { step } from './step';
 import { inDanger } from './zones';
 
 /** Bumps when a logged action, a rule or a resolver changes what a log replays to. */
-export const CARD_ENGINE_VERSION = 'cards-0.1.0';
+export const CARD_ENGINE_VERSION = 'cards-0.2.0';
 
 export interface BattleLog {
   engineVersion: string;

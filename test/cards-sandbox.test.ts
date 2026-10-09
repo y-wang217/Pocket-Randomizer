@@ -12,6 +12,8 @@ import { replay, type BattleLog } from '../src/core/cards/log';
 import { openSandbox } from '../src/ui/cardbattle/sandbox';
 
 const all = (root: HTMLElement, selector: string) => [...root.querySelectorAll<HTMLElement>(selector)];
+/** A tap anywhere: it skips a round's playback to the end, as any first tap does. */
+const skip = (root: HTMLElement) => root.dispatchEvent(new Event('pointerdown'));
 
 describe('the sandbox screen', () => {
   it('plays rounds by taps alone, and Copy log hands over a log that replays to the same state', async () => {
@@ -41,6 +43,7 @@ describe('the sandbox screen', () => {
       const end = all(root, '.cb-btn--primary')[0] as HTMLButtonElement;
       if (end.disabled) break;
       end.click();
+      skip(root);
     }
 
     // The menu sheet's Copy log.
@@ -57,6 +60,59 @@ describe('the sandbox screen', () => {
     all(root, '.cb-sheet .cb-btn').find((b) => b.textContent === 'Exit')!.click();
     expect(document.querySelector('.cb')).toBeNull();
     expect(onExit).toHaveBeenCalledTimes(1);
+  });
+
+  it('a Neutral asks who plays it even when one unit can, and a unit that cannot says why', () => {
+    // Round 1 of the bug report's seed: only A has the MP for Attack.
+    const sandbox = openSandbox(document.body, { seed: 'X5A72HUA' });
+    const root = sandbox.root;
+    const panel = (id: string) => all(root, '.cb-panel--unit').find((p) => p.querySelector('.cb-panel-name')!.textContent!.startsWith(`${id} `))!;
+    const filled = (id: string) => panel(id).querySelectorAll('.cb-slot--filled').length;
+
+    all(root, '.cb-card[data-card="attack"]')[0]!.click();
+    expect(filled('A')).toBe(0);
+    expect(root.querySelector('.cb-note')!.textContent).toBe('Pick who plays it · B, C: Not enough MP');
+    expect(panel('A').dataset['target']).toBe('true');
+    expect(panel('B').dataset['blocked']).toBe('true');
+
+    panel('B').click();
+    expect(root.querySelector('.cb-note')!.textContent).toBe('B: Not enough MP');
+    expect(filled('B')).toBe(0);
+
+    panel('A').click();
+    expect(filled('A')).toBe(1);
+    sandbox.close();
+  });
+
+  it('plays a committed round back step by step, a tap skips it, and the round log keeps it', () => {
+    const sandbox = openSandbox(document.body, { seed: 'X5A72HUA' });
+    const root = sandbox.root;
+    const panel = (id: string) => all(root, '.cb-panel--unit').find((p) => p.querySelector('.cb-panel-name')!.textContent!.startsWith(`${id} `))!;
+    all(root, '.cb-card[data-card="shoot"]')[0]!.click();
+    all(root, '.cb-card[data-card="attack"]')[0]!.click();
+    panel('A').click();
+    // Each placed card wears its place in the order.
+    expect(panel('B').querySelector('.cb-slot-order')!.textContent).toBe('1');
+    expect(panel('A').querySelector('.cb-slot-order')!.textContent).toBe('2');
+
+    all(root, '.cb-btn--primary')[0]!.click();
+    const banner = root.querySelector('.cb-banner')!;
+    expect(banner.getAttribute('data-on')).toBe('true');
+    expect(banner.querySelector('.cb-banner-count')!.textContent).toMatch(/^1\/\d+$/);
+    expect(banner.querySelector('.cb-banner-title')!.textContent).toBe('B · Shoot');
+    expect(root.querySelector('.cb-round')!.textContent).toBe('Round 1');
+
+    // A click during playback skips it and lands on nothing.
+    all(root, '.cb-actions .cb-btn').at(-1)!.click();
+    expect(banner.getAttribute('data-on')).toBeNull();
+    expect((root.querySelector('.cb-sheet') as HTMLElement).hidden).toBe(true);
+    expect(root.querySelector('.cb-round')!.textContent).toBe('Round 2');
+
+    all(root, '.cb-actions .cb-btn').at(-1)!.click();
+    all(root, '.cb-sheet .cb-btn').find((b) => b.textContent === 'Round log')!.click();
+    const titles = all(root, '.cb-roundlog-title').map((t) => t.textContent);
+    expect(titles.slice(0, 2)).toEqual(['B · Shoot', 'A · Attack']);
+    sandbox.close();
   });
 
   it('a tap on an unplayable card plays nothing and says why', () => {
@@ -88,6 +144,7 @@ describe('the sandbox screen', () => {
     const hand = () => all(root, '.cb-card').map((c) => c.dataset['card']).join(',');
     const first = hand();
     all(root, '.cb-btn--primary')[0]!.click();
+    skip(root);
     all(root, '.cb-actions .cb-btn').at(-1)!.click();
     all(root, '.cb-sheet .cb-btn').find((b) => b.textContent === 'Restart')!.click();
     expect(root.querySelector('.cb-round')!.textContent).toBe('Round 1');

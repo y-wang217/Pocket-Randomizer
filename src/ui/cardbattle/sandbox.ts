@@ -5,9 +5,12 @@
  * its asset manifest reaches the main bundle.
  *
  * The screen holds no rules. Every tap becomes an engine action; the engine
- * answers with a new state, which is drawn at once, and an event list, which
- * plays back as skippable one-line beats that never block input. Under
- * reduced motion the beats collapse to the last line.
+ * answers with a new state and an event list. A committed round plays back
+ * one step at a time, in the order it resolved (`playback.ts`): the acting
+ * piece pulses, its attack's tiles flash, a hit piece shakes under the HP it
+ * lost, a moved piece slides. Any tap skips to the end and never blocks
+ * input. Under reduced motion the round lands at once. Every round stays in
+ * the round log, under Menu.
  *
  * Outside the design bible by the author's ruling
  * (`docs/spec/gymrun-card-battle-engine-rulings.md`). It writes nothing into
@@ -15,13 +18,10 @@
  */
 import './sandbox.css';
 
-import { CARDS } from '../../cardData/cards';
 import { CARD_COPY } from '../../cardData/copy';
-import { ENEMIES } from '../../cardData/enemies';
 import { UNITS } from '../../cardData/units';
 import { createBattle } from '../../core/cards/create';
 import type { Effect, Pos } from '../../core/cards/defs';
-import type { BattleEvent } from '../../core/cards/events';
 import { choicesFor } from '../../core/cards/legal';
 import { newLog, type BattleLog } from '../../core/cards/log';
 import { interceptsFor, previewPlay, type AttackPreview, type Intercept } from '../../core/cards/preview';
@@ -31,6 +31,7 @@ import { viewOf, type BattleView, type HandCardView, type TileThreat, type TileV
 import { samePos } from '../../core/cards/zones';
 import { newSeed } from '../seed';
 import { cardAsset, type CardAssetId } from './assets';
+import { roundSteps, type RoundRecord, type Step } from './playback';
 
 export interface Sandbox {
   root: HTMLElement;
@@ -52,11 +53,14 @@ interface Pending {
   tiles: Pos[];
   /** For a Move: the destinations that step in front of a Strike aimed at an ally. */
   intercepts?: Intercept[];
+  /** While assigning a Neutral: the units that may play it but cannot now, and why. */
+  blocked?: HandCardView['blocked'];
 }
 
 const ENCOUNTER = 'test';
 const LONG_PRESS_MS = 450;
-const BEAT_MS = 380;
+/** How long each kind of playback step holds. */
+const STEP_MS: Record<Step['kind'], number> = { card: 900, enemy: 900, move: 600, next: 900, round: 700, end: 900 };
 
 const UNIT_MARKER: Record<UnitId, CardAssetId> = { A: 'marker-unit-commander', B: 'marker-unit-gunner', C: 'marker-unit-dasher' };
 const ENEMY_MARKER: Record<string, CardAssetId> = { drone: 'marker-enemy-drone', lancer: 'marker-enemy-lancer' };
@@ -183,7 +187,10 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   let inspectMode = false;
   let message = '';
   let beatTimer: ReturnType<typeof setTimeout> | null = null;
-  let hits = new Set<string>();
+  /** Every committed round, as the log lists it. */
+  let rounds: RoundRecord[] = [];
+  /** The round being played back: its loud steps, the one showing, and each planned card's place in the order. */
+  let playback: { steps: Step[]; index: number; order: Map<CardIid, number> } | null = null;
 
   const root = el('div', 'cb');
   root.setAttribute('role', 'dialog');
@@ -228,6 +235,18 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   };
   root.addEventListener('keydown', onKey);
   root.addEventListener('pointerdown', () => skipBeats(), true);
+  // A click with no pointer before it, from a keyboard or a script, skips the
+  // playback too, and lands on nothing: the board under it was a step's picture.
+  root.addEventListener(
+    'click',
+    (event) => {
+      if (!playback) return;
+      event.stopPropagation();
+      event.preventDefault();
+      skipBeats();
+    },
+    true,
+  );
 
   function start(nextSeed: string): void {
     seed = nextSeed;
@@ -238,7 +257,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     pending = null;
     inspectMode = false;
     message = '';
-    hits = new Set();
+    rounds = [];
     sheet.hidden = true;
     skipBeats();
     render();
@@ -251,13 +270,15 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       render();
       return false;
     }
+    const before = state;
     state = result.state;
     log.actions.push(action);
     pending = null;
     message = '';
     if (action.type === 'commit') {
-      hits = new Set(result.events.flatMap((e) => (e.t === 'damaged' ? [e.target] : [])));
-      playBeats(result.events);
+      const record = { round: before.round, before, steps: roundSteps(before, result.events, state) };
+      rounds.push(record);
+      if (playRound(record)) return true;
     }
     render();
     if (state.phase !== 'plan') openSheet();
@@ -290,9 +311,11 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       render();
       return;
     }
-    if (card.players.length > 1) {
-      pending = { card: card.iid, stage: 'assign', units: card.players, tiles: [] };
-      message = CARD_COPY.pickUnit;
+    // A Neutral always asks who plays it, even when only one unit can: placing
+    // it unasked reads as the card belonging to that unit.
+    if (card.owner === 'neutral' || card.players.length > 1) {
+      pending = { card: card.iid, stage: 'assign', units: card.players, tiles: [], blocked: card.blocked };
+      message = [CARD_COPY.pickUnit, ...blockedLines(card.blocked)].join(' · ');
       render();
       return;
     }
@@ -323,7 +346,20 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     render();
   }
 
+  /** `B, C: Not enough MP`, one line per reason. */
+  function blockedLines(blocked: HandCardView['blocked']): string[] {
+    const byReason = new Map<string, UnitId[]>();
+    for (const { unit, block } of blocked) byReason.set(CARD_COPY.reasons[block], [...(byReason.get(CARD_COPY.reasons[block]) ?? []), unit]);
+    return [...byReason].map(([reason, units]) => CARD_COPY.cannotPlay(units.join(', '), reason));
+  }
+
   function tapTarget(id: TargetId): boolean {
+    const blocked = pending?.stage === 'assign' ? pending.blocked?.find((b) => b.unit === id) : undefined;
+    if (blocked) {
+      message = blockedLines([blocked])[0]!;
+      render();
+      return true;
+    }
     if (!pending || !pending.units.includes(id)) return false;
     if (pending.stage === 'assign') {
       begin(pending.card, id as UnitId);
@@ -368,80 +404,102 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
 
   // --------------------------------------------------------------- beats
 
-  function beatText(event: BattleEvent): string | null {
-    const who = (id: string): string => {
-      const unit = state.units.find((u) => u.id === id);
-      if (unit) return `${unit.id}`;
-      const enemy = state.enemies.find((e) => e.id === id);
-      return enemy ? `${ENEMIES[enemy.def].name} ${enemy.spawnIndex + 1}` : id;
-    };
-    const b = CARD_COPY.beats;
-    switch (event.t) {
-      case 'moved':
-        return b.moved(who(event.unit));
-      case 'damaged':
-        return b.damaged(who(event.target), event.amount);
-      case 'defeated':
-        return b.defeated(who(event.enemy));
-      case 'fainted':
-        return b.fainted(who(event.unit));
-      case 'enemyMissed':
-        return b.missed(who(event.enemy));
-      case 'shielded':
-        return b.shielded(who(event.unit), event.amount);
-      case 'fizzled':
-        return b.fizzled(CARDS[state.cards[event.card]!.def]!.name);
-      case 'reshuffled':
-        return b.reshuffled;
-      case 'roundStarted':
-        return b.roundStarted(event.round);
-      case 'won':
-        return CARD_COPY.won;
-      case 'lost':
-        return CARD_COPY.lost;
-      default:
-        return null;
-    }
-  }
-
-  function playBeats(events: BattleEvent[]): void {
+  /**
+   * Play a round back, step by step. `false` when there is nothing to play or
+   * motion is reduced, and the caller draws the final state itself.
+   */
+  function playRound(record: RoundRecord): boolean {
     skipBeats();
-    const lines = events.map(beatText).filter((line): line is string => line !== null);
-    if (lines.length === 0) return;
-    if (reducedMotion()) {
-      showBeat(lines[lines.length - 1]!);
-      return;
-    }
-    let index = 0;
+    const steps = record.steps.filter((step) => !step.quiet);
+    if (steps.length === 0 || reducedMotion()) return false;
+    const order = new Map(record.before.plan.map((play, index) => [play.card, index + 1]));
+    playback = { steps, index: 0, order };
     const next = (): void => {
-      showBeat(lines[index]!);
-      index++;
-      beatTimer = index < lines.length ? setTimeout(next, BEAT_MS) : null;
+      render();
+      const shown = playback!.steps[playback!.index]!;
+      beatTimer = setTimeout(() => {
+        playback!.index++;
+        if (playback!.index < playback!.steps.length) next();
+        else skipBeats();
+      }, STEP_MS[shown.kind]);
     };
     next();
+    return true;
   }
 
-  function showBeat(text: string): void {
-    banner.textContent = text;
-    banner.dataset['on'] = 'true';
-  }
-
+  /** End any playback: the board shows the state the round left. */
   function skipBeats(): void {
     if (beatTimer !== null) clearTimeout(beatTimer);
     beatTimer = null;
     delete banner.dataset['on'];
-    banner.textContent = '';
+    banner.replaceChildren();
+    if (!playback) return;
+    playback = null;
+    render();
+    if (state.phase !== 'plan') openSheet();
+  }
+
+  /** The step's banner, and its motion on the board and the panels just drawn. */
+  function decorate(step: Step): void {
+    const at = playback!.steps.indexOf(step) + 1;
+    banner.replaceChildren(
+      el('span', 'cb-banner-count', CARD_COPY.log.step(at, playback!.steps.length)),
+      el('span', 'cb-banner-title', step.title),
+      ...step.lines.map((line) => el('span', 'cb-banner-line', line)),
+    );
+    banner.dataset['on'] = 'true';
+    banner.dataset['kind'] = step.kind;
+
+    const tileAt = (pos: Pos): HTMLElement | null => board.querySelector(`.cb-tile[data-lane="${pos.lane}"][data-col="${pos.col}"]`);
+    const tokenOf = (id: string): HTMLElement | null => board.querySelector(`.cb-token[data-id="${id}"]`);
+    const panelOf = (id: string): HTMLElement | null => root.querySelector(`.cb-panel[data-id="${id}"]`);
+    if (step.actor !== undefined) {
+      tokenOf(step.actor)?.setAttribute('data-anim', 'act');
+      panelOf(step.actor)?.setAttribute('data-anim', 'act');
+    }
+    if (step.act && step.act !== 'none' && step.act !== 'shield') {
+      for (const pos of step.tiles) tileAt(pos)?.setAttribute('data-flash', step.act);
+    }
+    for (const hit of step.hits) {
+      tokenOf(hit.id)?.setAttribute('data-anim', 'hit');
+      panelOf(hit.id)?.setAttribute('data-anim', 'hit');
+      const tile = hit.pos ? tileAt(hit.pos) : null;
+      const float = el('span', 'cb-float', hit.hp > 0 ? `-${hit.hp}` : `${CARD_COPY.shieldShort} -${hit.blocked}`);
+      float.dataset['hp'] = String(hit.hp > 0);
+      tile?.append(float);
+    }
+    for (const move of step.moves) {
+      const token = tokenOf(move.id);
+      const from = tileAt(move.from);
+      const to = tileAt(move.to);
+      if (!token || !from || !to || typeof token.animate !== 'function') continue;
+      const a = from.getBoundingClientRect();
+      const b = to.getBoundingClientRect();
+      token.animate([{ transform: `translate(${a.left - b.left}px, ${a.top - b.top}px)` }, { transform: 'none' }], {
+        duration: 320,
+        easing: 'ease-out',
+      });
+    }
   }
 
   // -------------------------------------------------------------- render
 
   function render(): void {
-    const view = viewOf(state);
+    const shown = playback?.steps[playback.index];
+    const view = viewOf(shown?.state ?? state);
     renderTop(view);
     renderBoard(view);
     renderPanels(view);
     renderHand(view);
     renderActions(view);
+    if (shown) decorate(shown);
+  }
+
+  /** A planned card's place in the order the plan resolves, from 1. */
+  function orderOf(card: CardIid): number | undefined {
+    if (playback) return playback.order.get(card);
+    const index = state.plan.findIndex((play) => play.card === card);
+    return index >= 0 ? index + 1 : undefined;
   }
 
   function renderTop(view: BattleView): void {
@@ -578,6 +636,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     const occupant = tile.occupant!;
     const isUnit = occupant.kind === 'unit';
     const node = el('span', `cb-token cb-token--${occupant.kind}`);
+    node.dataset['id'] = occupant.id;
     const marker = isUnit ? UNIT_MARKER[occupant.id] : (ENEMY_MARKER[occupant.def] ?? 'marker-enemy-base');
     node.append(cardAsset(marker));
     let label = occupant.id;
@@ -594,7 +653,6 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     if (pending?.unit === occupant.id || pending?.ally === occupant.id) node.append(ring('marker-ring-selected'));
     const picking = !!pending && pending.stage !== 'tile' && pending.units.includes(occupant.id);
     if (picking || held.has(occupant.id)) node.append(ring('marker-reticle'));
-    if (hits.has(occupant.id)) node.dataset['hit'] = 'true';
     return node;
   }
 
@@ -610,6 +668,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         const target = !!pending && pending.stage !== 'tile' && pending.units.includes(enemy.id);
         // Dark, drawn by the stylesheet: the pack's frame is the light player panel.
         const panel = el('div', 'cb-panel cb-panel--enemy');
+        panel.dataset['id'] = enemy.id;
         if (enemy.dead) panel.dataset['dead'] = 'true';
         if (target) panel.dataset['target'] = 'true';
         panel.append(el('div', 'cb-panel-name', `${enemy.name} ${index + 1}`));
@@ -632,10 +691,12 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       ...view.units.map((unit) => {
         const target = !!pending && pending.stage !== 'tile' && pending.units.includes(unit.id);
         const panel = el('div', 'cb-panel cb-panel--unit');
+        panel.dataset['id'] = unit.id;
         panel.append(cardAsset('panel-frame', 'fill'));
         if (unit.fainted) panel.dataset['dead'] = 'true';
         if (target) panel.dataset['target'] = 'true';
         if (pending?.unit === unit.id) panel.dataset['assigning'] = 'true';
+        if (pending?.blocked?.some((b) => b.unit === unit.id)) panel.dataset['blocked'] = 'true';
         panel.append(el('div', 'cb-panel-name', `${unit.id} ${unit.name}`));
         panel.append(statLine(CARD_COPY.hp, `${unit.hp}/${unit.maxHp} · ${CARD_COPY.shieldShort} ${unit.shield}+${unit.baseShield}`), bar(unit.hp, unit.maxHp));
         const mp = el('div', 'cb-mp');
@@ -654,6 +715,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
             const slot = el('button', 'cb-slot cb-slot--filled');
             slot.type = 'button';
             slot.append(cardAsset('slot-filled', 'fill'), el('span', 'cb-slot-name', play.name));
+            const order = orderOf(play.card);
+            if (order !== undefined) slot.append(el('span', 'cb-order cb-slot-order', String(order)));
             slot.addEventListener('click', (event) => {
               event.stopPropagation();
               act({ type: 'unselect', planIndex: play.planIndex });
@@ -711,6 +774,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         const badge = el('span', 'cb-card-badge');
         badge.append(cardAsset('card-badge-corner', 'fill'), el('span', 'cb-card-owner', card.owner === 'neutral' ? 'N' : card.owner));
         node.append(badge);
+        const order = card.planned ? orderOf(card.iid) : undefined;
+        if (order !== undefined) node.append(el('span', 'cb-order cb-card-order', String(order)));
         if (card.planned || pending?.card === card.iid) {
           node.dataset['selected'] = 'true';
           node.append(layer('card-overlay-selected', 'cb-ov'));
@@ -810,6 +875,14 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     copyArea.readOnly = true;
     copyArea.hidden = true;
     const status = el('div', 'cb-sheet-status');
+    // Plays the last round again over the board it began from; the state itself never rewinds.
+    const last = rounds.at(-1);
+    const replay = button('cb-btn', CARD_COPY.replayRound, () => {
+      if (!last) return;
+      sheet.hidden = true;
+      playRound(last);
+    });
+    replay.disabled = !last;
     panel.append(
       button('cb-btn', CARD_COPY.restart, () => start(seed)),
       button('cb-btn', CARD_COPY.newSeed, () => start(newSeed())),
@@ -825,6 +898,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         if (!clipboard) return fallback();
         clipboard.writeText(text).then(() => (status.textContent = CARD_COPY.copied), fallback);
       }),
+      button('cb-btn', CARD_COPY.roundLog, () => openRoundLog()),
+      replay,
       button('cb-btn', CARD_COPY.close, () => (sheet.hidden = true)),
       button('cb-btn', CARD_COPY.exit, () => close()),
       status,
@@ -832,6 +907,31 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     );
     sheet.replaceChildren(panel);
     sheet.hidden = false;
+  }
+
+  /** Every committed round, step by step in the order it resolved, numbered as the playback numbers it. */
+  function openRoundLog(): void {
+    const panel = el('div', 'cb-sheet-panel cb-sheet-panel--log');
+    panel.append(el('div', 'cb-sheet-title', CARD_COPY.roundLog));
+    const list = el('div', 'cb-roundlog');
+    if (rounds.length === 0) list.append(el('div', 'cb-roundlog-empty', CARD_COPY.logEmpty));
+    for (const record of rounds) {
+      list.append(el('div', 'cb-roundlog-round', CARD_COPY.log.round(record.round)));
+      const steps = el('ol', 'cb-roundlog-steps');
+      for (const step of record.steps) {
+        const item = el('li', 'cb-roundlog-step');
+        item.dataset['kind'] = step.kind;
+        if (step.quiet) item.dataset['quiet'] = 'true';
+        item.append(el('span', 'cb-roundlog-title', step.title));
+        for (const line of step.lines) item.append(el('span', 'cb-roundlog-line', line));
+        steps.append(item);
+      }
+      list.append(steps);
+    }
+    panel.append(list, button('cb-btn', CARD_COPY.back, () => openSheet()));
+    sheet.replaceChildren(panel);
+    sheet.hidden = false;
+    list.scrollTop = list.scrollHeight;
   }
 
   function close(): void {

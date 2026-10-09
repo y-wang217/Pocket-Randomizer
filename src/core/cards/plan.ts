@@ -2,19 +2,19 @@
  * The plan: `select`, `unselect`, and the projection every legality question
  * reads.
  *
- * ## Legality is checked against the projected board
+ * ## Legality is checked against the board each play resolves on
  *
- * Moves resolve before every other card, so a unit standing in the backline
- * may plan a Move into the danger zone and then a Slash in the same turn.
- * `project` is the board after every planned Move, applied in plan order, and
- * no zone, range or choice check ever reads the raw board.
+ * The plan resolves in the order it was made, Moves included (the author's
+ * amendment, `docs/spec/gymrun-patch-card-battle-neutral-attack.md`): a unit
+ * may shoot and then move, or move into the danger zone and then Slash, and
+ * which comes first is the player's call. `project` is the board after every
+ * planned Move, and no zone, range or choice check ever reads the raw board.
  *
- * `checkPlan` is the one definition of a legal plan. Moves are checked one at
- * a time against the board as the Moves before them leave it, because that is
- * how they resolve; every other play is checked against the final projection,
- * because that is the board it resolves on. A plan is legal only as a whole:
- * `select` refuses a play that would leave an earlier one illegal, and
- * `unselect` drops every later play the removal leaves illegal, naming each.
+ * `checkPlan` is the one definition of a legal plan. Each play is checked in
+ * plan order against the board as the Moves before it leave it, because that
+ * is the board it resolves on. A play appended last never changes what an
+ * earlier one sees. A plan is legal only as a whole: `unselect` drops every
+ * later play the removal leaves illegal, naming each.
  *
  * Neither draws from any RNG.
  */
@@ -54,7 +54,7 @@ function effect<K extends Effect['k']>(def: CardDef, k: K): Extract<Effect, { k:
   return def.effects.find((e) => e.k === k) as Extract<Effect, { k: K }> | undefined;
 }
 
-/** A play that resolves in the move phase: a Move, or a Move placed by Command. */
+/** A play that moves a unit: a Move, or a Move placed by Command. */
 export function isMoveCard(def: CardDef): boolean {
   return def.effects.some((e) => e.k === 'move' || e.k === 'grantMove');
 }
@@ -132,7 +132,7 @@ function checkMove(
   return null;
 }
 
-/** Every non-move play, against the final projection. */
+/** Every non-move play, against the board as the Moves before it leave it. */
 function checkEffects(state: BattleState, play: PlannedPlay, def: CardDef, positions: Projection): IllegalReason | null {
   const pos = positions[play.unit];
   if (!pos) return 'fainted';
@@ -202,24 +202,18 @@ function checkCommon(state: BattleState, play: PlannedPlay, def: CardDef | undef
   return choiceFits(needsOf(def), play.choice) ? null : 'badChoice';
 }
 
-function walk(state: BattleState, plan: readonly PlannedPlay[]): { check: PlanCheck; spent: Spent; later: number[] } {
+function walk(state: BattleState, plan: readonly PlannedPlay[]): { check: PlanCheck; spent: Spent } {
   const positions = Object.fromEntries(state.units.map((u) => [u.id, u.fainted || !u.pos ? null : { ...u.pos }])) as Projection;
   const spent: Spent = { mpUsed: {}, slotsUsed: {}, seen: [] };
-  const later: number[] = [];
 
   for (const [index, play] of plan.entries()) {
     const def = cardDefOf(state, play.card);
-    const reason = checkCommon(state, play, def, spent) ?? (isMoveCard(def!) ? checkMove(state, play, def!, positions) : null);
-    if (reason) return { check: { ok: false, index, reason }, spent, later };
-    if (!isMoveCard(def!)) later.push(index);
+    const reason =
+      checkCommon(state, play, def, spent) ??
+      (isMoveCard(def!) ? checkMove(state, play, def!, positions) : checkEffects(state, play, def!, positions));
+    if (reason) return { check: { ok: false, index, reason }, spent };
   }
-
-  for (const index of later) {
-    const play = plan[index]!;
-    const reason = checkEffects(state, play, cardDefOf(state, play.card)!, positions);
-    if (reason) return { check: { ok: false, index, reason }, spent, later };
-  }
-  return { check: { ok: true, positions }, spent, later };
+  return { check: { ok: true, positions }, spent };
 }
 
 /** The one definition of a legal plan. See the header. */
@@ -233,11 +227,10 @@ const walks = new WeakMap<BattleState, ReturnType<typeof walk> & { moves: Map<st
  * `checkPlan(state, [...state.plan, play])`, answered faster, for the many
  * candidate plays `legalActions` and `choicesFor` try against one state. The
  * current plan is walked once and cached; the new play runs the same checks
- * the full walk would give it, in the same order: its common checks, then a
- * Move against the cached projection, then every earlier non-move play again
- * if a Move changed the board, then its own effects. Same answers by
- * construction, and the fuzz gate holds `select`, which takes the full walk,
- * to every action this offers.
+ * the full walk would give it last: its common checks, then a Move or its
+ * effects against the cached projection. Same answers by construction, and
+ * the fuzz gate holds `select`, which takes the full walk, to every action
+ * this offers.
  */
 export function checkAppend(state: BattleState, play: PlannedPlay): PlanCheck {
   let base = walks.get(state);
@@ -258,13 +251,18 @@ export function checkAppend(state: BattleState, play: PlannedPlay): PlanCheck {
   }
   const positions = { ...base.check.positions };
   const moved = checkMove(state, play, def!, positions, base.moves);
-  if (moved) return fail(moved);
-  for (const earlier of base.later) {
-    const prior = state.plan[earlier]!;
-    const reason = checkEffects(state, prior, cardDefOf(state, prior.card)!, positions);
-    if (reason) return { ok: false, index: earlier, reason };
-  }
-  return { ok: true, positions };
+  return moved ? fail(moved) : { ok: true, positions };
+}
+
+/**
+ * The board as the planned Moves before plan index `at` leave it; after every
+ * planned Move when `at` is omitted. The raw position for a plan that is
+ * somehow illegal.
+ */
+export function projectAt(state: BattleState, at: number): Projection {
+  if (at >= state.plan.length) return project(state);
+  const check = checkPlan(state, state.plan.slice(0, at));
+  return check.ok ? check.positions : (Object.fromEntries(state.units.map((u) => [u.id, u.pos])) as Projection);
 }
 
 /** The board after every planned Move. The raw position for a plan that is somehow illegal. */

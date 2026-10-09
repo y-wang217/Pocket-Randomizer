@@ -148,6 +148,16 @@ same looks, a held reticle on what other cards land on, louder move tiles and
 a shield on a Move tile that blocks a Strike aimed at an ally. Built and
 stopped for review. No version axis moves.
 
+**Card battle sandbox: play order, Neutral assignment, round playback.**
+Branch `claude/neutral-attack-commander-bug-b3chim`, bug report
+[`spec/gymrun-patch-card-battle-neutral-attack.md`](spec/gymrun-patch-card-battle-neutral-attack.md),
+record [`generation.md`](generation.md) section 125l. A Neutral always asks
+who plays it and says why the others cannot; the plan resolves in the order
+it was made, Moves included (the author's amendment); planned cards show
+their place in the order; a committed round plays back step by step and stays
+in a Round log under Menu. `CARD_ENGINE_VERSION` moves to `cards-0.2.0`; none
+of the run's four axes moves.
+
 **Also in flight: Defender Mode v0, a fun test.** Branch
 `claude/eager-turing-0059br`, prompt
 [`spec/gymrun-defender-mode-v0-fun-test.md`](spec/gymrun-defender-mode-v0-fun-test.md),

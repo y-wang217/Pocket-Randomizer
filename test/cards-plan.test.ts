@@ -42,14 +42,19 @@ describe('projection', () => {
     expect(project(removed.state).C).toEqual(at(3, 2));
   });
 
-  it('refuses a Move that would leave an earlier play illegal', () => {
-    // From (3,4) the Slash covers column 5, where the enemies stand. A Move to
-    // (3,3) would leave it hitting an empty column 4.
+  it('checks each play on the board as the Moves before it leave it, so a Move after a Slash never touches it', () => {
+    // From (3,4) the Slash covers column 5, where the enemies stand. The plan
+    // resolves in order, so stepping back to (3,3) afterwards is the player's call.
     let state = board({ hand: ['slash', 'move'], mp: { C: 1 }, units: { C: at(3, 4) } });
     state = pick(state, { type: 'select', card: iidOf(state, 'slash'), unit: 'C' });
-    expect(sel(state, 'move', 'C', { tile: at(3, 3) })).toMatchObject({ ok: false, reason: 'breaksPlan' });
-    expect(choicesFor(state, iidOf(state, 'move'), 'C').tiles).toEqual([at(2, 4)]);
-    expect(sel(state, 'move', 'C', { tile: at(2, 4) }).ok).toBe(true);
+    expect(choicesFor(state, iidOf(state, 'move'), 'C').tiles).toEqual(expect.arrayContaining([at(3, 3), at(2, 4)]));
+    state = pick(state, { type: 'select', card: iidOf(state, 'move'), unit: 'C', choice: { tile: at(3, 3) } });
+    expect(project(state).C).toEqual(at(3, 3));
+
+    // The other way round, the Move comes first and the Slash would fire from (3,3).
+    let reversed = board({ hand: ['slash', 'move'], mp: { C: 1 }, units: { C: at(3, 4) } });
+    reversed = pick(reversed, { type: 'select', card: iidOf(reversed, 'move'), unit: 'C', choice: { tile: at(3, 3) } });
+    expect(sel(reversed, 'slash', 'C')).toMatchObject({ ok: false, reason: 'noTarget' });
   });
 
   it('allows Fire! only on tiles in the next two columns of the projected position', () => {

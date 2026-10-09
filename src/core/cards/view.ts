@@ -101,6 +101,8 @@ export interface HandCardView {
   needs: Needs;
   /** The units that could play it now. */
   players: UnitId[];
+  /** The living units that may play it but cannot now, each with why. */
+  blocked: { unit: UnitId; block: PlayBlock }[];
 }
 
 export interface HandGroupView {
@@ -131,7 +133,7 @@ export function viewOf(state: BattleState): BattleView {
   const projection = project(state);
   const live = state.phase === 'plan';
   const threatened = state.enemies.map((enemy) => ({ enemy, tiles: enemyThreat(state, enemy, projection) }));
-  const previews: PlanPreview[] = state.plan.map((play, planIndex) => ({ planIndex, unit: play.unit, ...previewPlay(state, play) }));
+  const previews: PlanPreview[] = state.plan.map((play, planIndex) => ({ planIndex, unit: play.unit, ...previewPlay(state, play, planIndex) }));
 
   const tiles: TileView[] = allTiles().map((pos) => {
     const unit = state.units.find((u) => samePos(u.pos, pos));
@@ -248,5 +250,6 @@ function cardView(state: BattleState, iid: CardIid, live: boolean): HandCardView
     reason: players.length > 0 || planned || !live ? null : (blocks[0]?.block ?? 'fainted'),
     needs: needsOf(def),
     players,
+    blocked: blocks.flatMap(({ unit, block }) => (block === null ? [] : [{ unit, block }])),
   };
 }
