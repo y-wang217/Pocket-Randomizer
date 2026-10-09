@@ -95,7 +95,19 @@ export function playersOf(state: BattleState, card: CardIid): UnitId[] {
 /** `null` when `unit` can play `card` now with some choice, else why not. */
 export function playBlock(state: BattleState, card: CardIid, unit: UnitId): PlayBlock | null {
   if (completeChoices(state, card, unit).length > 0) return null;
-  const check = checkPlan(state, [...state.plan, { card, unit }]);
+  const def = cardDefOf(state, card);
+  if (!def) return 'noTarget';
+  // Probe with a choice of the right shape that names nothing, so the check
+  // gets past the choice's shape and stops at the first real reason: MP, a
+  // slot, the zone, or nothing to act on.
+  const nowhere: Pos = { lane: 1, col: 1 };
+  const probe: Choice | undefined = {
+    none: undefined,
+    unit: { unit: '' },
+    tile: { tile: nowhere },
+    unitThenTile: { unit: '', tile: nowhere },
+  }[needsOf(def)];
+  const check = checkPlan(state, [...state.plan, probe ? { card, unit, choice: probe } : { card, unit }]);
   return check.ok ? null : asPlayBlock(check.reason);
 }
 

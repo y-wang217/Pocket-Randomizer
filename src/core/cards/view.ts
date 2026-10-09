@@ -1,0 +1,217 @@
+/**
+ * `viewOf`: everything the sandbox screen draws, computed from the state. The
+ * UI holds no rules: every playable flag, reason, needed choice, lit tile and
+ * planned ghost comes from here, built on the same checks `step` applies.
+ */
+import { CARDS, DECKS } from '../../cardData/cards';
+import { ENEMIES } from '../../cardData/enemies';
+import { RULES } from '../../cardData/rules';
+import { UNITS } from '../../cardData/units';
+import type { CardOwner, ClassId, EnemyDefId, Effect, Pos, Zone } from './defs';
+import { playBlock, playersOf } from './legal';
+import { cardDefOf, needsOf, project, slotsOf, type Needs } from './plan';
+import type { BattleState, CardIid, EnemyId, Intent, PlayBlock, UnitId } from './state';
+import { allTiles, samePos, zoneOf } from './zones';
+
+export type Occupant = { kind: 'unit'; id: UnitId } | { kind: 'enemy'; id: EnemyId; def: EnemyDefId };
+
+export interface TileView {
+  pos: Pos;
+  zone: Zone;
+  /** Who stands here now, before any planned move resolves. */
+  occupant: Occupant | null;
+  /** Enemies whose telegraphed action lights this tile. */
+  telegraphedBy: EnemyId[];
+  /** A unit whose planned moves end here. */
+  planGhost?: UnitId;
+}
+
+export interface PlannedView {
+  planIndex: number;
+  card: CardIid;
+  name: string;
+  /** For a Command in this unit's slot: the unit that played it. */
+  by?: UnitId;
+}
+
+export interface UnitView {
+  id: UnitId;
+  name: string;
+  role: string;
+  class: ClassId;
+  hp: number;
+  maxHp: number;
+  shield: number;
+  baseShield: number;
+  mp: number;
+  mpCap: number;
+  /** MP the plan has already spent. */
+  reserved: number;
+  slots: number;
+  planned: PlannedView[];
+  fainted: boolean;
+  pos: Pos | null;
+  /** Where its planned moves leave it. */
+  projected: Pos | null;
+}
+
+export interface EnemyView {
+  id: EnemyId;
+  def: EnemyDefId;
+  name: string;
+  hp: number;
+  maxHp: number;
+  shield: number;
+  baseShield: number;
+  pos: Pos | null;
+  dead: boolean;
+  intent: { icon: Intent['act']; n: number; tiles: Pos[] } | null;
+}
+
+export interface HandCardView {
+  iid: CardIid;
+  def: string;
+  name: string;
+  cost: number;
+  owner: CardOwner;
+  once: boolean;
+  effects: readonly Effect[];
+  /** In the plan already. */
+  planned: boolean;
+  playable: boolean;
+  reason: PlayBlock | null;
+  needs: Needs;
+  /** The units that could play it now. */
+  players: UnitId[];
+}
+
+export interface HandGroupView {
+  owner: CardOwner;
+  cards: HandCardView[];
+}
+
+export interface BattleView {
+  round: number;
+  phase: BattleState['phase'];
+  canCommit: boolean;
+  tiles: TileView[];
+  units: UnitView[];
+  enemies: EnemyView[];
+  hand: HandGroupView[];
+  piles: { draw: number; discard: number; spent: number; removed: number };
+}
+
+export function viewOf(state: BattleState): BattleView {
+  const projection = project(state);
+  const live = state.phase === 'plan';
+
+  const tiles: TileView[] = allTiles().map((pos) => {
+    const unit = state.units.find((u) => samePos(u.pos, pos));
+    const enemy = state.enemies.find((e) => samePos(e.pos, pos));
+    const occupant: Occupant | null = unit ? { kind: 'unit', id: unit.id } : enemy ? { kind: 'enemy', id: enemy.id, def: enemy.def } : null;
+    const view: TileView = {
+      pos,
+      zone: zoneOf(pos),
+      occupant,
+      telegraphedBy: state.enemies.filter((e) => e.pos && e.intent?.tiles.some((t) => samePos(t, pos))).map((e) => e.id),
+    };
+    const ghost = state.units.find((u) => u.pos && !samePos(u.pos, projection[u.id]) && samePos(projection[u.id], pos));
+    if (ghost) view.planGhost = ghost.id;
+    return view;
+  });
+
+  const units: UnitView[] = state.units.map((u) => {
+    const planned: PlannedView[] = [];
+    let reserved = 0;
+    state.plan.forEach((play, planIndex) => {
+      const def = cardDefOf(state, play.card)!;
+      if (play.unit === u.id) {
+        planned.push({ planIndex, card: play.card, name: def.name });
+        reserved += def.cost;
+      } else if (play.choice?.unit === u.id && def.effects.some((e) => e.k === 'grantMove')) {
+        planned.push({ planIndex, card: play.card, name: def.name, by: play.unit });
+      }
+    });
+    const def = UNITS[u.id];
+    return {
+      id: u.id,
+      name: def.name,
+      role: def.role,
+      class: def.class,
+      hp: u.hp,
+      maxHp: u.maxHp,
+      shield: u.shield,
+      baseShield: u.baseShield,
+      mp: u.mp,
+      mpCap: RULES.mp.cap,
+      reserved,
+      slots: slotsOf(u.id),
+      planned,
+      fainted: u.fainted,
+      pos: u.pos,
+      projected: projection[u.id] ?? null,
+    };
+  });
+
+  const enemies: EnemyView[] = state.enemies.map((e) => ({
+    id: e.id,
+    def: e.def,
+    name: ENEMIES[e.def].name,
+    hp: e.hp,
+    maxHp: ENEMIES[e.def].hp,
+    shield: e.shield,
+    baseShield: e.baseShield,
+    pos: e.pos,
+    dead: e.pos === null,
+    intent: e.pos && e.intent ? { icon: e.intent.act, n: e.intent.n, tiles: e.intent.tiles } : null,
+  }));
+
+  // Grouped by owner in the deck's unit order, Neutrals last.
+  const owners: CardOwner[] = [...(DECKS[state.deckId]?.units ?? []), 'neutral'];
+  const hand: HandGroupView[] = owners
+    .map((owner) => ({
+      owner,
+      cards: state.piles.hand
+        .filter((iid) => state.cards[iid]!.owner === owner)
+        .map((iid) => cardView(state, iid, live)),
+    }))
+    .filter((group) => group.cards.length > 0);
+
+  return {
+    round: state.round,
+    phase: state.phase,
+    canCommit: live,
+    tiles,
+    units,
+    enemies,
+    hand,
+    piles: {
+      draw: state.piles.draw.length,
+      discard: state.piles.discard.length,
+      spent: state.piles.spent.length,
+      removed: state.piles.removed.length,
+    },
+  };
+}
+
+function cardView(state: BattleState, iid: CardIid, live: boolean): HandCardView {
+  const def = CARDS[state.cards[iid]!.def]!;
+  const planned = state.plan.some((p) => p.card === iid);
+  const candidates = def.owner === 'neutral' ? state.units.filter((u) => !u.fainted).map((u) => u.id) : [def.owner];
+  const blocks = live && !planned ? candidates.map((unit) => ({ unit, block: playBlock(state, iid, unit) })) : [];
+  const players = live && !planned ? playersOf(state, iid).filter((unit) => blocks.find((b) => b.unit === unit)?.block === null) : [];
+  return {
+    iid,
+    def: def.id,
+    name: def.name,
+    cost: def.cost,
+    owner: def.owner,
+    once: def.once === true,
+    effects: def.effects,
+    planned,
+    playable: players.length > 0,
+    reason: players.length > 0 || planned || !live ? null : (blocks[0]?.block ?? 'fainted'),
+    needs: needsOf(def),
+    players,
+  };
+}

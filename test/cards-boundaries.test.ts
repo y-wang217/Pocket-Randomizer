@@ -61,11 +61,20 @@ describe('card engine boundaries', () => {
     expect(listContentFiles(ROOT).filter((path) => path.startsWith('src/cardData/') || path.startsWith('src/core/cards/'))).toEqual([]);
   });
 
-  it('is imported by nothing outside the card engine', () => {
+  it('is imported by nothing outside the card engine but its own sandbox screen', () => {
+    // The sandbox screen (`src/ui/cardbattle/`) is the engine's one consumer,
+    // and it is reached only through the lazy import in `ui/cardbattle-entry.ts`.
     const outside = walk(join(ROOT, 'src'))
       .map(posix)
-      .filter((file) => !ENGINE.some((dir) => file.startsWith(`${dir}/`)) && /\.(ts|mjs|js)$/.test(file));
+      .filter((file) => ![...ENGINE, 'src/ui/cardbattle'].some((dir) => file.startsWith(`${dir}/`)) && /\.(ts|mjs|js)$/.test(file));
     const offenders = outside.filter((file) => /\b(core\/cards|cardData)\//.test(strip(readFileSync(join(ROOT, file), 'utf8'))));
     expect(offenders).toEqual([]);
+  });
+
+  it('reaches the sandbox screen only through the one lazy import', () => {
+    const files = walk(join(ROOT, 'src')).map(posix).filter((file) => !file.startsWith('src/ui/cardbattle/') && file.endsWith('.ts'));
+    const importers = files.filter((file) => /['"][^'"]*cardbattle\/[^'"]*['"]/.test(strip(readFileSync(join(ROOT, file), 'utf8'))));
+    expect(importers).toEqual(['src/ui/cardbattle-entry.ts']);
+    expect(readFileSync(join(ROOT, 'src/ui/cardbattle-entry.ts'), 'utf8')).toMatch(/import\(\s*'\.\/cardbattle\/sandbox'\s*\)/);
   });
 });

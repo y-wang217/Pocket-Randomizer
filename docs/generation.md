@@ -4015,7 +4015,7 @@ than guessed at.
 
 ### What it does not change
 
-`view.ts` is imported from and not modified: this branch adds **events**, not
+`core/battle/view.ts` is imported from and not modified: this branch adds **events**, not
 projections. Stat stages, status and volatiles were already projected and drawn
 as panel chips — present tense, what is true now — and what was missing is the
 moment of change. No `RUN_LOG_VERSION` bump, because flags are derived every
@@ -15790,3 +15790,53 @@ telegraphed lane every round until round 30: a lone survivor with Move cards
 can dodge one Drone indefinitely. Recorded, not retuned (balance is not a
 gate). The random bot wins 49 of 2,000, mean 11.69 rounds. 1,000 battles run
 in about 1.4 seconds headless.
+
+### 125h. Checkpoint 5: the sandbox screen, the hidden entry, placeholder assets
+
+- **`viewOf`** (`src/core/cards/view.ts`) is the UI contract: 18 tiles with
+  zone, occupant, the enemies telegraphing onto each and any planned-move
+  ghost; units with their planned slots and reserved MP; enemies with their
+  intent; the hand grouped by owner, Neutrals last, each card with `playable`,
+  `reason`, `needs` and the units that could play it. The screen computes no
+  rule.
+- **The screen** (`src/ui/cardbattle/sandbox.ts`, `sandbox.css`) is a full
+  frame layer over the app, not a router screen. A tap becomes an engine
+  action; the new state is drawn at once and the events play back as one-line
+  beats in a banner that never takes input: any tap anywhere skips them and
+  still lands. Under reduced motion the beats collapse to the last line and
+  the hit flash is off. Long press or Inspect opens a card in full and never
+  plays it. The menu holds the seed, Restart, New seed, Copy log and Exit; a
+  finished battle opens it. Nothing is written to the run save or to storage.
+  Every word is in `src/cardData/copy.ts`.
+- **The entry** (`src/ui/cardbattle-entry.ts`) is the key sequence, attached
+  as a window capture listener only while the router shows starter select, and
+  `#test`, read at the top of `mountApp` before `start` rewrites the hash. The
+  completing Enter is cancelled and stopped, so it never also presses a focused
+  starter card or the Choose button. The sandbox loads through the entry's one
+  dynamic import, which `test/encounter-registry.test.ts` now allows by name.
+- **Assets** (`src/ui/cardbattle/assets.ts`) are the contract's IDs in their
+  own manifest, reached only from the lazy chunk, globbing
+  `src/ui/assets/cardbattle/**/*.svg`. No file exists yet, so every ID draws
+  a placeholder at its contract size; icons draw as masks in `currentColor`
+  once their files arrive.
+
+Deviations and measurements:
+
+- **The top bar is 44px**, not the prompt's 40, so Exit is a 44px target. The
+  frame is 608px tall at 390x844, with no scroll.
+- **Unit panels size to their slots** rather than a third of the column each:
+  a three-slot unit needs two rows of 44px slots and its stats, which a 128px
+  panel cannot hold. The three panels sit at the bottom beside the player rows
+  and fit the 384px column. Enemy panels keep a third each.
+- **A card's unplayable reason is probed with a placeholder choice** of the
+  card's shape, so a Fire! in the backline reads "Danger zone only" rather than
+  failing first on the missing choice.
+- **The main bundle grows by 1,202 bytes, 645 gzipped**: the entry and the
+  lazy-load stub. That is over the "under 1 kB" reading of "unchanged" when
+  counted raw and under it over the wire. The sandbox chunk is 40,423 bytes
+  (13,726 gzipped) of script and 9,578 (2,514) of style. `contentHash` reads
+  `865d3ba2` over 67 files, as before.
+- **Two bare-name references resolved**: one passage in
+  `docs/architecture.md` and one here named the battle view by its bare
+  filename, which the card engine's view now shares; both read
+  `core/battle/view.ts`.
