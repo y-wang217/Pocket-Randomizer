@@ -17,6 +17,7 @@ export const CARD_COPY = {
   deployHint: 'Place your units on the home rows, then Start',
   placeUnit: (unit: string) => `${unit}: pick a home tile`,
   scenario: 'Scenario',
+  botTurn: 'Bot turn',
   undo: 'Undo',
   cancel: 'Cancel',
   inspect: 'Inspect',

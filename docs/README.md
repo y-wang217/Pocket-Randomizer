@@ -167,9 +167,12 @@ battle log without the repo
 and `npm run cards:narrate`; the board is seven deep with a three-row danger
 zone; the player places its units on the home rows before Start; enemies the
 scenario does not place spawn anywhere on their backline from the seed; Menu
-lists the scenarios. Built and stopped for review; the learning bot is next.
-`CARD_ENGINE_VERSION` moves to `cards-0.3.0`; none of the run's four axes
-moves.
+lists the scenarios. Then the guard bot (section 125n): a defensive
+beam-search player that sees only what a player sees, its trainer
+(`npm run cards:train`), a per-scenario bench (`npm run cards:bench`), a
+one-seed solver (`npm run cards:solve`), and Bot turn under Menu. Built and
+stopped for review. `CARD_ENGINE_VERSION` moves to `cards-0.3.0`; none of the
+run's four axes moves.
 
 **Also in flight: Defender Mode v0, a fun test.** Branch
 `claude/eager-turing-0059br`, prompt

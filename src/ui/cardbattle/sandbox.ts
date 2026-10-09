@@ -14,7 +14,8 @@
  *
  * A battle opens in deployment: the player taps a unit, then a home tile, to
  * place it (a unit already there swaps), and Start begins round 1. The menu
- * lists every scenario.
+ * lists every scenario, and Bot turn, which has the guard bot place the units
+ * or play the round from wherever the plan stands (`core/cards/guard.ts`).
  *
  * Outside the design bible by the author's ruling
  * (`docs/spec/gymrun-card-battle-engine-rulings.md`). It writes nothing into
@@ -27,6 +28,7 @@ import { ENCOUNTERS } from '../../cardData/encounters';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
 import { createBattle } from '../../core/cards/create';
+import { planDeploy, planRound } from '../../core/cards/guard';
 import type { Effect, Pos } from '../../core/cards/defs';
 import { choicesFor } from '../../core/cards/legal';
 import { newLog, type BattleLog } from '../../core/cards/log';
@@ -944,6 +946,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         clipboard.writeText(text).then(() => (status.textContent = CARD_COPY.copied), fallback);
       }),
       button('cb-btn', CARD_COPY.roundLog, () => openRoundLog()),
+      botTurn(),
       scenarios(),
       replay,
       button('cb-btn', CARD_COPY.close, () => (sheet.hidden = true)),
@@ -953,6 +956,21 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     );
     sheet.replaceChildren(panel);
     sheet.hidden = false;
+  }
+
+  /** The guard bot places the units, or plays this round on top of the plan so far. */
+  function botTurn(): HTMLButtonElement {
+    const live = state.phase === 'deploy' || state.phase === 'plan';
+    const node = button('cb-btn', CARD_COPY.botTurn, () => {
+      if (!live) return;
+      sheet.hidden = true;
+      pending = null;
+      placing = null;
+      const actions = state.phase === 'deploy' ? planDeploy(state).actions : planRound(state).actions;
+      for (const action of actions) if (!act(action)) break;
+    });
+    node.disabled = !live;
+    return node;
   }
 
   /** One button per scenario; a tap starts it on the current seed. */

@@ -184,3 +184,55 @@ export interface Rules {
   /** A battle still running after this many rounds ends as a loss. */
   roundCap: number;
 }
+
+/**
+ * The guard bot's evaluation weights (`core/cards/guard.ts`): what a board is
+ * worth to a player who plays to keep every unit alive. Tuned by
+ * `npm run cards:train`; the shipped values live in `cardData/guardWeights.ts`.
+ */
+export interface GuardWeights {
+  /** A won battle, on top of what the board it ends on is worth. */
+  win: number;
+  /** Keeping each unit alive. */
+  unit: Readonly<Record<UnitDefId, number>>;
+  /** Per point of HP a living unit has. */
+  hp: number;
+  /** Per point of base shield a living unit has left. */
+  baseShield: number;
+  /** Per MP a living unit holds. */
+  mp: number;
+  /** Per point of HP, shield and base shield left on the enemies. A cost. */
+  enemyHp: number;
+  /** Per enemy still standing. A cost. */
+  enemyAlive: number;
+  /** Per point of telegraphed damage aimed at a unit, scaled by how little it can take. A cost. */
+  threat: number;
+  /** The share of a unit's value at stake when a telegraph would knock it out. A cost. */
+  lethal: number;
+  /**
+   * Per enemy standing in a lane a unit also stands in, where a Strike can
+   * reach it. Lining up an attack is progress a one-round search cannot
+   * otherwise see: without it the bot can stall, safe and doing nothing.
+   */
+  reach: number;
+  /**
+   * How much `reach` grows each round, as a share of itself: a battle that
+   * drags on makes lining up an attack worth more than staying safe, so a
+   * stalemate breaks.
+   */
+  urgency: number;
+  /** Per unit standing in the danger zone: positive is bold, negative is careful. */
+  forward: number;
+  /** Per round played. A cost, so a quicker win is worth more. */
+  round: number;
+}
+
+/** How hard the guard bot searches. Wider is stronger and slower. */
+export interface GuardSearch {
+  /** Partial plans kept at each depth of a round's search. */
+  beam: number;
+  /** The most cards a plan may hold. */
+  maxPlays: number;
+  /** Placements, of every one possible, that get a full round 1 search. */
+  deployShortlist: number;
+}

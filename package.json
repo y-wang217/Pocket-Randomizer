@@ -32,7 +32,10 @@
     "smoke": "node scripts/smoke.mjs",
     "pool-report": "vite-node scripts/pool-report.ts",
     "cards:replay": "vite-node scripts/cards-replay.ts --",
-    "cards:narrate": "vite-node scripts/cards-narrate.ts --"
+    "cards:narrate": "vite-node scripts/cards-narrate.ts --",
+    "cards:bench": "vite-node scripts/cards-bench.ts --",
+    "cards:train": "vite-node scripts/cards-train.ts --",
+    "cards:solve": "vite-node scripts/cards-solve.ts --"
   },
   "dependencies": {
     "@pkmn/img": "^0.3.4",
