@@ -23,18 +23,16 @@
  * `--list` exists because a leg table nobody can read without running it is
  * how a gate acquires a leg nobody knows about.
  *
- * ## The four statuses
+ * ## The three statuses
  *
  * PASS and FAILED are the exit status of the leg's own process, taken directly.
- *
- * ERRORED is a leg whose **tests all passed and whose runner then fell over on
- * the way to saying so** — today that is exactly one thing, vitest's reporter
- * RPC timing out, and `everyTestPassedAnyway` in `check-tally.mjs` is where the
- * shape of it is argued. It is its own word rather than PASS because the two are not the
- * same fact and the table is the place that difference is legible: a reader
- * scanning for "is the tree green" gets a yes, and a reader asking "why did
- * that leg take four minutes and print an unhandled error" gets a word to
- * search for. It does not fail the run.
+ * **Nothing reads a leg's output to overrule its exit code.** There was a
+ * fourth status, ERRORED, that did: a leg printing vitest's `onTaskUpdate`
+ * timeout beside a passing tally was reported green. It went on 2026-10-09
+ * because it could not tell that timeout from a second unhandled error printed
+ * alongside it, and because the timeout was never the runner's noise: it is a
+ * test holding its worker's event loop past 60s, which is the test's to fix.
+ * `docs/generation.md` section 126.
  *
  * SKIPPED is for a leg that never ran, and there are exactly two reasons:
  *
@@ -66,9 +64,6 @@ import { spawn } from 'node:child_process';
 import { availableParallelism } from 'node:os';
 
 import { browserTests, nodeTests } from './browser-tests.mjs';
-// Moved out so `test/check-gate.test.ts` can reach them; unchanged otherwise.
-// Why a module and not an entry guard: the header of `check-tally.mjs`.
-import { everyTestPassedAnyway, tally } from './check-tally.mjs';
 
 const CI = Boolean(process.env.CI);
 const NPX = process.platform === 'win32' ? 'npx.cmd' : 'npx';
@@ -200,9 +195,6 @@ const LEGS = [
  * not installed, and the remedy is the same `--with-deps` install.
  */
 
-/** A leg that did not fail: PASS, or a green suite under a runner error. */
-const isGreen = (status) => status === 'PASS' || status === 'ERRORED';
-
 const NO_BROWSER = [
   /Executable doesn't exist at/,
   /Please run the following command to download new browsers/,
@@ -308,7 +300,7 @@ async function main() {
     const needed = leg.needs && legs.some((other) => other.name === leg.needs)
       ? results.find((r) => r.name === leg.needs)
       : null;
-    if (needed && !isGreen(needed.status)) {
+    if (needed && needed.status !== 'PASS') {
       console.log(`-- ${leg.name}: SKIPPED (${leg.needs} did not pass)`);
       results.push({ name: leg.name, status: 'SKIPPED', ms: 0, note: `${leg.needs} did not pass` });
       continue;
@@ -320,20 +312,6 @@ async function main() {
     if (code === 0) {
       console.log(`   PASS in ${seconds(ms)}`);
       results.push({ name: leg.name, status: 'PASS', ms });
-      continue;
-    }
-
-    /*
-     * Every test passed and vitest's reporter channel timed out on the way to
-     * saying so. ERRORED rather than FAILED, because no test failed; ERRORED
-     * rather than PASS, because something did go wrong and the table is where
-     * a reader should be able to see which of the two it was. It does not fail
-     * the run. See `everyTestPassedAnyway` for why this cannot swallow a real
-     * failure, and the four-statuses note at the top for why it is its own word.
-     */
-    if (everyTestPassedAnyway(output)) {
-      console.log(`   ERRORED in ${seconds(ms)} — ${tally(output)} passed; vitest's reporter RPC timed out`);
-      results.push({ name: leg.name, status: 'ERRORED', ms, note: 'reporter RPC timed out; suite green' });
       continue;
     }
 
@@ -370,16 +348,11 @@ async function main() {
 
   const failed = results.filter((r) => r.status === 'FAILED');
   const skipped = results.filter((r) => r.status === 'SKIPPED');
-  const errored = results.filter((r) => r.status === 'ERRORED');
   console.log(
-    `\n${results.filter((r) => r.status === 'PASS').length} passed, ${failed.length} failed, ${skipped.length} skipped, ${errored.length} runner error${errored.length === 1 ? '' : 's'}`,
+    `\n${results.filter((r) => r.status === 'PASS').length} passed, ${failed.length} failed, ${skipped.length} skipped`,
   );
   if (failed.length) console.log(`check: FAILED — ${failed.map((r) => r.name).join(', ')}`);
-  else if (errored.length) {
-    console.log(
-      `check: green, every test passed — ${errored.length} leg(s) hit a runner error: ${errored.map((r) => r.name).join(', ')}`,
-    );
-  } else if (skipped.length) console.log(`check: green, ${skipped.length} leg(s) skipped — not a full gate`);
+  else if (skipped.length) console.log(`check: green, ${skipped.length} leg(s) skipped — not a full gate`);
   else console.log('check: green');
 
   return failed.length ? 1 : 0;

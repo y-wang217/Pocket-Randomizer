@@ -757,7 +757,9 @@ nothing under `src/`, `contentHash` unmoved at `b8b419`, no axis moves.
   Open item below.
 - **A green suite stops reporting as FAILED.** `scripts/check.mjs` matched its
   reporter-timeout guard against coloured output and so never fired in CI; it
-  strips CSI sequences now and reports a fourth status, ERRORED.
+  stripped CSI sequences and reported a fourth status, ERRORED. **ERRORED was
+  retired on 2026-10-09** (`generation.md` section 126a): it could mask a second
+  unhandled error, and the timeout it forgave was one test, now fixed.
 - **The Node half is capped at two forks under `CI`**, against the reporter RPC
   timeout. Unconfirmed against the failure itself — open item below.
 - **WebKit is off the critical path**, in its own non-blocking workflow with a
@@ -1676,12 +1678,12 @@ One line each. The analysis lives where the pointer goes, not here.
    contrast rule between a filled pip and an empty one, which is a different
    assertion in a different file. `generation.md` section 47.3.
 
-0. **The CI fork cap is wired but unconfirmed.** Two forks on the Node half
-   under `CI` is the answer to `[vitest-worker]: Timeout calling "onTaskUpdate"`,
-   and it has not yet been run against the failure: `check.yml` fires on `push`
-   to `main` and on `pull_request` only, so the branch that carries the cap
-   cannot trigger one. It wants three runs of the leg at the cap.
-   `generation.md` section 47.7.
+0. **The CI fork cap answers a cause that was not the cause.** Two forks on
+   the Node half under `CI` was the answer to
+   `[vitest-worker]: Timeout calling "onTaskUpdate"` read as load. Section 126
+   found one test holding its worker past 60s and fixed it; the cap did not
+   stop the timeout in any run it was on. Whether to keep it is its own
+   change. `generation.md` sections 47.7 and 126.
 
 0. **A red WebKit now blocks nothing, and one issue is the whole signal.** The
    new workflow is non-blocking by construction. The issue it edits has to be

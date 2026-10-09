@@ -13115,15 +13115,15 @@ A guard exercised only in the environment where it cannot fail is untested,
 which is the cry-wolf problem `test/boundaries.test.ts` already warns about —
 and it had been sitting in the gate itself.
 
-The tally predicates move to `scripts/check-tally.mjs` **byte-for-byte**, with
+The tally predicates move to scripts/check-tally.mjs (deleted 2026-10-09, section 126) **byte-for-byte**, with
 their prose, so a test can reach them. `check.mjs` ends in
 `process.exit(await main())`, so a test that imported it would run the gate; an
 `import.meta.url` entry guard was the alternative and is the worse seam,
 because a guard that fails open means a test run invokes the ten-leg gate it is
-part of. `scripts/check-tally.d.mts` follows the convention
+part of. scripts/check-tally.d.mts (deleted with it) follows the convention
 `scripts/visual/contrast.d.mts` sets.
 
-`test/check-gate.test.ts` is the first test to cover the runner. Its fixtures
+test/check-gate.test.ts (deleted with it) is the first test to cover the runner. Its fixtures
 are real: the escape pattern is what this repo emits under `FORCE_COLOR=1`, the
 failing shape is run 37205550086's chromium leg, and the passing counts are
 47.5's own. Against the coloured passing tally under an `onTaskUpdate` timeout:
@@ -16343,7 +16343,7 @@ Presentation only: no engine, log or version change.
 
 - **The files.** 89 of the pack's sprites, converted to WebP (468 KB in all;
   the 1170 by 2532 background down to 780 wide, 59 KB) and named by the
-  existing asset IDs under `src/ui/assets/cardbattle/{group}/`. A `.webp`
+  existing asset IDs in each group folder of `src/ui/assets/cardbattle/`. A `.webp`
   wins over the first pack's `.svg` of the same ID, so anything the meadow
   pack does not draw (the card badge, the shovel) keeps its old file. New IDs:
   the owner band masks, the green primary button, the background, five
@@ -16368,3 +16368,67 @@ Presentation only: no engine, log or version change.
 - **Kept**, as Part E requires: enemy shields (now one line, *HP 3/3 · Sh
   0+1*, as a unit's), MP numbers, telegraph chips naming their enemy, owner
   letters. The Colossus shows its pinned art while pinned.
+
+## 126. The Node leg's reporter timeout was one test, not load
+
+**2026-10-09**, on `claude/sharp-ritchie-qb95px`, from `main` at `f58835e`.
+Prompt [`spec/gymrun-patch-node-leg-rpc-timeout.md`](spec/gymrun-patch-node-leg-rpc-timeout.md).
+Test-only: nothing under `src/` changes, and no version axis moves.
+
+**This corrects sections 15, 17, 34, 36 and 47**, which recorded
+`[vitest-worker]: Timeout calling "onTaskUpdate"` as the runner under load, and
+the comment in `scripts/vitest-split.mjs` that capped the forks on that reading.
+
+- **The mechanism.** Vitest's worker RPC arms a 60s timer on every call, and
+  the reply is only read when the worker's event loop turns. `core/` has no
+  timers, so a `playRun` or `resumeRun` never turns it however `async` it is.
+  A test that runs for more than 60s therefore expires the timer for the update
+  sent when it started, vitest counts that as an unhandled error, and the leg
+  exits 1 with every test passed. That is the shape on `test:node` and
+  `trim:node` in every recent `check` run, which `scripts/check.mjs` reports as
+  ERRORED.
+- **Not load.** Reproduced on an idle box with one scratch file of seventy 1s
+  synchronous tests; the same file with one `setImmediate` before each test is
+  clean. The fork count does not enter into it.
+- **The test.** `test/party.test.ts`, "resumes from the save taken at every
+  forced switch to an identical run", resumes the whole run once per switch
+  save: 62 saves, 80 to 90s locally. Every other test in the Node half is under
+  36s; `test/run-replay.test.ts`'s every-point resume, at 35.6s, is the next
+  nearest.
+- **The fix.** That loop awaits one `setImmediate` before each resume. Every
+  forced switch is still checked. The longest stretch without a turn is now
+  the seed search ahead of the loop, 2.8s locally; the slowest resume is 2.3s.
+  Run alone, the test raised the error without the yield and does not with it.
+- **Measured in Actions.** PR 107's first run, all six checks green:
+  `node suite` PASS in 248.7s and strict trim's `trim:node` PASS in 409.3s,
+  0 runner errors on both, where every recent `main` run had reported ERRORED.
+- **Not done here.** The two-fork cap in CI, whose comment now says its
+  reading is wrong; the leaked `setTimeout` in `src/ui/scene.ts` that failed
+  run 37928075949 from `test/species-label.test.ts`. Each is its own change.
+
+### 126a. ERRORED is retired
+
+**2026-10-09**, message 3 of the same prompt. **Supersedes the ERRORED status
+of section 34** and the tally test section 47.5 wrote for it.
+
+- **The mask.** ERRORED read a failed leg's output and reported it green when
+  it held the `onTaskUpdate` string, a passing files tally and no `N failed`.
+  An unhandled error is not a failed test, so a second one printed beside the
+  timeout met all three: fed a real `ReferenceError` from a leaked timer plus
+  the timeout under a passing tally, the guard returned true. Run 37928075949
+  printed that `ReferenceError` and was reported FAILED only because no
+  timeout fired in it.
+- **Retired, not tightened.** Counting errors against timeouts was the other
+  way, and it is still a parser overruling an exit code: under Actions vitest
+  also writes each error as an `##[error]` annotation, so the string count
+  and the error count do not even agree. And section 126 took away the reason
+  to forgive the timeout at all: it is a test holding its worker past 60s,
+  which is that test's to fix, the way the forced-switch sweep was.
+- **What changed.** `scripts/check.mjs` has three statuses, PASS, FAILED and
+  SKIPPED, read from the exit code; a dependency runs only after PASS. The
+  tally module, its type stub and test/check-gate.test.ts went with it,
+  since ERRORED was all they served. Section 47.5's mentions of them are
+  unbackticked with a note, as earlier deletions in this file were.
+- **The trade.** A test that crosses 60s now turns its leg red with vitest's
+  own message instead of a green line. That is the intended signal; the next
+  nearest, `test/run-replay.test.ts`, ran 35.6s locally.
