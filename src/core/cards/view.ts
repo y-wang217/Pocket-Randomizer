@@ -9,9 +9,24 @@ import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
 import type { CardOwner, ClassId, EnemyDefId, Effect, Pos, Zone } from './defs';
 import { playBlock, playersOf } from './legal';
-import { cardDefOf, needsOf, project, slotsOf, type Needs } from './plan';
-import type { BattleState, CardIid, EnemyId, Intent, PlayBlock, UnitId } from './state';
+import { cardDefOf, needsOf, project, slotsOf, type Needs, type Projection } from './plan';
+import type { BattleState, CardIid, EnemyId, EnemyState, Intent, PlayBlock, UnitId } from './state';
 import { allTiles, samePos, zoneOf } from './zones';
+
+/**
+ * One enemy's telegraphed attack on one tile, as the board draws it. Unlike
+ * `telegraphedBy`, which is every tile the intent names, a Strike's threat
+ * ends on the first unit standing in its lane once the plan's moves land:
+ * that unit takes the hit and shelters the tiles behind it. A Pierce and a
+ * Slash light every tile they name.
+ */
+export interface TileThreat {
+  enemy: EnemyId;
+  act: 'strike' | 'pierce' | 'slash';
+  n: number;
+  /** The tile where a Strike stops, on the unit it will hit. */
+  stop: boolean;
+}
 
 export type Occupant = { kind: 'unit'; id: UnitId } | { kind: 'enemy'; id: EnemyId; def: EnemyDefId };
 
@@ -22,6 +37,8 @@ export interface TileView {
   occupant: Occupant | null;
   /** Enemies whose telegraphed action lights this tile. */
   telegraphedBy: EnemyId[];
+  /** The attacks lighting this tile, by kind, in spawn order. */
+  threats: TileThreat[];
   /** A unit whose planned moves end here. */
   planGhost?: UnitId;
 }
@@ -101,9 +118,31 @@ export interface BattleView {
   piles: { draw: number; discard: number; spent: number; removed: number };
 }
 
+/**
+ * The tiles an enemy's attack threatens, given where the plan leaves the
+ * units. A Strike hits only the first unit in its lane (`enemies.ts`, phase
+ * 5), so its threat runs from the enemy's side and stops on that unit; with
+ * no unit in the lane it lights every tile and misses.
+ */
+function threatsOf(state: BattleState, enemy: EnemyState, projection: Projection): { pos: Pos; stop: boolean }[] {
+  const intent = enemy.intent;
+  if (!enemy.pos || !intent) return [];
+  if (intent.act !== 'strike') return intent.tiles.map((pos) => ({ pos, stop: false }));
+  const standing = state.units.filter((u) => !u.fainted).map((u) => projection[u.id]);
+  const fromEnemy = [...intent.tiles].sort((a, b) => (a.col - b.col) * RULES.forward.enemy || a.lane - b.lane);
+  const out: { pos: Pos; stop: boolean }[] = [];
+  for (const pos of fromEnemy) {
+    const stop = standing.some((p) => samePos(p, pos));
+    out.push({ pos, stop });
+    if (stop) break;
+  }
+  return out;
+}
+
 export function viewOf(state: BattleState): BattleView {
   const projection = project(state);
   const live = state.phase === 'plan';
+  const threatened = state.enemies.map((enemy) => ({ enemy, tiles: threatsOf(state, enemy, projection) }));
 
   const tiles: TileView[] = allTiles().map((pos) => {
     const unit = state.units.find((u) => samePos(u.pos, pos));
@@ -114,6 +153,12 @@ export function viewOf(state: BattleState): BattleView {
       zone: zoneOf(pos),
       occupant,
       telegraphedBy: state.enemies.filter((e) => e.pos && e.intent?.tiles.some((t) => samePos(t, pos))).map((e) => e.id),
+      threats: threatened.flatMap(({ enemy, tiles }) => {
+        const hit = tiles.find((t) => samePos(t.pos, pos));
+        const act = enemy.intent?.act;
+        if (!hit || (act !== 'strike' && act !== 'pierce' && act !== 'slash')) return [];
+        return [{ enemy: enemy.id, act, n: enemy.intent!.n, stop: hit.stop }];
+      }),
     };
     const ghost = state.units.find((u) => u.pos && !samePos(u.pos, projection[u.id]) && samePos(projection[u.id], pos));
     if (ghost) view.planGhost = ghost.id;

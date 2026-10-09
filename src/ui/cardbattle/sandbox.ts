@@ -26,7 +26,7 @@ import { choicesFor } from '../../core/cards/legal';
 import { newLog, type BattleLog } from '../../core/cards/log';
 import type { Action, BattleState, CardIid, TargetId, UnitId } from '../../core/cards/state';
 import { step } from '../../core/cards/step';
-import { viewOf, type BattleView, type HandCardView, type TileView } from '../../core/cards/view';
+import { viewOf, type BattleView, type HandCardView, type TileThreat, type TileView } from '../../core/cards/view';
 import { samePos } from '../../core/cards/zones';
 import { newSeed } from '../seed';
 import { cardAsset, type CardAssetId } from './assets';
@@ -64,6 +64,7 @@ const INTENT_ICON: Record<string, CardAssetId> = {
   shield: 'icon-shield',
   none: 'icon-wait',
 };
+const THREAT_ORDER: readonly TileThreat['act'][] = ['pierce', 'slash', 'strike'];
 const ZONE_TILE: Record<TileView['zone'], CardAssetId> = {
   playerBackline: 'tile-player-backline',
   danger: 'tile-danger-zone',
@@ -178,13 +179,14 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
 
   const top = el('header', 'cb-top');
   const mid = el('div', 'cb-mid');
-  const left = el('aside', 'cb-left');
+  // The player's side on the left, the enemy's on the right.
+  const unitSide = el('aside', 'cb-units');
   const board = el('div', 'cb-board');
-  const right = el('aside', 'cb-right');
+  const enemySide = el('aside', 'cb-enemies');
   // The beats never take a tap: any tap anywhere skips them and still lands.
   const banner = el('div', 'cb-banner');
   banner.setAttribute('aria-live', 'polite');
-  mid.append(left, board, right, banner);
+  mid.append(unitSide, board, enemySide, banner);
   const hand = el('div', 'cb-hand');
   const actions = el('footer', 'cb-actions');
   const sheet = el('div', 'cb-sheet');
@@ -444,7 +446,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         node.dataset['col'] = String(col);
         node.append(cardAsset(ZONE_TILE[tile.zone]));
         const selectable = choosing && pending!.tiles.some((t) => samePos(t, tile.pos));
-        if (tile.telegraphedBy.length > 0) node.append(layer('tile-overlay-telegraph', 'cb-ov cb-ov--telegraph'));
+        const acts = threatActs(tile);
+        for (const act of acts) node.append(threatLayer(tile, act));
         if (selectable) node.append(layer('tile-overlay-selectable', 'cb-ov cb-ov--selectable'));
         else if (choosing) node.append(layer('tile-overlay-unavailable', 'cb-ov cb-ov--unavailable'));
         if (tile.planGhost) {
@@ -454,11 +457,41 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
           node.append(ghost);
         }
         if (tile.occupant) node.append(token(view, tile));
+        if (acts.length > 0) node.append(threatChips(tile));
         node.addEventListener('click', () => tapTile(tile));
         nodes.push(node);
       }
     }
     board.replaceChildren(...nodes);
+  }
+
+  /** The kinds of attack lighting a tile, each once, in a fixed order. */
+  function threatActs(tile: TileView): TileThreat['act'][] {
+    return THREAT_ORDER.filter((act) => tile.threats.some((t) => t.act === act));
+  }
+
+  /**
+   * One kind's highlight. Pierce keeps the pack's hatched telegraph and runs a
+   * line through the tile; Strike is a solid wash that ends in a bar on the
+   * tile where it stops; Slash is a dashed purple wash.
+   */
+  function threatLayer(tile: TileView, act: TileThreat['act']): HTMLElement {
+    const node = act === 'pierce' ? layer('tile-overlay-telegraph', 'cb-ov cb-threat') : el('span', 'cb-ov cb-threat');
+    node.dataset['act'] = act;
+    if (act === 'strike' && tile.threats.some((t) => t.act === 'strike' && t.stop)) node.dataset['stop'] = 'true';
+    return node;
+  }
+
+  /** Each attack on a tile as its keyword's icon and number, in the tile's corner. */
+  function threatChips(tile: TileView): HTMLElement {
+    const chips = el('span', 'cb-threat-chips');
+    for (const threat of tile.threats) {
+      const chip = el('span', 'cb-threat-chip');
+      chip.dataset['act'] = threat.act;
+      chip.append(cardAsset(INTENT_ICON[threat.act]!, { width: 11, height: 11 }), el('span', '', String(threat.n)));
+      chips.append(chip);
+    }
+    return chips;
   }
 
   function layer(id: CardAssetId, className: string): HTMLElement {
@@ -497,11 +530,11 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   }
 
   function renderPanels(view: BattleView): void {
-    left.replaceChildren(
+    enemySide.replaceChildren(
       ...view.enemies.map((enemy, index) => {
         const target = !!pending && pending.stage !== 'tile' && pending.units.includes(enemy.id);
+        // Dark, drawn by the stylesheet: the pack's frame is the light player panel.
         const panel = el('div', 'cb-panel cb-panel--enemy');
-        panel.append(cardAsset('panel-frame', 'fill'));
         if (enemy.dead) panel.dataset['dead'] = 'true';
         if (target) panel.dataset['target'] = 'true';
         panel.append(el('div', 'cb-panel-name', `${enemy.name} ${index + 1}`));
@@ -509,6 +542,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         panel.append(statLine(CARD_COPY.shield, `${enemy.shield} · ${CARD_COPY.baseShield} ${enemy.baseShield}`));
         if (enemy.intent) {
           const pill = el('div', 'cb-pill');
+          pill.dataset['act'] = enemy.intent.icon;
           pill.append(cardAsset('pill-badge', 'fill'));
           pill.append(cardAsset(INTENT_ICON[enemy.intent.icon] ?? 'icon-wait', { width: 16, height: 16 }));
           const word = enemy.intent.icon === 'none' ? CARD_COPY.intentNone : `${CARD_COPY.keyword[enemy.intent.icon as 'strike']} ${enemy.intent.n}`;
@@ -519,7 +553,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         return panel;
       }),
     );
-    right.replaceChildren(
+    unitSide.replaceChildren(
       ...view.units.map((unit) => {
         const target = !!pending && pending.stage !== 'tile' && pending.units.includes(unit.id);
         const panel = el('div', 'cb-panel cb-panel--unit');

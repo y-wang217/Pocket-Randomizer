@@ -8,8 +8,9 @@
  * a missing file falls back to.
  *
  * The frame is the prompt's 390-wide phone layout: top bar, a 99 / 192 / 99
- * row holding the enemy panels, the 3 by 6 board of 64px tiles and the unit
- * panels, then the hand and the action row. The top bar is 44 rather than
+ * row holding the unit panels, the 3 by 6 board of 64px tiles and the enemy
+ * panels, then the hand and the action row. The player's side is on the left
+ * and light, the enemy's on the right and dark. The top bar is 44 rather than
  * the prompt's 40 so its Exit button can be a 44px target (docs/generation.md
  * section 125). Every touch target is at least 44px; nothing needs hover.
  */
@@ -188,13 +189,13 @@
   grid-template-columns: repeat(3, 64px);
   grid-template-rows: repeat(6, 64px);
 }
-.cb-left {
+.cb-enemies {
   display: grid;
   grid-template-rows: repeat(3, 128px);
 }
 /* Unit panels size to their slots, so a three-slot unit has room; they sit
    at the bottom, beside the player rows. */
-.cb-right {
+.cb-units {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -228,8 +229,80 @@
 .cb-ov {
   pointer-events: none;
 }
-.cb-ov--telegraph > .cb-asset--placeholder {
-  background: rgba(200, 90, 80, 0.35);
+
+/*
+ * An enemy's attack, one look per kind, each with its keyword's icon and
+ * number in the tile's corner. Pierce: the pack's red hatch with a line
+ * running on through the tile, because it goes through every unit. Strike: a
+ * solid red wash that ends in a bar on the unit it hits; the tiles behind are
+ * sheltered and unlit. Slash: a dashed purple wash over its three tiles.
+ */
+.cb-threat[data-act='pierce'] > .cb-asset--placeholder {
+  background: repeating-linear-gradient(-45deg, rgba(200, 90, 80, 0.45) 0 3px, transparent 3px 9px);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 2.5px var(--cb-red);
+}
+.cb-threat[data-act='pierce']::after {
+  content: '';
+  position: absolute;
+  left: calc(50% - 1.5px);
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--cb-red);
+  opacity: 0.75;
+}
+.cb-threat[data-act='strike'] {
+  margin: 2px;
+  border-radius: 8px;
+  background: rgba(200, 90, 80, 0.2);
+  box-shadow: inset 0 0 0 2.5px var(--cb-red);
+}
+.cb-threat[data-act='strike'][data-stop='true']::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 3px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--cb-red);
+}
+.cb-threat[data-act='slash'] {
+  margin: 2px;
+  border-radius: 8px;
+  border: 2.5px dashed var(--cb-purple);
+  background: rgba(134, 100, 172, 0.22);
+}
+.cb-threat-chips {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  pointer-events: none;
+}
+.cb-threat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  height: 14px;
+  padding: 0 3px 0 2px;
+  border-radius: 7px;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  background: var(--cb-red);
+  color: var(--cb-surface);
+}
+.cb-threat-chip[data-act='slash'] {
+  background: var(--cb-purple);
+}
+.cb-threat-chip > .cb-asset--placeholder {
+  font-size: 0;
+  box-shadow: none;
 }
 .cb-ov--selectable > .cb-asset--placeholder {
   background: rgba(35, 135, 125, 0.3);
@@ -364,9 +437,23 @@
   position: relative;
   flex: none;
 }
+/* The enemy's panels are dark: no pack frame, the ink itself. */
+.cb-panel--enemy {
+  --cb-dim: rgba(255, 252, 245, 0.7);
+  border-radius: 12px;
+  background: var(--cb-ink);
+  color: var(--cb-surface);
+}
+.cb-panel--enemy .cb-bar {
+  border-radius: 6px;
+  background: rgba(255, 252, 245, 0.28);
+}
 .cb-panel[data-target='true'] {
   box-shadow: inset 0 0 0 3px var(--cb-red);
   border-radius: 12px;
+}
+.cb-panel--enemy[data-target='true'] {
+  box-shadow: inset 0 0 0 3px #f08a7f;
 }
 .cb-panel--unit[data-target='true'] {
   box-shadow: inset 0 0 0 3px var(--cb-teal);
@@ -433,6 +520,12 @@
 }
 .cb-pill > :not(.cb-asset--fill) {
   position: relative;
+}
+.cb-pill[data-act='slash'] {
+  color: var(--cb-purple);
+}
+.cb-pill[data-act='slash'] > .cb-asset--placeholder:first-child {
+  box-shadow: inset 0 0 0 2px var(--cb-purple);
 }
 .cb-pill-text {
   color: var(--cb-ink);

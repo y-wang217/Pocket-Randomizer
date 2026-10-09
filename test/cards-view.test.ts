@@ -58,6 +58,45 @@ describe('viewOf', () => {
     expect(view.hand.flatMap((g) => g.cards).find((card) => card.def === 'dash')).toMatchObject({ planned: true, playable: false, reason: null });
   });
 
+  it('tells the attacks apart: a Strike stops on the first unit, a Pierce and a Slash light every tile', () => {
+    let state = board({ hand: ['dash'], mp: { C: 1 }, units: { A: at(1, 2), B: at(2, 1), C: at(3, 1) }, enemies: [at(3, 5), at(2, 5), at(1, 4)] });
+    const [strike, pierce, slash] = state.enemies;
+    strike!.intent = { act: 'strike', n: 1, tiles: [at(3, 4), at(3, 3), at(3, 2), at(3, 1)] };
+    pierce!.intent = { act: 'pierce', n: 2, tiles: [at(2, 4), at(2, 3), at(2, 2), at(2, 1)] };
+    slash!.intent = { act: 'slash', n: 1, tiles: [at(1, 3), at(2, 3)] };
+    const threats = (view: ReturnType<typeof viewOf>, lane: 1 | 2 | 3, col: 1 | 2 | 3 | 4 | 5 | 6) =>
+      view.tiles.find((t) => t.pos.lane === lane && t.pos.col === col)!.threats;
+
+    let view = viewOf(state);
+    // The Strike runs down lane 3 to C and stops there.
+    expect(threats(view, 3, 4)).toEqual([{ enemy: strike!.id, act: 'strike', n: 1, stop: false }]);
+    expect(threats(view, 3, 1)).toEqual([{ enemy: strike!.id, act: 'strike', n: 1, stop: true }]);
+    // The Pierce lights its whole lane, through B.
+    for (const col of [4, 2, 1] as const) expect(threats(view, 2, col)).toEqual([{ enemy: pierce!.id, act: 'pierce', n: 2, stop: false }]);
+    // A tile two attacks reach carries both, in spawn order.
+    expect(threats(view, 2, 3).concat(threats(view, 1, 3)).map((t) => t.act)).toEqual(['pierce', 'slash', 'slash']);
+    expect(threats(view, 1, 2)).toEqual([]);
+
+    // C plans a Dash up its lane: the Strike now stops on C's new tile, and the tiles behind it go dark.
+    const result = select(state, { type: 'select', card: iidOf(state, 'dash'), unit: 'C', choice: { tile: at(3, 3) } });
+    if (!result.ok) throw new Error(result.reason);
+    state = result.state;
+    view = viewOf(state);
+    expect(threats(view, 3, 3)).toEqual([{ enemy: strike!.id, act: 'strike', n: 1, stop: true }]);
+    expect(threats(view, 3, 2)).toEqual([]);
+    expect(threats(view, 3, 1)).toEqual([]);
+    // `telegraphedBy` still names every tile the intent names.
+    expect(view.tiles.find((t) => t.pos.lane === 3 && t.pos.col === 1)!.telegraphedBy).toEqual([strike!.id]);
+  });
+
+  it('lights a Strike down its whole lane when no unit stands in it', () => {
+    const state = board({ units: { A: at(1, 1), B: at(2, 1), C: at(2, 2) }, enemies: [at(3, 5), null, null] });
+    state.enemies[0]!.intent = { act: 'strike', n: 1, tiles: [at(3, 4), at(3, 3), at(3, 2), at(3, 1)] };
+    const lit = viewOf(state).tiles.filter((t) => t.threats.length > 0);
+    expect(lit.map((t) => t.pos.col)).toEqual([1, 2, 3, 4]);
+    expect(lit.every((t) => t.threats[0]!.stop === false)).toBe(true);
+  });
+
   it('offers nothing to play once the battle is over', () => {
     const view = viewOf({ ...board({ hand: ['move'] }), phase: 'won' });
     expect(view.canCommit).toBe(false);

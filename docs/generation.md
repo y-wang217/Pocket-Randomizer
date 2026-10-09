@@ -15871,3 +15871,38 @@ carries a script, an external reference or text; every icon draws in
 Measured: the main bundle is byte identical to checkpoint 5's (4,198,984
 bytes); the sandbox chunk is 70,360 bytes of script with the pack inlined and
 11,300 of style. The phone fit and the 44px floor hold with the art in.
+
+### 125j. Sides, panel colours and telegraph kinds
+
+**2026-10-09.** From
+[`gymrun-patch-card-battle-sides-and-telegraphs.md`](spec/gymrun-patch-card-battle-sides-and-telegraphs.md).
+Sandbox presentation only; the engine's rules, the log and every version axis
+are unchanged.
+
+- **Sides.** The unit panels stand in the left column and the enemy panels in
+  the right; the board is unchanged between them. The containers are named for
+  their side, `cb-units` and `cb-enemies`, not for left and right.
+- **Panel colours.** Unit panels keep the pack's light frame. Enemy panels
+  draw no frame: they are the ink colour itself, with light text, a lightened
+  bar track and a lighter red for the target ring. The pack has no dark frame,
+  so this is the stylesheet's, not an asset.
+- **Telegraph kinds.** `viewOf` gains `threats` on every tile: each enemy
+  attack that lights it, by act and number, and whether a Strike stops there.
+  `telegraphedBy` is unchanged and still names every tile an intent names.
+  - A **Strike** runs from the enemy's side down its lane and stops on the
+    first unit standing there **once the plan's moves land** (the projection),
+    since phase 5 hits only that unit; the tiles behind it are unlit. It draws
+    as a solid red wash with a bar on the tile it stops on. With no unit in the
+    lane it lights every tile.
+  - A **Pierce** lights every tile it names and draws as the pack's red hatch
+    with a line running on through the tile.
+  - A **Slash** draws as a dashed purple wash.
+  - Every lit tile carries a chip per attack in its corner, the keyword's icon
+    and its number. The enemy's intent pill takes purple for a Slash.
+- **The Strike's stop is a forecast.** It reads the board after the plan's
+  moves and before any enemy acts. An earlier enemy's action fainting the unit
+  it stops on lets the Strike through to the next unit at resolution; the
+  board does not draw that case.
+- **Measured.** The node suite passes under strict trim, 2,383 tests; the run
+  also printed one vitest worker RPC timeout (`onTaskUpdate`), the container
+  under load, not a test.
