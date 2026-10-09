@@ -2,14 +2,15 @@
  * Building a battle. `layoutBattle` is the board before anything is drawn:
  * units and enemies on their tiles, every card in the draw pile in deck order.
  * `createBattle` rolls each enemy's starting step (E6), shuffles, and runs the
- * next-hand phase once, so the battle opens on round 1 with a hand. The first
- * enemy move and telegraph join it at checkpoint 3.
+ * enemy move, telegraph and next-hand phases once, so the battle opens on
+ * round 1 with a hand and every enemy's intent lit.
  */
 import { CARDS, DECKS } from '../../cardData/cards';
 import { ENCOUNTERS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
+import { enemyMovesAndTelegraph } from './enemies';
 import type { BattleEvent } from './events';
 import type { Ctx } from './keywords';
 import { nextHand } from './resolve';
@@ -57,6 +58,7 @@ export function layoutBattle(encounterId: string, seed: string): BattleState | n
       shield: 0,
       baseShield: ENEMIES[def].baseShield,
       step: 0,
+      conds: {},
       intent: null,
     })),
     cards,
@@ -78,6 +80,8 @@ export function createBattle(encounterId: string, seed: string): CreateResult {
     for (const enemy of s.enemies) enemy.step = stream.nextInt(ENEMIES[enemy.def].script.steps.length);
     s.piles.draw = shuffled(stream, s.piles.draw);
   });
+  // Battle start runs phases 6, 7 and 8 once, on the rolled step.
+  enemyMovesAndTelegraph(ctx, false);
   nextHand(ctx);
   return { ok: true, state: s, events: ctx.events };
 }

@@ -15715,3 +15715,37 @@ Readings the prompt left open:
   round 31 is lost.
 - **Need Help's extra card** is drawn after the five, from what is left of the
   draw pile, and the pile is never reshuffled for it (the author's ruling).
+
+### 125f. Checkpoint 3: enemy scripts, movement, telegraph, the encounter
+
+`src/core/cards/enemies.ts` is the interpreter for phases 5 to 7; `commit`
+runs them between the MP gain and the next hand, and `createBattle` runs 6
+and 7 once before dealing round 1, so the battle opens with every intent lit.
+Nothing in it draws: the only enemy randomness is the starting step, rolled
+at creation.
+
+Readings the prompt left open:
+
+- **The rolled step is the first step played.** Battle start runs phase 6
+  without advancing the cycle; every later phase 6 advances first. Advancing
+  at battle start would skip the step that was rolled.
+- **Conditions live on the enemy** (`conds`), set once in phase 6 before the
+  move and read by phase 7. Drone step 3 therefore stays and Slashes, or Hunts
+  and Strikes, on one evaluation.
+- **A Strike or Pierce telegraph lights its lane's tiles in player reach**,
+  columns 1 to 4. The Strike lands on the first unit on them counted from the
+  enemy's side, at action time; with nobody there it misses (`enemyMissed`),
+  which is the dodge the playtest readout counts. A Slash lights the three
+  tiles of the next column, fixed at telegraph, since enemies do not move
+  between telegraph and action.
+- **Hunt compares HP, not shields**, when breaking a tie by the front unit,
+  and the front unit is the one nearest the enemy's side. With no reachable
+  lane the enemy stays (`enemyWaited`, `noLane`).
+- **An enemy's Shield clears as its next action begins** even when that
+  action is none (E5).
+- **The battle is lost the moment the last unit faints**, mid phase 5; no
+  enemy after it acts and no next hand is dealt.
+
+Measured on the shipped encounter: a player who only ends turns loses every
+one of five seeds inside the round cap. That is a termination check, not a
+balance number.

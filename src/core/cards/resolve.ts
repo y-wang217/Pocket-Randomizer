@@ -6,7 +6,7 @@
  *      fizzles: it is still used and its MP is not refunded.
  *   3. Win check. Dead enemies never act.
  *   4. MP gain, capped.
- *   5-7. Enemy actions, moves and telegraph: checkpoint 3.
+ *   5-7. Enemy actions, moves and telegraph (`enemies.ts`).
  *   8. The next hand.
  *
  * The whole round resolves in this one call and returns every event, so the
@@ -14,6 +14,7 @@
  */
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
+import { enemyActions, enemyMovesAndTelegraph } from './enemies';
 import type { Ctx } from './keywords';
 import { gainMp, payFor, resolveEffects, resolveMove, retire } from './keywords';
 import { cardDefOf, checkPlan, isMoveCard, livingEnemies, livingUnits, type StepResult, unitOf } from './plan';
@@ -72,7 +73,10 @@ export function commit(state: BattleState): StepResult {
   // 4. MP gain.
   for (const unit of livingUnits(s)) gainMp(ctx, unit, RULES.mp.gainPerRound, 'round');
 
-  // 5 to 7. The enemies act, move and telegraph: checkpoint 3.
+  // 5. The enemies act; 6 and 7, they move and telegraph.
+  enemyActions(ctx);
+  if (s.phase !== 'plan') return { ok: true, state: s, events: ctx.events };
+  enemyMovesAndTelegraph(ctx, true);
 
   // 8. The next hand.
   nextHand(ctx);

@@ -131,9 +131,10 @@ without its type chips. `contentHash` to `76dc8f`; no other axis moves.
 rulings [`spec/gymrun-card-battle-engine-rulings.md`](spec/gymrun-card-battle-engine-rulings.md),
 record [`generation.md`](generation.md) section 125. GYMRUN's own card battle,
 one fight behind a hidden entry on starter select, outside the design bible.
-Checkpoint 1 (types, tables, zones, legality with projection) is built;
-checkpoint 2 (`step`, deck and hand, the keyword resolvers, unit abilities,
-events) is built and stopped for review. No version axis moves.
+Checkpoints 1 (types, tables, zones, legality with projection) and 2
+(`step`, deck and hand, the keyword resolvers, unit abilities, events) are
+built; checkpoint 3 (enemy scripts, movement, telegraph, the encounter) is
+built and stopped for review. No version axis moves.
 
 **Also in flight: Defender Mode v0, a fun test.** Branch
 `claude/eager-turing-0059br`, prompt

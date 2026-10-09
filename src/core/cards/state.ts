@@ -5,7 +5,7 @@
  * The plan lives here, not in the UI. `select` and `unselect` edit
  * `state.plan`, and every legality question is answered from this object.
  */
-import type { CardOwner, Col, EnemyDefId, Lane, Pos, UnitDefId } from './defs';
+import type { CardOwner, Col, Cond, EnemyDefId, Lane, Pos, UnitDefId } from './defs';
 
 export type { Pos, Lane, Col };
 
@@ -47,6 +47,8 @@ export interface EnemyState {
   baseShield: number;
   /** Index into the script's cycle of the step it is on. */
   step: number;
+  /** The step's conditions, evaluated once in the move phase; the act reads these. */
+  conds: Partial<Record<Cond, boolean>>;
   intent: Intent | null;
 }
 

@@ -4,7 +4,7 @@
  * record of a round. Plain JSON, like the state.
  */
 import type { Pos } from './defs';
-import type { CardIid, EnemyId, IllegalReason, TargetId, UnitId } from './state';
+import type { CardIid, EnemyId, IllegalReason, Intent, TargetId, UnitId } from './state';
 
 export type BattleEvent =
   // The plan.
@@ -28,9 +28,16 @@ export type BattleEvent =
   | { t: 'mpGained'; unit: UnitId; amount: number; source: 'card' | 'round' | 'ability' | 'focus' }
   /** Need Help: an extra card owed to the next hand. */
   | { t: 'drawQueued'; card: CardIid; n: number }
+  // The enemies.
+  | { t: 'enemyActed'; enemy: EnemyId; act: Intent['act']; n: number }
+  /** A telegraphed hit that found nobody on its lit tiles: dodged. */
+  | { t: 'enemyMissed'; enemy: EnemyId; act: Intent['act'] }
+  | { t: 'enemyMoved'; enemy: EnemyId; from: Pos; to: Pos; rule: 'hunt' | 'advance' }
+  | { t: 'enemyWaited'; enemy: EnemyId; why: 'noLane' | 'blocked' | 'limit' }
+  | { t: 'telegraphed'; enemy: EnemyId; step: number; intent: Intent }
   // The next hand.
   | { t: 'roundStarted'; round: number }
-  | { t: 'shieldCleared'; unit: UnitId; amount: number }
+  | { t: 'shieldCleared'; unit: TargetId; amount: number }
   | { t: 'discarded'; cards: CardIid[] }
   | { t: 'reshuffled'; count: number }
   | { t: 'drew'; cards: CardIid[] }

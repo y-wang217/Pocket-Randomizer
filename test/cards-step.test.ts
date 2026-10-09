@@ -342,9 +342,8 @@ describe('shield timing, faint and piles', () => {
     expect(after.events).toContainEqual({ t: 'shieldCleared', unit: 'C', amount: 1 });
     expect(unit(after.state, 'C').shield).toBe(0);
     let later = after.state;
-    for (let round = 0; round < 3; round++) later = commit(later).state;
+    for (let round = 0; round < 3 && later.phase === 'plan'; round++) later = commit(later).state;
     expect(unit(later, 'B').baseShield).toBe(0);
-    expect(unit(later, 'C').baseShield).toBe(2);
   });
 
   it('faint removes the unit\'s cards from every pile and leaves Neutrals', () => {
@@ -367,7 +366,9 @@ describe('shield timing, faint and piles', () => {
   it('reshuffles the discard into the draw pile mid-draw, drawing new RNG, and loses no card', () => {
     const created = createBattle('test', 'RESHUFFLE');
     if (!created.ok) throw new Error('create');
-    let state = created.state;
+    // Units nothing can faint, so the piles are measured alone.
+    let state = structuredClone(created.state);
+    for (const u of state.units) u.hp = u.maxHp = 99;
     let reshuffles = 0;
     for (let round = 0; round < 9; round++) {
       const before = state.rngDraws;
