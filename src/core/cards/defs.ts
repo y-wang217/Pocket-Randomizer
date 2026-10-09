@@ -28,7 +28,7 @@ export type UnitDefId = 'A' | 'B' | 'C';
 export type ClassId = 'special' | 'ranged' | 'melee';
 export type TypeId = 'fire' | 'plasma' | 'water';
 export type CardOwner = UnitDefId | 'neutral';
-export type EnemyDefId = 'drone' | 'lancer';
+export type EnemyDefId = 'drone' | 'lancer' | 'hound' | 'turret' | 'bulwark' | 'sniper' | 'pikeman' | 'colossus';
 
 export type DamageKeyword = 'strike' | 'pierce' | 'slash' | 'blast';
 
@@ -47,6 +47,12 @@ export type Effect =
   | { k: 'grantMove'; n: number }
   /** Need Help: extra cards on the next hand, none owned by the player of the card. */
   | { k: 'drawNext'; n: number; filter: 'notOwner' }
+  /**
+   * Harpoon (D): a boss in the playing unit's lane, `range` tiles ahead at
+   * most, is pinned for `pin` of its turns: it does not move, loses every
+   * shield (they return on its second turn) and Screams instead of acting.
+   */
+  | { k: 'harpoon'; pin: number; range: number }
   | { k: ReservedEffect; n: number };
 
 export interface CardDef {
@@ -57,8 +63,15 @@ export interface CardDef {
   /** `null` until the author's types arrive. The slice reads no type. */
   type: TypeId | null;
   effects: readonly Effect[];
-  /** Once per battle: after it resolves the card leaves for `spent`. */
-  once?: boolean;
+  /**
+   * Uses, a keyword (D7): after its last use the card leaves for `spent` until
+   * the next wave; before that it goes back into the deck. Absent, unlimited.
+   */
+  uses?: number;
+  /** Retain: an unplayed copy stays in hand at the round's end, holding one of the hand's places. */
+  retain?: true;
+  /** The picture its face shows, for flavour, in place of its first effect's icon. */
+  face?: 'shovel' | 'harpoon';
 }
 
 export type Ability =
@@ -86,6 +99,8 @@ export type ActRule =
 export interface EnemyStep {
   move: MoveRule;
   act: ActRule;
+  /** A name for the act, shown in place of its keyword (the Colossus's Crush and Stomp). */
+  label?: string;
 }
 
 /** A union of one member today; a weighted pool is a second member later. */
@@ -96,6 +111,29 @@ export interface EnemyDef {
   name: string;
   hp: number;
   baseShield: number;
+  /**
+   * Starts on its first damaging step instead of rolling, so it attacks from
+   * round 1 (`docs/spec/gymrun-patch-card-battle-grace-friendly-fire.md` A1).
+   * A Fast enemy is designed to hit for 1.
+   */
+  fast?: true;
+  /** Difficulty, provisional: a scenario's grade total is the sum over its enemies. */
+  grade: number;
+  /**
+   * Tiles it covers, from its position: lanes `lane` to `lane + lanes - 1`,
+   * columns `col` (its front row, toward the player) to `col + cols - 1`.
+   * One by one when absent. Hit once per card however many tiles a card
+   * covers (D1).
+   */
+  size?: { lanes: number; cols: number };
+  /** How many steps one Advance takes; one when absent. */
+  advanceSteps?: number;
+  /** A boss: the Harpoon's target (Part D). */
+  boss?: true;
+  /** Once, the first move phase at or under half HP, it stalks instead of its scripted move (D3). */
+  stalks?: true;
+  /** A card put into the player's hand when its wave arrives (the Colossus's Harpoon). */
+  grants?: string;
   script: EnemyScript;
 }
 
@@ -105,6 +143,12 @@ export interface DeckDef {
   units: readonly UnitDefId[];
   /** One entry per card instance, in the order the unshuffled draw pile holds them. */
   cards: readonly string[];
+}
+
+/** One enemy of a scenario: a fixed tile, or none for a tile drawn from the seed. */
+export interface EnemySpawn {
+  def: EnemyDefId;
+  pos?: Pos;
 }
 
 export interface EncounterDef {
@@ -120,7 +164,13 @@ export interface EncounterDef {
    * no `pos` starts on a free tile of `RULES.spawnZone`, drawn from the
    * battle's seed when the battle is created.
    */
-  enemies: readonly { def: EnemyDefId; pos?: Pos }[];
+  enemies: readonly EnemySpawn[];
+  /**
+   * Waves after the first, in order (Part C). The next wave arrives when the
+   * last enemy of the current one falls; the battle is won when the last wave
+   * falls. Ids continue across waves (`e0`, `e1`, ... in the order listed).
+   */
+  waves?: readonly (readonly EnemySpawn[])[];
 }
 
 export type HuntTieBreak = 'nearestLane' | 'lowestHp' | 'upperLane';
@@ -165,8 +215,11 @@ export interface Rules {
   mpFromCards: 'usableNextTurn';
   /** R13. */
   targetOnPattern: 'chosenUnitAnyRange';
-  /** R14. */
-  friendlyFire: boolean;
+  /**
+   * R14, for the player's Blast only: which player units on its tiles it
+   * damages. Strike, Pierce and Slash never hit an ally.
+   */
+  blastFriendlyFire: 'alliesExceptCaster' | 'allies' | 'none';
   /** R15. A Move of N reaches tiles 1 to N orthogonal steps away through empty tiles. */
   moveShape: 'orthogonalInsideReach';
   /** E1. */
@@ -181,8 +234,25 @@ export interface Rules {
   enemyShieldClears: 'ownNextAction';
   /** E6. */
   startingStep: 'rolledPerEnemy';
-  /** A battle still running after this many rounds ends as a loss. */
+  /**
+   * Opening grace: a non-Fast enemy's starting step is rolled only among the
+   * steps whose act cannot deal damage. Off, every step is in the roll, as in
+   * `cards-0.3.0`. A Fast enemy starts on its first damaging step either way.
+   */
+  openingGrace: boolean;
+  /** D2: a pinned boss Screams instead of acting, hitting every tile touching its footprint, allies included. */
+  scream: { n: number };
+  /** D3: a stalking enemy's steps toward the player, and what each stomps on the tiles it moves into. */
+  stalk: { steps: number; damage: number; atHpShare: number };
+  /** A battle still running after this many rounds of one wave ends as a loss: the count restarts each wave (C6). */
   roundCap: number;
+  /**
+   * Between waves (the author's rulings, C1 to C5): each living unit keeps its
+   * HP, loses its card shield, has its base shield restored and its MP reset;
+   * every card not removed by a faint is shuffled back, Once cards included;
+   * owed MP and extra draws are cleared; the units are placed again.
+   */
+  betweenWaves: { mp: 'reset'; deck: 'reshuffleAll'; owed: 'clear'; units: 'placeAgain' };
 }
 
 /**

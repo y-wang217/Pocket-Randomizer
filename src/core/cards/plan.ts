@@ -20,12 +20,13 @@
  */
 import { CARDS } from '../../cardData/cards';
 import { CLASS_SLOTS } from '../../cardData/classes';
+import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
 import type { CardDef, DamageKeyword, Effect, Pos } from './defs';
 import type { BattleEvent } from './events';
 import type { Action, BattleState, Choice, IllegalReason, PlannedPlay, PlayBlock, UnitId, UnitState } from './state';
-import { blastCentres, blastTiles, inDanger, moveDestinations, onBoard, samePos, slashTiles } from './zones';
+import { blastCentres, blastTiles, covers, enemyTiles, inDanger, lanesOf, moveDestinations, onBoard, samePos, slashTiles } from './zones';
 
 export type StepResult =
   | { ok: true; state: BattleState; events: BattleEvent[] }
@@ -62,7 +63,7 @@ export function isMoveCard(def: CardDef): boolean {
 export function needsOf(def: CardDef): Needs {
   if (effect(def, 'grantMove')) return 'unitThenTile';
   if (effect(def, 'move')) return 'tile';
-  if (effect(def, 'target')) return 'unit';
+  if (effect(def, 'target') || effect(def, 'harpoon')) return 'unit';
   if (effect(def, 'blast')) return 'tile';
   if (effect(def, 'shield')?.to === 'friendly') return 'unit';
   return 'none';
@@ -103,7 +104,7 @@ function choiceFits(needs: Needs, choice: Choice | undefined): boolean {
 function obstacles(state: BattleState, positions: Projection, except: UnitId): Pos[] {
   const out: Pos[] = [];
   for (const [id, pos] of Object.entries(positions)) if (id !== except && pos) out.push(pos);
-  for (const enemy of livingEnemies(state)) out.push(enemy.pos!);
+  for (const enemy of livingEnemies(state)) out.push(...enemyTiles(enemy));
   return out;
 }
 
@@ -144,11 +145,11 @@ function checkEffects(state: BattleState, play: PlannedPlay, def: CardDef, posit
       if (enemies.length === 0) return 'noTarget';
       return enemies.some((e) => e.id === play.choice?.unit) ? null : 'badChoice';
     }
-    const hits = (tiles: Pos[]): boolean => enemies.some((e) => tiles.some((t) => samePos(t, e.pos)));
+    const hits = (tiles: Pos[]): boolean => enemies.some((e) => tiles.some((t) => covers(e, t)));
     switch (damage.k) {
       case 'strike':
       case 'pierce':
-        if (RULES.damageNeedsTarget && !enemies.some((e) => e.pos!.lane === pos.lane)) return 'noTarget';
+        if (RULES.damageNeedsTarget && !enemies.some((e) => lanesOf(e).includes(pos.lane))) return 'noTarget';
         break;
       case 'slash':
         if (RULES.damageNeedsTarget && !hits(slashTiles('player', pos))) return 'noTarget';
@@ -160,6 +161,19 @@ function checkEffects(state: BattleState, play: PlannedPlay, def: CardDef, posit
         break;
       }
     }
+  }
+  const harpoon = effect(def, 'harpoon');
+  if (harpoon) {
+    // D8: a free boss in the unit's lane, at most `range` tiles ahead in a straight line. The
+    // gate reads only the board: a boss out of reach says so, rather than hiding the card.
+    const bosses = enemies.filter((e) => ENEMIES[e.def].boss && e.pinned === 0);
+    if (bosses.length === 0) return 'noTarget';
+    const reach = bosses.filter((e) => {
+      const ahead = enemyTiles(e).filter((t) => t.lane === pos.lane).map((t) => (t.col - pos.col) * RULES.forward.player);
+      return ahead.length > 0 && Math.min(...ahead) > 0 && Math.min(...ahead) <= harpoon.range;
+    });
+    if (reach.length === 0) return 'outOfRange';
+    if (!reach.some((e) => e.id === play.choice?.unit)) return 'badChoice';
   }
   if (effect(def, 'shield')?.to === 'friendly') {
     // R6: Target on a friendly keyword picks a friendly unit, the player included.
@@ -280,7 +294,7 @@ export function project(state: BattleState): Projection {
 
 const projections = new WeakMap<BattleState, Projection>();
 
-const PLAY_BLOCKS: readonly IllegalReason[] = ['noMp', 'noSlot', 'wrongZone', 'noTarget', 'fainted'];
+const PLAY_BLOCKS: readonly IllegalReason[] = ['noMp', 'noSlot', 'wrongZone', 'noTarget', 'fainted', 'outOfRange'];
 
 /** Why a check failing on a play with no choice yet means the card is unplayable. */
 export function asPlayBlock(reason: IllegalReason): PlayBlock {

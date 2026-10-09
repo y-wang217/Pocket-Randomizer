@@ -8,6 +8,7 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 
+import { createBattle } from '../src/core/cards/create';
 import { replay, type BattleLog } from '../src/core/cards/log';
 import { openSandbox } from '../src/ui/cardbattle/sandbox';
 
@@ -205,11 +206,122 @@ describe('the sandbox screen', () => {
     const sandbox = openSandbox(document.body, { seed: 'SCEN1' });
     const root = sandbox.root;
     all(root, '.cb-actions .cb-btn').at(-1)!.click();
-    const names = all(root, '.cb-scenario').map((b) => b.textContent);
-    expect(names).toEqual(['Skirmish', 'Front line', 'Staggered']);
-    all(root, '.cb-scenario').find((b) => b.textContent === 'Staggered')!.click();
+    const names = all(root, '.cb-scenario').map((b) => b.getAttribute('aria-label'));
+    // Each with its grade total, a seeded-spawn scenario's included.
+    expect(names).toEqual([
+      'Skirmish, Grade 5',
+      'Front line, Grade 5',
+      'Staggered, Grade 5',
+      'Turret Alley, Grade 5',
+      'Wall and Gun, Grade 7',
+      'The Pack, Grade 6',
+      'Siege, Grade 21',
+    ]);
+    expect(all(root, '.cb-scenario-grade').map((g) => g.textContent)).toEqual(['Grade 5', 'Grade 5', 'Grade 5', 'Grade 5', 'Grade 7', 'Grade 6', 'Grade 21']);
+    all(root, '.cb-scenario').find((b) => b.getAttribute('aria-label') === 'Staggered, Grade 5')!.click();
     const enemyRows = all(root, '.cb-token--enemy').map((t) => t.closest<HTMLElement>('.cb-tile')!.dataset['col']).sort();
     expect(enemyRows).toEqual(['6', '7', '7']);
+    all(root, '.cb-actions .cb-btn').at(-1)!.click();
+    all(root, '.cb-actions .cb-btn').at(-1)!.click();
+    all(root, '.cb-scenario').find((b) => b.getAttribute('aria-label') === 'Siege, Grade 21')!.click();
+    expect(root.querySelector('.cb-round')!.textContent).toBe('Wave 1/3 · Round 1');
+    all(root, '.cb-actions .cb-btn').at(-1)!.click();
+    all(root, '.cb-scenario').find((b) => b.getAttribute('aria-label') === 'The Pack, Grade 6')!.click();
+    expect(all(root, '.cb-token--enemy').map((t) => t.getAttribute('aria-label'))).toEqual(['P4', 'H1', 'H2', 'H3']);
+    sandbox.close();
+  });
+
+  it('marks every card, panel and token with its owner, a Neutral with no letter, and a Fast enemy with its badge', () => {
+    const sandbox = openSandbox(document.body, { seed: 'COLOUR1', encounter: 'the-pack' });
+    const root = sandbox.root;
+    for (const card of all(root, '.cb-card')) {
+      const owner = card.dataset['owner'];
+      expect(['A', 'B', 'C', 'neutral']).toContain(owner);
+      expect(card.querySelector('.cb-card-edge')).not.toBeNull();
+      expect(card.querySelector('.cb-card-owner')?.textContent ?? null).toBe(owner === 'neutral' ? null : owner);
+    }
+    expect(all(root, '.cb-panel--unit').map((p) => p.dataset['owner'])).toEqual(['A', 'B', 'C']);
+    expect(all(root, '.cb-token--unit').map((t) => t.dataset['owner']).sort()).toEqual(['A', 'B', 'C']);
+    // Three Hounds are Fast, the Pikeman is not: on the token and on the panel.
+    expect(all(root, '.cb-token--enemy .cb-token-fast')).toHaveLength(3);
+    expect(all(root, '.cb-panel--enemy .cb-fast')).toHaveLength(3);
+    begin(root);
+    // Round 1: each telegraph chip names the enemy it is from.
+    const from = new Set(all(root, '.cb-threat-from').map((c) => c.textContent));
+    expect([...from].every((label) => /^[HP][1-4]$/.test(label!))).toBe(true);
+    sandbox.close();
+  });
+
+  it('a tapped unit filters the hand to what it can play, skips who-plays-it, and clears three ways', () => {
+    // A seed whose round 1 hand holds the Neutral Move, which B can play.
+    const seed = Array.from({ length: 200 }, (_, i) => `FILTER${i}`).find((candidate) => {
+      const created = createBattle('test', candidate);
+      return created.ok && created.state.piles.hand.some((iid) => created.state.cards[iid]!.def === 'move');
+    })!;
+    const sandbox = openSandbox(document.body, { seed, encounter: 'test' });
+    const root = sandbox.root;
+    begin(root);
+    const panel = (id: string) => all(root, '.cb-panel--unit').find((p) => p.dataset['id'] === id)!;
+    const hand = () => all(root, '.cb-card').map((c) => c.dataset['card']);
+    const full = hand();
+
+    panel('B').click();
+    expect(panel('B').dataset['filter']).toBe('true');
+    expect(root.querySelector('.cb-filter-showing')!.textContent).toBe('Showing B · Show all');
+    const shown = all(root, '.cb-card');
+    expect(shown.length).toBeGreaterThan(0);
+    for (const card of shown) expect(['B', 'neutral']).toContain(card.dataset['owner']);
+    expect(shown.some((c) => c.dataset['card'] === 'move')).toBe(true);
+    const other = root.querySelector('.cb-filter-other');
+    expect(other?.textContent ?? '+0 other').toBe(`+${full.length - shown.length} other`);
+
+    // The filter names who plays the Neutral: no "Pick who plays it".
+    all(root, '.cb-card[data-card="move"]')[0]!.click();
+    expect(root.querySelector('.cb-note')!.textContent).not.toBe('Pick who plays it');
+    all(root, '.cb-tile').find((t) => t.querySelector('.cb-ov--selectable'))!.click();
+    expect(panel('B').querySelectorAll('.cb-slot--filled')).toHaveLength(1);
+    expect(root.querySelector('.cb-filter-showing')).not.toBeNull();
+
+    // Show all clears it; the same unit again clears it; End Turn clears it.
+    (root.querySelector('.cb-filter-showing') as HTMLElement).click();
+    expect(root.querySelector('.cb-filter')).toBeNull();
+    expect(hand()).toEqual(full);
+    panel('A').click();
+    expect(root.querySelector('.cb-filter-showing')!.textContent).toBe('Showing A · Show all');
+    panel('A').click();
+    expect(root.querySelector('.cb-filter')).toBeNull();
+    panel('C').click();
+    (all(root, '.cb-btn--primary')[0] as HTMLButtonElement).click();
+    skip(root);
+    expect(root.querySelector('.cb-filter')).toBeNull();
+    sandbox.close();
+  });
+
+  it('shows the new rules: the round 1 grace note, an enemy entry under Inspect, and a Blast card naming its friendly fire', () => {
+    // A seed whose round 1 hand holds Fire!.
+    const seed = Array.from({ length: 200 }, (_, i) => `RULES${i}`).find((candidate) => {
+      const created = createBattle('the-pack', candidate);
+      return created.ok && created.state.piles.hand.some((iid) => created.state.cards[iid]!.def === 'fire');
+    })!;
+    const sandbox = openSandbox(document.body, { seed, encounter: 'the-pack' });
+    const root = sandbox.root;
+    begin(root);
+    expect(root.querySelector('.cb-note')!.textContent).toBe('Round 1: enemies are getting into position');
+    const inspectButton = () => all(root, '.cb-actions .cb-btn').find((b) => b.textContent === 'Inspect')!;
+    const entry = () => root.querySelector('.cb-inspect')!.textContent;
+
+    inspectButton().click();
+    all(root, '.cb-panel--enemy')[0]!.click();
+    expect(entry()).toContain('Hound 1');
+    expect(entry()).toContain('Grade 1');
+    expect(entry()).toContain('Fast: attacks from round 1, for 1.');
+    inspectButton().click();
+    all(root, '.cb-panel--enemy')[3]!.click();
+    expect(entry()).toContain('Pikeman 4');
+    expect(entry()).toContain('Round 1: most enemies set up instead of attacking.');
+    inspectButton().click();
+    all(root, '.cb-card[data-card="fire"]')[0]!.click();
+    expect(entry()).toContain('Blast hits allies on its tiles too. Not the unit that plays it.');
     sandbox.close();
   });
 

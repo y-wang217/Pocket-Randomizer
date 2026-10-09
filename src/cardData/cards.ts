@@ -21,10 +21,12 @@ export const CARDS: Readonly<Record<string, CardDef>> = {
   dash: card({ id: 'dash', name: 'Dash', owner: 'C', cost: 1, type: null, effects: [{ k: 'move', n: 2 }] }),
   slash: card({ id: 'slash', name: 'Slash', owner: 'C', cost: 1, type: null, effects: [{ k: 'slash', n: 1 }] }),
   'need-help': card({ id: 'need-help', name: 'Need Help', owner: 'C', cost: 1, type: null, effects: [{ k: 'drawNext', n: 1, filter: 'notOwner' }] }),
-  prep: card({ id: 'prep', name: 'Prep', owner: 'C', cost: 1, type: null, effects: [{ k: 'shield', n: 2, to: 'self' }], once: true }),
+  prep: card({ id: 'prep', name: 'Prep', owner: 'C', cost: 1, type: null, effects: [{ k: 'shield', n: 2, to: 'self' }], uses: 1 }),
   move: card({ id: 'move', name: 'Move', owner: 'neutral', cost: 0, type: null, effects: [{ k: 'move', n: 1 }] }),
-  'dig-in': card({ id: 'dig-in', name: 'Dig In', owner: 'neutral', cost: 0, type: null, effects: [{ k: 'shield', n: 1, to: 'self' }], once: true }),
+  'dig-in': card({ id: 'dig-in', name: 'Dig In', owner: 'neutral', cost: 0, type: null, effects: [{ k: 'shield', n: 1, to: 'self' }], uses: 1, face: 'shovel' }),
   attack: card({ id: 'attack', name: 'Attack', owner: 'neutral', cost: 1, type: null, effects: [{ k: 'strike', n: 1 }] }),
+  // Part D: not in any deck. The Colossus grants it when its wave arrives.
+  harpoon: card({ id: 'harpoon', name: 'Harpoon', owner: 'neutral', cost: 2, type: null, effects: [{ k: 'harpoon', pin: 2, range: 3 }], uses: 2, retain: true, face: 'harpoon' }),
 };
 
 export const DECKS: Readonly<Record<string, DeckDef>> = {

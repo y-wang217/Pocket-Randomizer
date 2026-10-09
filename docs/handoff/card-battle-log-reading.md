@@ -2,11 +2,14 @@
 
 For a Claude session that is given a GYMRUN card battle log and asked to read
 it, discuss it, or design new scenarios, **without access to the repository**.
-Everything needed is on this page. It describes engine **`cards-0.3.0`**: a
-board seven rows deep, units placed by the player before round 1, and enemy
-spawns that vary by scenario and seed. The worked example in section 6 was
-played on `cards-0.2.0`, the six-row board, before those changes; it is kept
-because it shows how to read a log, and section 6 says what differs.
+Everything needed is on this page. It describes engine **`cards-0.4.0`**: a
+board seven rows deep, units placed by the player before round 1, enemy
+spawns that vary by scenario and seed, an opening grace that keeps most
+enemies from attacking in round 1, Fast enemies that attack anyway, a player
+Blast that hurts allies on its tiles, seven enemy types with difficulty
+grades, and six scenarios. The worked example in section 6 was played on
+`cards-0.2.0`, the six-row board, before all of that; it is kept because it
+shows how to read a log, and section 6 says what differs.
 
 Paste this whole file into that session first, then the log.
 
@@ -22,13 +25,13 @@ what is built, the bot included (9).
 The sandbox's **Copy log** button gives one JSON object:
 
 ```json
-{"engineVersion":"cards-0.3.0","seed":"2APXPQJX","encounterId":"skirmish","deckId":"puppeteer","actions":[ ... ]}
+{"engineVersion":"cards-0.4.0","seed":"2APXPQJX","encounterId":"skirmish","deckId":"puppeteer","actions":[ ... ]}
 ```
 
 | field | meaning |
 |---|---|
 | `engineVersion` | The rules version. A log only replays on the exact version that wrote it. |
-| `seed` | Fixes the deck shuffle, every reshuffle, each enemy's starting step in its script, and the spawn tile of any enemy the scenario does not place. Nothing else in a battle is random. |
+| `seed` | Fixes the deck shuffle, every reshuffle, each enemy's starting step in its script (among the steps it may start on, section 4), and the spawn tile of any enemy the scenario does not place. Nothing else in a battle is random. |
 | `encounterId` | The scenario: which enemies there are, and where they and the units start. |
 | `deckId` | The player's deck. Today there is one, `puppeteer`. |
 | `actions` | **Only the player's decisions**, in the order made. |
@@ -145,20 +148,39 @@ always Attack.
 | **Target** | The card hits the chosen enemy wherever it is (a Blast centres on it). |
 
 A damage card is only playable if it would hit at least one enemy right now.
-There is no friendly fire.
+
+**Friendly fire: a Blast hurts allies.** Fire! and Artillery also hit every
+player unit on their five tiles, through shield, base shield and HP, after the
+enemies, **except the unit that plays the card**. Strike, Pierce and Slash never
+hit an ally. An ally on the tiles does not make a Blast playable: it still needs
+an enemy there. A unit that faints from friendly fire faints normally, its cards
+with it, and any card it still had planned that round is not played. (Whether
+the caster is spared is an open ruling; the engine can flip it in one line.)
 
 ### Enemies
 
-| id in log | type | HP | base shield |
-|---|---|---|---|
-| `e0`, `e1`, ... | numbered in spawn order; spawn order is also the order they act and move in | | |
-| | **Drone** | 3 | 1 |
-| | **Lancer** | 2 | 0 |
+Enemies are numbered `e0`, `e1`, ... in spawn order; spawn order is also the
+order they act and move in. Each has a **grade**, a provisional difficulty
+number; a scenario's grade total is the sum over its enemies.
+
+| type | HP | base shield | Fast | grade |
+|---|---|---|---|---|
+| **Drone** | 3 | 1 | no | 2 |
+| **Lancer** | 2 | 0 | no | 1 |
+| **Hound** | 2 | 0 | **yes** | 1 |
+| **Turret** | 4 | 1 | no | 2 |
+| **Bulwark** | 4 | 2 | no | 2 |
+| **Sniper** | 2 | 0 | no | 3 |
+| **Pikeman** | 3 | 1 | no | 3 |
+| **Colossus** (boss, 2x2) | 12 | 3 | no | 10 |
 
 Each enemy runs a fixed **script**, one step per round, looping. **Which step it
-starts on is rolled from the seed**, per enemy.
+starts on is rolled from the seed**, per enemy, but only among the steps it may
+start on (section 4): under **opening grace** a normal enemy starts on a step
+that deals no damage, and a **Fast** enemy starts on its first attack. Fast
+enemies are designed to hit for 1.
 
-**Drone**, 6 steps:
+**Drone**, 6 steps (starts on 2, 4 or 6):
 
 | step | move | then act |
 |---|---|---|
@@ -169,13 +191,80 @@ starts on is rolled from the seed**, per enemy.
 | 5 | hunt | Strike 1 |
 | 6 | advance | nothing |
 
-**Lancer**, 3 steps:
+**Lancer**, 3 steps (starts on 1 or 2):
 
 | step | move | then act |
 |---|---|---|
 | 1 | stay | Shield 1 on self |
 | 2 | hunt | nothing |
 | 3 | stay | Pierce 1 |
+
+**Hound**, 2 steps, **Fast** (starts on 1):
+
+| step | move | then act |
+|---|---|---|
+| 1 | hunt | Strike 1 |
+| 2 | advance | nothing |
+
+**Turret**, 3 steps, never moves (starts on 1 or 3):
+
+| step | move | then act |
+|---|---|---|
+| 1 | stay | Shield 1 on self |
+| 2 | stay | Strike 2 |
+| 3 | stay | nothing |
+
+**Bulwark**, 3 steps (starts on 1 or 3):
+
+| step | move | then act |
+|---|---|---|
+| 1 | advance | Shield 2 on self |
+| 2 | if *slash in range*: stay, else hunt | if *slash in range*: Slash 1, else Shield 1 on self |
+| 3 | stay | nothing |
+
+**Sniper**, 3 steps (starts on 1 or 2):
+
+| step | move | then act |
+|---|---|---|
+| 1 | hunt | nothing |
+| 2 | stay | nothing |
+| 3 | stay | Strike 3 |
+
+**Pikeman**, 4 steps (starts on 1, 2 or 3):
+
+| step | move | then act |
+|---|---|---|
+| 1 | stay | Shield 1 on self |
+| 2 | hunt | nothing |
+| 3 | stay | nothing |
+| 4 | stay | Pierce 2 |
+
+**Colossus**, the boss, 3 steps (starts on 3). It covers two lanes and two
+rows from its tile (its front row is the one nearer you), and a card hits it
+once however many of its tiles the card covers.
+
+| step | move | then act |
+|---|---|---|
+| 1 | stay | **Crush**: Pierce 2 down both its lanes |
+| 2 | advance up to 3 rows, never past C3 | **Stomp**: Slash 1 on every lane of the row in front of it |
+| 3 | stay | Shield 3 on self |
+
+- **Stalk, once.** The first round it ends at or under half HP (6), it
+  stalks instead of its move: up to 3 rows straight at you, stomping the two
+  tiles it is about to step into for 1 each step. Anyone there, or the C3
+  limit, stops it, so a unit close enough takes the hit. The panel says
+  *Stalks at 6 HP* until it has.
+- **It grants the Harpoon** when it arrives (card `c15`, black: an enemy's
+  grant). Neutral, 2 MP, **Retain** (it stays in hand, holding one of the five
+  places), **Uses 2** (back into the deck after one use, gone for the wave
+  after the second). Only a unit in one of its lanes, in a straight line, at
+  most 3 tiles short of it, can throw it. It **pins** the Colossus for two of
+  its turns: no moves, every shield gone (the base shield comes back on the
+  second turn), and instead of acting it **Screams**: 1 damage to every tile
+  touching it, its own allies included. A pin delays the stalk.
+
+**Uses** is a keyword: Prep and Dig In are Uses 1 (what the deck list calls
+Once).
 
 The vocabulary those scripts use:
 
@@ -230,6 +319,33 @@ which tiles it will hit. Then:
 Start runs steps 6 and 7 once on each enemy's rolled step, so round 1 opens
 with every intent already lit. A battle still going after round 30 is a loss.
 
+**Opening grace.** The starting step is rolled only among the steps whose act
+deals no damage (nothing, or Shield; a conditional act that could deal damage
+counts as damage). So in round 1 a normal enemy shields, waits or moves into
+position, and the screen says *Round 1: enemies are getting into position*.
+A **Fast** enemy instead starts on its first damaging step and attacks in round
+1. Grace changes no spawn tile and no card of the shuffle: each enemy still
+takes exactly one draw for its starting step. `cards:narrate` prints how each
+enemy started (`grace: e1 starts on a setup step`, or `e1 Hound is Fast:
+starts on an attack step`).
+
+**Waves.** A scenario can come in waves. When the last enemy of a wave
+falls, the next arrives (log event `waveStarted`): each living unit keeps
+its HP, loses its card shield, gets its base shield back, goes to 0 MP and
+back to its default tile; Focus and Need Help's owed effects clear; every
+card a faint did not remove, Uses cards with their uses back, is shuffled
+into a fresh deck; the round count starts again at 1 (the 30-round loss is
+per wave); and the battle is back in deployment, so the log shows `place`
+and `start` again. A fainted unit stays fainted. The battle is won when the
+last wave falls. Enemy ids continue across waves (`e0`, `e1`, ...); on screen
+they are numbered within their wave.
+
+**Friendly fire in step 1.** A Blast resolves on the enemies on its tiles,
+then on the allies there (section 3). If that makes a unit faint, the rest of
+that unit's plan is skipped; `cards:narrate` prints `B Gunner takes 1 from
+Fire! (friendly fire)` and `C Sword dasher has fainted: c9 Slash is not
+played`.
+
 ---
 
 ## 5. Decoding the actions
@@ -277,8 +393,12 @@ reads: *A plays Command, moving C to L2C4.*
 **Played on `cards-0.2.0`**, before deployment and the seven-row board: the
 board was six rows (home C1-C2, danger C3-C4, enemy C5-C6), every enemy
 started on C5, there were no `place` or `start` actions, and round 1 began at
-once. The reading method is the same. This log no longer replays on the
-current engine, which refuses it by version, as designed.
+once. It also predates `cards-0.4.0`: there was no opening grace (round 1's
+telegraphs here are all attacks, which grace would not allow), and its Blasts
+could not hurt an ally. The reading method is the same. This log no longer
+replays on the current engine, which refuses it by version, as designed. No
+`cards-0.4.0` log from a real player exists yet to replace it; a new one,
+narrated, would.
 
 ### The short form: decisions only
 
@@ -554,10 +674,26 @@ free tile of the enemy backline (C6 and C7). Spawn order matters: it sets the
 enemy ids (`e0`, `e1`, ...) and the order they act and move in. The seed then
 decides each enemy's starting step, any unfixed spawns, and the shuffle.
 
-The sandbox's Menu lists every scenario. Today there are three: `skirmish`
-(two Drones and a Lancer, all spawned by the seed; the default), `test`,
-shown as *Front line* (one enemy per lane on C6), and `staggered` (Drones on
-C7 in lanes 1 and 3, the Lancer on C6 in lane 2).
+The sandbox's Menu lists every scenario with its **grade total**, the sum of
+its enemies' grades (known even when spawns are seeded, since the enemy set is
+fixed). Today there are six:
+
+| id | shown as | enemies, in spawn order | grade total |
+|---|---|---|---|
+| `skirmish` | Skirmish (the default) | Drone, Lancer, Drone, all spawned by the seed | 5 |
+| `test` | Front line | Drone L1C6, Lancer L2C6, Drone L3C6 | 5 |
+| `staggered` | Staggered | Drone L1C7, Lancer L2C6, Drone L3C7 | 5 |
+| `turret-alley` | Turret Alley | Turret L1C7, Hound L2C6, Turret L3C7 | 5 |
+| `wall-and-gun` | Wall and Gun | Bulwark L1C6, Sniper L2C7, Bulwark L3C6 | 7 |
+| `the-pack` | The Pack | Hound L1C6, Hound L2C6, Hound L3C6, Pikeman L2C7 | 6 |
+| `siege` | Siege | wave 1: Drone L1C6, Lancer L2C7, Hound L3C6 · wave 2: Bulwark L1C6, Sniper L2C7, Lancer (seeded), Hound L3C6 · wave 3: Colossus L1C6 | 21 |
+
+Every one-wave scenario has been won by a random-legal-move bot at least a
+few times in 2,000 seeds (Wall and Gun 6, the rest 21 to 36). The guard bot,
+200 seeds each (GB0..GB199), wins 195 to 200 of every one-wave scenario and
+183 of Siege; by units kept on a win, Turret Alley (2.50) is the hardest of
+the one-wave scenarios, harder than its grade says. None of these says how
+hard a scenario is for a person.
 
 Please write scenarios in this shape, so they go straight into the engine:
 
@@ -569,19 +705,21 @@ Units, default tiles (C1 or C2): A L1C2, B L2C2, C L3C2
 Enemies, in spawn order: drone L1C7, lancer (seeded), drone L3C6
                          <- a tile in C3-C7, or "seeded" for any free C6/C7 tile
 New enemy types, if any:
-  <name>: HP <n>, base shield <n>
+  <name>: HP <n>, base shield <n>, Fast yes/no, grade <n>
   steps: 1. <move> / <act>   2. ...
 What a good line looks like: <optional, how you expect it to be beaten>
 ```
 
 What the engine can do without new code:
 
-- Any number of Drones and Lancers anywhere enemies can stand (C3 to C7),
+- Any number of the seven enemy types anywhere enemies can stand (C3 to C7),
   one per tile, fixed or seeded. Seeded enemies need a free C6/C7 tile each.
 - **New enemy types**, as long as they are built from the script vocabulary in
   section 3: moves `stay`, `hunt`, `advance`, and acts `nothing`,
   `Strike n`, `Pierce n`, `Slash n`, `Shield n`, with `if slash in range`
-  as the only condition. HP and base shield are free numbers.
+  as the only condition. HP, base shield and grade are free numbers. A
+  non-Fast type needs at least one step that deals no damage (grace starts it
+  there); a Fast one starts on its first damaging step and should hit for 1.
 - Any default home tiles for the three units (the player can change them).
 
 What would need new engine work (still fine to propose, just mark it as new):
@@ -606,10 +744,29 @@ Difficulty levers worth knowing:
 - A has 1 HP. Anything that reaches A early is a real threat.
 - Starting steps are rolled, so a scenario plays differently per seed. If a
   scenario only works with a particular opening, say so.
+- Round 1 is quiet except for Fast enemies: grace makes every other enemy
+  open on a setup step. Fast enemies are how a scenario hits from the start.
+- The player's Blasts hurt their own units, so a scenario that pulls the
+  units together around an enemy makes Fire! and Artillery costly.
 
 ---
 
 ## 9. What is built, and what is still coming
+
+Built in `cards-0.4.0`:
+
+- **Opening grace.** In round 1 a normal enemy opens on a step that deals no
+  damage (section 4).
+- **Fast enemies.** Start on their first attack, for 1.
+- **Blast friendly fire.** Fire! and Artillery hit allies on their tiles, not
+  the unit that plays them (section 3).
+- **Five new enemies and grades.** Hound, Turret, Bulwark, Sniper, Pikeman, and
+  a provisional grade on every enemy (section 3).
+- **Three new scenarios.** Turret Alley, Wall and Gun, The Pack, and a grade
+  total on every scenario (section 8).
+- **On screen:** owner colours (Commander teal, Gunner blue, Sword dasher
+  purple, Neutral grey, the owner's letter on every card), a Fast badge, and
+  a tap on a unit filters the hand to the cards it can play.
 
 Built in `cards-0.3.0`, at the author's request:
 
@@ -649,6 +806,17 @@ held-out battles across the three scenarios, so they are easy for it. A
 scenario that makes it lose, or lose units, is a scenario that pushes on
 defence. When you send a new scenario, it can be benched on hundreds of
 seeds in a minute and the results sent back.
+
+Then **waves**, **Siege** and **the Colossus** with its **Harpoon**
+(sections 3 and 4). The guard bot wins Siege 196 times in 200 (seeds
+SG0..SG199) and loses most HP in wave 3; a random bot never has.
+
+Then **the reskin**: the meadow look, the enemies across the top, the board
+across the screen, the unit panels under it. The board diagram in section 2
+is still how the board reads: enemy rows at the top, lane 1 on the left.
+
+Still coming, in this order:
+- **Card rewards** and a **mini campaign**, each waiting on a design session.
 
 A rules change moves the engine version, and older logs stop replaying, by
 design. This page is updated with each change.

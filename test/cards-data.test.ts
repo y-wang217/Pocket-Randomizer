@@ -11,7 +11,7 @@ import { ENCOUNTERS } from '../src/cardData/encounters';
 import { ENEMIES } from '../src/cardData/enemies';
 import { RULES } from '../src/cardData/rules';
 import { UNITS } from '../src/cardData/units';
-import { createBattle, layoutBattle } from '../src/core/cards/create';
+import { createBattle, gradeTotal, layoutBattle } from '../src/core/cards/create';
 import { RESERVED_EFFECTS } from '../src/core/cards/defs';
 import { allTiles, inReach, samePos, zoneOf } from '../src/core/cards/zones';
 
@@ -24,7 +24,7 @@ describe('card data', () => {
     }
   });
 
-  it('matches the snapshot card table: owner, cost and Once', () => {
+  it('matches the snapshot card table: owner, cost and Uses 1 for the old Once cards', () => {
     const table: [string, string, number, boolean][] = [
       ['call-medic', 'A', 1, false],
       ['command', 'A', 1, false],
@@ -42,14 +42,15 @@ describe('card data', () => {
       ['dig-in', 'neutral', 0, true],
       ['attack', 'neutral', 1, false],
     ];
-    expect(Object.keys(CARDS).sort()).toEqual(table.map(([id]) => id).sort());
+    // Every card but the Harpoon, which the Colossus grants (Part D) and no deck holds.
+    expect(Object.keys(CARDS).filter((id) => id !== 'harpoon').sort()).toEqual(table.map(([id]) => id).sort());
     for (const [id, owner, cost, once] of table) {
-      expect([CARDS[id]!.owner, CARDS[id]!.cost, CARDS[id]!.once === true], id).toEqual([owner, cost, once]);
+      expect([CARDS[id]!.owner, CARDS[id]!.cost, CARDS[id]!.uses === 1], id).toEqual([owner, cost, once]);
     }
   });
 
   it('builds the Puppeteer deck from one copy of every card', () => {
-    expect([...DECKS['puppeteer']!.cards].sort()).toEqual(Object.keys(CARDS).sort());
+    expect([...DECKS['puppeteer']!.cards].sort()).toEqual(Object.keys(CARDS).filter((id) => id !== 'harpoon').sort());
   });
 
   it('matches the snapshot units and classes', () => {
@@ -59,7 +60,7 @@ describe('card data', () => {
     expect([UNITS.C.class, UNITS.C.hp, UNITS.C.baseShield]).toEqual(['melee', 3, 2]);
   });
 
-  it('matches the snapshot enemies', () => {
+  it('matches the snapshot enemies (the rest: test/cards-new-enemies.test.ts)', () => {
     expect([ENEMIES.drone.hp, ENEMIES.drone.baseShield, ENEMIES.drone.script.steps.length]).toEqual([3, 1, 6]);
     expect([ENEMIES.lancer.hp, ENEMIES.lancer.baseShield, ENEMIES.lancer.script.steps.length]).toEqual([2, 0, 3]);
   });
@@ -94,6 +95,23 @@ describe('card data', () => {
       const room = allTiles().filter((t) => zoneOf(t) === RULES.spawnZone && !fixed.some((f) => samePos(f, t))).length;
       expect(encounter.enemies.length - fixed.length, `${id}: spawns without room`).toBeLessThanOrEqual(room);
     }
+  });
+
+  it('places the A4 scenarios as the patch lists them, in spawn order, each with its grade total', () => {
+    const table: [string, string, [string, number, number][], number][] = [
+      ['turret-alley', 'Turret Alley', [['turret', 1, 7], ['hound', 2, 6], ['turret', 3, 7]], 5],
+      ['wall-and-gun', 'Wall and Gun', [['bulwark', 1, 6], ['sniper', 2, 7], ['bulwark', 3, 6]], 7],
+      ['the-pack', 'The Pack', [['hound', 1, 6], ['hound', 2, 6], ['hound', 3, 6], ['pikeman', 2, 7]], 6],
+    ];
+    for (const [id, name, enemies, grade] of table) {
+      const encounter = ENCOUNTERS[id]!;
+      expect(encounter.name, id).toBe(name);
+      expect(encounter.enemies.map((e) => [e.def, e.pos?.lane, e.pos?.col]), id).toEqual(enemies);
+      expect(gradeTotal(encounter), id).toBe(grade);
+    }
+    // The shipped scenarios keep their ids and layouts and gain a total.
+    expect(Object.keys(ENCOUNTERS)).toEqual(['skirmish', 'test', 'staggered', 'turret-alley', 'wall-and-gun', 'the-pack', 'siege']);
+    expect(['skirmish', 'test', 'staggered'].map((id) => gradeTotal(ENCOUNTERS[id]!))).toEqual([5, 5, 5]);
   });
 
   it('spawns an unplaced enemy on the enemy backline, and not always on the row nearest the danger zone', () => {

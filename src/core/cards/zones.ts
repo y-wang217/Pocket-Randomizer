@@ -2,11 +2,37 @@
  * The board's geometry: zones, reach, patterns and movement. Pure functions of
  * a position and the rule table; nothing here knows about cards.
  */
+import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
-import type { Col, Lane, Pos, Side, Zone } from './defs';
+import type { Col, EnemyDefId, Lane, Pos, Side, Zone } from './defs';
 
 export function samePos(a: Pos | null | undefined, b: Pos | null | undefined): boolean {
   return !!a && !!b && a.lane === b.lane && a.col === b.col;
+}
+
+/** The tiles an enemy covers from its position: its own tile, or for a big enemy its whole footprint (D). */
+export function enemyTiles(enemy: { def: EnemyDefId; pos: Pos | null }): Pos[] {
+  if (!enemy.pos) return [];
+  const size = ENEMIES[enemy.def].size;
+  if (!size) return [enemy.pos];
+  const out: Pos[] = [];
+  for (let col = enemy.pos.col; col < enemy.pos.col + size.cols; col++) {
+    for (let lane = enemy.pos.lane; lane < enemy.pos.lane + size.lanes; lane++) {
+      const p = tile(lane, col);
+      if (p) out.push(p);
+    }
+  }
+  return out;
+}
+
+/** Whether an enemy covers a tile. */
+export function covers(enemy: { def: EnemyDefId; pos: Pos | null }, pos: Pos | null | undefined): boolean {
+  return enemyTiles(enemy).some((t) => samePos(t, pos));
+}
+
+/** The lanes an enemy stands in. */
+export function lanesOf(enemy: { def: EnemyDefId; pos: Pos | null }): Lane[] {
+  return [...new Set(enemyTiles(enemy).map((t) => t.lane))];
 }
 
 export function onBoard(lane: number, col: number): boolean {
