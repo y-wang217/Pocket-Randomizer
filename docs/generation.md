@@ -16193,3 +16193,54 @@ of section 34** and the tally test section 47.5 wrote for it.
 - **The trade.** A test that crosses 60s now turns its leg red with vitest's
   own message instead of a green line. That is the intended signal; the next
   nearest, `test/run-replay.test.ts`, ran 35.6s locally.
+
+## 127. The Node half's fork cap comes off, and no DOM test's timer outlives its file
+
+**2026-10-09**, on `claude/sharp-ritchie-qb95px`, from `main` at `3d0847e`.
+Prompt [`spec/gymrun-patch-fork-cap-and-scene-timer.md`](spec/gymrun-patch-fork-cap-and-scene-timer.md).
+The two items section 126 left open. Test and tooling only: nothing under
+`src/` changes, and no version axis moves.
+
+### 127a. Timers die with their file
+
+- **The failure.** Run 37928075949 failed `node suite` with every test passing,
+  on `ReferenceError: document is not defined` from the scene's replay
+  (`Timeout.draw`), after `test/species-label.test.ts`'s jsdom was torn down.
+  Each test there mounts a battle screen and plays a turn, which starts the
+  per-step replay on real timers; nothing ends it, and a timer that fires
+  between teardown and the worker exiting finds no `document`.
+- **A class, counted.** A scratch setup that counted pending timers at the end
+  of each file found 9 of the 18 files that mount a battle screen or scene
+  ending with timers pending: five from the replay (`battle-outro`,
+  `battle-screen-stage2`, `event-strip`, `forecast-feedback`,
+  `species-label`), three from the band, the overlay and the settings save
+  (`band-badge`, `defender-ui`, `tutorial`), and one in `threat-readout`
+  whose source the counter could not name.
+- **Not reproduced as a failure locally.** Each file runs in its own process
+  here, and the window between teardown and exit is short; the race needs a
+  slow runner. The pending timers are what was measured: 8 in
+  `species-label` before, 0 after.
+- **The fix.** `test/setup/timers-die-with-their-file.ts`, registered in
+  `vite.config.ts`: in a DOM file only, it wraps `setTimeout` and
+  `setInterval`, tracks what is pending, and clears it in an `afterAll` that
+  runs after the file's own. Once, for every DOM file, rather than nine
+  `screen.cancel()` calls and a tenth nobody remembers. A test that fakes
+  timers swaps the wrappers out and gets them back as usual.
+- **Not an app defect.** In the app the document never goes away; a replay on
+  a screen that is left settles on its own or is ended by the next `update`,
+  `cancel` or `reset`.
+
+### 127b. The Node half is uncapped
+
+- **What it was.** `scripts/vitest-split.mjs` passed `--maxWorkers=2` under
+  `CI` on both halves. The Node half's cap was section 47's answer to the
+  `onTaskUpdate` timeout read as load; section 126 found one test instead, and
+  the cap had not stopped the timeout in any run it was on.
+- **What changed.** The cap applies to the browser half only, which keeps its
+  own reason (section 47's browser-suite measurement: Chromium painting late on
+  a saturated runner). The superseded Node reasoning is deleted from the
+  comment and recorded here.
+- **Measured.** `CI=1 node scripts/check.mjs --only=test:node` on this box,
+  four cores: **324.0s uncapped**, against 451.6s, 463.7s and 479.2s at the cap
+  earlier the same day. One uncapped run, so the figure is indicative; the
+  Actions runs on the PR are the number that counts.

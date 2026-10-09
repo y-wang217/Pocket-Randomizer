@@ -741,8 +741,9 @@ nothing under `src/`, `contentHash` unmoved at `b8b419`, no axis moves.
   stripped CSI sequences and reported a fourth status, ERRORED. **ERRORED was
   retired on 2026-10-09** (`generation.md` section 126a): it could mask a second
   unhandled error, and the timeout it forgave was one test, now fixed.
-- **The Node half is capped at two forks under `CI`**, against the reporter RPC
-  timeout. Unconfirmed against the failure itself — open item below.
+- **The Node half was capped at two forks under `CI`**, against the reporter
+  RPC timeout. **Lifted 2026-10-09** (`generation.md` section 127): the
+  timeout was one test, not load. The browser half keeps its own cap.
 - **WebKit is off the critical path**, in its own non-blocking workflow with a
   weekly cron, a dispatch and a path filter on motion CSS, sprite code and the
   motion tests.
@@ -1658,13 +1659,6 @@ One line each. The analysis lives where the pointer goes, not here.
    text, and both floors in that file are floors on text. What it wants is a
    contrast rule between a filled pip and an empty one, which is a different
    assertion in a different file. `generation.md` section 47.3.
-
-0. **The CI fork cap answers a cause that was not the cause.** Two forks on
-   the Node half under `CI` was the answer to
-   `[vitest-worker]: Timeout calling "onTaskUpdate"` read as load. Section 126
-   found one test holding its worker past 60s and fixed it; the cap did not
-   stop the timeout in any run it was on. Whether to keep it is its own
-   change. `generation.md` sections 47.7 and 126.
 
 0. **A red WebKit now blocks nothing, and one issue is the whole signal.** The
    new workflow is non-blocking by construction. The issue it edits has to be

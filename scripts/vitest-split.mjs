@@ -38,60 +38,30 @@ if (files.length === 0) {
  * leg would run the browser files after all.
  */
 /*
- * The fork cap, in CI, on both halves.
+ * The fork cap, in CI, on the browser half only.
  *
- * ## What it is fixing
+ * The runner is a standard GitHub-hosted `ubuntu-latest`, four vCPUs at the
+ * time of writing; `scripts/check.mjs` prints the count it saw in its header
+ * line. Uncapped, vitest 3 sizes a non-watch pool at
+ * `max(availableParallelism() - 1, 1)`, three forks there.
  *
- * `[vitest-worker]: Timeout calling "onTaskUpdate"` — vitest's reporter RPC
- * giving up while every test passes. `docs/generation.md` sections 15, 33 and
- * 36 all record it, and on Actions it took the Node half of the gate red with
- * `1650 passed (1650)` printed directly underneath. `scripts/check.mjs` used to
- * report that as ERRORED rather than FAILED; this was the other half, which was
- * to stop provoking it.
+ * **The browser half** found its own load symptom on that runner (the browser
+ * suite CI patch, `docs/spec/gymrun-patch-browser-suite-ci.md`): three forks
+ * each driving a Chromium, and `visual-move-cards` walking 900 steps without
+ * reaching the result screen because a saturated machine had not painted it
+ * yet. The walk is state-based now (`scripts/visual/browser.mjs`, `settle`),
+ * which is the fix; the cap is the second half, which is to stop provoking it.
+ * Two forks, each a Node process plus a browser, on four cores. WebKit
+ * inherits it because it runs the same half through the same command.
  *
- * **2026-10-09: the reading below is wrong, and the cap is kept only until it
- * gets its own change.** The timeout was one test holding its worker's event
- * loop past vitest's 60s RPC timer, not contention; it reproduces on an idle
- * box. That test now yields, ERRORED is gone, and the timeout fails its leg.
- * `docs/generation.md` section 126.
+ * **The Node half is not capped.** It was, from section 47 to section 127 of
+ * `docs/generation.md`, on the reading that vitest's `onTaskUpdate` timeout
+ * was contention. Section 126 found one test holding its worker's event loop
+ * past 60s instead; it reproduces on an idle box, and the cap never stopped
+ * it. With that test fixed the Node half takes vitest's default pool.
  *
- * ## Why capping workers is the lever
- *
- * The runner is a standard GitHub-hosted `ubuntu-latest`, which is four vCPUs
- * at the time of writing — `scripts/check.mjs` prints the count it actually saw
- * in its header line, so the number is read off the run rather than trusted
- * from here. Nothing in
- * `vite.config.ts` sets `pool`, `poolOptions`, `maxWorkers` or `minWorkers`, so
- * vitest 3's defaults apply: `pool: 'forks'`, and a non-watch run sizes the
- * pool at `max(availableParallelism() - 1, 1)` — three forks, each a full Node
- * process replaying runs, on four cores that are also carrying the parent, the
- * reporter and the Vite transform. The timeout is that reporter channel not
- * being scheduled in time, so it is a contention symptom: it tracks load and
- * not outcome, which is exactly what every recorded sighting of it has said.
- *
- * Two forks leaves a core for the parent. It costs wall-clock on a leg that is
- * already the long pole, and that is the trade being made deliberately: a slower
- * green leg is worth more than a fast one nobody can read.
- *
- * ## Why only in CI, and why both halves now
- *
- * **CI only**, because a developer box is not the contended machine and has no
- * reason to give up a third of its parallelism.
- *
- * **The Node half first**, because that is where the error had been seen, and
- * the browser halves were left byte-identical rather than retuned alongside a
- * fix for something they had not reported, with the rule that if they started
- * carrying it they would get their own measurement. **They did.** The browser
- * suite CI patch (`docs/spec/gymrun-patch-browser-suite-ci.md`) found the
- * browser half's own load symptom on the same runner: three forks each driving
- * a Chromium, and `visual-move-cards` walking 900 steps without reaching the
- * result screen because a saturated machine had not painted it yet. The walk
- * is state-based now (`scripts/visual/browser.mjs`, `settle`), which is the
- * fix; this is the same second half the Node cap was, which is to stop
- * provoking it. Two forks, each a Node process plus a browser, on four cores.
- * WebKit inherits it because it runs the same half through the same command.
+ * **CI only**, because a developer box is not the contended machine.
  */
-const CI_NODE_MAX_FORKS = 2;
 const CI_BROWSER_MAX_FORKS = 2;
 const extra = process.argv.slice(3);
 /*
@@ -101,8 +71,8 @@ const extra = process.argv.slice(3);
  * "the last one wins", it is a pool size of `[2, 1]`. A measurement run that
  * wants a different number has to be able to ask for one.
  */
-const capped = process.env.CI && !extra.some((arg) => arg.startsWith('--maxWorkers'));
-const cap = capped ? [`--maxWorkers=${half === 'node' ? CI_NODE_MAX_FORKS : CI_BROWSER_MAX_FORKS}`] : [];
+const capped = half === 'browser' && process.env.CI && !extra.some((arg) => arg.startsWith('--maxWorkers'));
+const cap = capped ? [`--maxWorkers=${CI_BROWSER_MAX_FORKS}`] : [];
 
 const args = ['vitest', 'run', ...cap, ...files, ...extra];
 const child = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', args, {
