@@ -12,7 +12,7 @@ import type { BattleEvent } from '../src/core/cards/events';
 import { damage, faint, type Ctx } from '../src/core/cards/keywords';
 import { step } from '../src/core/cards/step';
 import type { Action, BattleState, Choice, PileName, UnitId } from '../src/core/cards/state';
-import { at, board, iidOf } from './fixtures/card-battle';
+import { at, begun, board, iidOf } from './fixtures/card-battle';
 
 const PILES: PileName[] = ['draw', 'hand', 'discard', 'spent', 'removed'];
 
@@ -36,11 +36,13 @@ function cardCount(state: BattleState): number {
 }
 
 describe('createBattle', () => {
-  it('opens on round 1 with a hand of 5, A holding its turn-1 MP', () => {
+  it('opens on round 1 in deploy with a hand of 5, A holding its turn-1 MP, and no enemy telegraphed', () => {
     const created = createBattle('test', 'SEED1');
     expect(created.ok).toBe(true);
     if (!created.ok) return;
     const { state } = created;
+    expect(state.phase).toBe('deploy');
+    expect(state.enemies.every((e) => e.intent === null)).toBe(true);
     expect(state.round).toBe(1);
     expect(state.piles.hand).toHaveLength(5);
     expect(state.piles.draw).toHaveLength(10);
@@ -75,9 +77,7 @@ describe('step', () => {
   });
 
   it('never mutates the state it is handed, and stepping it twice gives the same result', () => {
-    const created = createBattle('test', 'PURE');
-    if (!created.ok) throw new Error('create');
-    let state = created.state;
+    let state = begun('test', 'PURE').state;
     for (let round = 0; round < 6; round++) {
       const before = JSON.stringify(state);
       const once = step(state, { type: 'commit' });
@@ -244,9 +244,9 @@ describe('Puppeteer cards', () => {
   });
 
   it('Fire!: Blast 1 on a chosen tile', () => {
-    let state = board({ hand: ['fire'], mp: { B: 1 }, units: { B: at(2, 3) } });
-    state = play(state, 'fire', 'B', { tile: at(2, 4) });
-    // (2,4)'s neighbours include (2,5), the Lancer.
+    let state = board({ hand: ['fire'], mp: { B: 1 }, units: { B: at(2, 4) } });
+    state = play(state, 'fire', 'B', { tile: at(2, 5) });
+    // (2,5)'s neighbours include (2,6), the Lancer.
     expect(damaged(commit(state).events)).toEqual(['e1']);
   });
 
@@ -257,7 +257,7 @@ describe('Puppeteer cards', () => {
   });
 
   it('Slash: Slash 1 from the danger zone', () => {
-    let state = board({ hand: ['slash'], mp: { C: 1 }, units: { C: at(2, 4) } });
+    let state = board({ hand: ['slash'], mp: { C: 1 }, units: { C: at(2, 5) } });
     state = play(state, 'slash', 'C');
     expect(damaged(commit(state).events)).toEqual(['e0', 'e1', 'e2']);
   });
@@ -313,8 +313,7 @@ describe('Puppeteer cards', () => {
 
 describe('unit abilities', () => {
   it('A gains 1 MP at the start of each turn, turn 1 included', () => {
-    const created = createBattle('test', 'A');
-    if (!created.ok) throw new Error('create');
+    const created = begun('test', 'A');
     expect(created.events).toContainEqual({ t: 'mpGained', unit: 'A', amount: 1, source: 'ability' });
     const next = commit(created.state);
     expect(next.events).toContainEqual({ t: 'mpGained', unit: 'A', amount: 1, source: 'ability' });
@@ -376,8 +375,7 @@ describe('shield timing, faint and piles', () => {
   });
 
   it('reshuffles the discard into the draw pile mid-draw, drawing new RNG, and loses no card', () => {
-    const created = createBattle('test', 'RESHUFFLE');
-    if (!created.ok) throw new Error('create');
+    const created = begun('test', 'RESHUFFLE');
     // Units nothing can faint, so the piles are measured alone.
     let state = structuredClone(created.state);
     for (const u of state.units) u.hp = u.maxHp = 99;
@@ -418,8 +416,7 @@ describe('shield timing, faint and piles', () => {
 describe('determinism', () => {
   it('the same seed and actions give a deep-equal state and an identical event stream', () => {
     const run = () => {
-      const created = createBattle('test', 'TWICE');
-      if (!created.ok) throw new Error('create');
+      const created = begun('test', 'TWICE');
       let state = created.state;
       const events: BattleEvent[] = [...created.events];
       for (let round = 0; round < 8; round++) {

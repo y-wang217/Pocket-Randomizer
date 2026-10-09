@@ -158,6 +158,22 @@ their place in the order; a committed round plays back step by step and stays
 in a Round log under Menu. `CARD_ENGINE_VERSION` moves to `cards-0.2.0`; none
 of the run's four axes moves.
 
+**Card battle sandbox: deployment, a deeper danger zone, scenarios.** Branch
+`claude/wizardly-cannon-l8fktg`, message
+[`spec/gymrun-patch-card-battle-scenarios-and-bot.md`](spec/gymrun-patch-card-battle-scenarios-and-bot.md),
+record [`generation.md`](generation.md) section 125m. A guide for reading a
+battle log without the repo
+([`handoff/card-battle-log-reading.md`](handoff/card-battle-log-reading.md))
+and `npm run cards:narrate`; the board is seven deep with a three-row danger
+zone; the player places its units on the home rows before Start; enemies the
+scenario does not place spawn anywhere on their backline from the seed; Menu
+lists the scenarios. Then the guard bot (section 125n): a defensive
+beam-search player that sees only what a player sees, its trainer
+(`npm run cards:train`), a per-scenario bench (`npm run cards:bench`), a
+one-seed solver (`npm run cards:solve`), and Bot turn under Menu. Built and
+stopped for review. `CARD_ENGINE_VERSION` moves to `cards-0.3.0`; none of the
+run's four axes moves.
+
 **Also in flight: Defender Mode v0, a fun test.** Branch
 `claude/eager-turing-0059br`, prompt
 [`spec/gymrun-defender-mode-v0-fun-test.md`](spec/gymrun-defender-mode-v0-fun-test.md),

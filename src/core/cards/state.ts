@@ -82,7 +82,11 @@ export interface BattleState {
   /** Draws taken from the battle's own stream; see `docs/generation.md` section 125. */
   rngDraws: number;
   round: number;
-  phase: 'plan' | 'won' | 'lost';
+  /**
+   * `deploy` until the player starts the battle: units are placed, the hand
+   * is drawn, and no enemy has moved or telegraphed yet.
+   */
+  phase: 'deploy' | 'plan' | 'won' | 'lost';
   /** In encounter order, which is the deck's unit order. */
   units: UnitState[];
   /** In spawn order. */
@@ -97,7 +101,11 @@ export interface BattleState {
 export type Action =
   | { type: 'select'; card: CardIid; unit: UnitId; choice?: Choice }
   | { type: 'unselect'; planIndex: number }
-  | { type: 'commit' };
+  | { type: 'commit' }
+  /** Deploy only: put a unit on a home tile, swapping with a unit already there. */
+  | { type: 'place'; unit: UnitId; tile: Pos }
+  /** Deploy only: the placement stands and round 1 begins. */
+  | { type: 'start' };
 
 /** Why a card cannot be played by a unit right now. */
 export type PlayBlock = 'noMp' | 'noSlot' | 'wrongZone' | 'noTarget' | 'fainted';
@@ -112,4 +120,8 @@ export type IllegalReason =
   | 'badChoice'
   /** Legal alone, but it would make an earlier play in the plan illegal. */
   | 'breaksPlan'
-  | 'badPlanIndex';
+  | 'badPlanIndex'
+  /** A card action before the battle has started. */
+  | 'deploying'
+  /** A placement after it has. */
+  | 'notDeploying';

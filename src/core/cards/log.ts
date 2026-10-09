@@ -20,7 +20,7 @@ import { step } from './step';
 import { inDanger } from './zones';
 
 /** Bumps when a logged action, a rule or a resolver changes what a log replays to. */
-export const CARD_ENGINE_VERSION = 'cards-0.2.0';
+export const CARD_ENGINE_VERSION = 'cards-0.3.0';
 
 export interface BattleLog {
   engineVersion: string;
@@ -107,10 +107,9 @@ export function summarize(log: BattleLog): PlaytestReadout {
   const roundStart = (s: BattleState): void => {
     if (s.phase === 'plan' && !legalActions(s).some((a) => a.type === 'select')) readout.noChoiceRounds.push(s.round);
   };
-  // The opening plan is a round start like any other.
-  const opening = log.engineVersion === CARD_ENGINE_VERSION ? createBattle(log.encounterId, log.seed) : null;
-  if (opening?.ok) roundStart(opening.state);
+  // Round 1's plan begins when the player starts the battle.
   const { state } = replay(log, (before, action, after, events) => {
+    if (action.type === 'start') roundStart(after);
     if (action.type !== 'commit') return;
     const positions = project(before);
     for (const unit of livingUnits(before)) if (inDanger(positions[unit.id]!)) readout.dangerRounds[unit.id] += 1;
@@ -131,7 +130,7 @@ export function summarize(log: BattleLog): PlaytestReadout {
     readout.cardsPerRound.push(played);
     roundStart(after);
   });
-  readout.outcome = state.phase === 'plan' ? 'unfinished' : state.phase;
+  readout.outcome = state.phase === 'plan' || state.phase === 'deploy' ? 'unfinished' : state.phase;
   readout.rounds = state.round;
   return readout;
 }

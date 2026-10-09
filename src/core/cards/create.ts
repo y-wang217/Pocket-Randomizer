@@ -1,21 +1,27 @@
 /**
  * Building a battle. `layoutBattle` is the board before anything is drawn:
- * units and enemies on their tiles, every card in the draw pile in deck order.
- * `createBattle` rolls each enemy's starting step (E6), shuffles, and runs the
- * enemy move, telegraph and next-hand phases once, so the battle opens on
- * round 1 with a hand and every enemy's intent lit.
+ * units on their default tiles, enemies the encounter places on theirs, every
+ * card in the draw pile in deck order. An enemy the encounter does not place
+ * has no tile yet.
+ *
+ * `createBattle` makes every draw the battle makes at creation, in one pass
+ * and a fixed order: each enemy's starting step (E6), then a spawn tile for
+ * each unplaced enemy in spawn order, then the shuffle. The count depends only
+ * on the encounter. It then deals the round 1 hand and opens in `deploy`, so
+ * the player places its units seeing the hand and the enemies; `start`
+ * (`deploy.ts`) runs the enemies' opening move and telegraph.
  */
 import { CARDS, DECKS } from '../../cardData/cards';
 import { ENCOUNTERS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
-import { enemyMovesAndTelegraph } from './enemies';
 import type { BattleEvent } from './events';
 import type { Ctx } from './keywords';
 import { nextHand } from './resolve';
 import { shuffled, withStream } from './random';
 import type { BattleState, CardInstance } from './state';
+import { allTiles, samePos, zoneOf } from './zones';
 
 /** The unshuffled battle for an encounter, or `null` for an unknown id. */
 export function layoutBattle(encounterId: string, seed: string): BattleState | null {
@@ -53,7 +59,7 @@ export function layoutBattle(encounterId: string, seed: string): BattleState | n
       id: `e${spawnIndex}`,
       def,
       spawnIndex,
-      pos: { ...pos },
+      pos: pos ? { ...pos } : null,
       hp: ENEMIES[def].hp,
       shield: 0,
       baseShield: ENEMIES[def].baseShield,
@@ -76,12 +82,18 @@ export function createBattle(encounterId: string, seed: string): CreateResult {
   if (!s) return { ok: false, reason: 'unknownEncounter' };
   const ctx: Ctx = { s, events: [] };
   withStream(s, (stream) => {
-    // E6: each enemy's starting step, in spawn order, then the opening shuffle.
+    // E6: each enemy's starting step, in spawn order.
     for (const enemy of s.enemies) enemy.step = stream.nextInt(ENEMIES[enemy.def].script.steps.length);
+    // Spawns: each unplaced enemy, in spawn order, on a free tile of the spawn zone.
+    for (const enemy of s.enemies) {
+      if (enemy.pos) continue;
+      const free = allTiles().filter((t) => zoneOf(t) === RULES.spawnZone && !s.enemies.some((e) => samePos(e.pos, t)));
+      enemy.pos = { ...free[stream.nextInt(free.length)]! };
+    }
     s.piles.draw = shuffled(stream, s.piles.draw);
   });
-  // Battle start runs phases 6, 7 and 8 once, on the rolled step.
-  enemyMovesAndTelegraph(ctx, false);
+  // The round 1 hand. The enemies move and telegraph once the player starts.
   nextHand(ctx);
+  s.phase = 'deploy';
   return { ok: true, state: s, events: ctx.events };
 }

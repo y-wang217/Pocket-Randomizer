@@ -3,9 +3,11 @@
  * then edited, so every fixture starts from the shipped encounter and differs
  * from it only where a test says so.
  */
-import { layoutBattle } from '../../src/core/cards/create';
-import type { Pos } from '../../src/core/cards/defs';
+import { createBattle, layoutBattle } from '../../src/core/cards/create';
+import type { Col, Pos } from '../../src/core/cards/defs';
+import type { BattleEvent } from '../../src/core/cards/events';
 import type { BattleState, CardIid, UnitId } from '../../src/core/cards/state';
+import { step } from '../../src/core/cards/step';
 
 export interface BoardSpec {
   /** Card def ids to put in hand, in order. */
@@ -49,4 +51,16 @@ export function iidOf(state: BattleState, def: string): CardIid {
   return found.iid;
 }
 
-export const at = (lane: 1 | 2 | 3, col: 1 | 2 | 3 | 4 | 5 | 6): Pos => ({ lane, col });
+export const at = (lane: 1 | 2 | 3, col: Col): Pos => ({ lane, col });
+
+/**
+ * A created battle started on its default placement: round 1's plan, every
+ * enemy telegraphed. `events` are creation's and the start's, in order.
+ */
+export function begun(encounterId: string, seed: string): { state: BattleState; events: BattleEvent[] } {
+  const created = createBattle(encounterId, seed);
+  if (!created.ok) throw new Error(`unknown encounter ${encounterId}`);
+  const started = step(created.state, { type: 'start' });
+  if (!started.ok) throw new Error(`start refused: ${started.reason}`);
+  return { state: started.state, events: [...created.events, ...started.events] };
+}

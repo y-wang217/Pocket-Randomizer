@@ -13,15 +13,19 @@
 import type { Rules } from '../core/cards/defs';
 
 export const RULES: Rules = {
-  board: { lanes: 3, cols: 6 },
+  // The danger zone is three deep, so it is harder to cross
+  // (`docs/spec/gymrun-patch-card-battle-scenarios-and-bot.md`).
+  board: { lanes: 3, cols: 7 },
   zones: {
     playerBackline: [1, 2],
-    danger: [3, 4],
-    enemyBackline: [5, 6],
+    danger: [3, 4, 5],
+    enemyBackline: [6, 7],
   },
+  deployZone: 'playerBackline',
+  spawnZone: 'enemyBackline',
   reach: {
-    player: { min: 1, max: 4 },
-    enemy: { min: 3, max: 6 },
+    player: { min: 1, max: 5 },
+    enemy: { min: 3, max: 7 },
   },
   forward: { player: 1, enemy: -1 },
   handSize: 5,
@@ -41,7 +45,7 @@ export const RULES: Rules = {
   moveShape: 'orthogonalInsideReach', // R15
   huntTieBreak: ['nearestLane', 'lowestHp', 'upperLane'], // E1
   huntDistance: 'anyLanesBeforeBlocker', // E2
-  enemySlashFromCols: [3, 4], // E3
+  enemySlashFromCols: [3, 4, 5], // E3: the danger zone
   advance: { cols: 1, limitCol: 3, ifBlocked: 'wait' }, // E4
   enemyShieldClears: 'ownNextAction', // E5
   startingStep: 'rolledPerEnemy', // E6
