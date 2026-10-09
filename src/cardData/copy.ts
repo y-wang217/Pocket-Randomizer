@@ -17,6 +17,8 @@ export const CARD_COPY = {
   deployHint: 'Place your units on the home rows, then Start',
   placeUnit: (unit: string) => `${unit}: pick a home tile`,
   scenario: 'Scenario',
+  /** A scenario's grade total, the sum of its enemies' provisional grades. */
+  grade: (n: number) => `Grade ${n}`,
   undo: 'Undo',
   cancel: 'Cancel',
   inspect: 'Inspect',

@@ -13,9 +13,10 @@
 import { readFileSync } from 'node:fs';
 
 import { CARDS } from '../src/cardData/cards';
+import { ENCOUNTERS } from '../src/cardData/encounters';
 import { ENEMIES } from '../src/cardData/enemies';
 import { UNITS } from '../src/cardData/units';
-import { createBattle } from '../src/core/cards/create';
+import { createBattle, gradeTotal } from '../src/core/cards/create';
 import type { Pos } from '../src/core/cards/defs';
 import type { BattleEvent } from '../src/core/cards/events';
 import { type BattleLog, CARD_ENGINE_VERSION, formatReadout, summarize } from '../src/core/cards/log';
@@ -94,7 +95,7 @@ function narrate(log: BattleLog): string[] {
     }
   };
 
-  out.push(`seed ${log.seed}  encounter ${log.encounterId}  deck ${log.deckId}  engine ${log.engineVersion}`);
+  out.push(`seed ${log.seed}  encounter ${log.encounterId} (grade ${gradeTotal(ENCOUNTERS[log.encounterId]!)})  deck ${log.deckId}  engine ${log.engineVersion}`);
   out.push(`enemy starting steps (rolled from the seed): ${s.enemies.map((e) => `${e.id} step ${e.step + 1} of ${ENEMIES[e.def].script.steps.length}`).join(', ')}`);
   board('DEPLOY (the units on their default tiles; the enemies have not moved yet)');
   let plan: string[] = [];

@@ -51,4 +51,44 @@ export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
       { def: 'drone', pos: at(3, 7) },
     ],
   },
+  // `docs/spec/gymrun-patch-card-battle-grace-friendly-fire.md` A4: every
+  // spawn fixed, in the order listed, which is the order they act.
+  'turret-alley': {
+    id: 'turret-alley',
+    name: 'Turret Alley',
+    blurb: 'Two Turrets hold the outer lanes; a Hound runs the middle.',
+    deckId: 'puppeteer',
+    units: PUPPETEER_FRONT,
+    enemies: [
+      { def: 'turret', pos: at(1, 7) },
+      { def: 'hound', pos: at(2, 6) },
+      { def: 'turret', pos: at(3, 7) },
+    ],
+  },
+  'wall-and-gun': {
+    id: 'wall-and-gun',
+    name: 'Wall and Gun',
+    blurb: 'Two Bulwarks march on the outer lanes; a Sniper waits behind.',
+    deckId: 'puppeteer',
+    units: PUPPETEER_FRONT,
+    enemies: [
+      { def: 'bulwark', pos: at(1, 6) },
+      { def: 'sniper', pos: at(2, 7) },
+      { def: 'bulwark', pos: at(3, 6) },
+    ],
+  },
+  'the-pack': {
+    id: 'the-pack',
+    name: 'The Pack',
+    blurb: 'Three Hounds on the front row, a Pikeman behind them.',
+    deckId: 'puppeteer',
+    units: PUPPETEER_FRONT,
+    enemies: [
+      { def: 'hound', pos: at(1, 6) },
+      { def: 'hound', pos: at(2, 6) },
+      { def: 'hound', pos: at(3, 6) },
+      { def: 'pikeman', pos: at(2, 7) },
+    ],
+  },
 };
+

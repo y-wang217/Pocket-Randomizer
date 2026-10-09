@@ -26,7 +26,7 @@ import { CARD_COPY } from '../../cardData/copy';
 import { ENCOUNTERS } from '../../cardData/encounters';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
-import { createBattle } from '../../core/cards/create';
+import { createBattle, gradeTotal } from '../../core/cards/create';
 import type { Effect, EnemyDefId, Pos } from '../../core/cards/defs';
 import { choicesFor } from '../../core/cards/legal';
 import { newLog, type BattleLog } from '../../core/cards/log';
@@ -1011,7 +1011,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     const list = el('div', 'cb-scenarios');
     list.append(el('div', 'cb-scenarios-title', CARD_COPY.scenario));
     for (const encounter of Object.values(ENCOUNTERS)) {
-      const pick = button('cb-btn cb-scenario', encounter.name, () => {
+      const pick = button('cb-btn cb-scenario', `${encounter.name} · ${CARD_COPY.grade(gradeTotal(encounter))}`, () => {
         encounterId = encounter.id;
         start(seed);
       });

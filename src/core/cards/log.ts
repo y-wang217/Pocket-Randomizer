@@ -11,7 +11,8 @@
  * version is refused loudly, naming both values; it is never reinterpreted.
  */
 import { CARDS } from '../../cardData/cards';
-import { createBattle } from './create';
+import { ENCOUNTERS } from '../../cardData/encounters';
+import { createBattle, gradeTotal } from './create';
 import type { BattleEvent } from './events';
 import { legalActions } from './legal';
 import { cardDefOf, livingUnits, project } from './plan';
@@ -73,6 +74,8 @@ export interface PlaytestReadout {
   engineVersion: string;
   seed: string;
   encounterId: string;
+  /** The scenario's grade total, provisional (`gradeTotal`). */
+  grade: number;
   outcome: 'won' | 'lost' | 'unfinished';
   /** The round the battle ended on, or the round it stands on. */
   rounds: number;
@@ -95,6 +98,7 @@ export function summarize(log: BattleLog): PlaytestReadout {
     engineVersion: log.engineVersion,
     seed: log.seed,
     encounterId: log.encounterId,
+    grade: Object.hasOwn(ENCOUNTERS, log.encounterId) ? gradeTotal(ENCOUNTERS[log.encounterId]!) : 0,
     outcome: 'unfinished',
     rounds: 0,
     dangerRounds: { A: 0, B: 0, C: 0 },
@@ -139,7 +143,7 @@ export function summarize(log: BattleLog): PlaytestReadout {
 export function formatReadout(r: PlaytestReadout): string {
   const units = (record: Record<string, number>) => Object.entries(record).map(([id, n]) => `${id} ${n}`).join(', ');
   return [
-    `card engine ${r.engineVersion}  seed ${r.seed}  encounter ${r.encounterId}`,
+    `card engine ${r.engineVersion}  seed ${r.seed}  encounter ${r.encounterId}  grade ${r.grade}`,
     `outcome            ${r.outcome} on round ${r.rounds}`,
     `danger zone rounds ${units(r.dangerRounds)}`,
     `telegraphs         ${r.telegraphs.dodged} dodged, ${r.telegraphs.taken} taken`,

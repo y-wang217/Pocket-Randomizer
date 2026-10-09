@@ -19,12 +19,22 @@ import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
 import { openingSteps } from './enemies';
+import type { EncounterDef } from './defs';
 import type { BattleEvent } from './events';
 import type { Ctx } from './keywords';
 import { nextHand } from './resolve';
 import { shuffled, withStream } from './random';
 import type { BattleState, CardInstance } from './state';
 import { allTiles, samePos, zoneOf } from './zones';
+
+/**
+ * A scenario's difficulty, provisional: the sum of its enemies' grades. Known
+ * before any draw, a seeded-spawn scenario's included, since the enemy set is
+ * fixed and only the tiles are drawn.
+ */
+export function gradeTotal(encounter: EncounterDef): number {
+  return encounter.enemies.reduce((sum, { def }) => sum + ENEMIES[def].grade, 0);
+}
 
 /** The unshuffled battle for an encounter, or `null` for an unknown id. */
 export function layoutBattle(encounterId: string, seed: string): BattleState | null {

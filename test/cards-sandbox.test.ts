@@ -190,10 +190,21 @@ describe('the sandbox screen', () => {
     const root = sandbox.root;
     all(root, '.cb-actions .cb-btn').at(-1)!.click();
     const names = all(root, '.cb-scenario').map((b) => b.textContent);
-    expect(names).toEqual(['Skirmish', 'Front line', 'Staggered']);
-    all(root, '.cb-scenario').find((b) => b.textContent === 'Staggered')!.click();
+    // Each with its grade total, a seeded-spawn scenario's included.
+    expect(names).toEqual([
+      'Skirmish · Grade 5',
+      'Front line · Grade 5',
+      'Staggered · Grade 5',
+      'Turret Alley · Grade 5',
+      'Wall and Gun · Grade 7',
+      'The Pack · Grade 6',
+    ]);
+    all(root, '.cb-scenario').find((b) => b.textContent === 'Staggered · Grade 5')!.click();
     const enemyRows = all(root, '.cb-token--enemy').map((t) => t.closest<HTMLElement>('.cb-tile')!.dataset['col']).sort();
     expect(enemyRows).toEqual(['6', '7', '7']);
+    all(root, '.cb-actions .cb-btn').at(-1)!.click();
+    all(root, '.cb-scenario').find((b) => b.textContent === 'The Pack · Grade 6')!.click();
+    expect(all(root, '.cb-token--enemy').map((t) => t.getAttribute('aria-label'))).toEqual(['P4', 'H1', 'H2', 'H3']);
     sandbox.close();
   });
 
