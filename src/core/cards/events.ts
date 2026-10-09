@@ -12,6 +12,9 @@ export type BattleEvent =
   | { t: 'unplanned'; card: CardIid; unit: UnitId }
   /** A later play that the unselect left illegal, removed with it. */
   | { t: 'planPruned'; card: CardIid; unit: UnitId; reason: IllegalReason }
+  // Deployment.
+  | { t: 'placed'; unit: UnitId; from: Pos; to: Pos }
+  | { t: 'started' }
   // A round.
   | { t: 'committed'; round: number }
   | { t: 'played'; card: CardIid; unit: UnitId }

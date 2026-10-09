@@ -12,6 +12,10 @@
  * input. Under reduced motion the round lands at once. Every round stays in
  * the round log, under Menu.
  *
+ * A battle opens in deployment: the player taps a unit, then a home tile, to
+ * place it (a unit already there swaps), and Start begins round 1. The menu
+ * lists every scenario.
+ *
  * Outside the design bible by the author's ruling
  * (`docs/spec/gymrun-card-battle-engine-rulings.md`). It writes nothing into
  * the run save.
@@ -19,6 +23,8 @@
 import './sandbox.css';
 
 import { CARD_COPY } from '../../cardData/copy';
+import { ENCOUNTERS } from '../../cardData/encounters';
+import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
 import { createBattle } from '../../core/cards/create';
 import type { Effect, Pos } from '../../core/cards/defs';
@@ -40,6 +46,8 @@ export interface Sandbox {
 
 export interface SandboxOptions {
   seed?: string;
+  /** The scenario to open on; the default scenario when absent or unknown. */
+  encounter?: string;
   onExit?: () => void;
 }
 
@@ -57,7 +65,8 @@ interface Pending {
   blocked?: HandCardView['blocked'];
 }
 
-const ENCOUNTER = 'test';
+/** The scenario the sandbox opens on: enemies drawn anywhere on their backline. */
+const DEFAULT_ENCOUNTER = 'skirmish';
 const LONG_PRESS_MS = 450;
 /** How long each kind of playback step holds. */
 const STEP_MS: Record<Step['kind'], number> = { card: 900, enemy: 900, move: 600, next: 900, round: 700, end: 900 };
@@ -181,6 +190,9 @@ export function effectLines(effects: readonly Effect[]): string[] {
 
 export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sandbox {
   let seed = options.seed ?? newSeed();
+  let encounterId = options.encounter && Object.hasOwn(ENCOUNTERS, options.encounter) ? options.encounter : DEFAULT_ENCOUNTER;
+  /** Deployment: the unit picked to place, before its tile is. */
+  let placing: UnitId | null = null;
   let state!: BattleState;
   let log!: BattleLog;
   let pending: Pending | null = null;
@@ -250,11 +262,12 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
 
   function start(nextSeed: string): void {
     seed = nextSeed;
-    const created = createBattle(ENCOUNTER, seed);
+    const created = createBattle(encounterId, seed);
     if (!created.ok) return;
     state = created.state;
-    log = newLog(seed, ENCOUNTER, state.deckId);
+    log = newLog(seed, encounterId, state.deckId);
     pending = null;
+    placing = null;
     inspectMode = false;
     message = '';
     rounds = [];
@@ -274,6 +287,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     state = result.state;
     log.actions.push(action);
     pending = null;
+    placing = null;
     message = '';
     if (action.type === 'commit') {
       const record = { round: before.round, before, steps: roundSteps(before, result.events, state) };
@@ -281,7 +295,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       if (playRound(record)) return true;
     }
     render();
-    if (state.phase !== 'plan') openSheet();
+    if (state.phase !== 'plan' && state.phase !== 'deploy') openSheet();
     return true;
   }
 
@@ -291,6 +305,11 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     if (inspectMode) {
       inspectMode = false;
       showInspect(card);
+      render();
+      return;
+    }
+    if (state.phase === 'deploy') {
+      message = CARD_COPY.deployHint;
       render();
       return;
     }
@@ -354,6 +373,13 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   }
 
   function tapTarget(id: TargetId): boolean {
+    if (state.phase === 'deploy') {
+      if (!state.units.some((u) => u.id === id)) return false;
+      placing = placing === id ? null : (id as UnitId);
+      message = placing ? CARD_COPY.placeUnit(placing) : '';
+      render();
+      return true;
+    }
     const blocked = pending?.stage === 'assign' ? pending.blocked?.find((b) => b.unit === id) : undefined;
     if (blocked) {
       message = blockedLines([blocked])[0]!;
@@ -379,6 +405,19 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   }
 
   function tapTile(tile: TileView): void {
+    if (state.phase === 'deploy') {
+      const home = viewOf(state).deployTiles.some((t) => samePos(t, tile.pos));
+      const own = placing !== null && samePos(state.units.find((u) => u.id === placing)?.pos, tile.pos);
+      // A picked unit goes to any other home tile, swapping with a unit there.
+      if (placing !== null && home && !own) act({ type: 'place', unit: placing, tile: tile.pos });
+      else if (tile.occupant?.kind === 'unit') tapTarget(tile.occupant.id);
+      else {
+        placing = null;
+        message = '';
+        render();
+      }
+      return;
+    }
     if (pending?.stage === 'tile' && pending.tiles.some((t) => samePos(t, tile.pos))) {
       const choice = pending.ally !== undefined ? { unit: pending.ally, tile: tile.pos } : { tile: tile.pos };
       act({ type: 'select', card: pending.card, unit: pending.unit!, choice });
@@ -436,7 +475,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     if (!playback) return;
     playback = null;
     render();
-    if (state.phase !== 'plan') openSheet();
+    if (state.phase !== 'plan' && state.phase !== 'deploy') openSheet();
   }
 
   /** The step's banner, and its motion on the board and the panels just drawn. */
@@ -508,26 +547,29 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       el('span', 'cb-round', `${CARD_COPY.round} ${view.round}`),
       el('span', 'cb-piles', `${CARD_COPY.draw} ${view.piles.draw} · ${CARD_COPY.discard} ${view.piles.discard}`),
     );
-    const note = el('div', 'cb-note', message || (inspectMode ? CARD_COPY.inspectHint : ''));
+    const idle = state.phase === 'deploy' ? CARD_COPY.deployHint : '';
+    const note = el('div', 'cb-note', message || (inspectMode ? CARD_COPY.inspectHint : idle));
     top.replaceChildren(status, note, button('cb-btn cb-exit', CARD_COPY.exit, () => close()));
   }
 
   function renderBoard(view: BattleView): void {
-    const choosing = pending?.stage === 'tile';
+    const placingFrom = placing ? state.units.find((u) => u.id === placing)?.pos : null;
+    const placeTiles = placingFrom ? view.deployTiles.filter((t) => !samePos(t, placingFrom)) : [];
+    const choosing = pending?.stage === 'tile' || placeTiles.length > 0;
     const own = ownAttacks(view);
     // Every planned card's target holds a reticle, as a target being picked does.
     const held = new Set(view.previews.flatMap((p) => p.targets));
     const nodes: HTMLElement[] = [];
-    // Enemy backline at the top: column 6 first. Lanes left to right.
-    for (let col = 6; col >= 1; col--) {
-      for (let lane = 1; lane <= 3; lane++) {
+    // Enemy backline at the top: the last column first. Lanes left to right.
+    for (let col = RULES.board.cols; col >= 1; col--) {
+      for (let lane = 1; lane <= RULES.board.lanes; lane++) {
         const tile = view.tiles.find((t) => t.pos.lane === lane && t.pos.col === col)!;
         const node = el('button', `cb-tile cb-tile--${tile.zone}`);
         node.type = 'button';
         node.dataset['lane'] = String(lane);
         node.dataset['col'] = String(col);
         node.append(cardAsset(ZONE_TILE[tile.zone]));
-        const selectable = choosing && pending!.tiles.some((t) => samePos(t, tile.pos));
+        const selectable = choosing && (pending?.tiles ?? placeTiles).some((t) => samePos(t, tile.pos));
         const acts = threatActs(tile);
         for (const act of acts) node.append(threatLayer(tile, act));
         const mine = own.filter((a) => samePos(a.pos, tile.pos));
@@ -650,7 +692,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     }
     node.append(el('span', 'cb-token-label', label));
     node.setAttribute('aria-label', label);
-    if (pending?.unit === occupant.id || pending?.ally === occupant.id) node.append(ring('marker-ring-selected'));
+    if (pending?.unit === occupant.id || pending?.ally === occupant.id || placing === occupant.id) node.append(ring('marker-ring-selected'));
     const picking = !!pending && pending.stage !== 'tile' && pending.units.includes(occupant.id);
     if (picking || held.has(occupant.id)) node.append(ring('marker-reticle'));
     return node;
@@ -695,7 +737,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         panel.append(cardAsset('panel-frame', 'fill'));
         if (unit.fainted) panel.dataset['dead'] = 'true';
         if (target) panel.dataset['target'] = 'true';
-        if (pending?.unit === unit.id) panel.dataset['assigning'] = 'true';
+        if (pending?.unit === unit.id || placing === unit.id) panel.dataset['assigning'] = 'true';
         if (pending?.blocked?.some((b) => b.unit === unit.id)) panel.dataset['blocked'] = 'true';
         panel.append(el('div', 'cb-panel-name', `${unit.id} ${unit.name}`));
         panel.append(statLine(CARD_COPY.hp, `${unit.hp}/${unit.maxHp} · ${CARD_COPY.shieldShort} ${unit.shield}+${unit.baseShield}`), bar(unit.hp, unit.maxHp));
@@ -860,16 +902,19 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     });
     inspectButton.querySelector('.cb-btn-label')!.prepend(cardAsset('icon-inspect', { width: 16, height: 16 }));
     if (inspectMode) inspectButton.dataset['on'] = 'true';
-    const end = button('cb-btn cb-btn--primary', CARD_COPY.endTurn, () => act({ type: 'commit' }));
+    const deploying = view.phase === 'deploy';
+    const end = deploying
+      ? button('cb-btn cb-btn--primary', CARD_COPY.start, () => act({ type: 'start' }))
+      : button('cb-btn cb-btn--primary', CARD_COPY.endTurn, () => act({ type: 'commit' }));
     end.querySelector('.cb-btn-label')!.prepend(cardAsset('icon-end-turn', { width: 16, height: 16 }));
-    end.disabled = !view.canCommit;
+    end.disabled = !deploying && !view.canCommit;
     actions.replaceChildren(undo, inspectButton, end, button('cb-btn', CARD_COPY.menu, () => openSheet()));
   }
 
   function openSheet(): void {
     const panel = el('div', 'cb-sheet-panel');
     const heading =
-      state.phase === 'plan' ? CARD_COPY.title : `${state.phase === 'won' ? CARD_COPY.won : CARD_COPY.lost} · ${CARD_COPY.round} ${state.round}`;
+      state.phase === 'plan' || state.phase === 'deploy' ? CARD_COPY.title : `${state.phase === 'won' ? CARD_COPY.won : CARD_COPY.lost} · ${CARD_COPY.round} ${state.round}`;
     panel.append(el('div', 'cb-sheet-title', heading), el('div', 'cb-seed', `${CARD_COPY.seed} ${seed}`));
     const copyArea = el('textarea', 'cb-log');
     copyArea.readOnly = true;
@@ -899,6 +944,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         clipboard.writeText(text).then(() => (status.textContent = CARD_COPY.copied), fallback);
       }),
       button('cb-btn', CARD_COPY.roundLog, () => openRoundLog()),
+      scenarios(),
       replay,
       button('cb-btn', CARD_COPY.close, () => (sheet.hidden = true)),
       button('cb-btn', CARD_COPY.exit, () => close()),
@@ -907,6 +953,22 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     );
     sheet.replaceChildren(panel);
     sheet.hidden = false;
+  }
+
+  /** One button per scenario; a tap starts it on the current seed. */
+  function scenarios(): HTMLElement {
+    const list = el('div', 'cb-scenarios');
+    list.append(el('div', 'cb-scenarios-title', CARD_COPY.scenario));
+    for (const encounter of Object.values(ENCOUNTERS)) {
+      const pick = button('cb-btn cb-scenario', encounter.name, () => {
+        encounterId = encounter.id;
+        start(seed);
+      });
+      pick.title = encounter.blurb;
+      if (encounter.id === encounterId) pick.dataset['on'] = 'true';
+      list.append(pick);
+    }
+    return list;
   }
 
   /** Every committed round, step by step in the order it resolved, numbered as the playback numbers it. */

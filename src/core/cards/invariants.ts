@@ -6,7 +6,7 @@ import { DECKS } from '../../cardData/cards';
 import { RULES } from '../../cardData/rules';
 import { cardDefOf, checkPlan, slotsOf } from './plan';
 import type { BattleState, PileName, UnitId } from './state';
-import { inReach } from './zones';
+import { inReach, zoneOf } from './zones';
 
 const PILES: readonly PileName[] = ['draw', 'hand', 'discard', 'spent', 'removed'];
 
@@ -59,7 +59,11 @@ export function checkInvariants(s: BattleState): string[] {
   }
   const plan = checkPlan(s, s.plan);
   if (!plan.ok) out.push(`plan illegal at ${plan.index}: ${plan.reason}`);
-  if (s.phase !== 'plan' && s.plan.length > 0) out.push('a finished battle still holds a plan');
+  if (s.phase !== 'plan' && s.plan.length > 0) out.push(`a battle in ${s.phase} holds a plan`);
+  if (s.phase === 'deploy') {
+    for (const u of s.units) if (u.pos && zoneOf(u.pos) !== RULES.deployZone) out.push(`${u.id} is deployed outside the ${RULES.deployZone}`);
+    if (s.enemies.some((e) => e.intent)) out.push('an enemy telegraphs before the battle starts');
+  }
 
   return out;
 }

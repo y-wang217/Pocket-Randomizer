@@ -11,8 +11,9 @@ import { ENCOUNTERS } from '../src/cardData/encounters';
 import { ENEMIES } from '../src/cardData/enemies';
 import { RULES } from '../src/cardData/rules';
 import { UNITS } from '../src/cardData/units';
-import { layoutBattle } from '../src/core/cards/create';
+import { createBattle, layoutBattle } from '../src/core/cards/create';
 import { RESERVED_EFFECTS } from '../src/core/cards/defs';
+import { allTiles, inReach, samePos, zoneOf } from '../src/core/cards/zones';
 
 describe('card data', () => {
   it('ships no card that uses a reserved effect', () => {
@@ -71,11 +72,43 @@ describe('card data', () => {
       ['C', { lane: 3, col: 2 }],
     ]);
     expect(state.enemies.map((e) => [e.def, e.pos])).toEqual([
-      ['drone', { lane: 1, col: 5 }],
-      ['lancer', { lane: 2, col: 5 }],
-      ['drone', { lane: 3, col: 5 }],
+      ['drone', { lane: 1, col: 6 }],
+      ['lancer', { lane: 2, col: 6 }],
+      ['drone', { lane: 3, col: 6 }],
     ]);
     expect(ENCOUNTERS['test']!.deckId).toBe('puppeteer');
+  });
+
+  it('gives every scenario a legal start: units on distinct home tiles, enemies in reach and room to spawn', () => {
+    const key = (p: { lane: number; col: number }): string => `${p.lane},${p.col}`;
+    for (const encounter of Object.values(ENCOUNTERS)) {
+      const id = encounter.id;
+      expect(encounter.name.length, id).toBeGreaterThan(0);
+      expect(DECKS[encounter.deckId], id).toBeDefined();
+      expect(encounter.units.map((u) => u.def), id).toEqual([...DECKS[encounter.deckId]!.units]);
+      for (const { pos } of encounter.units) expect(zoneOf(pos), id).toBe(RULES.deployZone);
+      expect(new Set(encounter.units.map((u) => key(u.pos))).size, id).toBe(encounter.units.length);
+      const fixed = encounter.enemies.flatMap((e) => (e.pos ? [e.pos] : []));
+      for (const pos of fixed) expect(inReach('enemy', pos), id).toBe(true);
+      expect(new Set(fixed.map(key)).size, id).toBe(fixed.length);
+      const room = allTiles().filter((t) => zoneOf(t) === RULES.spawnZone && !fixed.some((f) => samePos(f, t))).length;
+      expect(encounter.enemies.length - fixed.length, `${id}: spawns without room`).toBeLessThanOrEqual(room);
+    }
+  });
+
+  it('spawns an unplaced enemy on the enemy backline, and not always on the row nearest the danger zone', () => {
+    const rows = new Set<number>();
+    for (let i = 0; i < 40; i++) {
+      const created = createBattle('skirmish', `SPAWN${i}`);
+      if (!created.ok) throw new Error('create');
+      for (const e of created.state.enemies) {
+        expect(zoneOf(e.pos!)).toBe('enemyBackline');
+        rows.add(e.pos!.col);
+      }
+      const tiles = created.state.enemies.map((e) => `${e.pos!.lane},${e.pos!.col}`);
+      expect(new Set(tiles).size).toBe(3);
+    }
+    expect([...rows].sort()).toEqual([6, 7]);
   });
 
   it('carries the rule defaults it is asked to', () => {

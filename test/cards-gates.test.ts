@@ -5,15 +5,19 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import { ENCOUNTERS } from '../src/cardData/encounters';
 import { botStream, playBattle, randomBot } from '../src/core/cards/bots';
 import { createBattle } from '../src/core/cards/create';
 import { checkInvariants } from '../src/core/cards/invariants';
 import { legalActions } from '../src/core/cards/legal';
 import { CARD_ENGINE_VERSION, formatReadout, replay, summarize, type BattleLog } from '../src/core/cards/log';
-import type { Action, BattleState } from '../src/core/cards/state';
+import type { Action, BattleState, Pos } from '../src/core/cards/state';
 import { step } from '../src/core/cards/step';
 import { allTiles } from '../src/core/cards/zones';
 import { createRng } from '../src/core/rng';
+
+/** Every scenario, so the gates hold for fixed and drawn spawns alike. */
+const SCENARIOS = Object.keys(ENCOUNTERS);
 
 const bot = (botSeed: string) => {
   const stream = botStream(botSeed);
@@ -28,11 +32,11 @@ describe('section 6 gates', () => {
     let cappedAtRoundLimit = 0;
     for (let i = 0; i < 2000; i++) {
       const seed = `FUZZ${i}`;
-      const result = playBattle('test', seed, bot(`BOT${i}`), (_before, action, res) => {
+      const result = playBattle(SCENARIOS[i % SCENARIOS.length]!, seed, bot(`BOT${i}`), (_before, action, res) => {
         if (!res.ok) refused.push(`${seed}: ${JSON.stringify(action)} -> ${res.reason}`);
         else for (const breach of checkInvariants(res.state)) violations.push(`${seed}: ${breach}`);
       });
-      if (result.state.phase === 'plan') unfinished.push(seed);
+      if (result.state.phase === 'plan' || result.state.phase === 'deploy') unfinished.push(seed);
       if (result.events.some((e) => e.t === 'lost' && e.why === 'roundCap')) cappedAtRoundLimit++;
     }
     expect(violations.slice(0, 5)).toEqual([]);
@@ -46,7 +50,7 @@ describe('section 6 gates', () => {
     let checked = 0;
     for (let i = 0; i < 40; i++) {
       const junk = createRng(`JUNK${i}`).policy.at('cards/test-junk');
-      playBattle('test', `LEGAL${i}`, bot(`LB${i}`), (before) => {
+      playBattle(SCENARIOS[i % SCENARIOS.length]!, `LEGAL${i}`, bot(`LB${i}`), (before) => {
         const legal = legalActions(before);
         const keys = new Set(legal.map((a) => JSON.stringify(a)));
         for (const action of legal) {
@@ -61,10 +65,15 @@ describe('section 6 gates', () => {
           const card = junk.pick(ids);
           const unit = junk.pick(['A', 'B', 'C'] as const);
           const shape = junk.nextInt(4);
-          const choice: { unit?: string; tile?: { lane: 1 | 2 | 3; col: 1 | 2 | 3 | 4 | 5 | 6 } } = {};
+          const choice: { unit?: string; tile?: Pos } = {};
           if (shape === 1 || shape === 3) choice.unit = junk.pick(targets);
           if (shape === 2 || shape === 3) choice.tile = junk.pick(tiles);
-          const action: Action = shape === 0 ? { type: 'select', card, unit } : { type: 'select', card, unit, choice };
+          const action: Action =
+            n % 4 === 3
+              ? { type: 'place', unit, tile: junk.pick(tiles) }
+              : shape === 0
+                ? { type: 'select', card, unit }
+                : { type: 'select', card, unit, choice };
           const result = step(before, action);
           expect(result.ok, JSON.stringify(action)).toBe(keys.has(JSON.stringify(action)));
           if (!result.ok) expect(result.state).toBe(before);
@@ -142,7 +151,7 @@ describe('log and replay', () => {
 
   it('refuses a log from another engine version, naming both values', () => {
     const { log } = playBattle('test', 'VERSION', bot('VERSION'));
-    expect(() => replay({ ...log, engineVersion: 'cards-0.0.9' })).toThrow(/cards-0\.0\.9.*cards-0\.2\.0/);
+    expect(() => replay({ ...log, engineVersion: 'cards-0.0.9' })).toThrow(/cards-0\.0\.9.*cards-0\.3\.0/);
   });
 
   it('refuses a log that does not replay, saying where', () => {

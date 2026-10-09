@@ -2,15 +2,18 @@
 
 For a Claude session that is given a GYMRUN card battle log and asked to read
 it, discuss it, or design new scenarios, **without access to the repository**.
-Everything needed is on this page. It describes engine `cards-0.2.0`, the
-version that wrote the example log below.
+Everything needed is on this page. It describes engine **`cards-0.3.0`**: a
+board seven rows deep, units placed by the player before round 1, and enemy
+spawns that vary by scenario and seed. The worked example in section 6 was
+played on `cards-0.2.0`, the six-row board, before those changes; it is kept
+because it shows how to read a log, and section 6 says what differs.
 
 Paste this whole file into that session first, then the log.
 
 Contents: what a log is (1), the board (2), the units, cards and enemies (3),
-how a round resolves (4), how to decode a log (5), a full worked translation
-(6), what that run shows (7), how to write a scenario (8), and the changes
-that are coming (9).
+how a battle and a round resolve (4), how to decode a log (5), a full worked
+translation (6), what that run shows (7), how to write a scenario (8), and
+what is still coming (9).
 
 ---
 
@@ -19,19 +22,19 @@ that are coming (9).
 The sandbox's **Copy log** button gives one JSON object:
 
 ```json
-{"engineVersion":"cards-0.2.0","seed":"2APXPQJX","encounterId":"test","deckId":"puppeteer","actions":[ ... ]}
+{"engineVersion":"cards-0.3.0","seed":"2APXPQJX","encounterId":"skirmish","deckId":"puppeteer","actions":[ ... ]}
 ```
 
 | field | meaning |
 |---|---|
 | `engineVersion` | The rules version. A log only replays on the exact version that wrote it. |
-| `seed` | Fixes the deck shuffle, every reshuffle, and each enemy's starting step in its script. Nothing else in a battle is random. |
-| `encounterId` | The scenario: where everyone starts and which enemies are there. |
+| `seed` | Fixes the deck shuffle, every reshuffle, each enemy's starting step in its script, and the spawn tile of any enemy the scenario does not place. Nothing else in a battle is random. |
+| `encounterId` | The scenario: which enemies there are, and where they and the units start. |
 | `deckId` | The player's deck. Today there is one, `puppeteer`. |
 | `actions` | **Only the player's decisions**, in the order made. |
 
-**The log does not contain the hands, the draws, the enemies' starting steps or
-any outcome.** Those are reproduced by replaying the seed through the engine.
+**The log does not contain the hands, the draws, the enemies' starting steps,
+where seeded enemies spawned, or any outcome.** Those are reproduced by replaying the seed through the engine.
 So from the log alone you can say *what the player chose*; you cannot say what
 else was in hand or how much damage landed. For the full story, the repo has
 `npm run cards:narrate -- <log.json>`, which prints a round-by-round account
@@ -44,26 +47,37 @@ the seed plus the player's actions determine everything.
 
 ## 2. The board
 
-Three lanes (rows) by six columns. **Lane 1 is the top lane. Column 1 is the
-player's back edge; column 6 is the enemy's.** A tile is written `L{lane}C{col}`,
-so `L2C4` is the middle lane, fourth column. In the log it is
-`{"lane":2,"col":4}`.
+Three lanes by seven rows. The screen shows it upright: **the player's home
+rows at the bottom, the enemy's rows at the top, and the three lanes side by
+side, lane 1 on the left.** In the log a tile is `{"lane":L,"col":R}`, where
+`lane` is the screen column (1 left, 3 right) and `col` is the row counted up
+from the bottom (1 is the player's back edge, 7 the enemy's). This page writes
+it `L{lane}C{col}`, so `L2C4` is the middle lane, fourth row up.
 
 ```
-            player backline  |  danger zone  |  enemy backline
-              C1     C2      |   C3     C4   |   C5     C6
-   Lane 1     .      A       |   .      .    |   e0     .
-   Lane 2     .      B       |   .      .    |   e1     .
-   Lane 3     .      C       |   .      .    |   e2     .
+                    lane 1   lane 2   lane 3
+   C7  enemy          .        e1       .        <- enemy's back edge
+   C6  backline       e0       .        e2
+   C5                 .        .        .
+   C4  danger zone    .        .        .
+   C3                 .        .        .
+   C2  home           A        B        C
+   C1  rows           .        .        .        <- player's back edge
 ```
 
-That is the starting layout of encounter `test`.
+That is one possible start of the scenario `skirmish`: the units on their
+default tiles, the enemies wherever the seed put them.
 
-- **Reach.** Player units may stand in C1 to C4. Enemies may stand in C3 to
-  C6. The danger zone, C3 and C4, is the only place both can stand.
+- **Zones.** Home is C1 and C2, the danger zone C3 to C5, the enemy backline
+  C6 and C7.
+- **Reach.** Player units may stand in C1 to C5: home and the danger zone.
+  Enemies may stand in C3 to C7: the danger zone and their backline. The
+  danger zone is the only place both can stand.
 - **Slash and Blast** cards can only be played from the danger zone. Strike and
   Pierce can be played from anywhere.
 - One unit per tile. Nothing moves through another unit, friend or foe.
+- "Forward" for the player is up the board (toward C7); for an enemy it is
+  down (toward C1). "The next column" in a card's text is the next row forward.
 
 ---
 
@@ -169,11 +183,12 @@ The vocabulary those scripts use:
   only through empty tiles. Prefers the nearest lane (its own lane counts as
   distance 0), then the lane whose front unit has the lowest HP, then the upper
   lane. With no reachable lane it stays.
-- **advance**: one column toward the player, never past C3. Waits if blocked.
-- **slash in range**: the enemy is in C3 or C4 and a player unit is on its
-  slash tiles.
+- **advance**: one row toward the player, never past C3 (the danger zone's
+  row nearest home). Waits if blocked.
+- **slash in range**: the enemy is in the danger zone (C3 to C5) and a player
+  unit is on its slash tiles.
 - **Enemy Strike** hits the player unit **furthest forward** in that lane (the
-  one nearest the enemy). A unit in front shelters the ones behind it.
+  one nearest the enemy's edge). A unit in front shelters the ones behind it.
 - **Enemy Pierce** hits every unit in the lane.
 - **Enemy Slash** hits the next column toward the player, its lane and both
   neighbours.
@@ -181,7 +196,15 @@ The vocabulary those scripts use:
 
 ---
 
-## 4. How a round resolves
+## 4. How a battle starts, and how a round resolves
+
+**Deployment, before round 1.** The battle opens with the round 1 hand already
+dealt, the enemies on their spawn tiles, and nothing telegraphed yet. The
+player may place each unit on any of the six home tiles (C1 and C2); placing a
+unit on a tile another unit holds swaps them. Then **Start**: each enemy makes
+its opening move from its rolled starting step (a Hunt reads where the units
+now stand) and telegraphs, and round 1's planning begins. Placement draws
+nothing from the seed.
 
 During planning the player sees every enemy's **telegraph**: what it will do and
 which tiles it will hit. Then:
@@ -204,29 +227,33 @@ which tiles it will hit. Then:
 8. **Next round**: player shields clear, A gets its +1 MP, Focus pays out, the
    hand is discarded, five cards are drawn, Need Help's extra card is added.
 
-At battle start, steps 6 to 8 run once on each enemy's rolled step, so round 1
-opens with every intent already lit. A battle still going after round 30 is a
-loss.
+Start runs steps 6 and 7 once on each enemy's rolled step, so round 1 opens
+with every intent already lit. A battle still going after round 30 is a loss.
 
 ---
 
 ## 5. Decoding the actions
 
-There are three action types.
+There are five action types. The first two only happen before round 1.
 
 ```json
+{"type":"place","unit":"A","tile":{"lane":1,"col":1}}
+{"type":"start"}
 {"type":"select","card":"c8","unit":"C","choice":{"tile":{"lane":2,"col":3}}}
 {"type":"unselect","planIndex":0}
 {"type":"commit"}
 ```
 
+- **`place`**: put a unit on a home tile (swapping with a unit already there).
+- **`start`**: the placement stands; the enemies make their opening moves and
+  round 1 begins. Every log from a finished battle has exactly one.
 - **`select`**: put a card into the plan. `card` is the card id (section 3),
   `unit` is who plays it and pays for it, `choice` is what it is aimed at.
 - **`unselect`**: take a planned card back out. `planIndex` is zero-based.
 - **`commit`**: End Turn. The plan resolves.
 
-**Split the actions on `commit`.** Everything up to the first commit is round
-1's plan, up to the second is round 2's, and so on. The order of the selects
+**Split the actions on `start` and `commit`.** The placements come before
+`start`. Everything from `start` to the first commit is round 1's plan, up to the second is round 2's, and so on. The order of the selects
 (after any unselects) is the order the cards resolved.
 
 What `choice` holds, by card:
@@ -246,6 +273,12 @@ reads: *A plays Command, moving C to L2C4.*
 ---
 
 ## 6. Worked example: seed `2APXPQJX`, encounter `test`, a win on round 9
+
+**Played on `cards-0.2.0`**, before deployment and the seven-row board: the
+board was six rows (home C1-C2, danger C3-C4, enemy C5-C6), every enemy
+started on C5, there were no `place` or `start` actions, and round 1 began at
+once. The reading method is the same. This log no longer replays on the
+current engine, which refuses it by version, as designed.
 
 ### The short form: decisions only
 
@@ -514,10 +547,17 @@ Readings of the replay, not rules. Useful for scenario design and for a bot.
 
 ## 8. Writing a scenario
 
-A scenario today is one **encounter**: a deck, where each unit starts, and
-which enemies start where. Spawn order matters: it sets the enemy ids (`e0`,
-`e1`, ...) and the order they act and move in. The seed then decides each
-enemy's starting step and the shuffle.
+A scenario is one **encounter**: a deck, each unit's default home tile (the
+player can move them before Start), and the enemies. Each enemy either has a
+fixed tile, anywhere in C3 to C7, or is left to the seed, which puts it on a
+free tile of the enemy backline (C6 and C7). Spawn order matters: it sets the
+enemy ids (`e0`, `e1`, ...) and the order they act and move in. The seed then
+decides each enemy's starting step, any unfixed spawns, and the shuffle.
+
+The sandbox's Menu lists every scenario. Today there are three: `skirmish`
+(two Drones and a Lancer, all spawned by the seed; the default), `test`,
+shown as *Front line* (one enemy per lane on C6), and `staggered` (Drones on
+C7 in lanes 1 and 3, the Lancer on C6 in lane 2).
 
 Please write scenarios in this shape, so they go straight into the engine:
 
@@ -525,8 +565,9 @@ Please write scenarios in this shape, so they go straight into the engine:
 Scenario: <short name, becomes its id>
 Idea: <one or two lines: what it tests, what makes it hard>
 Deck: puppeteer
-Units: A L1C2, B L2C2, C L3C2          <- or "placed by the player in the home area", see section 9
-Enemies, in spawn order: drone L1C5, lancer L2C6, drone L3C4
+Units, default tiles (C1 or C2): A L1C2, B L2C2, C L3C2
+Enemies, in spawn order: drone L1C7, lancer (seeded), drone L3C6
+                         <- a tile in C3-C7, or "seeded" for any free C6/C7 tile
 New enemy types, if any:
   <name>: HP <n>, base shield <n>
   steps: 1. <move> / <act>   2. ...
@@ -535,12 +576,13 @@ What a good line looks like: <optional, how you expect it to be beaten>
 
 What the engine can do without new code:
 
-- Any number of Drones and Lancers anywhere enemies can stand, one per tile.
+- Any number of Drones and Lancers anywhere enemies can stand (C3 to C7),
+  one per tile, fixed or seeded. Seeded enemies need a free C6/C7 tile each.
 - **New enemy types**, as long as they are built from the script vocabulary in
   section 3: moves `stay`, `hunt`, `advance`, and acts `nothing`,
   `Strike n`, `Pierce n`, `Slash n`, `Shield n`, with `if slash in range`
   as the only condition. HP and base shield are free numbers.
-- Any starting tiles for the three units inside the player's reach.
+- Any default home tiles for the three units (the player can change them).
 
 What would need new engine work (still fine to propose, just mark it as new):
 
@@ -550,33 +592,41 @@ What would need new engine work (still fine to propose, just mark it as new):
   unit, reach a tile.
 - Enemies that arrive mid-battle.
 - A different deck or different units.
+- Units that start outside the home rows, or a home area of a different shape.
 
 Difficulty levers worth knowing:
 
-- Enemies in C3 and C4 can Slash; enemies further back cannot.
+- Enemies in the danger zone (C3 to C5) can Slash; enemies on the backline
+  cannot.
+- Drones advance only on two steps of six, and only as far as C3. An enemy
+  that starts on C7 takes a long time to arrive; one that starts on C5 is
+  already in the danger zone.
 - Lancers Pierce whole lanes, so stacking units in one lane is punished.
-- A Drone two lanes away from every unit, behind a blocker, cannot hunt.
+- A Drone whose column is blocked by another piece cannot hunt past it.
 - A has 1 HP. Anything that reaches A early is a real threat.
 - Starting steps are rolled, so a scenario plays differently per seed. If a
   scenario only works with a particular opening, say so.
 
 ---
 
-## 9. Changes coming, not built yet
+## 9. What is built, and what is still coming
 
-The author has asked for these. **None is in engine `cards-0.2.0`.** Their exact
-shape is still being decided, so a scenario written now should say which of
-them it assumes.
+Built in `cards-0.3.0`, at the author's request:
 
-- **Placing units.** The player will place their units anywhere in the home
-  area (the player backline) before round 1, instead of a fixed start.
-- **A wider danger zone.** The middle zone grows to three columns, so it is
-  harder to cross. How the board grows to fit it is open.
-- **Varied enemy spawns.** Enemies will not always start one per lane in the
-  same column; each scenario sets its own spawn.
+- **Placing units.** Before round 1 the player places the three units anywhere
+  on the six home tiles, then starts.
+- **A wider danger zone.** Three rows deep (C3 to C5), so it is harder to
+  cross. The board grew to seven rows to fit it.
+- **Varied enemy spawns.** A scenario fixes each enemy's tile or leaves it to
+  the seed, which puts it anywhere on the six enemy backline tiles, not only
+  on the row nearest the danger zone.
+
+Still coming:
+
 - **A bot** that plays scenarios competently with a defensive style (cover
   fragile units with high-HP and shielded ones, keep every unit alive), and
-  that improves its positioning by playing many times and keeping what wins.
+  that improves its placement and positioning by playing many times and
+  keeping what wins.
 
-When these land, the engine version changes and older logs stop replaying, by
-design. This page will be updated with them.
+A rules change moves the engine version, and older logs stop replaying, by
+design. This page is updated with each change.

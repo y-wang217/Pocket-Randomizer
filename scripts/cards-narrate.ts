@@ -1,7 +1,8 @@
 /**
  * Replay a card battle log headless and print it round by round, in words:
- * the board, the intents and the hand each round opens on, the plan in the
- * order it resolves, and everything that happened when it was committed.
+ * where the units were placed, then the board, the intents and the hand each
+ * round opens on, the plan in the order it resolves, and everything that
+ * happened when it was committed.
  *
  *   npm run cards:narrate -- <log.json>
  *
@@ -44,8 +45,8 @@ function narrate(log: BattleLog): string[] {
     if (i.act === 'shield') return `Shield ${i.n} (self)`;
     return `${i.act[0]!.toUpperCase()}${i.act.slice(1)} ${i.n} on ${tiles(i.tiles)}`;
   };
-  const board = (): void => {
-    out.push('', `ROUND ${s.round}`);
+  const board = (title = `ROUND ${s.round}`): void => {
+    out.push('', title);
     for (const u of s.units) {
       out.push(u.fainted
         ? `  ${who(u.id)}: fainted`
@@ -54,7 +55,8 @@ function narrate(log: BattleLog): string[] {
     for (const e of s.enemies) {
       if (!e.pos) continue;
       const shield = e.shield ? `  shield ${e.shield}` : '';
-      out.push(`  ${who(e.id)} at ${at(e.pos)}  HP ${e.hp}  base shield ${e.baseShield}${shield}  telegraphs: ${intent(e.intent)}`);
+      const telegraph = s.phase === 'deploy' ? '' : `  telegraphs: ${intent(e.intent)}`;
+      out.push(`  ${who(e.id)} at ${at(e.pos)}  HP ${e.hp}  base shield ${e.baseShield}${shield}${telegraph}`);
     }
     out.push(`  hand: ${s.piles.hand.map(card).join(', ')}`);
   };
@@ -94,11 +96,17 @@ function narrate(log: BattleLog): string[] {
 
   out.push(`seed ${log.seed}  encounter ${log.encounterId}  deck ${log.deckId}  engine ${log.engineVersion}`);
   out.push(`enemy starting steps (rolled from the seed): ${s.enemies.map((e) => `${e.id} step ${e.step + 1} of ${ENEMIES[e.def].script.steps.length}`).join(', ')}`);
-  board();
+  board('DEPLOY (the units on their default tiles; the enemies have not moved yet)');
   let plan: string[] = [];
   log.actions.forEach((a, index) => {
     const result = step(s, a);
     if (!result.ok) throw new Error(`the log does not replay: action ${index} (${JSON.stringify(a)}) refused: ${result.reason}`);
+    if (a.type === 'place') out.push(`  places ${who(a.unit)} on ${at(a.tile)}${result.events.length > 1 ? ', swapping' : ''}`);
+    if (a.type === 'start') {
+      s = result.state;
+      board();
+      return;
+    }
     if (a.type === 'select') plan.push(`  ${plan.length + 1}. ${card(a.card)} by ${who(a.unit)}${choice(a)}`);
     if (a.type === 'unselect') plan.push(`  (takes back plan slot ${a.planIndex + 1})`);
     if (a.type === 'commit') {

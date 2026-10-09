@@ -16010,3 +16010,54 @@ so it is refused, naming both values. None of the run's four axes moves.
   step in the order it resolved, numbered as the playback numbers it, with
   the quiet steps (round MP, an enemy that waits) listed dimmed. Replay round
   plays the last round back again.
+
+### 125m. Deployment, a danger zone three deep, seeded spawns, scenarios
+
+**2026-10-09**, on `claude/wizardly-cannon-l8fktg`, from `main` at `f58835e`.
+Message and follow-up
+[`spec/gymrun-patch-card-battle-scenarios-and-bot.md`](spec/gymrun-patch-card-battle-scenarios-and-bot.md).
+**`CARD_ENGINE_VERSION` moves from `cards-0.2.0` to `cards-0.3.0`**: the board,
+the battle's opening and the draw order all change, so an older log is
+refused, naming both values. None of the run's four axes moves; the card
+tables stay outside `src/data/`.
+
+- **The board is seven deep.** `RULES.board.cols` 7: home C1-C2, danger
+  C3-C5, enemy backline C6-C7. Player reach is C1-C5 and enemy reach C3-C7.
+  E3's `slashInRange` holds from the whole danger zone, C3 to C5; E4's
+  advance limit stays C3. The author's *"3 rows tall"* is three of the
+  engine's columns, because the sandbox draws the board upright, enemy
+  backline at the top (the spec file says how it was read).
+- **Deployment.** A battle is created in a new phase, `deploy`, with the
+  round 1 hand dealt and no enemy moved or telegraphed. Two new actions:
+  `place` (a unit onto any home tile, swapping with a unit there) and `start`
+  (the enemies' opening move and telegraph on the rolled step, then round 1's
+  plan). Card actions are refused with `deploying` before the start, and a
+  placement with `notDeploying` after it. Placing draws nothing. The order of
+  battle start changed: the hand is now dealt before the enemies' opening
+  move instead of after it. Neither depends on the other, so only the timing
+  moved; the readout's round 1 no-choice check now reads the state after
+  `start`.
+- **Seeded spawns.** An encounter's enemy may omit `pos`; `createBattle` then
+  draws it a free tile of `RULES.spawnZone` (the enemy backline, six tiles),
+  in spawn order, after the starting steps and before the shuffle. The count
+  of draws depends only on the encounter. A seeded scenario therefore deals a
+  different hand from a fixed one on the same seed.
+- **Scenarios.** `EncounterDef` gains `name` and `blurb`. `skirmish` (all three
+  enemies seeded) is the sandbox's default; `test` keeps one enemy per lane,
+  moved to C6, the row nearest the danger zone, and shows as *Front line*;
+  `staggered` fixes Drones on C7 and the Lancer on C6. Menu lists them; a tap
+  starts that scenario on the current seed. `test/cards-data.test.ts` holds
+  every scenario to distinct home tiles, enemies in reach and room to spawn.
+- **A telegraph no longer lights its own enemy's tile.** With the danger zone
+  in both reaches, an enemy's lane in player reach now includes the tile it
+  stands on; a Strike or Pierce telegraph drops it. No unit can stand there,
+  so nothing it hits changes.
+- **The screen.** Seven rows of 64px; the middle row grows from 384 to 448px.
+  During deployment the note reads the instruction, a tap on a unit then a
+  home tile places it, the primary button is Start, and the hand shows but
+  plays nothing.
+- **The guide.** `docs/handoff/card-battle-log-reading.md` is updated to
+  `cards-0.3.0`; its worked example stays a `cards-0.2.0` game and says so.
+  `npm run cards:narrate` prints the placements before round 1.
+- **Not built yet:** the defensive, learning bot the message asks for. It
+  comes after review of this.

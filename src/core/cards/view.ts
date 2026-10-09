@@ -8,6 +8,7 @@ import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
 import type { CardOwner, ClassId, EnemyDefId, Effect, Pos, Zone } from './defs';
+import { deployTiles } from './deploy';
 import { playBlock, playersOf } from './legal';
 import { cardDefOf, needsOf, project, slotsOf, type Needs } from './plan';
 import { enemyThreat, previewPlay, type PlayPreview } from './preview';
@@ -120,6 +121,8 @@ export interface BattleView {
   round: number;
   phase: BattleState['phase'];
   canCommit: boolean;
+  /** Before the battle starts: the tiles a unit may be placed on. Empty once it has. */
+  deployTiles: Pos[];
   tiles: TileView[];
   units: UnitView[];
   enemies: EnemyView[];
@@ -217,6 +220,7 @@ export function viewOf(state: BattleState): BattleView {
     round: state.round,
     phase: state.phase,
     canCommit: live,
+    deployTiles: state.phase === 'deploy' ? deployTiles() : [],
     tiles,
     units,
     enemies,

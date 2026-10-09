@@ -61,7 +61,7 @@ describe('previewPlay', () => {
     const play = { card: iidOf(state, 'attack'), unit: 'B' as const };
     const preview = previewPlay(state, play);
     expect(preview.attack!.act).toBe('pierce');
-    expect(preview.attack!.tiles.map((t) => t.pos.col)).toEqual([2, 3, 4, 5, 6]);
+    expect(preview.attack!.tiles.map((t) => t.pos.col)).toEqual([2, 3, 4, 5, 6, 7]);
     state.units.find((u) => u.id === 'B')!.hp -= 1;
     expect(previewPlay(state, play).attack!.act).toBe('strike');
   });

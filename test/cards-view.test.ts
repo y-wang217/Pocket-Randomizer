@@ -4,15 +4,14 @@ import { describe, expect, it } from 'vitest';
 import { createBattle } from '../src/core/cards/create';
 import { select } from '../src/core/cards/plan';
 import { viewOf } from '../src/core/cards/view';
-import { at, board, iidOf } from './fixtures/card-battle';
+import { at, begun, board, iidOf } from './fixtures/card-battle';
 
 describe('viewOf', () => {
-  it('draws 18 tiles with their zones, occupants and telegraphs', () => {
-    const created = createBattle('test', 'VIEW');
-    if (!created.ok) throw new Error('create');
+  it('draws 21 tiles with their zones, occupants and telegraphs', () => {
+    const created = begun('test', 'VIEW');
     const view = viewOf(created.state);
-    expect(view.tiles).toHaveLength(18);
-    expect(view.tiles.filter((t) => t.zone === 'danger')).toHaveLength(6);
+    expect(view.tiles).toHaveLength(21);
+    expect(view.tiles.filter((t) => t.zone === 'danger')).toHaveLength(9);
     expect(view.tiles.filter((t) => t.occupant?.kind === 'unit')).toHaveLength(3);
     expect(view.tiles.filter((t) => t.occupant?.kind === 'enemy')).toHaveLength(3);
     for (const enemy of created.state.enemies) {
@@ -21,7 +20,20 @@ describe('viewOf', () => {
       }
     }
     expect(view.canCommit).toBe(true);
+    expect(view.deployTiles).toEqual([]);
     expect(JSON.parse(JSON.stringify(view))).toEqual(view);
+  });
+
+  it('before the start: the six home tiles to place on, no telegraph, no card playable and no End Turn', () => {
+    const created = createBattle('test', 'VIEW');
+    if (!created.ok) throw new Error('create');
+    const view = viewOf(created.state);
+    expect(view.phase).toBe('deploy');
+    expect(view.deployTiles).toHaveLength(6);
+    for (const tile of view.deployTiles) expect(tile.col).toBeLessThanOrEqual(2);
+    expect(view.tiles.every((t) => t.telegraphedBy.length === 0)).toBe(true);
+    expect(view.hand.flatMap((g) => g.cards).some((c) => c.playable)).toBe(false);
+    expect(view.canCommit).toBe(false);
   });
 
   it('groups the hand by owner in deck order, Neutrals last', () => {

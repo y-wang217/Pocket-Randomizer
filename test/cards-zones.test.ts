@@ -8,11 +8,12 @@ const sorted = (tiles: { lane: number; col: number }[]): string[] => tiles.map((
 
 describe('card zones', () => {
   it('splits the columns into three zones and two reaches', () => {
-    expect([1, 2, 3, 4, 5, 6].map((col) => zoneOf(at(1, col as 1)))).toEqual([
-      'playerBackline', 'playerBackline', 'danger', 'danger', 'enemyBackline', 'enemyBackline',
+    // Two home rows, a danger zone three deep, two enemy rows.
+    expect([1, 2, 3, 4, 5, 6, 7].map((col) => zoneOf(at(1, col as 1)))).toEqual([
+      'playerBackline', 'playerBackline', 'danger', 'danger', 'danger', 'enemyBackline', 'enemyBackline',
     ]);
-    expect(inReach('player', at(2, 4))).toBe(true);
-    expect(inReach('player', at(2, 5))).toBe(false);
+    expect(inReach('player', at(2, 5))).toBe(true);
+    expect(inReach('player', at(2, 6))).toBe(false);
     expect(inReach('enemy', at(2, 3))).toBe(true);
     expect(inReach('enemy', at(2, 2))).toBe(false);
   });
@@ -25,18 +26,18 @@ describe('card zones', () => {
 
   it('shapes Blast as a centre and its four neighbours, clipped at the edge', () => {
     expect(sorted(blastTiles(at(2, 5)))).toEqual(['1,5', '2,4', '2,5', '2,6', '3,5']);
-    expect(sorted(blastTiles(at(1, 6)))).toEqual(['1,5', '1,6', '2,6']);
+    expect(sorted(blastTiles(at(1, 7)))).toEqual(['1,6', '1,7', '2,7']);
     expect(sorted(blastCentres('player', at(2, 4)))).toEqual(['1,5', '1,6', '2,5', '2,6', '3,5', '3,6']);
   });
 
   it('orders a lane from the attacker side of the board', () => {
-    expect(laneFromSide('player', 2).map((t) => t.col)).toEqual([1, 2, 3, 4, 5, 6]);
-    expect(laneFromSide('enemy', 2).map((t) => t.col)).toEqual([6, 5, 4, 3, 2, 1]);
+    expect(laneFromSide('player', 2).map((t) => t.col)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(laneFromSide('enemy', 2).map((t) => t.col)).toEqual([7, 6, 5, 4, 3, 2, 1]);
   });
 
   it('moves through empty tiles only, inside the reach', () => {
-    // Move 1 from (2,4): (2,5) is outside player reach, (1,4) is occupied.
-    expect(sorted(moveDestinations('player', at(2, 4), 1, [at(1, 4)]))).toEqual(['2,3', '3,4']);
+    // Move 1 from (2,5): (2,6) is outside player reach, (1,5) is occupied.
+    expect(sorted(moveDestinations('player', at(2, 5), 1, [at(1, 5)]))).toEqual(['2,4', '3,5']);
     // Move 2 cannot pass through a unit in the way.
     expect(sorted(moveDestinations('player', at(2, 1), 2, [at(2, 2), at(1, 1), at(3, 1)]))).toEqual([]);
     expect(sorted(moveDestinations('player', at(2, 2), 2, []))).toEqual(

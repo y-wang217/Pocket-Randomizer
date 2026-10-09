@@ -10,7 +10,7 @@ import type { BattleEvent } from '../src/core/cards/events';
 import type { Ctx } from '../src/core/cards/keywords';
 import { step } from '../src/core/cards/step';
 import type { Action, BattleState, Pos } from '../src/core/cards/state';
-import { at, board, type BoardSpec, iidOf } from './fixtures/card-battle';
+import { at, begun, board, type BoardSpec, iidOf } from './fixtures/card-battle';
 
 function ok(state: BattleState, action: Action): { state: BattleState; events: BattleEvent[] } {
   const result = step(state, action);
@@ -64,8 +64,12 @@ describe('Drone', () => {
     const outOfRange = arena({ enemies: [at(1, 4), null, null], steps: [2] });
     expect(e(outOfRange, 0).intent!.act).toBe('strike');
 
-    // In column 5 the condition cannot hold, whoever stands in column 4.
-    const tooFar = arena({ enemies: [at(1, 5), null, null], units: { A: at(1, 4) }, steps: [2] });
+    // Column 5 is the danger zone's back row: the condition holds there too.
+    const back = arena({ enemies: [at(1, 5), null, null], units: { A: at(1, 4) }, steps: [2] });
+    expect(e(back, 0).intent!.act).toBe('slash');
+
+    // From the enemy backline it cannot hold, whoever stands in front.
+    const tooFar = arena({ enemies: [at(1, 6), null, null], units: { A: at(1, 5) }, steps: [2] });
     expect(e(tooFar, 0).intent!.act).toBe('strike');
   });
 
@@ -205,18 +209,18 @@ describe('telegraph and actions', () => {
 });
 
 describe('the encounter', () => {
-  it('opens with every enemy telegraphed', () => {
+  it('telegraphs nothing until the player starts, then every enemy', () => {
     const created = createBattle('test', 'OPEN');
     if (!created.ok) throw new Error('create');
-    for (const enemy of created.state.enemies) expect(enemy.intent).not.toBeNull();
-    expect(created.events.filter((ev) => ev.t === 'telegraphed')).toHaveLength(3);
+    for (const enemy of created.state.enemies) expect(enemy.intent).toBeNull();
+    const started = begun('test', 'OPEN');
+    for (const enemy of started.state.enemies) expect(enemy.intent).not.toBeNull();
+    expect(started.events.filter((ev) => ev.t === 'telegraphed')).toHaveLength(3);
   });
 
   it('a player who only ends turns loses inside the round cap', () => {
     for (const seed of ['P1', 'P2', 'P3', 'P4', 'P5']) {
-      const created = createBattle('test', seed);
-      if (!created.ok) throw new Error('create');
-      let s = created.state;
+      let s = begun('test', seed).state;
       while (s.phase === 'plan') s = commit(s).state;
       expect(s.phase, seed).toBe('lost');
       expect(s.round, seed).toBeLessThanOrEqual(30);
@@ -224,9 +228,7 @@ describe('the encounter', () => {
   });
 
   it('keeps the plain-JSON state and the one-unit-per-tile rule through whole battles', () => {
-    const created = createBattle('test', 'TILES');
-    if (!created.ok) throw new Error('create');
-    let s = created.state;
+    let s = begun('test', 'TILES').state;
     while (s.phase === 'plan') {
       const positions = [...s.units.map((u) => u.pos), ...s.enemies.map((x) => x.pos)].filter((p) => p !== null);
       expect(new Set(positions.map((p) => `${p!.lane},${p!.col}`)).size).toBe(positions.length);

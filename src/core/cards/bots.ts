@@ -8,7 +8,7 @@ import { createRng, type RngStream } from '../rng';
 import { CARD_BOT_KEY } from '../streamKeys';
 import { createBattle } from './create';
 import type { BattleEvent } from './events';
-import { completeChoices, playersOf } from './legal';
+import { completeChoices, placeActions, playersOf } from './legal';
 import { newLog, type BattleLog } from './log';
 import type { Action, BattleState, UnitId } from './state';
 import { step, type StepResult } from './step';
@@ -27,6 +27,11 @@ export function botStream(botSeed: string): RngStream {
  * action to make one.
  */
 export function randomBot(state: BattleState, stream: RngStream): Action | null {
+  if (state.phase === 'deploy') {
+    // Start or one placement, evenly: about three placements before a start.
+    const places = placeActions(state);
+    return stream.nextInt(4) === 0 || places.length === 0 ? { type: 'start' } : places[stream.nextInt(places.length)]!;
+  }
   if (state.phase !== 'plan') return null;
   type Pick = Action | { card: string; unit: UnitId };
   const menu: Pick[] = [{ type: 'commit' }];
@@ -75,7 +80,7 @@ export function playBattle(
   const events = [...created.events];
   const log = newLog(seed, encounterId, created.state.deckId);
   let steps = 0;
-  while (state.phase === 'plan' && steps < maxSteps) {
+  while ((state.phase === 'plan' || state.phase === 'deploy') && steps < maxSteps) {
     const action = policy(state);
     if (!action) break;
     const result = step(state, action);

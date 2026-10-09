@@ -13,7 +13,7 @@
  */
 
 export type Lane = 1 | 2 | 3;
-export type Col = 1 | 2 | 3 | 4 | 5 | 6;
+export type Col = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 /** A tile. Lane 1 is the upper lane; column 1 is the player's back edge. */
 export interface Pos {
@@ -109,10 +109,18 @@ export interface DeckDef {
 
 export interface EncounterDef {
   id: string;
+  /** What the sandbox's scenario list shows. */
+  name: string;
+  blurb: string;
   deckId: string;
+  /** Where each unit starts before the player places it: a tile of `RULES.deployZone`. */
   units: readonly { def: UnitDefId; pos: Pos }[];
-  /** In spawn order, which is the order enemies act and move in. */
-  enemies: readonly { def: EnemyDefId; pos: Pos }[];
+  /**
+   * In spawn order, which is the order enemies act and move in. An enemy with
+   * no `pos` starts on a free tile of `RULES.spawnZone`, drawn from the
+   * battle's seed when the battle is created.
+   */
+  enemies: readonly { def: EnemyDefId; pos?: Pos }[];
 }
 
 export type HuntTieBreak = 'nearestLane' | 'lowestHp' | 'upperLane';
@@ -124,8 +132,12 @@ export type HuntTieBreak = 'nearestLane' | 'lowestHp' | 'upperLane';
  * table rather than on a literal of its own.
  */
 export interface Rules {
-  board: { lanes: 3; cols: 6 };
+  board: { lanes: 3; cols: 7 };
   zones: Readonly<Record<Zone, readonly Col[]>>;
+  /** Where the player places its units before round 1. */
+  deployZone: Zone;
+  /** Where an enemy the encounter does not place starts. */
+  spawnZone: Zone;
   /** Which columns each side may stand in. */
   reach: Readonly<Record<Side, { min: Col; max: Col }>>;
   /** The column step that points away from a side's own edge. */
