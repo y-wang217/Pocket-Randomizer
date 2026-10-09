@@ -16244,3 +16244,90 @@ grace off and friendly fire `'none'` on the same seeds:
 
 Every scenario can be won. A random bot is a floor, not a difficulty
 measure; Part B's bot is what corrects the grades. Balance is not a gate.
+
+### 125p. Waves, the Colossus and the Harpoon, and the bench on `cards-0.4.0`
+
+**2026-10-09**, on `claude/vibrant-hopper-axlk79`, after merging `main`
+(#106, the guard bot) and from the author's rulings
+[`spec/gymrun-card-battle-rulings-waves-boss-reskin.md`](spec/gymrun-card-battle-rulings-waves-boss-reskin.md)
+and its follow-up. Parts C and D; Part E (the reskin) waits on its art, as
+ruled. `CARD_ENGINE_VERSION` stays `cards-0.4.0`: Part A's version had not
+merged, and no log of the six earlier scenarios replays differently (Once
+became Uses 1 with the same effect). None of the run's four axes moves;
+`contentHash` holds.
+
+**The bench, Part B's measurement on the new rules.** Guard bot, shipped
+weights, seeds `GB0..GB199`, 200 per scenario: skirmish 200, test 199,
+staggered 200, Turret Alley 195, Wall and Gun 198, The Pack 200, Siege 183;
+units kept on a win 2.94 / 2.83 / 2.88 / **2.50** / 2.84 / 2.79 / 1.36; rounds
+to a win 8.2 / 8.7 / 8.4 / 13.7 / 16.0 / 8.0 / 21.7. By units kept, Turret
+Alley (grade 5) is the hardest of the one-wave scenarios and Wall and Gun
+(grade 7) sits with the easy ones, so the Turret looks under-graded and the
+Bulwark or Sniper over. Recorded, not retuned: balance is not a gate, and a
+grade change is the author's.
+
+**Part C, waves.** `EncounterDef.waves` lists the waves after the first.
+Every wave's enemies are in the state from creation (ids continue, `wave` on
+each, `spawn` the tile it arrives on, `pos` null until then); every
+starting step and seeded spawn is drawn at creation, so a one-wave scenario
+draws exactly as before. When the last enemy of a wave falls in phase 3,
+`startWave` (`resolve.ts`): each living unit keeps its HP, loses its card
+shield, gets its base shield back, goes to 0 MP (C1) and back to its
+scenario tile; owed MP and Need Help's draw clear (C5); every card not
+removed by a faint, Uses cards with their uses back (C4), is sorted into
+deck order and shuffled (C2); the round count restarts, so the 30-round loss
+is per wave (C6); the battle is back in `deploy` (C3), and Start opens the
+wave under grace. Siege's grade total is the sum of its waves (C8). The guard
+bot counts a cleared wave as a win, or its search would leave a wave's last
+enemy standing rather than face the next.
+
+**Siege** (C7, the session's draft): Drone, Lancer, Hound (grade 4); Bulwark,
+Sniper, a seeded Lancer, Hound (7); the Colossus (10). Guard bot, seeds
+`SG0..SG199`: won 196/200; per battle reaching the wave, unit HP lost 0.16,
+0.53, 2.63 and faints 0.01, 0.20, 1.52, so each wave is harder (C8). The
+random bot, bot seeds `SGR0..SGR199`, won 0/200.
+
+**Part D, the Colossus.** `EnemyDef.size` (2 by 2 from its position, its
+front row toward the player), `advanceSteps` 3, `boss`, `stalks`, `grants`.
+Every enemy lookup reads a footprint (`enemyTiles`, `covers`, `lanesOf`):
+blocking, Strike's first enemy in a lane, Pierce, Slash, Blast, movement and
+the invariants. A card hits it once however many of its tiles it covers (D1).
+Its script: Crush (Pierce 2 down both its lanes); advance up to three rows,
+never past C3, then Stomp (Slash 1 on every lane of the row in front, C2 once
+it stands on C3, D4 as read back); Shield 3, its only step without damage, so
+grace always opens on it (D5). A step may carry a `label`, shown in place of
+the keyword.
+
+- **The stalk (D3, as ruled after the follow-up).** Once, the first move
+  phase it stands at or under half HP (6 of 12) and is not pinned, it stalks
+  instead of its scripted move: up to `RULES.stalk.steps` (3) rows forward.
+  Each step stomps the two tiles it is about to move into for
+  `RULES.stalk.damage` (1); anyone there, or the edge of its reach, stops it,
+  so a unit close enough is hit and not walked over. Each step is its own
+  playback beat, lit like a Slash (the author's *"3 separate animations, kind
+  of like slashes"*). The panel shows *Stalks at 6 HP* until it has.
+  **Reading:** the ruling says it brings the monster "much closer" without
+  saying which way; it is straight forward, in its own two lanes.
+- **The Harpoon.** Granted into hand from a new `reserve` pile when the
+  Colossus's wave arrives, drawn **black** (the author's side note: an
+  enemy's grant black, Neutral grey, a unit's cards its colour). Neutral (any
+  unit), 2 MP, **Retain** (an unplayed copy stays, and the next hand draws to
+  five with it, D6), **Uses 2** (back into the deck after a use, spent after
+  the last, D7). Range: the playing unit's lane, in a straight line, the
+  boss's nearest tile at most 3 ahead; otherwise *Too far: 3 tiles ahead in
+  its lane* (D8), read off the projected board. It pins for 2 of the boss's
+  turns: no moves and no script step; every shield goes at once, the base
+  shield back at the start of its second pinned turn (D9 *"its shields renew
+  on the second turn"*); each pinned turn it Screams instead of acting,
+  `RULES.scream.n` (1) on every tile touching its footprint along lanes and
+  rows, its own allies included (D2, D10 and the read-back). A pin delays the
+  stalk. Not stackable: a pinned boss is not a target.
+- **Uses, a keyword (D7).** `CardDef.once` is replaced by `uses`; Prep and
+  Dig In are Uses 1, the same as before. The card face shows the keyword's
+  mark and the uses left; Inspect shows *Uses 1/2*. Dig In shows a shovel
+  (`face`), the Harpoon a harpoon.
+- **On screen.** The Colossus's token spans its four tiles from its anchor
+  (its tile raised over its neighbours, since every tile isolates). A Scream
+  is hatched in the deeper red with a dotted edge. The panel shows *Pinned
+  N*. Enemies are numbered within their wave, token and panel alike. New
+  placeholders: the Colossus marker and the shovel, harpoon and scream icons.

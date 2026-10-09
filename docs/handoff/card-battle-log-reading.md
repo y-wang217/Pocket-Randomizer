@@ -172,6 +172,7 @@ number; a scenario's grade total is the sum over its enemies.
 | **Bulwark** | 4 | 2 | no | 2 |
 | **Sniper** | 2 | 0 | no | 3 |
 | **Pikeman** | 3 | 1 | no | 3 |
+| **Colossus** (boss, 2x2) | 12 | 3 | no | 10 |
 
 Each enemy runs a fixed **script**, one step per round, looping. **Which step it
 starts on is rolled from the seed**, per enemy, but only among the steps it may
@@ -238,6 +239,33 @@ enemies are designed to hit for 1.
 | 3 | stay | nothing |
 | 4 | stay | Pierce 2 |
 
+**Colossus**, the boss, 3 steps (starts on 3). It covers two lanes and two
+rows from its tile (its front row is the one nearer you), and a card hits it
+once however many of its tiles the card covers.
+
+| step | move | then act |
+|---|---|---|
+| 1 | stay | **Crush**: Pierce 2 down both its lanes |
+| 2 | advance up to 3 rows, never past C3 | **Stomp**: Slash 1 on every lane of the row in front of it |
+| 3 | stay | Shield 3 on self |
+
+- **Stalk, once.** The first round it ends at or under half HP (6), it
+  stalks instead of its move: up to 3 rows straight at you, stomping the two
+  tiles it is about to step into for 1 each step. Anyone there, or the C3
+  limit, stops it, so a unit close enough takes the hit. The panel says
+  *Stalks at 6 HP* until it has.
+- **It grants the Harpoon** when it arrives (card `c15`, black: an enemy's
+  grant). Neutral, 2 MP, **Retain** (it stays in hand, holding one of the five
+  places), **Uses 2** (back into the deck after one use, gone for the wave
+  after the second). Only a unit in one of its lanes, in a straight line, at
+  most 3 tiles short of it, can throw it. It **pins** the Colossus for two of
+  its turns: no moves, every shield gone (the base shield comes back on the
+  second turn), and instead of acting it **Screams**: 1 damage to every tile
+  touching it, its own allies included. A pin delays the stalk.
+
+**Uses** is a keyword: Prep and Dig In are Uses 1 (what the deck list calls
+Once).
+
 The vocabulary those scripts use:
 
 - **hunt**: slide up or down its own column to a lane that holds a player unit,
@@ -300,6 +328,17 @@ A **Fast** enemy instead starts on its first damaging step and attacks in round
 takes exactly one draw for its starting step. `cards:narrate` prints how each
 enemy started (`grace: e1 starts on a setup step`, or `e1 Hound is Fast:
 starts on an attack step`).
+
+**Waves.** A scenario can come in waves. When the last enemy of a wave
+falls, the next arrives (log event `waveStarted`): each living unit keeps
+its HP, loses its card shield, gets its base shield back, goes to 0 MP and
+back to its default tile; Focus and Need Help's owed effects clear; every
+card a faint did not remove, Uses cards with their uses back, is shuffled
+into a fresh deck; the round count starts again at 1 (the 30-round loss is
+per wave); and the battle is back in deployment, so the log shows `place`
+and `start` again. A fainted unit stays fainted. The battle is won when the
+last wave falls. Enemy ids continue across waves (`e0`, `e1`, ...); on screen
+they are numbered within their wave.
 
 **Friendly fire in step 1.** A Blast resolves on the enemies on its tiles,
 then on the allies there (section 3). If that makes a unit faint, the rest of
@@ -647,10 +686,14 @@ fixed). Today there are six:
 | `turret-alley` | Turret Alley | Turret L1C7, Hound L2C6, Turret L3C7 | 5 |
 | `wall-and-gun` | Wall and Gun | Bulwark L1C6, Sniper L2C7, Bulwark L3C6 | 7 |
 | `the-pack` | The Pack | Hound L1C6, Hound L2C6, Hound L3C6, Pikeman L2C7 | 6 |
+| `siege` | Siege | wave 1: Drone L1C6, Lancer L2C7, Hound L3C6 · wave 2: Bulwark L1C6, Sniper L2C7, Lancer (seeded), Hound L3C6 · wave 3: Colossus L1C6 | 21 |
 
-Every scenario has been won by a random-legal-move bot at least a few times in
-2,000 seeds (Wall and Gun 6, the rest 21 to 36), so none is impossible; none
-of those numbers says how hard a scenario is for a person.
+Every one-wave scenario has been won by a random-legal-move bot at least a
+few times in 2,000 seeds (Wall and Gun 6, the rest 21 to 36). The guard bot,
+200 seeds each (GB0..GB199), wins 195 to 200 of every one-wave scenario and
+183 of Siege; by units kept on a win, Turret Alley (2.50) is the hardest of
+the one-wave scenarios, harder than its grade says. None of these says how
+hard a scenario is for a person.
 
 Please write scenarios in this shape, so they go straight into the engine:
 
@@ -764,11 +807,13 @@ scenario that makes it lose, or lose units, is a scenario that pushes on
 defence. When you send a new scenario, it can be benched on hundreds of
 seeds in a minute and the results sent back.
 
+Then **waves**, **Siege** and **the Colossus** with its **Harpoon**
+(sections 3 and 4). The guard bot wins Siege 196 times in 200 (seeds
+SG0..SG199) and loses most HP in wave 3; a random bot never has.
+
 Still coming, in this order:
 
-- **Waves**: a fight of several waves, HP carried between them.
-- **A boss**, the Colossus (two by two tiles), and a Harpoon card to pin it.
-- **A reskin** of the board, after the waves and the boss.
+- **A reskin** of the board, waiting on its art.
 - **Card rewards** and a **mini campaign**, each waiting on a design session.
 
 A rules change moves the engine version, and older logs stop replaying, by

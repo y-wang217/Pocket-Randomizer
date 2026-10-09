@@ -184,9 +184,13 @@ normal enemy opens on a step that deals no damage and a Fast one attacks for
 Bulwark, Sniper and Pikeman with provisional grades; Turret Alley, Wall and
 Gun and The Pack, each scenario showing its grade total; owner colours on
 cards, panels and tokens; a tap on a unit filters the hand. Built and stopped
-for review; Part B, the bot, is next and waits for the merge.
-`CARD_ENGINE_VERSION` moves to `cards-0.4.0`; none of the run's four axes
-moves, `contentHash` holds at `865d3b`.
+for review. Then, after merging `main` (#106, the guard bot) and the author's
+rulings ([`spec/gymrun-card-battle-rulings-waves-boss-reskin.md`](spec/gymrun-card-battle-rulings-waves-boss-reskin.md)):
+**waves** and **Siege**, three waves ending in **the Colossus**, a 2x2 boss
+that stalks once at half HP, and **the Harpoon** it grants, which pins it
+(record [`generation.md`](generation.md) section 125p). The reskin (Part E)
+waits on its art. `CARD_ENGINE_VERSION` moves to `cards-0.4.0`; none of the
+run's four axes moves, `contentHash` holds at `865d3b`.
 
 **Also in flight: Defender Mode v0, a fun test.** Branch
 `claude/eager-turing-0059br`, prompt
