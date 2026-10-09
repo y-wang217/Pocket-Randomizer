@@ -13,6 +13,10 @@ Message 2, after the report:
 
 > start with the smallest fix
 
+Message 3, after the smallest fix was opened as PR 107:
+
+> now fix the errored masking issue
+
 ## The report message 2 answers
 
 `[vitest-worker]: Timeout calling "onTaskUpdate"` is not load. Vitest's worker
@@ -33,3 +37,13 @@ loop turn between them. Test-only, nothing under `src/`.
 The follow-ups offered alongside it (retire ERRORED, reconsider the fork cap,
 correct the load explanation, the `species-label` leaked timer) are not in this
 brief.
+
+## What message 3 refers to
+
+Named in the report as a follow-up: `everyTestPassedAnyway` in
+`scripts/check-tally.mjs` reads a leg as ERRORED, not FAILED, when its output
+holds the `onTaskUpdate` string, a passing files tally and no `N failed`. A
+second unhandled error in the same output meets all three, so it would be
+reported green. Run 37928075949 had one such error (a leaked `setTimeout` from
+`test/species-label.test.ts`); it was reported FAILED only because no timeout
+fired in that run.
