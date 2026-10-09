@@ -13,7 +13,7 @@
  * No DOM here; the sandbox does the drawing.
  */
 import { CARDS } from '../../cardData/cards';
-import { CARD_COPY } from '../../cardData/copy';
+import { CARD_COPY, nameOf } from '../../cardData/copy';
 import { ENEMIES } from '../../cardData/enemies';
 import type { Pos } from '../../core/cards/defs';
 import type { BattleEvent } from '../../core/cards/events';
@@ -57,22 +57,16 @@ export interface RoundRecord {
   steps: Step[];
 }
 
-const ACT_WORD: Record<Exclude<Intent['act'], 'none'>, string> = {
-  strike: CARD_COPY.keyword.strike,
-  pierce: CARD_COPY.keyword.pierce,
-  slash: CARD_COPY.keyword.slash,
-  shield: CARD_COPY.keyword.shield,
-};
-
 function actWord(act: Intent['act'], n: number): string {
-  return act === 'none' ? CARD_COPY.intentNone : `${ACT_WORD[act]} ${n}`;
+  // Read at call time: the language can change between rounds.
+  return act === 'none' ? CARD_COPY.intentNone : `${CARD_COPY.keyword[act]} ${n}`;
 }
 
 /** A unit by its letter, an enemy by its name and spawn number. */
 export function whoOf(state: BattleState, id: string): string {
   if (state.units.some((u) => u.id === id)) return id;
   const enemy = state.enemies.find((e) => e.id === id);
-  return enemy ? `${ENEMIES[enemy.def].name} ${enemy.spawnIndex + 1}` : id;
+  return enemy ? `${nameOf(ENEMIES[enemy.def].name)} ${enemy.spawnIndex + 1}` : id;
 }
 
 /**
@@ -118,7 +112,7 @@ export function roundSteps(before: BattleState, events: readonly BattleEvent[], 
         // The forecast the plan showed for this card, on the board it resolves on.
         const planned = before.plan.findIndex((p) => p.card === event.card);
         const attack = planned >= 0 ? previewPlay(before, before.plan[planned]!, planned).attack : null;
-        begin('card', L.plays(event.unit, def.name), {
+        begin('card', L.plays(event.unit, nameOf(def.name)), {
           actor: event.unit,
           ...(attack ? { act: attack.act === 'blast' ? 'strike' : attack.act, tiles: attack.tiles.map((t) => t.pos) } : {}),
         });

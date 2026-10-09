@@ -127,9 +127,50 @@ export function renderSize(id: CardAssetId): Size | null {
 }
 
 const FILES = import.meta.glob('../assets/cardbattle/**/*.svg', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+const SOURCES = import.meta.glob('../assets/cardbattle/**/*.svg', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>;
+
+/**
+ * The blue-green safe palette: each of the pack's colours a tritan-type
+ * viewer confuses, and what replaces it. The pack bakes the palette's exact
+ * hexes into its art, so the art is recoloured by swapping them in the file's
+ * text; the stylesheet's tokens move with the same table
+ * (`.cb[data-palette='tritan']` in `sandbox.css`). Under a tritan simulation
+ * (Machado 2009) the player's blue backline and the teal for a legal choice
+ * were 7 apart in CIELAB and are 31; the amber highlight and the red
+ * telegraph, 28 and 44; the purple Slash and the teal, 42 and 45. Teal and
+ * ink are not swapped.
+ */
+export const TRITAN_SWAP: Readonly<Record<string, string>> = {
+  '#4C87B7': '#7C7F86',
+  '#8664AC': '#4A2E7A',
+  '#D59A3A': '#E8B000',
+  '#C85A50': '#C8463C',
+};
+
+/** An SVG's text with every hex in `swap` replaced, in either case. */
+export function recolour(svg: string, swap: Readonly<Record<string, string>>): string {
+  return svg.replace(/#[0-9a-fA-F]{6}\b/g, (hex) => swap[hex.toUpperCase()] ?? hex);
+}
+
+let tritanFiles: Record<string, string> | null = null;
+
+/** The pack recoloured, as `data:` URLs under the same keys as the bundled files. Built once, on first use. */
+function tritan(): Record<string, string> {
+  tritanFiles ??= Object.fromEntries(
+    Object.entries(SOURCES).map(([path, svg]) => [path, `data:image/svg+xml,${encodeURIComponent(recolour(svg, TRITAN_SWAP))}`]),
+  );
+  return tritanFiles;
+}
+
+let palette: 'standard' | 'tritan' = 'standard';
+
+/** Which palette the art draws in from the next `cardAsset` on. */
+export function setCardAssetPalette(next: 'standard' | 'tritan'): void {
+  palette = next;
+}
 
 /** The bundled URL for an ID, or `null` while its file has not arrived. */
-export function cardAssetUrl(id: CardAssetId, files: Record<string, string> = FILES): string | null {
+export function cardAssetUrl(id: CardAssetId, files: Record<string, string> = palette === 'tritan' ? tritan() : FILES): string | null {
   return files[`../assets/cardbattle/${cardAssetPath(id)}`] ?? null;
 }
 

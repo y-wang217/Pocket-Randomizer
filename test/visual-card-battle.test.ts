@@ -3,8 +3,12 @@
  * checkpoint 5.** Both hidden entries against the built app, the phone fit
  * at 390x844, and the 44px touch floor.
  */
+import { mkdirSync } from 'node:fs';
+
 import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
+import { CARD_LANGUAGES, CARD_COPY_BY_LANGUAGE, LANGUAGE_NAMES } from '../src/cardData/copy';
 
 import { openApp } from '../scripts/visual/browser.mjs';
 import { openHarness, type Harness } from './visual/harness';
@@ -109,6 +113,123 @@ describe('the hidden key sequence on starter select', () => {
     for (const key of SEQUENCE) await page.keyboard.press(key);
     await page.waitForTimeout(300);
     expect(await page.locator('.cb').count()).toBe(0);
+    await context.close();
+  }, 120_000);
+});
+
+/**
+ * Every language on both palettes, at the phone frame: no scroll, no word
+ * running out of the button, card or panel it sits in, on the board and in the
+ * open menu. `GYMRUN_CB_SHOTS=<dir>` also saves each screen, for a look by eye
+ * (`docs/spec/gymrun-patch-card-battle-accessibility.md`).
+ */
+describe('the card battle sandbox in every language', () => {
+  const shots = process.env['GYMRUN_CB_SHOTS'];
+  if (shots) mkdirSync(shots, { recursive: true });
+
+  /** Text boxes wider or taller than the box they are drawn in. */
+  async function spills(page: Page) {
+    return page.evaluate(() => {
+      const out: string[] = [];
+      const words = globalThis.document.querySelectorAll<HTMLElement>(
+        '.cb .cb-btn-label, .cb .cb-card-name, .cb .cb-panel-name, .cb .cb-slot-name, .cb .cb-pill-text, .cb .cb-stat, .cb .cb-mp-text, .cb .cb-note, .cb .cb-piles, .cb .cb-round',
+      );
+      for (const word of words) {
+        if (word.offsetParent === null) continue;
+        const box = word.closest<HTMLElement>('.cb-btn, .cb-card, .cb-panel, .cb-slot, .cb-pill, .cb-top')!;
+        const a = word.getBoundingClientRect();
+        const b = box.getBoundingClientRect();
+        // Cut short or running over, to the sub-pixel: an ellipsis shows at less than a pixel.
+        const range = globalThis.document.createRange();
+        range.selectNodeContents(word);
+        const style = getComputedStyle(word);
+        const inner = a.width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+        const clipped = range.getBoundingClientRect().width > inner + 0.01;
+        if (a.left < b.left - 1 || a.right > b.right + 1 || a.top < b.top - 1 || a.bottom > b.bottom + 1 || clipped) {
+          out.push(`${word.className}: ${word.textContent}`);
+        }
+      }
+      return out;
+    });
+  }
+
+  for (const language of CARD_LANGUAGES) {
+    it(`${LANGUAGE_NAMES[language]} fits the phone frame, on the board and in the menu, on both palettes`, async () => {
+      for (const palette of ['standard', 'tritan']) {
+        const context = await harness.browser.newContext({ viewport: PHONE, hasTouch: true });
+        await context.addInitScript(
+          (prefs) => globalThis.localStorage.setItem('gymrun.cardbattle.prefs', prefs),
+          JSON.stringify({ language, palette }),
+        );
+        const page = await context.newPage();
+        const errors: string[] = [];
+        page.on('pageerror', (error) => errors.push(error.message));
+        await page.goto(`${harness.url}/#test`, { waitUntil: 'load' });
+        await page.waitForSelector('.cb .cb-tile', { timeout: 20_000 });
+        expect(await page.locator('.cb').getAttribute('lang')).toBe(language);
+        expect(await page.locator('.cb').getAttribute('data-palette')).toBe(palette);
+        expect(await page.locator('.cb-btn--primary').textContent()).toBe(CARD_COPY_BY_LANGUAGE[language].start);
+
+        // Into round 1 with a card picked, so the slots, the hint and the telegraphs are all drawn.
+        await page.locator('.cb-btn--primary').click();
+        // A seed can deal a round 1 with nothing playable; the board is checked all the same.
+        const card = page.locator('.cb-card:not([data-unavailable])').first();
+        if (await card.count()) await card.click();
+        const unit = page.locator('.cb-panel--unit[data-target="true"]').first();
+        if (await unit.count()) await unit.click();
+        const m = await measure(page);
+        expect(m.overflowY, 'vertical scroll').toBeLessThanOrEqual(0);
+        expect(m.overflowX, 'horizontal scroll').toBeLessThanOrEqual(0);
+        expect(m.small, 'targets under 44px').toEqual([]);
+        expect(await spills(page), 'words out of their box, board').toEqual([]);
+        if (shots) await page.screenshot({ path: `${shots}/${language}-${palette}-board.png` });
+
+        await page.locator('.cb-actions .cb-btn').last().click();
+        await page.waitForSelector('.cb-sheet:not([hidden])');
+        expect(await spills(page), 'words out of their box, menu').toEqual([]);
+        if (shots && palette === 'standard') await page.screenshot({ path: `${shots}/${language}-menu.png` });
+        if (palette === 'standard') {
+          // More hands and more enemy intents: a seed deals only some of the cards.
+          const names = new Set<string>();
+          for (let deal = 0; deal < 8; deal++) {
+            await page.locator('.cb-sheet .cb-btn', { hasText: CARD_COPY_BY_LANGUAGE[language].newSeed }).click();
+            await page.locator('.cb-btn--primary').click();
+            for (const name of await page.locator('.cb-card-name').allTextContents()) names.add(name);
+            expect(await spills(page), `words out of their box, deal ${deal + 1}`).toEqual([]);
+            await page.locator('.cb-actions .cb-btn').last().click();
+          }
+          expect(names.size).toBeGreaterThan(5);
+        }
+        expect(errors).toEqual([]);
+        await context.close();
+      }
+    }, 120_000);
+  }
+
+  it('switches language and palette from the menu, and remembers them', async () => {
+    const context = await harness.browser.newContext({ viewport: PHONE, hasTouch: true });
+    const page = await context.newPage();
+    await page.goto(`${harness.url}/#test`, { waitUntil: 'load' });
+    await page.waitForSelector('.cb .cb-tile');
+    await page.evaluate(() => globalThis.localStorage.removeItem('gymrun.cardbattle.prefs'));
+    await page.locator('.cb-actions .cb-btn').last().click();
+    await page.locator('.cb-settings .cb-btn', { hasText: '日本語' }).click();
+    expect(await page.locator('.cb-btn--primary').textContent()).toBe(CARD_COPY_BY_LANGUAGE.ja.start);
+    expect(await page.locator('.cb-sheet-title').textContent()).toBe(CARD_COPY_BY_LANGUAGE.ja.title);
+    await page.locator('.cb-settings .cb-btn', { hasText: CARD_COPY_BY_LANGUAGE.ja.settings.paletteTritan }).click();
+    expect(await page.locator('.cb').getAttribute('data-palette')).toBe('tritan');
+    // The baked art is redrawn: the home tile's blue is gone from its file.
+    const tile = await page.locator('.cb-tile--playerBackline [data-asset="tile-player-backline"]').first().getAttribute('style');
+    expect(tile).toContain('data:image/svg+xml');
+    expect(decodeURIComponent(tile!)).not.toMatch(/#4C87B7/i);
+    expect(await page.evaluate(() => globalThis.localStorage.getItem('gymrun.cardbattle.prefs'))).toBe(
+      JSON.stringify({ language: 'ja', palette: 'tritan' }),
+    );
+    // `#test` is rewritten to the run's seed once read, so open it again rather than reload.
+    await page.goto(`${harness.url}/#test`, { waitUntil: 'load' });
+    await page.waitForSelector('.cb .cb-tile');
+    expect(await page.locator('.cb').getAttribute('lang')).toBe('ja');
+    await page.evaluate(() => globalThis.localStorage.removeItem('gymrun.cardbattle.prefs'));
     await context.close();
   }, 120_000);
 });

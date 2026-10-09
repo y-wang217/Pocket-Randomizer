@@ -1,13 +1,30 @@
 /**
- * Every word the card battle sandbox shows a player, in one table. The
- * sandbox is outside the design bible (`docs/spec/gymrun-card-battle-engine-rulings.md`),
- * so these are working words for a fun test, kept in data so a playtest can
- * reword them without touching the screen.
+ * Every word the card battle sandbox shows a player, in one table per
+ * language. The sandbox is outside the design bible
+ * (`docs/spec/gymrun-card-battle-engine-rulings.md`), so these are working
+ * words for a fun test, kept in data so a playtest can reword them without
+ * touching the screen.
+ *
+ * English is the source. Every other language is a table of the same shape in
+ * `cardData/translations/`, machine-drafted and not yet read by a native
+ * speaker (`docs/spec/gymrun-patch-card-battle-accessibility.md`). A sentence
+ * with a slot in it is a function, so each language orders its own words.
+ *
+ * `CARD_COPY` is a live binding: `setCardLanguage` swaps the table under it,
+ * and the screen reads it at every render, so the next render is in the new
+ * language. The battle log the Menu copies is JSON and is never translated.
  */
 import type { DamageKeyword } from '../core/cards/defs';
 import type { PlayBlock } from '../core/cards/state';
+import { DE } from './translations/de';
+import { ES } from './translations/es';
+import { FR } from './translations/fr';
+import { JA } from './translations/ja';
+import { UK } from './translations/uk';
+import { ZH_HANS } from './translations/zh-Hans';
+import { ZH_HANT } from './translations/zh-Hant';
 
-export const CARD_COPY = {
+const EN = {
   title: 'Card battle test',
   round: 'Round',
   draw: 'Draw',
@@ -102,4 +119,67 @@ export const CARD_COPY = {
     round: (n: number) => `Round ${n}`,
     step: (n: number, of: number) => `${n}/${of}`,
   },
-} as const;
+  /**
+   * The names the card data carries, keyed by their English text: cards,
+   * units, enemies and scenarios. English leaves it empty and reads the data.
+   */
+  names: {} as Record<string, string>,
+  /** The Menu's settings. Each language's own name is always written in that language. */
+  settings: {
+    language: 'Language',
+    colours: 'Colours',
+    paletteStandard: 'Standard',
+    paletteTritan: 'Blue-green safe',
+  },
+};
+
+/** The shape every language fills. */
+export type CardCopy = typeof EN;
+
+export const CARD_LANGUAGES = ['en', 'zh-Hant', 'zh-Hans', 'ja', 'de', 'uk', 'es', 'fr'] as const;
+export type CardLanguage = (typeof CARD_LANGUAGES)[number];
+
+/** Each language's name for itself: what the picker shows, whatever language is on. */
+export const LANGUAGE_NAMES: Record<CardLanguage, string> = {
+  en: 'English',
+  'zh-Hant': '繁體中文',
+  'zh-Hans': '简体中文',
+  ja: '日本語',
+  de: 'Deutsch',
+  uk: 'Українська',
+  es: 'Español',
+  fr: 'Français',
+};
+
+export const CARD_COPY_BY_LANGUAGE: Record<CardLanguage, CardCopy> = {
+  en: EN,
+  'zh-Hant': ZH_HANT,
+  'zh-Hans': ZH_HANS,
+  ja: JA,
+  de: DE,
+  uk: UK,
+  es: ES,
+  fr: FR,
+};
+
+// A live binding, reassigned only by `setCardLanguage`.
+export let CARD_COPY: CardCopy = EN;
+let current: CardLanguage = 'en';
+
+export function cardLanguage(): CardLanguage {
+  return current;
+}
+
+export function setCardLanguage(language: CardLanguage): void {
+  current = language;
+  CARD_COPY = CARD_COPY_BY_LANGUAGE[language];
+}
+
+export function isCardLanguage(value: unknown): value is CardLanguage {
+  return typeof value === 'string' && (CARD_LANGUAGES as readonly string[]).includes(value);
+}
+
+/** A name from the card data in the current language, or as the data has it. */
+export function nameOf(english: string): string {
+  return CARD_COPY.names[english] ?? english;
+}
