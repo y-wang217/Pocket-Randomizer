@@ -15,7 +15,9 @@
  * The whole round resolves in this one call and returns every event, so the
  * UI never waits on an intermediate state.
  */
+import { CARDS } from '../../cardData/cards';
 import { ENCOUNTERS } from '../../cardData/encounters';
+import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
 import { enemyActions, enemyMovesAndTelegraph } from './enemies';
@@ -52,7 +54,15 @@ export function draftOf(state: BattleState): BattleState {
       conds: { ...e.conds },
       intent: e.intent && { ...e.intent, tiles: e.intent.tiles.map((t) => ({ ...t })) },
     })),
-    piles: { draw: [...state.piles.draw], hand: [...state.piles.hand], discard: [...state.piles.discard], spent: [...state.piles.spent], removed: [...state.piles.removed] },
+    piles: {
+      draw: [...state.piles.draw],
+      hand: [...state.piles.hand],
+      discard: [...state.piles.discard],
+      spent: [...state.piles.spent],
+      removed: [...state.piles.removed],
+      reserve: [...state.piles.reserve],
+    },
+    uses: { ...state.uses },
     plan: [...state.plan],
     pendingDraws: state.pendingDraws.map((d) => ({ ...d })),
   };
@@ -140,11 +150,28 @@ export function startWave(ctx: Ctx, wave: number): void {
   }
   const index = (iid: string): number => Number(iid.slice(1));
   const deck = [...s.piles.draw, ...s.piles.hand, ...s.piles.discard, ...s.piles.spent].sort((a, b) => index(a) - index(b));
-  s.piles = { draw: withStream(s, (stream) => shuffled(stream, deck)), hand: [], discard: [], spent: [], removed: s.piles.removed };
+  s.piles = { draw: withStream(s, (stream) => shuffled(stream, deck)), hand: [], discard: [], spent: [], removed: s.piles.removed, reserve: s.piles.reserve };
+  // Uses come back with the reshuffle (C4).
+  for (const iid of Object.keys(s.uses)) s.uses[iid] = CARDS[s.cards[iid]!.def]!.uses!;
   ctx.events.push({ t: 'waveStarted', wave });
+  grantWave(ctx);
   s.round = 0;
   nextHand(ctx);
   s.phase = 'deploy';
+}
+
+/** The cards the arriving wave's enemies grant leave the reserve for the hand. */
+export function grantWave(ctx: Ctx): void {
+  const { s } = ctx;
+  for (const enemy of s.enemies) {
+    const def = ENEMIES[enemy.def];
+    if (enemy.wave !== s.wave || !def.grants) continue;
+    const iid = s.piles.reserve.find((c) => s.cards[c]!.def === def.grants);
+    if (!iid) continue;
+    s.piles.reserve = s.piles.reserve.filter((c) => c !== iid);
+    s.piles.hand.push(iid);
+    ctx.events.push({ t: 'granted', card: iid });
+  }
 }
 
 function playCard(ctx: Ctx, play: PlannedPlay, resolve: () => void): void {
@@ -152,7 +179,7 @@ function playCard(ctx: Ctx, play: PlannedPlay, resolve: () => void): void {
   payFor(unitOf(ctx.s, play.unit), def);
   ctx.events.push({ t: 'played', card: play.card, unit: play.unit });
   resolve();
-  retire(ctx.s, play);
+  retire(ctx, play);
 }
 
 /** Draw `n` from the top of the draw pile, reshuffling the discard in when it runs out. */
@@ -212,13 +239,16 @@ export function nextHand(ctx: Ctx): void {
     unit.pendingMp = unit.pendingMp.map((grant) => ({ ...grant, turns: grant.turns - 1 })).filter((grant) => grant.turns > 0);
   }
 
-  if (s.piles.hand.length > 0) {
-    ctx.events.push({ t: 'discarded', cards: [...s.piles.hand] });
-    s.piles.discard.push(...s.piles.hand);
-    s.piles.hand = [];
+  // Retain: an unplayed copy stays, holding one of the hand's places.
+  const kept = s.piles.hand.filter((iid) => CARDS[s.cards[iid]!.def]!.retain);
+  const gone = s.piles.hand.filter((iid) => !kept.includes(iid));
+  if (gone.length > 0) {
+    ctx.events.push({ t: 'discarded', cards: gone });
+    s.piles.discard.push(...gone);
   }
+  s.piles.hand = kept;
 
-  drawCards(ctx, RULES.handSize);
+  drawCards(ctx, Math.max(0, RULES.handSize - kept.length));
 
   for (const owed of s.pendingDraws) {
     for (let i = 0; i < owed.n; i++) {

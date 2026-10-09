@@ -126,4 +126,27 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
       ],
     },
   },
+  // Part D (`docs/spec/gymrun-card-battle-rulings-waves-boss-reskin.md`):
+  // two by two, it Crushes both its lanes, Stomps every lane in front of it,
+  // advances up to three rows, and once, at half HP, stalks.
+  colossus: {
+    id: 'colossus',
+    name: 'Colossus',
+    hp: 12,
+    baseShield: 3,
+    grade: 10,
+    size: { lanes: 2, cols: 2 },
+    advanceSteps: 3,
+    boss: true,
+    stalks: true,
+    grants: 'harpoon',
+    script: {
+      kind: 'cycle',
+      steps: [
+        { move: 'none', act: { k: 'pierce', n: 2 }, label: 'Crush' },
+        { move: 'advance', act: { k: 'slash', n: 1 }, label: 'Stomp' },
+        { move: 'none', act: { k: 'shield', n: 3 } },
+      ],
+    },
+  },
 };

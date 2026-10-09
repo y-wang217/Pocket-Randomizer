@@ -95,9 +95,16 @@ function narrate(log: BattleLog): string[] {
       case 'enemyActed': return e.act === 'shield' ? null : `${who(e.enemy)} acts: ${e.act} ${e.n}`;
       case 'enemyMissed': return `  misses: nobody on the lit tiles`;
       case 'enemyMoved': return `${who(e.enemy)} ${e.rule}s ${at(e.from)} -> ${at(e.to)}`;
-      case 'enemyWaited': return `${who(e.enemy)} stays put (${{ noLane: 'no lane to hunt into', blocked: 'blocked', limit: 'at its advance limit' }[e.why]})`;
+      case 'enemyWaited': return `${who(e.enemy)} stays put (${{ noLane: 'no lane to hunt into', blocked: 'blocked', limit: 'at its advance limit', pinned: 'pinned by the Harpoon' }[e.why]})`;
       case 'reshuffled': return `(discard pile shuffled back into the draw pile)`;
       case 'extraDrew': return `(Need Help: extra card ${card(e.card)})`;
+      case 'harpooned': return `  ${who(e.enemy)} is HARPOONED: pinned for ${e.turns} turns, ${e.shields} shield gone`;
+      case 'shieldsReturned': return `${who(e.enemy)} gets its base shield ${e.amount} back`;
+      case 'pinEnded': return `${who(e.enemy)} tears the harpoon out`;
+      case 'stalked': return `${who(e.enemy)} is at half HP and STALKS`;
+      case 'stomped': return `  stomps ${tiles(e.tiles)}${e.to ? `, moves to ${at(e.to)}` : ', and is stopped there'}`;
+      case 'granted': return `(${card(e.card)} granted into the hand)`;
+      case 'usedUp': return `  ${card(e.card)} has no uses left this wave`;
       case 'waveStarted': return `WAVE ${e.wave + 1} ARRIVES: HP carries over; shields, MP and the deck start again`;
       case 'won': return 'WON';
       case 'lost': return `LOST (${e.why === 'allFainted' ? 'every unit fainted' : 'round cap'})`;

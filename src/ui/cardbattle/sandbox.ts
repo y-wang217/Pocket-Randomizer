@@ -23,6 +23,7 @@
  */
 import './sandbox.css';
 
+import { CARDS } from '../../cardData/cards';
 import { CARD_COPY } from '../../cardData/copy';
 import { ENCOUNTERS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
@@ -36,7 +37,7 @@ import { newLog, type BattleLog } from '../../core/cards/log';
 import { friendlyFireFor, interceptsFor, previewPlay, type AttackPreview, type FriendlyFire, type Intercept } from '../../core/cards/preview';
 import type { Action, BattleState, CardIid, TargetId, UnitId } from '../../core/cards/state';
 import { step } from '../../core/cards/step';
-import { viewOf, type BattleView, type HandCardView, type TileThreat, type TileView } from '../../core/cards/view';
+import { enemyNumber, viewOf, type BattleView, type HandCardView, type TileThreat, type TileView } from '../../core/cards/view';
 import { samePos } from '../../core/cards/zones';
 import { newSeed } from '../seed';
 import { cardAsset, type CardAssetId } from './assets';
@@ -85,6 +86,7 @@ const ENEMY_MARKER: Record<EnemyDefId, CardAssetId> = {
   bulwark: 'marker-enemy-bulwark',
   sniper: 'marker-enemy-sniper',
   pikeman: 'marker-enemy-pikeman',
+  colossus: 'marker-enemy-colossus',
 };
 const INTENT_ICON: Record<string, CardAssetId> = {
   strike: 'icon-strike',
@@ -92,9 +94,10 @@ const INTENT_ICON: Record<string, CardAssetId> = {
   slash: 'icon-slash',
   blast: 'icon-blast',
   shield: 'icon-shield',
+  scream: 'icon-scream',
   none: 'icon-wait',
 };
-const THREAT_ORDER: readonly TileThreat['act'][] = ['pierce', 'slash', 'strike'];
+const THREAT_ORDER: readonly TileThreat['act'][] = ['pierce', 'slash', 'scream', 'strike'];
 const THREAT_ORDER_ALL: readonly AttackPreview['act'][] = ['pierce', 'slash', 'blast', 'strike'];
 
 interface OwnAttack {
@@ -134,8 +137,13 @@ function button(className: string, label: string, onTap: () => void): HTMLButton
   return node;
 }
 
-/** The icon and number a card's face shows: its first effect that has one. */
-export function faceOf(effects: readonly Effect[]): { icon: CardAssetId; n: number | null; targeted: boolean } {
+/** The icon and number a card's face shows: its first effect that has one, its picture for flavour when it names one. */
+export function faceOf(effects: readonly Effect[], face?: 'shovel' | 'harpoon'): { icon: CardAssetId; n: number | null; targeted: boolean } {
+  const shown = effectFace(effects);
+  return face ? { ...shown, icon: `icon-${face}` } : shown;
+}
+
+function effectFace(effects: readonly Effect[]): { icon: CardAssetId; n: number | null; targeted: boolean } {
   const targeted = effects.some((e) => e.k === 'target');
   for (const effect of effects) {
     switch (effect.k) {
@@ -154,6 +162,8 @@ export function faceOf(effects: readonly Effect[]): { icon: CardAssetId; n: numb
         return { icon: 'icon-mp', n: effect.n, targeted };
       case 'drawNext':
         return { icon: 'icon-draw', n: effect.n, targeted };
+      case 'harpoon':
+        return { icon: 'icon-harpoon', n: null, targeted };
       default:
         break;
     }
@@ -195,6 +205,9 @@ export function effectLines(effects: readonly Effect[]): string[] {
         break;
       case 'drawNext':
         lines.push(CARD_COPY.effect.drawNext(effect.n));
+        break;
+      case 'harpoon':
+        lines.push(CARD_COPY.effect.harpoon(effect.range, effect.pin));
         break;
       default:
         break;
@@ -657,7 +670,10 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         if (selectable && block) node.append(interceptMark());
         const risky = selectable ? pending?.friendly?.find((f) => samePos(f.tile, tile.pos)) : undefined;
         if (risky) node.append(friendlyMark(risky));
-        if (tile.occupant) node.append(token(view, tile, held, warned));
+        // A big enemy's token is drawn once, from its anchor tile, over its whole footprint.
+        if (tile.occupant && (tile.occupant.kind === 'unit' || tile.occupant.anchor)) node.append(token(view, tile, held, warned));
+        // Each tile is its own stacking context, so the tile a big token is drawn from sits over its neighbours.
+        if (tile.occupant?.kind === 'enemy' && tile.occupant.anchor && ENEMIES[tile.occupant.def].size) node.dataset['big'] = 'true';
         if (acts.length > 0) node.append(threatChips(tile));
         if (mine.length > 0) node.append(attackChips(mine));
         node.addEventListener('click', () => tapTile(tile));
@@ -679,6 +695,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
    */
   function threatLayer(tile: TileView, act: TileThreat['act']): HTMLElement {
     const node = act === 'pierce' ? layer('tile-overlay-telegraph', 'cb-ov cb-threat') : el('span', 'cb-ov cb-threat');
+    // Scream: hatched in the deeper red with a dotted edge, on every tile touching the pinned boss.
     node.dataset['act'] = act;
     if (act === 'strike' && tile.threats.some((t) => t.act === 'strike' && t.stop)) node.dataset['stop'] = 'true';
     return node;
@@ -760,7 +777,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   /** An enemy as its token names it: its name's initial and spawn number. */
   function enemyLabel(id: string): string {
     const enemy = state.enemies.find((e) => e.id === id);
-    return enemy ? `${ENEMIES[enemy.def].name[0]}${enemy.spawnIndex + 1}` : id;
+    return enemy ? `${ENEMIES[enemy.def].name[0]}${enemyNumber(state, id)}` : id;
   }
 
   function layer(id: CardAssetId, className: string): HTMLElement {
@@ -776,11 +793,14 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     node.dataset['id'] = occupant.id;
     if (isUnit) node.dataset['owner'] = occupant.id;
     const marker = isUnit ? UNIT_MARKER[occupant.id] : (ENEMY_MARKER[occupant.def] ?? 'marker-enemy-base');
-    node.append(cardAsset(marker));
+    // A big enemy's marker stretches over its footprint.
+    const big = occupant.kind === 'enemy' && !!ENEMIES[occupant.def].size;
+    node.append(cardAsset(marker, big ? 'fill' : undefined));
     let label = occupant.id;
     if (!isUnit) {
       const enemy = view.enemies.find((e) => e.id === occupant.id)!;
       label = enemyLabel(occupant.id);
+      if (enemy.size.lanes > 1 || enemy.size.cols > 1) node.dataset['size'] = `${enemy.size.lanes}x${enemy.size.cols}`;
       node.append(el('span', 'cb-token-hp', String(enemy.hp)));
       if (enemy.fast) node.append(el('span', 'cb-fast cb-token-fast', CARD_COPY.fast));
     } else {
@@ -824,12 +844,18 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         panel.append(name);
         panel.append(statLine(CARD_COPY.hp, `${enemy.hp}/${enemy.maxHp}`), bar(enemy.hp, enemy.maxHp));
         panel.append(statLine(CARD_COPY.shield, `${enemy.shield} · ${CARD_COPY.baseShield} ${enemy.baseShield}`));
+        // Part D: the pin's turns left, and the HP its one stalk comes at.
+        if (enemy.pinned > 0) panel.append(el('div', 'cb-boss-line cb-boss-line--pinned', CARD_COPY.pinned(enemy.pinned)));
+        else if (enemy.stalkAt !== null) panel.append(el('div', 'cb-boss-line', CARD_COPY.stalkAt(enemy.stalkAt)));
         if (enemy.intent) {
           const pill = el('div', 'cb-pill');
           pill.dataset['act'] = enemy.intent.icon;
           pill.append(cardAsset('pill-badge', 'fill'));
           pill.append(cardAsset(INTENT_ICON[enemy.intent.icon] ?? 'icon-wait', { width: 16, height: 16 }));
-          const word = enemy.intent.icon === 'none' ? CARD_COPY.intentNone : `${CARD_COPY.keyword[enemy.intent.icon as 'strike']} ${enemy.intent.n}`;
+          const word =
+            enemy.intent.icon === 'none'
+              ? CARD_COPY.intentNone
+              : `${enemy.intent.label ?? CARD_COPY.keyword[enemy.intent.icon as 'strike']} ${enemy.intent.n}`;
           pill.append(el('span', 'cb-pill-text', word));
           panel.append(pill);
         }
@@ -945,10 +971,11 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       ...cards.map((card) => {
         const node = el('button', 'cb-card');
         node.type = 'button';
-        node.dataset['owner'] = card.owner;
+        // Player cards in their unit's colour, Neutrals grey, an enemy's grant black.
+        node.dataset['owner'] = card.granted ? 'enemy' : card.owner;
         node.dataset['card'] = card.def;
         node.setAttribute('aria-label', [card.name, `${card.cost} ${CARD_COPY.cost}`, ...effectLines(card.effects)].join(', '));
-        const face = faceOf(card.effects);
+        const face = faceOf(card.effects, CARDS[card.def]?.face);
         node.append(cardAsset('card-frame-compact', 'fill'));
         // The owner's colour as the frame, and its letter in the badge: colour is never the only signal.
         node.append(el('span', 'cb-card-edge'));
@@ -957,11 +984,16 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         const field = el('span', 'cb-card-field');
         field.append(cardAsset(face.icon, 'fill'));
         if (face.targeted) field.append(cornerIcon('icon-target', 'cb-card-mark cb-card-mark--target'));
-        if (card.once) field.append(cornerIcon('icon-once', 'cb-card-mark cb-card-mark--once'));
+        if (card.uses) {
+          // Uses: the keyword's mark and the uses left.
+          const mark = cornerIcon('icon-once', 'cb-card-mark cb-card-mark--once');
+          mark.append(el('span', 'cb-card-uses', String(card.uses.left)));
+          field.append(mark);
+        }
         node.append(field);
         node.append(el('span', 'cb-card-name', card.name));
         // A Neutral has a grey frame and no letter.
-        if (card.owner !== 'neutral') {
+        if (card.owner !== 'neutral' && !card.granted) {
           const badge = el('span', 'cb-card-badge');
           badge.append(cardAsset('card-badge-corner', 'fill'), el('span', 'cb-card-owner', card.owner));
           node.append(badge);
@@ -1009,9 +1041,9 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   }
 
   function showInspect(card: HandCardView): void {
-    const face = faceOf(card.effects);
+    const face = faceOf(card.effects, CARDS[card.def]?.face);
     const full = el('div', 'cb-full');
-    full.dataset['owner'] = card.owner;
+    full.dataset['owner'] = card.granted ? 'enemy' : card.owner;
     full.append(cardAsset('card-frame-full', 'fill'), el('span', 'cb-card-edge'));
     full.append(el('div', 'cb-full-cost', String(card.cost)), el('div', 'cb-full-n', face.n === null ? '' : String(face.n)));
     full.append(el('div', 'cb-full-name', card.name));
@@ -1021,12 +1053,13 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     const body = el('div', 'cb-full-body');
     body.append(el('div', 'cb-full-owner', card.owner === 'neutral' ? CARD_COPY.neutral : `${card.owner} ${UNITS[card.owner].name}`));
     for (const line of effectLines(card.effects)) body.append(el('div', 'cb-full-line', line));
-    if (card.once) body.append(el('div', 'cb-full-line', CARD_COPY.once));
+    if (card.uses) body.append(el('div', 'cb-full-line', CARD_COPY.uses(card.uses.left, card.uses.of)));
+    if (card.retain) body.append(el('div', 'cb-full-line', CARD_COPY.retain));
     const allies = blastAlliesLine(card.effects);
     if (allies) body.append(el('div', 'cb-full-rule', allies));
     if (card.reason) body.append(el('div', 'cb-full-reason', CARD_COPY.reasons[card.reason]));
     full.append(body);
-    if (card.owner !== 'neutral') {
+    if (card.owner !== 'neutral' && !card.granted) {
       const badge = el('span', 'cb-full-badge');
       badge.append(cardAsset('card-badge-corner', 'fill'), el('span', 'cb-card-owner', card.owner));
       full.append(badge);
@@ -1051,11 +1084,13 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   /** An enemy's Inspect entry: its numbers, its grade, and how it opens. */
   function showEnemyInspect(enemy: BattleView['enemies'][number]): void {
     const card = el('div', 'cb-enemy-card');
-    card.append(el('div', 'cb-enemy-card-name', `${enemy.name} ${state.enemies.find((e) => e.id === enemy.id)!.spawnIndex + 1}`));
+    card.append(el('div', 'cb-enemy-card-name', `${enemy.name} ${enemyNumber(state, enemy.id)}`));
     const def = ENEMIES[enemy.def];
     card.append(el('div', 'cb-enemy-card-line', `${CARD_COPY.enemyStats(def.hp, def.baseShield)} · ${CARD_COPY.grade(def.grade)}`));
     if (enemy.fast) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.rule.fast));
     else if (RULES.openingGrace) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.rule.grace));
+    if (def.stalks) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.bossRules.stalk));
+    if (def.boss) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.bossRules.pin));
     inspect.replaceChildren(card);
     inspect.hidden = false;
   }

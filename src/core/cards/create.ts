@@ -22,7 +22,7 @@ import { openingSteps } from './enemies';
 import type { EncounterDef, EnemySpawn } from './defs';
 import type { BattleEvent } from './events';
 import type { Ctx } from './keywords';
-import { nextHand } from './resolve';
+import { grantWave, nextHand } from './resolve';
 import { shuffled, withStream } from './random';
 import type { BattleState, CardInstance } from './state';
 import { allTiles, samePos, zoneOf } from './zones';
@@ -54,6 +54,15 @@ export function layoutBattle(encounterId: string, seed: string): BattleState | n
     cards[iid] = { iid, def, owner: CARDS[def]!.owner };
     draw.push(iid);
   });
+  // A card an enemy grants is an instance after the deck's, held out until its wave arrives.
+  const reserve: string[] = [];
+  for (const { def } of wavesOf(encounter).flat()) {
+    const granted = ENEMIES[def].grants;
+    if (!granted) continue;
+    const iid = `c${Object.keys(cards).length}`;
+    cards[iid] = { iid, def: granted, owner: CARDS[granted]!.owner, granted: true };
+    reserve.push(iid);
+  }
 
   return {
     seed,
@@ -86,12 +95,16 @@ export function layoutBattle(encounterId: string, seed: string): BattleState | n
       shield: 0,
       baseShield: ENEMIES[def].baseShield,
       step: 0,
+      pinned: 0,
+      stripped: 0,
+      stalked: false,
       conds: {},
       intent: null,
     })),
     cards,
-    piles: { draw, hand: [], discard: [], spent: [], removed: [] },
+    piles: { draw, hand: [], discard: [], spent: [], removed: [], reserve },
     plan: [],
+    uses: Object.fromEntries(Object.values(cards).flatMap((c) => (CARDS[c.def]!.uses ? [[c.iid, CARDS[c.def]!.uses!]] : []))),
     pendingDraws: [],
   };
 }
@@ -120,7 +133,8 @@ export function createBattle(encounterId: string, seed: string): CreateResult {
     }
     s.piles.draw = shuffled(stream, s.piles.draw);
   });
-  // The round 1 hand. The enemies move and telegraph once the player starts.
+  // The round 1 hand, after any card wave 1 grants. The enemies move and telegraph once the player starts.
+  grantWave(ctx);
   nextHand(ctx);
   s.phase = 'deploy';
   return { ok: true, state: s, events: ctx.events };

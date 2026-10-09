@@ -24,7 +24,7 @@ describe('card data', () => {
     }
   });
 
-  it('matches the snapshot card table: owner, cost and Once', () => {
+  it('matches the snapshot card table: owner, cost and Uses 1 for the old Once cards', () => {
     const table: [string, string, number, boolean][] = [
       ['call-medic', 'A', 1, false],
       ['command', 'A', 1, false],
@@ -42,14 +42,15 @@ describe('card data', () => {
       ['dig-in', 'neutral', 0, true],
       ['attack', 'neutral', 1, false],
     ];
-    expect(Object.keys(CARDS).sort()).toEqual(table.map(([id]) => id).sort());
+    // Every card but the Harpoon, which the Colossus grants (Part D) and no deck holds.
+    expect(Object.keys(CARDS).filter((id) => id !== 'harpoon').sort()).toEqual(table.map(([id]) => id).sort());
     for (const [id, owner, cost, once] of table) {
-      expect([CARDS[id]!.owner, CARDS[id]!.cost, CARDS[id]!.once === true], id).toEqual([owner, cost, once]);
+      expect([CARDS[id]!.owner, CARDS[id]!.cost, CARDS[id]!.uses === 1], id).toEqual([owner, cost, once]);
     }
   });
 
   it('builds the Puppeteer deck from one copy of every card', () => {
-    expect([...DECKS['puppeteer']!.cards].sort()).toEqual(Object.keys(CARDS).sort());
+    expect([...DECKS['puppeteer']!.cards].sort()).toEqual(Object.keys(CARDS).filter((id) => id !== 'harpoon').sort());
   });
 
   it('matches the snapshot units and classes', () => {

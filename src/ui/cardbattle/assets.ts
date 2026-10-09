@@ -59,6 +59,8 @@ export const CARD_ASSET_GROUPS = {
       'icon-target', 'icon-stealth', 'icon-repair', 'icon-once', 'icon-draw', 'icon-hunt', 'icon-wait',
       'icon-class-special', 'icon-class-ranged', 'icon-class-melee', 'icon-type-fire', 'icon-type-plasma',
       'icon-type-water', 'icon-inspect', 'icon-confirm', 'icon-cancel', 'icon-end-turn', 'icon-deck', 'icon-discard',
+      // Not in the pack: placeholders for Part D, until the reskin's art.
+      'icon-shovel', 'icon-harpoon', 'icon-scream',
     ],
   },
   markers: {
@@ -83,6 +85,7 @@ export const CARD_ASSET_GROUPS = {
       'marker-enemy-bulwark',
       'marker-enemy-sniper',
       'marker-enemy-pikeman',
+      'marker-enemy-colossus',
     ],
   },
 } as const;

@@ -6,9 +6,9 @@ import { DECKS } from '../../cardData/cards';
 import { RULES } from '../../cardData/rules';
 import { cardDefOf, checkPlan, slotsOf } from './plan';
 import type { BattleState, PileName, UnitId } from './state';
-import { inReach, zoneOf } from './zones';
+import { enemyTiles, inReach, zoneOf } from './zones';
 
-const PILES: readonly PileName[] = ['draw', 'hand', 'discard', 'spent', 'removed'];
+const PILES: readonly PileName[] = ['draw', 'hand', 'discard', 'spent', 'removed', 'reserve'];
 
 export function checkInvariants(s: BattleState): string[] {
   const out: string[] = [];
@@ -28,7 +28,7 @@ export function checkInvariants(s: BattleState): string[] {
     if (u.shield < 0 || u.baseShield < 0) out.push(`${u.id} has a negative shield`);
   }
   for (const e of s.enemies) {
-    if (e.pos) place(e.id, 'enemy', e.pos);
+    for (const t of enemyTiles(e)) place(e.id, 'enemy', t);
     if (e.hp < 0) out.push(`${e.id} has negative HP`);
     if (e.wave > s.wave) {
       if (e.pos !== null || e.intent !== null) out.push(`${e.id} of wave ${e.wave} is on the board in wave ${s.wave}`);
@@ -37,8 +37,9 @@ export function checkInvariants(s: BattleState): string[] {
   }
 
   const all = PILES.flatMap((pile) => s.piles[pile]);
-  const deckSize = DECKS[s.deckId]?.cards.length ?? -1;
-  if (all.length !== deckSize) out.push(`${all.length} cards across the piles, deck holds ${deckSize}`);
+  // The deck, and any card an enemy grants (held in `reserve` until its wave arrives).
+  const deckSize = (DECKS[s.deckId]?.cards.length ?? -1) + Object.values(s.cards).filter((c) => c.granted).length;
+  if (all.length !== deckSize) out.push(`${all.length} cards across the piles, the battle holds ${deckSize}`);
   if (new Set(all).size !== all.length) out.push('a card is in two piles');
 
   const mp: Partial<Record<UnitId, number>> = {};

@@ -43,7 +43,8 @@ describe('the A3 enemies', () => {
       ['sniper', 2, 0, false, 3, 3],
       ['pikeman', 3, 1, false, 3, 4],
     ];
-    expect(Object.keys(ENEMIES).sort()).toEqual(table.map(([id]) => id).sort());
+    // The Colossus is Part D's (test/cards-boss.test.ts).
+    expect(Object.keys(ENEMIES).filter((id) => id !== 'colossus').sort()).toEqual(table.map(([id]) => id).sort());
     for (const [id, hp, base, fast, grade, steps] of table) {
       const def = ENEMIES[id];
       expect([def.hp, def.baseShield, def.fast === true, def.grade, def.script.steps.length], id).toEqual([hp, base, fast, grade, steps]);

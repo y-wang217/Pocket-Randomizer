@@ -90,12 +90,12 @@ export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
       { def: 'pikeman', pos: at(2, 7) },
     ],
   },
-  // Part C: waves, each harder than the last
+  // Parts C and D: waves, each harder than the last, ending in the boss
   // (`docs/spec/gymrun-card-battle-rulings-waves-boss-reskin.md`, C7 and C8).
   siege: {
     id: 'siege',
     name: 'Siege',
-    blurb: 'Two waves, the second harder. HP carries over; shields and MP do not.',
+    blurb: 'Three waves, each harder, the Colossus last. HP carries over; shields and MP do not.',
     deckId: 'puppeteer',
     units: PUPPETEER_FRONT,
     enemies: [
@@ -110,6 +110,8 @@ export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
         { def: 'lancer' },
         { def: 'hound', pos: at(3, 6) },
       ],
+      // Part D: the Colossus covers L1-L2, C6-C7, and grants the Harpoon as it arrives.
+      [{ def: 'colossus', pos: at(1, 6) }],
     ],
   },
 };

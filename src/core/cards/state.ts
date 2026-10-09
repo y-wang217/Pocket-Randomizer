@@ -30,8 +30,10 @@ export interface UnitState {
 }
 
 export interface Intent {
-  act: 'none' | 'strike' | 'pierce' | 'slash' | 'shield';
+  act: 'none' | 'strike' | 'pierce' | 'slash' | 'shield' | 'scream';
   n: number;
+  /** The step's name for its act, when it has one (Crush, Stomp). */
+  label?: string;
   /** The tiles the action will hit, from the enemy's position when telegraphed. */
   tiles: Pos[];
 }
@@ -51,6 +53,12 @@ export interface EnemyState {
   spawn: Pos | null;
   /** Index into the script's cycle of the step it is on. */
   step: number;
+  /** Turns of a Harpoon's pin still to come (D); 0 when free. */
+  pinned: number;
+  /** The base shield a Harpoon took, returned on its second pinned turn. */
+  stripped: number;
+  /** Its one stalk is spent (D3). */
+  stalked: boolean;
   /** The step's conditions, evaluated once in the move phase; the act reads these. */
   conds: Partial<Record<Cond, boolean>>;
   intent: Intent | null;
@@ -60,9 +68,12 @@ export interface CardInstance {
   iid: CardIid;
   def: string;
   owner: CardOwner;
+  /** Granted by an enemy (the Colossus's Harpoon), not dealt from the deck: drawn black. */
+  granted?: true;
 }
 
-export type PileName = 'draw' | 'hand' | 'discard' | 'spent' | 'removed';
+/** `reserve`: a card an enemy grants, out of the battle until its wave arrives. */
+export type PileName = 'draw' | 'hand' | 'discard' | 'spent' | 'removed' | 'reserve';
 export type Piles = Record<PileName, CardIid[]>;
 
 /** A unit for a friendly choice, an enemy for a damage target. */
@@ -101,6 +112,8 @@ export interface BattleState {
   cards: Record<CardIid, CardInstance>;
   piles: Piles;
   plan: PlannedPlay[];
+  /** Uses left on each card that has the keyword, by instance (D7). */
+  uses: Record<CardIid, number>;
   /** Extra draws owed to the next hand (Need Help). */
   pendingDraws: { n: number; filter: 'notOwner'; owner: CardOwner }[];
 }
@@ -115,7 +128,7 @@ export type Action =
   | { type: 'start' };
 
 /** Why a card cannot be played by a unit right now. */
-export type PlayBlock = 'noMp' | 'noSlot' | 'wrongZone' | 'noTarget' | 'fainted';
+export type PlayBlock = 'noMp' | 'noSlot' | 'wrongZone' | 'noTarget' | 'fainted' | 'outOfRange';
 
 export type IllegalReason =
   | PlayBlock

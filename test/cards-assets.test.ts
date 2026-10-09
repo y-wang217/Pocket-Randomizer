@@ -17,11 +17,13 @@ const CONTRACT: Record<string, string[]> = {
     'icon-hp', 'icon-shield', 'icon-mp', 'icon-strike', 'icon-pierce', 'icon-slash', 'icon-blast', 'icon-move', 'icon-target', 'icon-stealth',
     'icon-repair', 'icon-once', 'icon-draw', 'icon-hunt', 'icon-wait', 'icon-class-special', 'icon-class-ranged', 'icon-class-melee',
     'icon-type-fire', 'icon-type-plasma', 'icon-type-water', 'icon-inspect', 'icon-confirm', 'icon-cancel', 'icon-end-turn', 'icon-deck', 'icon-discard',
+    'icon-shovel', 'icon-harpoon', 'icon-scream',
   ],
   markers: [
     'marker-player-base', 'marker-enemy-base', 'marker-unit-commander', 'marker-unit-gunner', 'marker-unit-dasher', 'marker-enemy-drone',
     'marker-enemy-lancer', 'marker-ring-selected', 'marker-ring-destination', 'marker-reticle',
     'marker-enemy-hound', 'marker-enemy-turret', 'marker-enemy-bulwark', 'marker-enemy-sniper', 'marker-enemy-pikeman',
+    'marker-enemy-colossus',
   ],
 };
 

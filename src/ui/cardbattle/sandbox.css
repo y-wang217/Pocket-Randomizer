@@ -1434,3 +1434,56 @@
   font-size: 13px;
   font-weight: 700;
 }
+
+/* ----------------------------------------------------------- Part D
+   An enemy's grant is black (the author's ruling): Neutral grey, a unit's
+   own colour, an enemy's black. The Colossus's token spans its 2 by 2 from
+   its anchor tile, bottom left. A Scream lights the tiles touching it,
+   hatched in the deeper red with a dotted edge. */
+[data-owner='enemy'] {
+  --cb-own: #1d1d22;
+  --cb-own-text: #1d1d22;
+}
+.cb-token[data-size='2x2'] {
+  top: auto;
+  bottom: 8px;
+  width: 112px;
+  height: 112px;
+  z-index: 2;
+}
+.cb-threat[data-act='scream'] {
+  margin: 2px;
+  border-radius: 8px;
+  border: 2.5px dotted var(--cb-red-deep);
+  background: repeating-linear-gradient(90deg, rgba(127, 47, 42, 0.3) 0 3px, transparent 3px 8px);
+}
+.cb-threat-chip[data-act='scream'] {
+  background: var(--cb-red-deep);
+}
+.cb-pill[data-act='scream'] {
+  color: var(--cb-red-deep);
+}
+.cb-card-uses {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--cb-ink);
+  color: var(--cb-surface);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 12px;
+  text-align: center;
+}
+.cb-boss-line {
+  font-size: 10px;
+  font-weight: 700;
+}
+.cb-boss-line--pinned {
+  color: #f6c7c0;
+}
+.cb-tile[data-big='true'] {
+  z-index: 2;
+}

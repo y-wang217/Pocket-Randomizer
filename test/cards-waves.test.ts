@@ -60,12 +60,13 @@ describe('waves', () => {
     expect(s.enemies.map((e) => [e.id, e.def, e.wave])).toEqual([
       ['e0', 'drone', 0], ['e1', 'lancer', 0], ['e2', 'hound', 0],
       ['e3', 'bulwark', 1], ['e4', 'sniper', 1], ['e5', 'lancer', 1], ['e6', 'hound', 1],
+      ['e7', 'colossus', 2],
     ]);
     expect(s.enemies.filter((e) => e.wave === 1).every((e) => e.pos === null && e.spawn !== null)).toBe(true);
     expect(zoneOf(s.enemies[5]!.spawn!)).toBe('enemyBackline');
     expect(viewOf(s).enemies.map((e) => e.id)).toEqual(['e0', 'e1', 'e2']);
-    expect([viewOf(s).wave, viewOf(s).waves]).toEqual([0, 2]);
-    expect(gradeTotal(ENCOUNTERS['siege']!)).toBe(4 + 7);
+    expect([viewOf(s).wave, viewOf(s).waves]).toEqual([0, 3]);
+    expect(gradeTotal(ENCOUNTERS['siege']!)).toBe(4 + 7 + 10);
     expect(checkInvariants(s)).toEqual([]);
   });
 
@@ -121,8 +122,8 @@ describe('waves', () => {
       });
       if (played.state.phase === 'won') {
         won++;
-        expect(played.events.filter((e) => e.t === 'waveStarted')).toHaveLength(1);
-        expect(played.state.wave).toBe(1);
+        expect(played.events.filter((e) => e.t === 'waveStarted')).toHaveLength(2);
+        expect(played.state.wave).toBe(2);
       }
       expect(replay(played.log).state).toEqual(played.state);
     }

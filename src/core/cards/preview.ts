@@ -17,7 +17,7 @@ import { cardDefOf, damageOf, livingEnemies, project, projectAt, select, type Pr
 import { alliesOn } from './keywords';
 import { firstSlots } from './resolve';
 import type { BattleState, CardIid, EnemyId, EnemyState, PlannedPlay, TargetId, UnitId } from './state';
-import { blastTiles, laneFromSide, samePos, slashTiles } from './zones';
+import { blastTiles, covers, enemyTiles, laneFromSide, lanesOf, samePos, slashTiles } from './zones';
 
 export interface LitTile {
   pos: Pos;
@@ -102,11 +102,12 @@ function laneAhead(from: Pos): Pos[] {
 
 /** A player's damage keyword fired from `from`, the same patterns `keywords.ts` resolves. */
 function footprint(state: BattleState, k: DamageKeyword, from: Pos, tile: Pos | undefined): LitTile[] {
-  const inLane = livingEnemies(state).filter((e) => e.pos!.lane === from.lane);
+  const inLane = livingEnemies(state).filter((e) => lanesOf(e).includes(from.lane));
+  const laneTilesOf = (e: EnemyState): Pos[] => enemyTiles(e).filter((t) => t.lane === from.lane);
   switch (k) {
     case 'strike': {
       // R4: the first enemy in the lane from the player's edge, at any distance.
-      const first = laneFromSide('player', from.lane).find((t) => inLane.some((e) => samePos(e.pos, t)));
+      const first = laneFromSide('player', from.lane).find((t) => inLane.some((e) => covers(e, t)));
       const ahead = laneAhead(from);
       if (!first) return ahead.map((pos) => lit(pos));
       const upTo = ahead.findIndex((p) => samePos(p, first));
@@ -114,7 +115,7 @@ function footprint(state: BattleState, k: DamageKeyword, from: Pos, tile: Pos | 
     }
     case 'pierce': {
       const ahead = laneAhead(from);
-      const behind = inLane.map((e) => e.pos!).filter((p) => !ahead.some((a) => samePos(a, p)));
+      const behind = inLane.flatMap(laneTilesOf).filter((p) => !ahead.some((a) => samePos(a, p)));
       return [...behind, ...ahead].map((pos) => lit(pos));
     }
     case 'slash':

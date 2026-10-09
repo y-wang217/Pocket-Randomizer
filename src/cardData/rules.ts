@@ -56,6 +56,9 @@ export const RULES: Rules = {
   // Not in the snapshot. The fun test expects 4 to 7 rounds; the cap only
   // guarantees a battle ends, and the fuzz gate asserts no bot reaches it.
   roundCap: 30,
+  // D2 and D3 (`docs/spec/gymrun-card-battle-rulings-waves-boss-reskin.md`).
+  scream: { n: 1 },
+  stalk: { steps: 3, damage: 1, atHpShare: 0.5 },
   // C1 to C5 (`docs/spec/gymrun-card-battle-rulings-waves-boss-reskin.md`).
   betweenWaves: { mp: 'reset', deck: 'reshuffleAll', owed: 'clear', units: 'placeAgain' },
 };

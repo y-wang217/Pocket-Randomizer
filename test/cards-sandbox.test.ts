@@ -215,16 +215,16 @@ describe('the sandbox screen', () => {
       'Turret Alley, Grade 5',
       'Wall and Gun, Grade 7',
       'The Pack, Grade 6',
-      'Siege, Grade 11',
+      'Siege, Grade 21',
     ]);
-    expect(all(root, '.cb-scenario-grade').map((g) => g.textContent)).toEqual(['Grade 5', 'Grade 5', 'Grade 5', 'Grade 5', 'Grade 7', 'Grade 6', 'Grade 11']);
+    expect(all(root, '.cb-scenario-grade').map((g) => g.textContent)).toEqual(['Grade 5', 'Grade 5', 'Grade 5', 'Grade 5', 'Grade 7', 'Grade 6', 'Grade 21']);
     all(root, '.cb-scenario').find((b) => b.getAttribute('aria-label') === 'Staggered, Grade 5')!.click();
     const enemyRows = all(root, '.cb-token--enemy').map((t) => t.closest<HTMLElement>('.cb-tile')!.dataset['col']).sort();
     expect(enemyRows).toEqual(['6', '7', '7']);
     all(root, '.cb-actions .cb-btn').at(-1)!.click();
     all(root, '.cb-actions .cb-btn').at(-1)!.click();
-    all(root, '.cb-scenario').find((b) => b.getAttribute('aria-label') === 'Siege, Grade 11')!.click();
-    expect(root.querySelector('.cb-round')!.textContent).toBe('Wave 1/2 · Round 1');
+    all(root, '.cb-scenario').find((b) => b.getAttribute('aria-label') === 'Siege, Grade 21')!.click();
+    expect(root.querySelector('.cb-round')!.textContent).toBe('Wave 1/3 · Round 1');
     all(root, '.cb-actions .cb-btn').at(-1)!.click();
     all(root, '.cb-scenario').find((b) => b.getAttribute('aria-label') === 'The Pack, Grade 6')!.click();
     expect(all(root, '.cb-token--enemy').map((t) => t.getAttribute('aria-label'))).toEqual(['P4', 'H1', 'H2', 'H3']);
