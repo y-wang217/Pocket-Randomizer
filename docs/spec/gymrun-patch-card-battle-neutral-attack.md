@@ -32,3 +32,25 @@ text is the asset file above.
 Round 1. The neutral Attack card is selected (teal outline) and already sits
 in A Commander's single slot, A's MP reading `0/1`. B Gunner and C Sword
 dasher both read `MP 0/0`. No "pick who plays it" prompt was shown.
+
+---
+
+## Follow-up messages, verbatim
+
+Sent in the same session after the first fix (`df03b81`, committed, not
+pushed) and the session's read of the log. Filed before any work on them.
+
+> Nondont run it yet
+
+> More fixes: animations and showing turn order
+> Card order is play order
+
+> Log play doesn't match my actions. I tried to shield the slash but it didn't work. Check the order of actions resolving
+>
+> Also show me a log of actions so i can verify
+> Amend rule players can move or shoot first and that's part of strategy
+> Dont run gates until i give all my feedback
+
+> Do animations before we open the pr and push the riff through
+
+"riff" is read as "diff".
