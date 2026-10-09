@@ -1239,8 +1239,8 @@
 }
 .cb-token-warn {
   position: absolute;
-  right: -6px;
-  top: -6px;
+  left: -6px;
+  bottom: -2px;
   min-width: 18px;
   height: 16px;
   padding: 0 3px;
