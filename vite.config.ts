@@ -33,6 +33,8 @@ export default defineConfig({
       'test/setup/encounter-library.ts',
       // A DOM test file's timers are cleared before its jsdom goes: section 127.
       'test/setup/timers-die-with-their-file.ts',
+      // The worker's event loop turns before every test: section 127c.
+      'test/setup/yield-between-tests.ts',
     ],
     /*
      * Raised from the 5s default in Stage 4.

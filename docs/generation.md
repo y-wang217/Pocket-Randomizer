@@ -16483,3 +16483,31 @@ The two items section 126 left open. Test and tooling only: nothing under
   four cores: **324.0s uncapped**, against 451.6s, 463.7s and 479.2s at the cap
   earlier the same day. One uncapped run, so the figure is indicative; the
   Actions runs on the PR are the number that counts.
+
+### 127c. The loop turns before every test, because a file's tests add up
+
+**2026-10-09**, after PR 109's first `strict trim` run failed `trim:node` on
+`[vitest-worker]: Timeout calling "onTaskUpdate"`, every test passing, with the
+Node half uncapped. `node suite` passed on the same commit.
+
+- **Section 126 was half right.** It found one *test* holding the worker past
+  60s and fixed that test. But vitest does not turn the event loop between
+  tests either: a file of synchronous `playRun` tests is one unbroken stretch,
+  and the stretch is the file's. Measured as the longest gap a 100ms interval
+  saw in each file, strict trim, four cores, uncapped: `economy` **48.4s**,
+  `locales` 47.7s, `nicknames-graveyard` 41.8s, `run-replay` 35.6s,
+  `defender-economy` 31.8s. No single test in the first three is over 16s.
+- **Why the cap hid it.** Two forks left the runner a core spare, so these
+  stretches stayed under 60s on Actions; three forks in the Playwright
+  container slowed one past it. The cap was margin, not a fix, and section
+  127b's lifting it is what showed the margin was all there was.
+- **The fix.** `test/setup/yield-between-tests.ts`: one `setImmediate` in a
+  `beforeEach` for every test, the reference taken at load so a file that
+  fakes timers does not stall. And `test/run-replay.test.ts`'s every-point
+  resume sweep yields per resume, as `test/party.test.ts`'s does since 126.
+- **Measured after,** same probe and box: longest stretch **14.1s**
+  (`attacker-generation-golden`), every file under it; `run-replay` under 6s.
+  2,468 of 2,468 pass, strict trim's Node half in 325.8s.
+- **The rule this leaves.** The longest stretch is the slowest single
+  synchronous test. One that nears 60s should yield inside itself, as the
+  two sweeps do; it will otherwise fail its leg with vitest's own message.
