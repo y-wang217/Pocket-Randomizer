@@ -56,3 +56,12 @@ enemy backline C6-C7. Units are placed by the player on any of the six home
 tiles before round 1. The three enemies start on tiles of the six enemy
 backline tiles, drawn from the battle's seed when the encounter does not fix
 them, so they are not always on the row nearest the danger zone.
+
+---
+
+## Second follow-up, verbatim
+
+Sent after the deployment, board and spawn work was committed at `6afdaa8` and
+the session said the bot would come after review. Filed before any work on it.
+
+> go ahead with the bot.
