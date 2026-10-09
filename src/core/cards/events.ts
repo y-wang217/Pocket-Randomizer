@@ -23,6 +23,8 @@ export type BattleEvent =
   | { t: 'converted'; unit: UnitId; card: CardIid; from: 'strike'; to: 'pierce' }
   /** A card that resolved with nothing to act on: its target is gone or its pattern is empty. */
   | { t: 'fizzled'; card: CardIid; unit: UnitId; why: 'targetGone' | 'nothingHit' }
+  /** R14: a Blast hits an ally on its tiles. Its `damaged` follows. */
+  | { t: 'friendlyFire'; card: CardIid; unit: UnitId }
   | { t: 'damaged'; target: TargetId; amount: number; shield: number; baseShield: number; hp: number }
   | { t: 'shielded'; unit: TargetId; amount: number }
   | { t: 'defeated'; enemy: EnemyId }

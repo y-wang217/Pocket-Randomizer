@@ -143,6 +143,16 @@ export function roundSteps(before: BattleState, events: readonly BattleEvent[], 
       case 'fizzled':
         current('card', '').lines.push(event.why === 'targetGone' ? L.fizzledGone : L.fizzledNothing);
         break;
+      case 'friendlyFire':
+        current('card', '').lines.push(L.friendlyFire(who(event.unit)));
+        break;
+      case 'planPruned': {
+        // Only a commit prunes with a reason of `fainted`: a unit a Blast felled earlier in the round.
+        const def = CARDS[draft.cards[event.card]!.def]!;
+        begin('card', L.plays(event.unit, def.name), { actor: event.unit }).lines.push(L.notPlayed);
+        draft.plan = draft.plan.filter((p) => p.card !== event.card);
+        break;
+      }
       case 'damaged': {
         const hit = target(event.target);
         const pos = hit?.pos ? { ...hit.pos } : null;

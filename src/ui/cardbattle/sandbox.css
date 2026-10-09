@@ -1179,3 +1179,58 @@
     transform: none;
   }
 }
+
+/* ------------------------------------------------------ friendly fire
+   R14: a Blast hits allies on its tiles. While it is aimed and once it is
+   planned, every ally it would hit wears a dashed warning outline and the
+   damage it would take; a centre that would hit one carries the allies'
+   letters. */
+.cb {
+  --cb-warn: #b4410f;
+}
+.cb-token[data-warn='true']::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2.5px dashed var(--cb-warn);
+  pointer-events: none;
+}
+.cb-token-warn {
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+  background: var(--cb-warn);
+  color: #fff;
+  z-index: 2;
+}
+.cb-panel--unit[data-warn='true'] {
+  box-shadow: inset 0 0 0 2.5px var(--cb-warn);
+  border-radius: 12px;
+}
+.cb-friendly {
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+  background: var(--cb-surface);
+  color: var(--cb-warn);
+  box-shadow: 0 0 0 2px var(--cb-warn);
+  pointer-events: none;
+  z-index: 2;
+}

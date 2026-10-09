@@ -30,7 +30,7 @@ import { createBattle } from '../../core/cards/create';
 import type { Effect, Pos } from '../../core/cards/defs';
 import { choicesFor } from '../../core/cards/legal';
 import { newLog, type BattleLog } from '../../core/cards/log';
-import { interceptsFor, previewPlay, type AttackPreview, type Intercept } from '../../core/cards/preview';
+import { friendlyFireFor, interceptsFor, previewPlay, type AttackPreview, type FriendlyFire, type Intercept } from '../../core/cards/preview';
 import type { Action, BattleState, CardIid, TargetId, UnitId } from '../../core/cards/state';
 import { step } from '../../core/cards/step';
 import { viewOf, type BattleView, type HandCardView, type TileThreat, type TileView } from '../../core/cards/view';
@@ -63,6 +63,8 @@ interface Pending {
   intercepts?: Intercept[];
   /** While assigning a Neutral: the units that may play it but cannot now, and why. */
   blocked?: HandCardView['blocked'];
+  /** For a Blast: the tiles or enemies it could take that would also hit an ally (R14). */
+  friendly?: FriendlyFire[];
 }
 
 /** The scenario the sandbox opens on: enemies drawn anywhere on their backline. */
@@ -350,12 +352,21 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         act({ type: 'select', card, unit });
         return;
       case 'unit':
-        pending = { card, unit, stage: 'unit', units: choices.units, tiles: [] };
-        message = CARD_COPY.pickTarget;
+        pending = { card, unit, stage: 'unit', units: choices.units, tiles: [], friendly: friendlyFireFor(state, card, unit, choices) };
+        message = pending.friendly!.length > 0 ? CARD_COPY.pickTargetAllies : CARD_COPY.pickTarget;
         break;
       case 'tile':
-        pending = { card, unit, stage: 'tile', units: [], tiles: choices.tiles, intercepts: intercepts(view, unit, choices.tiles) };
-        message = pending.intercepts!.length > 0 ? CARD_COPY.pickTileBlock : CARD_COPY.pickTile;
+        pending = {
+          card,
+          unit,
+          stage: 'tile',
+          units: [],
+          tiles: choices.tiles,
+          intercepts: intercepts(view, unit, choices.tiles),
+          friendly: friendlyFireFor(state, card, unit, choices),
+        };
+        message =
+          pending.intercepts!.length > 0 ? CARD_COPY.pickTileBlock : pending.friendly!.length > 0 ? CARD_COPY.pickTileAllies : CARD_COPY.pickTile;
         break;
       case 'unitThenTile':
         pending = { card, unit, stage: 'unit', units: choices.units, tiles: [] };
@@ -559,6 +570,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     const own = ownAttacks(view);
     // Every planned card's target holds a reticle, as a target being picked does.
     const held = new Set(view.previews.flatMap((p) => p.targets));
+    const warned = allyWarnings(view);
     const nodes: HTMLElement[] = [];
     // Enemy backline at the top: the last column first. Lanes left to right.
     for (let col = RULES.board.cols; col >= 1; col--) {
@@ -592,7 +604,9 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         }
         const block = pending?.intercepts?.find((i) => samePos(i.pos, tile.pos));
         if (selectable && block) node.append(interceptMark());
-        if (tile.occupant) node.append(token(view, tile, held));
+        const risky = selectable ? pending?.friendly?.find((f) => samePos(f.tile, tile.pos)) : undefined;
+        if (risky) node.append(friendlyMark(risky));
+        if (tile.occupant) node.append(token(view, tile, held, warned));
         if (acts.length > 0) node.append(threatChips(tile));
         if (mine.length > 0) node.append(attackChips(mine));
         node.addEventListener('click', () => tapTile(tile));
@@ -637,6 +651,25 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     return out;
   }
 
+  /**
+   * The allies a Blast would hit (R14), with the most it would take: every
+   * planned Blast's, and while one is being aimed, every choice it could take.
+   */
+  function allyWarnings(view: BattleView): Map<UnitId, number> {
+    const out = new Map<UnitId, number>();
+    const add = (unit: UnitId, n: number): void => {
+      out.set(unit, Math.max(out.get(unit) ?? 0, n));
+    };
+    for (const preview of view.previews) for (const hit of preview.allies) add(hit.unit, hit.n);
+    for (const choice of pending?.friendly ?? []) for (const hit of choice.allies) add(hit.unit, hit.n);
+    return out;
+  }
+
+  /** A Blast centre that would hit an ally: the allies' letters, in the warning colour. */
+  function friendlyMark(choice: FriendlyFire): HTMLElement {
+    return el('span', 'cb-friendly', choice.allies.map((a) => a.unit).join(''));
+  }
+
   /** A Move destination that steps in front of a Strike: a shield, in the player's colour. */
   function interceptMark(): HTMLElement {
     const mark = el('span', 'cb-intercept');
@@ -674,7 +707,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     return wrap;
   }
 
-  function token(view: BattleView, tile: TileView, held: ReadonlySet<TargetId>): HTMLElement {
+  function token(view: BattleView, tile: TileView, held: ReadonlySet<TargetId>, warned: ReadonlyMap<UnitId, number>): HTMLElement {
     const occupant = tile.occupant!;
     const isUnit = occupant.kind === 'unit';
     const node = el('span', `cb-token cb-token--${occupant.kind}`);
@@ -689,12 +722,20 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     } else {
       const unit = view.units.find((u) => u.id === occupant.id)!;
       node.append(el('span', 'cb-token-hp', String(unit.hp)));
+      const warn = warned.get(unit.id);
+      if (warn !== undefined) {
+        node.dataset['warn'] = 'true';
+        node.append(el('span', 'cb-token-warn', `-${warn}`));
+      }
     }
     node.append(el('span', 'cb-token-label', label));
     node.setAttribute('aria-label', label);
     if (pending?.unit === occupant.id || pending?.ally === occupant.id || placing === occupant.id) node.append(ring('marker-ring-selected'));
     const picking = !!pending && pending.stage !== 'tile' && pending.units.includes(occupant.id);
     if (picking || held.has(occupant.id)) node.append(ring('marker-reticle'));
+    // An enemy whose Target Blast would also hit an ally.
+    const risky = picking ? pending?.friendly?.find((f) => f.unit === occupant.id) : undefined;
+    if (risky) node.append(friendlyMark(risky));
     return node;
   }
 
@@ -705,6 +746,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   }
 
   function renderPanels(view: BattleView): void {
+    const warned = allyWarnings(view);
     enemySide.replaceChildren(
       ...view.enemies.map((enemy, index) => {
         const target = !!pending && pending.stage !== 'tile' && pending.units.includes(enemy.id);
@@ -739,6 +781,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         if (target) panel.dataset['target'] = 'true';
         if (pending?.unit === unit.id || placing === unit.id) panel.dataset['assigning'] = 'true';
         if (pending?.blocked?.some((b) => b.unit === unit.id)) panel.dataset['blocked'] = 'true';
+        if (warned.has(unit.id)) panel.dataset['warn'] = 'true';
         panel.append(el('div', 'cb-panel-name', `${unit.id} ${unit.name}`));
         panel.append(statLine(CARD_COPY.hp, `${unit.hp}/${unit.maxHp} · ${CARD_COPY.shieldShort} ${unit.shield}+${unit.baseShield}`), bar(unit.hp, unit.maxHp));
         const mp = el('div', 'cb-mp');

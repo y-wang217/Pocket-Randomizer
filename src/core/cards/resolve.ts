@@ -5,6 +5,8 @@
  *   1-2. Every planned card in plan order, Moves and Command's included: the
  *      order the player made the plan is the order it plays. A card whose
  *      target is gone fizzles: it is still used and its MP is not refunded.
+ *      A play by a unit that fainted earlier in the round (a Blast's friendly
+ *      fire, R14) is pruned instead.
  *   3. Win check. Dead enemies never act.
  *   4. MP gain, capped.
  *   5-7. Enemy actions, moves and telegraph (`enemies.ts`).
@@ -75,6 +77,12 @@ export function commit(state: BattleState): StepResult {
   // 1 and 2. Every card, Moves included, in plan order.
   plan.forEach((play, index) => {
     if (s.phase !== 'plan') return;
+    // A unit a Blast made faint earlier in the round plays nothing more: its
+    // own cards left with it, and a Neutral it held stays in hand.
+    if (unitOf(s, play.unit)?.fainted) {
+      ctx.events.push({ t: 'planPruned', card: play.card, unit: play.unit, reason: 'fainted' });
+      return;
+    }
     const def = cardDefOf(s, play.card)!;
     if (isMoveCard(def)) playCard(ctx, play, () => resolveMove(ctx, play, def));
     else playCard(ctx, play, () => resolveEffects(ctx, play, def, converts(play, index)));

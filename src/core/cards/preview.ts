@@ -14,6 +14,7 @@ import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
 import type { DamageKeyword, Pos } from './defs';
 import { cardDefOf, damageOf, livingEnemies, project, projectAt, select, type Projection } from './plan';
+import { alliesOn } from './keywords';
 import { firstSlots } from './resolve';
 import type { BattleState, CardIid, EnemyId, EnemyState, PlannedPlay, TargetId, UnitId } from './state';
 import { blastTiles, laneFromSide, samePos, slashTiles } from './zones';
@@ -30,11 +31,26 @@ export interface AttackPreview {
   tiles: LitTile[];
 }
 
+/** An ally a Blast would hit (R14), and for how much. */
+export interface AllyHit {
+  unit: UnitId;
+  n: number;
+}
+
 export interface PlayPreview {
   /** The tiles the card's damage keyword lights, or `null` for a card that deals none. */
   attack: AttackPreview | null;
   /** The units and enemies the card lands on, for a reticle. */
   targets: TargetId[];
+  /** The allies its Blast would hit, where the Moves before it leave them. */
+  allies: AllyHit[];
+}
+
+/** A choice a card being aimed could take, with the allies that choice would hit. */
+export interface FriendlyFire {
+  tile?: Pos;
+  unit?: TargetId;
+  allies: AllyHit[];
 }
 
 export interface Intercept {
@@ -133,7 +149,7 @@ function convertsTo(state: BattleState, play: PlannedPlay, k: DamageKeyword, tar
  */
 export function previewPlay(state: BattleState, play: PlannedPlay, at: number = state.plan.length): PlayPreview {
   const def = cardDefOf(state, play.card);
-  if (!def) return { attack: null, targets: [] };
+  if (!def) return { attack: null, targets: [], allies: [] };
   const targets: TargetId[] = [];
   const add = (id: TargetId | undefined): void => {
     if (id !== undefined && id !== '' && !targets.includes(id)) targets.push(id);
@@ -142,7 +158,9 @@ export function previewPlay(state: BattleState, play: PlannedPlay, at: number = 
 
   const dmg = damageOf(def);
   const targeted = def.effects.some((e) => e.k === 'target');
-  const from = projectAt(state, at)[play.unit];
+  let allies: AllyHit[] = [];
+  const positions = projectAt(state, at);
+  const from = positions[play.unit];
   if (dmg && from) {
     const k = convertsTo(state, play, dmg.k, targeted);
     if (targeted) {
@@ -152,6 +170,9 @@ export function previewPlay(state: BattleState, play: PlannedPlay, at: number = 
       attack = { act: k, n: dmg.n, tiles };
     } else {
       attack = { act: k, n: dmg.n, tiles: footprint(state, k, from, play.choice?.tile) };
+    }
+    if (k === 'blast') {
+      allies = alliesOn(state, play.unit, attack.tiles.map((t) => t.pos), positions).map((unit) => ({ unit, n: dmg.n }));
     }
   }
 
@@ -171,7 +192,27 @@ export function previewPlay(state: BattleState, play: PlannedPlay, at: number = 
         break;
     }
   }
-  return { attack, targets };
+  return { attack, targets, allies };
+}
+
+/**
+ * For a Blast being aimed, each tile or enemy it could take that would also
+ * hit an ally (R14), with those allies. Read off `previewPlay` with each
+ * candidate as the choice, so it is the round's own reading.
+ */
+export function friendlyFireFor(state: BattleState, card: CardIid, unit: UnitId, choices: { tiles: readonly Pos[]; units: readonly TargetId[] }): FriendlyFire[] {
+  const def = cardDefOf(state, card);
+  if (!def || damageOf(def)?.k !== 'blast') return [];
+  const out: FriendlyFire[] = [];
+  for (const tile of choices.tiles) {
+    const allies = previewPlay(state, { card, unit, choice: { tile } }).allies;
+    if (allies.length > 0) out.push({ tile, allies });
+  }
+  for (const target of choices.units) {
+    const allies = previewPlay(state, { card, unit, choice: { unit: target } }).allies;
+    if (allies.length > 0) out.push({ unit: target, allies });
+  }
+  return out;
 }
 
 /**

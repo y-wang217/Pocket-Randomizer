@@ -11,7 +11,7 @@ import { UNITS } from '../../cardData/units';
 import type { CardDef, DamageKeyword, Pos } from './defs';
 import type { BattleEvent } from './events';
 import { cardDefOf, damageOf, livingEnemies, livingUnits, unitOf } from './plan';
-import type { BattleState, EnemyState, PileName, PlannedPlay, UnitState } from './state';
+import type { BattleState, EnemyState, PileName, PlannedPlay, UnitId, UnitState } from './state';
 import { blastTiles, laneFromSide, moveDestinations, samePos, slashTiles } from './zones';
 
 export interface Ctx {
@@ -105,6 +105,28 @@ function patternHits(ctx: Ctx, k: DamageKeyword, from: Pos, tile: Pos | undefine
   }
 }
 
+/**
+ * R14: the player units a Blast on `tiles` hits, by `RULES.blastFriendlyFire`.
+ * Units are listed in deck order; `positions` reads a projected board (the
+ * preview's), and the board itself when omitted.
+ */
+export function alliesOn(
+  s: BattleState,
+  caster: UnitId,
+  tiles: readonly Pos[],
+  positions?: Readonly<Record<UnitId, Pos | null>>,
+): UnitId[] {
+  const mode = RULES.blastFriendlyFire;
+  if (mode === 'none' || tiles.length === 0) return [];
+  return livingUnits(s)
+    .filter((u) => (mode === 'allies' || u.id !== caster) && tiles.some((t) => samePos(t, positions ? positions[u.id] : u.pos)))
+    .map((u) => u.id);
+}
+
+function alliesBlasted(s: BattleState, caster: UnitId, tiles: readonly Pos[]): UnitState[] {
+  return alliesOn(s, caster, tiles).map((id) => unitOf(s, id)!);
+}
+
 /** Move: the unit, or for Command the chosen ally, steps to the chosen tile. */
 export function resolveMove(ctx: Ctx, play: PlannedPlay, def: CardDef): void {
   const { s } = ctx;
@@ -148,22 +170,33 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
       ctx.events.push({ t: 'converted', unit: unit.id, card: play.card, from: ability.from, to: ability.to });
     }
     let hits: EnemyState[];
+    // A Blast's footprint, fixed before anything on it is hit.
+    let blasted: Pos[] = [];
     if (targeted) {
       // R13: Target lands on the chosen unit at any range; a Blast centres on it.
       const chosen = livingEnemies(s).find((e) => e.id === play.choice?.unit);
-      hits = !chosen ? [] : k === 'blast' ? enemiesOn(s, blastTiles(chosen.pos!)) : [chosen];
+      if (chosen && k === 'blast') blasted = blastTiles(chosen.pos!);
+      hits = !chosen ? [] : k === 'blast' ? enemiesOn(s, blasted) : [chosen];
       if (!chosen) {
         fizzled = true;
         ctx.events.push({ t: 'fizzled', card: play.card, unit: unit.id, why: 'targetGone' });
       }
     } else {
+      if (k === 'blast' && play.choice?.tile) blasted = blastTiles(play.choice.tile);
       hits = patternHits(ctx, k, unit.pos!, play.choice?.tile);
-      if (hits.length === 0) {
-        fizzled = true;
-        ctx.events.push({ t: 'fizzled', card: play.card, unit: unit.id, why: 'nothingHit' });
-      }
+    }
+    const allies = alliesBlasted(s, unit.id, blasted);
+    if (!fizzled && hits.length === 0 && allies.length === 0) {
+      fizzled = true;
+      ctx.events.push({ t: 'fizzled', card: play.card, unit: unit.id, why: 'nothingHit' });
     }
     for (const enemy of hits) if (enemy.pos) damage(ctx, enemy, dmg.n);
+    // R14: the Blast hits the allies on its tiles too, after the enemies.
+    for (const ally of allies) {
+      if (s.phase !== 'plan' || !ally.pos) continue;
+      ctx.events.push({ t: 'friendlyFire', card: play.card, unit: ally.id });
+      damage(ctx, ally, dmg.n);
+    }
   }
 
   for (const effect of def.effects) {
