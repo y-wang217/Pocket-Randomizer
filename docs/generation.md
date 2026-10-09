@@ -16483,6 +16483,12 @@ The two items section 126 left open. Test and tooling only: nothing under
   four cores: **324.0s uncapped**, against 451.6s, 463.7s and 479.2s at the cap
   earlier the same day. One uncapped run, so the figure is indicative; the
   Actions runs on the PR are the number that counts.
+- **Actions does not confirm it.** `test:node` on PR 107 and PR 109, same
+  runner class: capped 248.7s and 322.1s; uncapped 228.5s, then 392.3s with
+  127c's yield in. `trim:node`: capped 409.3s; uncapped 390.6s (the failed
+  run) and 363.8s. Runs of one configuration differ by about 100s, so these
+  four cannot show a speedup either way. The cap comes off because its reason
+  was wrong, not because the leg is measurably faster without it.
 
 ### 127c. The loop turns before every test, because a file's tests add up
 
