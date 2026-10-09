@@ -75,3 +75,35 @@ base 3 too. 10 Pinned: movement only, for one round.
 **E.** 1 Who redraws the art. 2 Phone height with the roster on top and
 panels below. 3 Owner colours on felt. 4 What replaces the mock's header.
 5 Reskin before or after C and D.
+
+---
+
+## Follow-up, the same day, verbatim
+
+The session answered D3 (what hunt is, and options a to c: keep it, hunt 1
+and advance 2, or a new boss-only "stalk 3") and read back C1 and C4, C6,
+D2/D9/D10 as one reading, D4, D7 and D8. The author's answers:
+
+> hunt should be use-once and trigger at half hp, bringin the monster much closer. player will want to prevent this, and hunt/stalk should do damage if it is close enough. the 'step's should stomp and do damage over tiles its moving through. you can show this as 3 separate animations, kind of like slashes
+>
+> read-backs:
+>
+> 1. yes
+> 2. yes
+> 3. yes, but its shields renew on the second turn
+>    1. yes
+>    2. yes
+> 4. i'm not sure i get this so just implement it and we'll tune after
+> 5. 2 uses, use becomes a keyword and can be applied to dig in (show a shovel for flavor) etc
+> 6. no diagonals, in a straight line in the correct lane.
+
+The read-backs those answer, as put: 1, each wave starts at 0 MP, and Prep
+and Dig In come back every wave with the full reshuffle. 2, the 30-round
+loss limit restarts each wave. 3, the Harpoon pins the Colossus for 2
+rounds, no moves and every shield gone (base 3 included); pinned, it does
+not act but Screams, 1 damage to every tile touching its 2x2 (3.1: 1
+damage; 3.2: it hits its own allies too); shields come back when the pin
+ends. 4, at C3 its front row is on C3 (it holds C3 and C4) and Stomp hits
+C2 in every lane. 5, how many Harpoon uses. 6, Harpoon range: within 3
+steps of a boss tile along lanes and rows, the card greyed out until a unit
+is in range.
