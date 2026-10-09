@@ -1,19 +1,54 @@
-/** The first encounter, `test`. Appendix A, First encounter. */
-import type { EncounterDef } from '../core/cards/defs';
+/**
+ * The sandbox's scenarios. `test` is the first encounter, Appendix A, moved
+ * onto the seven-deep board: the enemies on the backline row nearest the
+ * danger zone. The rest are scenarios in the shape
+ * `docs/handoff/card-battle-log-reading.md` section 8 asks for. An enemy with
+ * no `pos` starts on a free enemy backline tile drawn from the seed.
+ *
+ * Units' tiles are where each starts before the player places it.
+ */
+import type { EncounterDef, Pos } from '../core/cards/defs';
+
+const at = (lane: Pos['lane'], col: Pos['col']): Pos => ({ lane, col });
+
+/** The Puppeteer's default placement: the home row nearest the danger zone. */
+const PUPPETEER_FRONT = [
+  { def: 'A', pos: at(1, 2) },
+  { def: 'B', pos: at(2, 2) },
+  { def: 'C', pos: at(3, 2) },
+] as const;
 
 export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
+  skirmish: {
+    id: 'skirmish',
+    name: 'Skirmish',
+    blurb: 'Two Drones and a Lancer, anywhere on the enemy backline.',
+    deckId: 'puppeteer',
+    units: PUPPETEER_FRONT,
+    enemies: [{ def: 'drone' }, { def: 'lancer' }, { def: 'drone' }],
+  },
   test: {
     id: 'test',
+    name: 'Front line',
+    blurb: 'The first encounter: one enemy per lane, on the row nearest the danger zone.',
     deckId: 'puppeteer',
-    units: [
-      { def: 'A', pos: { lane: 1, col: 2 } },
-      { def: 'B', pos: { lane: 2, col: 2 } },
-      { def: 'C', pos: { lane: 3, col: 2 } },
-    ],
+    units: PUPPETEER_FRONT,
     enemies: [
-      { def: 'drone', pos: { lane: 1, col: 5 } },
-      { def: 'lancer', pos: { lane: 2, col: 5 } },
-      { def: 'drone', pos: { lane: 3, col: 5 } },
+      { def: 'drone', pos: at(1, 6) },
+      { def: 'lancer', pos: at(2, 6) },
+      { def: 'drone', pos: at(3, 6) },
+    ],
+  },
+  staggered: {
+    id: 'staggered',
+    name: 'Staggered',
+    blurb: 'The Lancer holds the middle forward; both Drones start deep.',
+    deckId: 'puppeteer',
+    units: PUPPETEER_FRONT,
+    enemies: [
+      { def: 'drone', pos: at(1, 7) },
+      { def: 'lancer', pos: at(2, 6) },
+      { def: 'drone', pos: at(3, 7) },
     ],
   },
 };

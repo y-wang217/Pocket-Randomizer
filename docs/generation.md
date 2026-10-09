@@ -16011,6 +16011,125 @@ so it is refused, naming both values. None of the run's four axes moves.
   the quiet steps (round MP, an enemy that waits) listed dimmed. Replay round
   plays the last round back again.
 
+### 125m. Deployment, a danger zone three deep, seeded spawns, scenarios
+
+**2026-10-09**, on `claude/wizardly-cannon-l8fktg`, from `main` at `f58835e`.
+Message and follow-up
+[`spec/gymrun-patch-card-battle-scenarios-and-bot.md`](spec/gymrun-patch-card-battle-scenarios-and-bot.md).
+**`CARD_ENGINE_VERSION` moves from `cards-0.2.0` to `cards-0.3.0`**: the board,
+the battle's opening and the draw order all change, so an older log is
+refused, naming both values. None of the run's four axes moves; the card
+tables stay outside `src/data/`.
+
+- **The board is seven deep.** `RULES.board.cols` 7: home C1-C2, danger
+  C3-C5, enemy backline C6-C7. Player reach is C1-C5 and enemy reach C3-C7.
+  E3's `slashInRange` holds from the whole danger zone, C3 to C5; E4's
+  advance limit stays C3. The author's *"3 rows tall"* is three of the
+  engine's columns, because the sandbox draws the board upright, enemy
+  backline at the top (the spec file says how it was read).
+- **Deployment.** A battle is created in a new phase, `deploy`, with the
+  round 1 hand dealt and no enemy moved or telegraphed. Two new actions:
+  `place` (a unit onto any home tile, swapping with a unit there) and `start`
+  (the enemies' opening move and telegraph on the rolled step, then round 1's
+  plan). Card actions are refused with `deploying` before the start, and a
+  placement with `notDeploying` after it. Placing draws nothing. The order of
+  battle start changed: the hand is now dealt before the enemies' opening
+  move instead of after it. Neither depends on the other, so only the timing
+  moved; the readout's round 1 no-choice check now reads the state after
+  `start`.
+- **Seeded spawns.** An encounter's enemy may omit `pos`; `createBattle` then
+  draws it a free tile of `RULES.spawnZone` (the enemy backline, six tiles),
+  in spawn order, after the starting steps and before the shuffle. The count
+  of draws depends only on the encounter. A seeded scenario therefore deals a
+  different hand from a fixed one on the same seed.
+- **Scenarios.** `EncounterDef` gains `name` and `blurb`. `skirmish` (all three
+  enemies seeded) is the sandbox's default; `test` keeps one enemy per lane,
+  moved to C6, the row nearest the danger zone, and shows as *Front line*;
+  `staggered` fixes Drones on C7 and the Lancer on C6. Menu lists them; a tap
+  starts that scenario on the current seed. `test/cards-data.test.ts` holds
+  every scenario to distinct home tiles, enemies in reach and room to spawn.
+- **A telegraph no longer lights its own enemy's tile.** With the danger zone
+  in both reaches, an enemy's lane in player reach now includes the tile it
+  stands on; a Strike or Pierce telegraph drops it. No unit can stand there,
+  so nothing it hits changes.
+- **The screen.** Seven rows of 64px; the middle row grows from 384 to 448px.
+  During deployment the note reads the instruction, a tap on a unit then a
+  home tile places it, the primary button is Start, and the hand shows but
+  plays nothing.
+- **The guide.** `docs/handoff/card-battle-log-reading.md` is updated to
+  `cards-0.3.0`; its worked example stays a `cards-0.2.0` game and says so.
+  `npm run cards:narrate` prints the placements before round 1.
+- **Not built yet:** the defensive, learning bot the message asks for. It
+  comes after review of this.
+
+### 125n. The guard bot, its trainer, the bench and the solver
+
+**2026-10-09**, same branch, after the author's *"go ahead with the bot."*
+No version axis moves and `CARD_ENGINE_VERSION` holds at `cards-0.3.0`: the
+bot plays through `step` like any player, and nothing it does changes what a
+log replays to.
+
+- **The guard bot** (`core/cards/guard.ts`). A beam search per round: from the
+  current plan it tries each legal play, commits each candidate plan on a
+  copy through `step`, scores the board the round leaves, keeps the best
+  `beam` partial plans and extends them, up to `maxPlays` cards. Plans whose
+  order cannot matter share a key and are searched once. It plays the best
+  plan seen at any depth, the empty one included. Placement: every placement
+  of the units on the six home tiles is started and scored on its opening
+  threats, and the best `deployShortlist` get a full round 1 search.
+- **It reads only what a player sees.** The score reads the board, HP,
+  shields, MP, the enemies and the telegraphs they show next (which follow
+  from scripts a player knows); never the hand the simulated commit drew or
+  the draw pile. Asserted: reversing the draw pile never changes its plan.
+  It draws no randomness.
+- **The score** (`GuardWeights`, `cardData/guardWeights.ts`): a value per
+  unit kept, per HP, per base shield and per MP; a cost per point left on the
+  enemies and per enemy standing; a cost for each telegraphed hit at a unit,
+  divided by what the unit can soak, and most of the unit's value when the
+  hit would knock it out. That is the author's *"protect units with high
+  hp/shield units"*: the same Strike costs three times more on A (1 HP) than
+  on C (3 HP), so the search puts C in front. Two weights were added after the
+  first bench, from evidence: `reach`, per enemy in a lane a unit stands in,
+  and `urgency`, which grows `reach` each round. Without them the bot lost 1
+  to 2 of 150 bench battles (seeds GB0..GB49 in each scenario), every one a
+  stalemate at the round cap: a last enemy one lane over, and stepping into
+  its lane costs safety now and pays only next round, which a one-round
+  search cannot see. With them, 150 of 150 on the same seeds.
+- **The trainer** (`core/cards/train.ts`, `npm run cards:train`). A (1+λ)
+  evolution strategy over the weights on common training seeds (GT), the
+  step size adapting, mutations drawn from its own stream (`cardTrainKey()`,
+  declared in `core/streamKeys.ts`). It writes `guardWeights.ts` only when
+  the trained weights, rounded as written, do at least as well on held-out
+  seeds (GE); the file carries every figure with its prefix and count.
+  Fitness (`core/cards/bench.ts`): a win is 1, plus up to 0.5 for units kept,
+  plus up to 0.1 for a quicker win; a loss up to 0.25 for damage done. The
+  speed term was added after the first run hit 1.5, the old maximum, on the
+  training seeds and could tell nothing apart.
+- **The numbers.** Held out, GE0..GE59 in each scenario: the hand-set weights
+  won 180/180, units kept on a win 2.83 / 2.87 / 2.95 (skirmish, test,
+  staggered), rounds to a win 9.1 / 9.1 / 8.7, fitness 1.5507; the trained
+  weights as shipped won 180/180, kept 2.88 / 2.88 / 2.98, rounds 8.4 / 8.3 /
+  7.6, fitness 1.5591. A second, longer run from there plateaued and scored
+  lower held out, and was not written. The three scenarios are easy for the
+  bot; training will say more on harder ones. Balance is not a gate: these
+  are recorded, not targets.
+- **What it learned to do.** The bench's placement line with the shipped
+  weights, GB0..GB49 in each scenario: the Commander on the back row in 100%
+  of skirmish and staggered battles and 98% of test, mostly lane 1; the
+  Gunner and the Sword dasher split front and back. Asserted for six battles
+  in `test/cards-guard.test.ts`. Same seeds: 150/150 won, units kept on a win
+  3.00 / 2.86 / 2.92, rounds to a win 7.9 / 8.6 / 7.8.
+- **The solver** (`core/cards/solve.ts`, `npm run cards:solve`). A
+  tool-assisted run of one seed: a beam over whole rounds, each line
+  branching into its best `branch` plans and the best `branch` placements,
+  boards that match merged. It sees the draws by playing ahead, so it answers
+  whether a seed can be won and how well, not how a player would play it.
+  Test GB6, the bot's stalemate before `reach`, solves to a win on round 5
+  with all three units standing.
+- **The sandbox.** Menu → Bot turn: the bot places the units, or plays this
+  round from the plan so far, through the same taps' actions, so the log and
+  the playback are a player's.
+
 ## 126. The Node leg's reporter timeout was one test, not load
 
 **2026-10-09**, on `claude/sharp-ritchie-qb95px`, from `main` at `f58835e`.

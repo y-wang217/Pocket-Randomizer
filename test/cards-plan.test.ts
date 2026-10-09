@@ -19,9 +19,12 @@ function pick(state: BattleState, action: Action): BattleState {
 const sel = (state: BattleState, def: string, unit: 'A' | 'B' | 'C', choice?: Choice) =>
   select(state, choice ? { type: 'select', card: iidOf(state, def), unit, choice } : { type: 'select', card: iidOf(state, def), unit });
 
+
+/** The enemies one row forward of the encounter's, on the danger zone's back row. */
+const COL5 = [at(1, 5), at(2, 5), at(3, 5)];
 describe('projection', () => {
   it('refuses Slash from the backline, allows it after a planned Move into the danger zone, and drops it when that Move goes', () => {
-    let state = board({ hand: ['dash', 'slash'], mp: { C: 2 } });
+    let state = board({ hand: ['dash', 'slash'], mp: { C: 2 }, enemies: COL5 });
     const refused = sel(state, 'slash', 'C');
     expect(refused).toMatchObject({ ok: false, reason: 'wrongZone' });
     expect(refused.state).toBe(state);
@@ -45,20 +48,20 @@ describe('projection', () => {
   it('checks each play on the board as the Moves before it leave it, so a Move after a Slash never touches it', () => {
     // From (3,4) the Slash covers column 5, where the enemies stand. The plan
     // resolves in order, so stepping back to (3,3) afterwards is the player's call.
-    let state = board({ hand: ['slash', 'move'], mp: { C: 1 }, units: { C: at(3, 4) } });
+    let state = board({ hand: ['slash', 'move'], mp: { C: 1 }, units: { C: at(3, 4) }, enemies: COL5 });
     state = pick(state, { type: 'select', card: iidOf(state, 'slash'), unit: 'C' });
     expect(choicesFor(state, iidOf(state, 'move'), 'C').tiles).toEqual(expect.arrayContaining([at(3, 3), at(2, 4)]));
     state = pick(state, { type: 'select', card: iidOf(state, 'move'), unit: 'C', choice: { tile: at(3, 3) } });
     expect(project(state).C).toEqual(at(3, 3));
 
     // The other way round, the Move comes first and the Slash would fire from (3,3).
-    let reversed = board({ hand: ['slash', 'move'], mp: { C: 1 }, units: { C: at(3, 4) } });
+    let reversed = board({ hand: ['slash', 'move'], mp: { C: 1 }, units: { C: at(3, 4) }, enemies: COL5 });
     reversed = pick(reversed, { type: 'select', card: iidOf(reversed, 'move'), unit: 'C', choice: { tile: at(3, 3) } });
     expect(sel(reversed, 'slash', 'C')).toMatchObject({ ok: false, reason: 'noTarget' });
   });
 
   it('allows Fire! only on tiles in the next two columns of the projected position', () => {
-    let state = board({ hand: ['move', 'fire'], mp: { B: 1 }, units: { B: at(2, 2) } });
+    let state = board({ hand: ['move', 'fire'], mp: { B: 1 }, units: { B: at(2, 2) }, enemies: COL5 });
     expect(sel(state, 'fire', 'B', { tile: at(2, 5) })).toMatchObject({ ok: false, reason: 'wrongZone' });
     state = pick(state, { type: 'select', card: iidOf(state, 'move'), unit: 'B', choice: { tile: at(2, 3) } });
     // From (2,3) the next two columns are 4 and 5; enemies stand in column 5.
@@ -72,7 +75,7 @@ describe('projection', () => {
 
 describe('MP and slots', () => {
   it('reserves MP at select and releases it at unselect', () => {
-    let state = board({ hand: ['dash', 'slash', 'need-help'], mp: { C: 2 }, units: { C: at(3, 4) } });
+    let state = board({ hand: ['dash', 'slash', 'need-help'], mp: { C: 2 }, units: { C: at(3, 4) }, enemies: COL5 });
     state = pick(state, { type: 'select', card: iidOf(state, 'slash'), unit: 'C' });
     state = pick(state, { type: 'select', card: iidOf(state, 'need-help'), unit: 'C' });
     expect(sel(state, 'dash', 'C', { tile: at(2, 4) })).toMatchObject({ ok: false, reason: 'noMp' });
@@ -195,7 +198,7 @@ describe('legalActions', () => {
   });
 
   it('draws no RNG and keeps the state plain JSON', () => {
-    let state = board({ hand: ['dash', 'slash'], mp: { C: 2 } });
+    let state = board({ hand: ['dash', 'slash'], mp: { C: 2 }, enemies: COL5 });
     state = pick(state, { type: 'select', card: iidOf(state, 'dash'), unit: 'C', choice: { tile: at(3, 4) } });
     expect(state.rngDraws).toBe(0);
     expect(JSON.parse(JSON.stringify(state))).toEqual(state);

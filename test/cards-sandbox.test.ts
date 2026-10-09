@@ -14,6 +14,8 @@ import { openSandbox } from '../src/ui/cardbattle/sandbox';
 const all = (root: HTMLElement, selector: string) => [...root.querySelectorAll<HTMLElement>(selector)];
 /** A tap anywhere: it skips a round's playback to the end, as any first tap does. */
 const skip = (root: HTMLElement) => root.dispatchEvent(new Event('pointerdown'));
+/** Deployment's Start: the default placement stands. */
+const begin = (root: HTMLElement) => (all(root, '.cb-btn--primary')[0] as HTMLButtonElement).click();
 
 describe('the sandbox screen', () => {
   it('plays rounds by taps alone, and Copy log hands over a log that replays to the same state', async () => {
@@ -25,8 +27,9 @@ describe('the sandbox screen', () => {
     const onExit = vi.fn();
     const sandbox = openSandbox(document.body, { seed: 'JSDOM1', onExit });
     const root = sandbox.root;
-    expect(all(root, '.cb-tile')).toHaveLength(18);
+    expect(all(root, '.cb-tile')).toHaveLength(21);
     expect(all(root, '.cb-card').length).toBeGreaterThanOrEqual(5);
+    begin(root);
 
     for (let round = 0; round < 4; round++) {
       // Tap each playable card, then the first lit target, if any.
@@ -64,8 +67,9 @@ describe('the sandbox screen', () => {
 
   it('a Neutral asks who plays it even when one unit can, and a unit that cannot says why', () => {
     // Round 1 of the bug report's seed: only A has the MP for Attack.
-    const sandbox = openSandbox(document.body, { seed: 'X5A72HUA' });
+    const sandbox = openSandbox(document.body, { seed: 'X5A72HUA', encounter: 'test' });
     const root = sandbox.root;
+    begin(root);
     const panel = (id: string) => all(root, '.cb-panel--unit').find((p) => p.querySelector('.cb-panel-name')!.textContent!.startsWith(`${id} `))!;
     const filled = (id: string) => panel(id).querySelectorAll('.cb-slot--filled').length;
 
@@ -85,8 +89,9 @@ describe('the sandbox screen', () => {
   });
 
   it('plays a committed round back step by step, a tap skips it, and the round log keeps it', () => {
-    const sandbox = openSandbox(document.body, { seed: 'X5A72HUA' });
+    const sandbox = openSandbox(document.body, { seed: 'X5A72HUA', encounter: 'test' });
     const root = sandbox.root;
+    begin(root);
     const panel = (id: string) => all(root, '.cb-panel--unit').find((p) => p.querySelector('.cb-panel-name')!.textContent!.startsWith(`${id} `))!;
     all(root, '.cb-card[data-card="shoot"]')[0]!.click();
     all(root, '.cb-card[data-card="attack"]')[0]!.click();
@@ -118,6 +123,7 @@ describe('the sandbox screen', () => {
   it('a tap on an unplayable card plays nothing and says why', () => {
     const sandbox = openSandbox(document.body, { seed: 'JSDOM2' });
     const root = sandbox.root;
+    begin(root);
     const before = all(root, '.cb-slot--filled').length;
     const blocked = all(root, '.cb-card[data-unavailable="true"]')[0];
     if (blocked) {
@@ -138,11 +144,81 @@ describe('the sandbox screen', () => {
     sandbox.close();
   });
 
+  it('opens in deployment: a unit and a home tile place it, a unit swaps, Start begins round 1, and the log keeps it all', async () => {
+    let copied = '';
+    Object.defineProperty(globalThis.navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn(async (text: string) => void (copied = text)) },
+    });
+    const sandbox = openSandbox(document.body, { seed: 'DEPLOY1' });
+    const root = sandbox.root;
+    const tile = (lane: number, col: number) => root.querySelector<HTMLElement>(`.cb-tile[data-lane="${lane}"][data-col="${col}"]`)!;
+    const unitOn = (lane: number, col: number) => tile(lane, col).querySelector('.cb-token--unit')?.getAttribute('data-id') ?? null;
+    expect(root.querySelector('.cb-note')!.textContent).toBe('Place your units on the home rows, then Start');
+    expect(root.querySelector('.cb-btn--primary')!.textContent).toBe('Start');
+    expect(all(root, '.cb-pill')).toHaveLength(0);
+
+    // A to the back row.
+    tile(1, 2).click();
+    expect(all(root, '.cb-tile').filter((t) => t.querySelector('.cb-ov--selectable'))).toHaveLength(5);
+    tile(1, 1).click();
+    expect(unitOn(1, 1)).toBe('A');
+    // C onto B's tile: they swap.
+    tile(3, 2).click();
+    tile(2, 2).click();
+    expect([unitOn(2, 2), unitOn(3, 2)]).toEqual(['C', 'B']);
+    // A card is not played before the start.
+    all(root, '.cb-card')[0]!.click();
+    expect(all(root, '.cb-slot--filled')).toHaveLength(0);
+
+    begin(root);
+    expect(root.querySelector('.cb-btn--primary')!.textContent).toBe('End Turn');
+    expect(all(root, '.cb-pill').length).toBeGreaterThan(0);
+
+    all(root, '.cb-actions .cb-btn').at(-1)!.click();
+    all(root, '.cb-sheet .cb-btn').find((b) => b.textContent === 'Copy log')!.click();
+    await Promise.resolve();
+    const log = JSON.parse(copied) as BattleLog;
+    expect(log.encounterId).toBe('skirmish');
+    expect(log.actions.map((a) => a.type)).toEqual(['place', 'place', 'start']);
+    expect(replay(log).state.phase).toBe('plan');
+    sandbox.close();
+  });
+
+  it('Bot turn places the units, then plays a round, and the log keeps every action it took', () => {
+    const sandbox = openSandbox(document.body, { seed: 'BOTTURN' });
+    const root = sandbox.root;
+    const botTurn = () => {
+      all(root, '.cb-actions .cb-btn').at(-1)!.click();
+      all(root, '.cb-sheet .cb-btn').find((b) => b.textContent === 'Bot turn')!.click();
+      skip(root);
+    };
+    botTurn();
+    expect(root.querySelector('.cb-btn--primary')!.textContent).toBe('End Turn');
+    expect(root.querySelector('.cb-tile[data-col="1"] .cb-token[data-id="A"]')).not.toBeNull();
+    botTurn();
+    expect(root.querySelector('.cb-round')!.textContent).toBe('Round 2');
+    sandbox.close();
+  });
+
+  it('the menu lists every scenario, and a tap opens it', () => {
+    const sandbox = openSandbox(document.body, { seed: 'SCEN1' });
+    const root = sandbox.root;
+    all(root, '.cb-actions .cb-btn').at(-1)!.click();
+    const names = all(root, '.cb-scenario').map((b) => b.textContent);
+    expect(names).toEqual(['Skirmish', 'Front line', 'Staggered']);
+    all(root, '.cb-scenario').find((b) => b.textContent === 'Staggered')!.click();
+    const enemyRows = all(root, '.cb-token--enemy').map((t) => t.closest<HTMLElement>('.cb-tile')!.dataset['col']).sort();
+    expect(enemyRows).toEqual(['6', '7', '7']);
+    sandbox.close();
+  });
+
   it('Restart deals the same battle again, New seed a different one', () => {
     const sandbox = openSandbox(document.body, { seed: 'JSDOM4' });
     const root = sandbox.root;
     const hand = () => all(root, '.cb-card').map((c) => c.dataset['card']).join(',');
     const first = hand();
+    begin(root);
     all(root, '.cb-btn--primary')[0]!.click();
     skip(root);
     all(root, '.cb-actions .cb-btn').at(-1)!.click();

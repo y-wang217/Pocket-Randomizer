@@ -6,7 +6,8 @@ import type { Pos } from './defs';
 import type { CardDef } from './defs';
 import { asPlayBlock, cardDefOf, checkAppend, checkPlan, livingEnemies, livingUnits, needsOf, project } from './plan';
 import type { Action, BattleState, CardIid, Choice, PlayBlock, TargetId, UnitId } from './state';
-import { blastCentres, moveDestinations } from './zones';
+import { deployTiles } from './deploy';
+import { blastCentres, moveDestinations, samePos } from './zones';
 
 export interface Choices {
   units: TargetId[];
@@ -111,7 +112,18 @@ export function playBlock(state: BattleState, card: CardIid, unit: UnitId): Play
   return check.ok ? null : asPlayBlock(check.reason);
 }
 
+/** Every placement open now: each living unit onto each home tile it is not on. */
+export function placeActions(state: BattleState): Action[] {
+  if (state.phase !== 'deploy') return [];
+  return livingUnits(state).flatMap((unit) =>
+    deployTiles()
+      .filter((tile) => !samePos(tile, unit.pos))
+      .map((tile): Action => ({ type: 'place', unit: unit.id, tile })),
+  );
+}
+
 export function legalActions(state: BattleState): Action[] {
+  if (state.phase === 'deploy') return [...placeActions(state), { type: 'start' }];
   if (state.phase !== 'plan') return [];
   const out: Action[] = [];
   for (const card of state.piles.hand) {

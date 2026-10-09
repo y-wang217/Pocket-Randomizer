@@ -244,3 +244,12 @@ export function cardBattleKey(encounterId: string): string {
  * scripted player, like `SIM_POLICY_KEY`: nothing a person plays reads it.
  */
 export const CARD_BOT_KEY = 'cards/bot';
+
+/**
+ * The guard bot's trainer (`core/cards/train.ts`): the weight mutations it
+ * tries, on `policy`, opened on the training seed. A tool, like
+ * `CARD_BOT_KEY`: nothing a person plays reads it, and no battle draws from it.
+ */
+export function cardTrainKey(): string {
+  return 'cards/train';
+}

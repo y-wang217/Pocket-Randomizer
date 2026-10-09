@@ -135,7 +135,8 @@ function telegraph(ctx: Ctx, enemy: EnemyState): void {
       break;
     case 'strike':
     case 'pierce':
-      intent = { act: act.k, n: act.n, tiles: laneTiles(pos.lane) };
+      // The lane in player reach, less the enemy's own tile: the danger zone is in both reaches.
+      intent = { act: act.k, n: act.n, tiles: laneTiles(pos.lane).filter((t) => !samePos(t, pos)) };
       break;
     case 'slash':
       intent = { act: 'slash', n: act.n, tiles: slashTiles('enemy', pos) };
