@@ -52,6 +52,8 @@ interface Pending {
   tiles: Pos[];
   /** For a Move: the destinations that step in front of a Strike aimed at an ally. */
   intercepts?: Intercept[];
+  /** While assigning a Neutral: the units that may play it but cannot now, and why. */
+  blocked?: HandCardView['blocked'];
 }
 
 const ENCOUNTER = 'test';
@@ -290,9 +292,11 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       render();
       return;
     }
-    if (card.players.length > 1) {
-      pending = { card: card.iid, stage: 'assign', units: card.players, tiles: [] };
-      message = CARD_COPY.pickUnit;
+    // A Neutral always asks who plays it, even when only one unit can: placing
+    // it unasked reads as the card belonging to that unit.
+    if (card.owner === 'neutral' || card.players.length > 1) {
+      pending = { card: card.iid, stage: 'assign', units: card.players, tiles: [], blocked: card.blocked };
+      message = [CARD_COPY.pickUnit, ...blockedLines(card.blocked)].join(' · ');
       render();
       return;
     }
@@ -323,7 +327,20 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     render();
   }
 
+  /** `B, C: Not enough MP`, one line per reason. */
+  function blockedLines(blocked: HandCardView['blocked']): string[] {
+    const byReason = new Map<string, UnitId[]>();
+    for (const { unit, block } of blocked) byReason.set(CARD_COPY.reasons[block], [...(byReason.get(CARD_COPY.reasons[block]) ?? []), unit]);
+    return [...byReason].map(([reason, units]) => CARD_COPY.cannotPlay(units.join(', '), reason));
+  }
+
   function tapTarget(id: TargetId): boolean {
+    const blocked = pending?.stage === 'assign' ? pending.blocked?.find((b) => b.unit === id) : undefined;
+    if (blocked) {
+      message = blockedLines([blocked])[0]!;
+      render();
+      return true;
+    }
     if (!pending || !pending.units.includes(id)) return false;
     if (pending.stage === 'assign') {
       begin(pending.card, id as UnitId);
@@ -636,6 +653,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         if (unit.fainted) panel.dataset['dead'] = 'true';
         if (target) panel.dataset['target'] = 'true';
         if (pending?.unit === unit.id) panel.dataset['assigning'] = 'true';
+        if (pending?.blocked?.some((b) => b.unit === unit.id)) panel.dataset['blocked'] = 'true';
         panel.append(el('div', 'cb-panel-name', `${unit.id} ${unit.name}`));
         panel.append(statLine(CARD_COPY.hp, `${unit.hp}/${unit.maxHp} · ${CARD_COPY.shieldShort} ${unit.shield}+${unit.baseShield}`), bar(unit.hp, unit.maxHp));
         const mp = el('div', 'cb-mp');

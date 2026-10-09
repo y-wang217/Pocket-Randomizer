@@ -583,6 +583,9 @@
 .cb-panel[data-dead='true'] {
   opacity: 0.4;
 }
+.cb-panel[data-blocked='true'] {
+  opacity: 0.6;
+}
 .cb-panel-name {
   font-weight: 800;
   font-size: 11px;

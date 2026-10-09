@@ -28,6 +28,7 @@ export const CARD_COPY = {
   won: 'Won',
   lost: 'Lost',
   pickUnit: 'Pick who plays it',
+  cannotPlay: (units: string, reason: string) => `${units}: ${reason}`,
   pickTarget: 'Pick a target',
   pickAlly: 'Pick an ally',
   pickTile: 'Pick a tile',

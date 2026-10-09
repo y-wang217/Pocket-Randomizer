@@ -101,6 +101,8 @@ export interface HandCardView {
   needs: Needs;
   /** The units that could play it now. */
   players: UnitId[];
+  /** The living units that may play it but cannot now, each with why. */
+  blocked: { unit: UnitId; block: PlayBlock }[];
 }
 
 export interface HandGroupView {
@@ -248,5 +250,6 @@ function cardView(state: BattleState, iid: CardIid, live: boolean): HandCardView
     reason: players.length > 0 || planned || !live ? null : (blocks[0]?.block ?? 'fainted'),
     needs: needsOf(def),
     players,
+    blocked: blocks.flatMap(({ unit, block }) => (block === null ? [] : [{ unit, block }])),
   };
 }

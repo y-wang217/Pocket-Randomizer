@@ -59,6 +59,28 @@ describe('the sandbox screen', () => {
     expect(onExit).toHaveBeenCalledTimes(1);
   });
 
+  it('a Neutral asks who plays it even when one unit can, and a unit that cannot says why', () => {
+    // Round 1 of the bug report's seed: only A has the MP for Attack.
+    const sandbox = openSandbox(document.body, { seed: 'X5A72HUA' });
+    const root = sandbox.root;
+    const panel = (id: string) => all(root, '.cb-panel--unit').find((p) => p.querySelector('.cb-panel-name')!.textContent!.startsWith(`${id} `))!;
+    const filled = (id: string) => panel(id).querySelectorAll('.cb-slot--filled').length;
+
+    all(root, '.cb-card[data-card="attack"]')[0]!.click();
+    expect(filled('A')).toBe(0);
+    expect(root.querySelector('.cb-note')!.textContent).toBe('Pick who plays it · B, C: Not enough MP');
+    expect(panel('A').dataset['target']).toBe('true');
+    expect(panel('B').dataset['blocked']).toBe('true');
+
+    panel('B').click();
+    expect(root.querySelector('.cb-note')!.textContent).toBe('B: Not enough MP');
+    expect(filled('B')).toBe(0);
+
+    panel('A').click();
+    expect(filled('A')).toBe(1);
+    sandbox.close();
+  });
+
   it('a tap on an unplayable card plays nothing and says why', () => {
     const sandbox = openSandbox(document.body, { seed: 'JSDOM2' });
     const root = sandbox.root;
