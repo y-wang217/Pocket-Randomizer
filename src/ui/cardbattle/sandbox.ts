@@ -154,22 +154,24 @@ export function faceOf(effects: readonly Effect[]): { icon: CardAssetId; n: numb
 const FIT = '.cb-card-name, .cb-full-name, .cb-slot-name, .cb-panel-name, .cb-stat, .cb-pill-text';
 /** How far a label may shrink to fit before it is cut with an ellipsis. */
 const FIT_FLOOR = 0.6;
+const FIT_STEP = 0.05;
+/** The horizontal padding `sandbox.css` gives a label, in px, where it has any. */
+const FIT_PADDING: Record<string, number> = { 'cb-slot-name': 4 };
 
 /**
  * Shrink each fixed-box label until it fits, down to `FIT_FLOOR` of its size.
  * English fits as written; a longer language would otherwise lose the end of
- * a card's name. Measures the laid-out page, so it does nothing where nothing
- * is laid out.
+ * a card's name. The stylesheet multiplies each label's size by `--cb-fit`,
+ * so nothing here reads a computed style (`test/no-computed-timing.test.ts`).
+ * Measures the laid-out page, so it does nothing where nothing is laid out.
  */
 export function fitLabels(scope: ParentNode): void {
   for (const node of scope.querySelectorAll<HTMLElement>(FIT)) {
-    node.style.fontSize = '';
-    if (node.clientWidth === 0 || !overflows(node)) continue;
-    const full = parseFloat(getComputedStyle(node).fontSize);
-    let size = full;
-    while (overflows(node) && size > full * FIT_FLOOR) {
-      size = Math.max(full * FIT_FLOOR, size - 0.5);
-      node.style.fontSize = `${size}px`;
+    node.style.removeProperty('--cb-fit');
+    let scale = 1;
+    while (overflows(node) && scale > FIT_FLOOR) {
+      scale = Math.max(FIT_FLOOR, scale - FIT_STEP);
+      node.style.setProperty('--cb-fit', scale.toFixed(2));
     }
   }
 }
@@ -179,12 +181,12 @@ export function fitLabels(scope: ParentNode): void {
  * shows at any overflow, and `scrollWidth` rounds a fraction of a pixel away.
  */
 export function overflows(node: HTMLElement): boolean {
+  const box = node.getBoundingClientRect().width;
+  if (box === 0) return false;
   const range = node.ownerDocument.createRange();
   range.selectNodeContents(node);
-  const text = range.getBoundingClientRect().width;
-  const style = getComputedStyle(node);
-  const inner = node.getBoundingClientRect().width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-  return text > inner + 0.01;
+  const padding = [...node.classList].reduce((sum, name) => sum + (FIT_PADDING[name] ?? 0), 0);
+  return range.getBoundingClientRect().width > box - padding + 0.01;
 }
 
 function reducedMotion(): boolean {
@@ -1042,7 +1044,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     box.append(el('div', 'cb-scenarios-title', CARD_COPY.settings.language));
     const languages = el('div', 'cb-settings-languages');
     for (const language of CARD_LANGUAGES) {
-      const pick = button('cb-btn cb-scenario', LANGUAGE_NAMES[language], () => choose({ ...prefs, language }));
+      const pick = button('cb-btn cb-setting', LANGUAGE_NAMES[language], () => choose({ ...prefs, language }));
       pick.lang = language;
       if (language === prefs.language) pick.dataset['on'] = 'true';
       languages.append(pick);
@@ -1051,7 +1053,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     const palettes = el('div', 'cb-settings-palettes');
     const word: Record<CardPalette, string> = { standard: CARD_COPY.settings.paletteStandard, tritan: CARD_COPY.settings.paletteTritan };
     for (const palette of CARD_PALETTES) {
-      const pick = button('cb-btn cb-scenario', word[palette], () => choose({ ...prefs, palette }));
+      const pick = button('cb-btn cb-setting', word[palette], () => choose({ ...prefs, palette }));
       if (palette === prefs.palette) pick.dataset['on'] = 'true';
       palettes.append(pick);
     }

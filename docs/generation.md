@@ -16157,7 +16157,9 @@ unmoved, because nothing under `src/data/` changed.
   the fixed boxes of a card's name, a slot, a panel's name and stat line, and
   an enemy's intent pill. `fitLabels` shrinks each to fit, measured to the
   sub-pixel because an ellipsis shows at less than one, down to 60% of its
-  size before the ellipsis is allowed. It also fixes two English labels that
+  size before the ellipsis is allowed. The stylesheet multiplies each such
+  label's size by `--cb-fit` and the screen only sets that, because nothing
+  under `src/` may read a computed style (`test/no-computed-timing.test.ts`). It also fixes two English labels that
   were already cut by a fraction of a pixel: `Call Medic` in a slot and
   `Shield 0 · Base 0` on an enemy panel. German's Pierce is `Stich` because
   `Durchschlag` did not fit the pill even at 60%.
