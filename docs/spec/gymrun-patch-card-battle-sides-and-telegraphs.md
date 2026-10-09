@@ -27,3 +27,16 @@ share one cream background. Every tile an enemy telegraphs onto carries the
 same red hatch, whatever the act: Drone 3's Strike lights its whole lane down
 to the player's back row, through C standing in it, and reads exactly as a
 Pierce would.
+
+---
+
+## The follow-up, verbatim
+
+Sent 2026-10-09 while the first message was being built, after `35c182c`.
+Filed here **before any work on it**.
+
+> No, wait. Some more clarity issues.
+> On card select, attacks should highlight the affected areas (same telegraph as enemies)
+> Then non attacks should hold a reticle to the target (same as target)
+> Moves should also show available spaces
+> Then if enemes are telegraphing an attack, move should show the intercept to block
