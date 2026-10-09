@@ -76,6 +76,7 @@ import { createHeader } from './header';
 import { createShopScreen } from './screens/shop';
 import { createRunMap } from './screens/run-map';
 import { createStarterSelect } from './screens/starter-select';
+import { createCardTestEntry, openCardTest, wantsCardTest } from './cardbattle-entry';
 
 
 import { createSummary } from './screens/summary';
@@ -148,6 +149,14 @@ export function outroFor(review: BattleReview): OutroKind {
 const encounterLibrary = import('../data/encounters/full');
 
 export function mountApp(root: HTMLElement): void {
+  /*
+   * The card battle sandbox's two hidden entries (`ui/cardbattle-entry.ts`).
+   * `#test` is read here, before `start` rewrites the hash to the run's seed;
+   * the key sequence listens only while starter select shows. Neither draws,
+   * reads or writes anything of a run.
+   */
+  if (wantsCardTest(globalThis.location.href)) void openCardTest();
+  const cardTest = createCardTestEntry(() => void openCardTest());
   const settings = initSettings();
   /*
    * The move bar layout, once at startup and once per change.
@@ -241,6 +250,7 @@ export function mountApp(root: HTMLElement): void {
       // `world` is declared below; the router announces its first screen only
       // after the app is assembled.
       world.setOpening(name === 'starter' || name === 'gym-select' || name === 'locale');
+      cardTest.setActive(name === 'starter');
     },
   );
 

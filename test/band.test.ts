@@ -167,6 +167,11 @@ describe('no screen builds its own overlay', () => {
      */
     expect(dialogs.sort()).toEqual([
       'src/ui/band.ts',
+      // The card battle sandbox: a full-frame layer with its own menu and
+      // inspect sheets, outside the design bible by the author's ruling
+      // (docs/spec/gymrun-card-battle-engine-rulings.md). It asks the run
+      // nothing and resolves no pending decision of the game.
+      'src/ui/cardbattle/sandbox.ts',
       // The shared shell for every readout overlay: the party drawer, the
       // battle history sheet and the run map. One dialog, three surfaces.
       'src/ui/overlay.ts',

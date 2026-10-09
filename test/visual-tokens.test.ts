@@ -34,8 +34,16 @@ function stripTs(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
 }
 
-const cssFiles = walk(UI).filter((file) => file.endsWith('.css') && file !== TOKENS);
-const tsFiles = walk(UI).filter((file) => file.endsWith('.ts'));
+/*
+ * The card battle sandbox is outside the design bible by the author's ruling
+ * (docs/spec/gymrun-card-battle-engine-rulings.md): a new battle screen that
+ * gets its own presentation document later, with its own palette from its
+ * asset pack. Its stylesheet ships only in its lazy chunk, so folding its
+ * values into tokens.css would also grow the main bundle's stylesheet.
+ */
+const SANDBOX = join(UI, 'cardbattle');
+const cssFiles = walk(UI).filter((file) => file.endsWith('.css') && file !== TOKENS && !file.startsWith(SANDBOX));
+const tsFiles = walk(UI).filter((file) => file.endsWith('.ts') && !file.startsWith(SANDBOX));
 
 /** Each declaration in a stylesheet, with the line it starts on. */
 function declarations(source: string): { line: number; prop: string; value: string }[] {

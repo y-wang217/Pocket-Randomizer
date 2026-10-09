@@ -221,3 +221,26 @@ export function defenderBossRewardKey(rank: number): string {
 export function defenderRecruitKey(rank: number, gymType: string): string {
   return `defender/r${rank}/recruit/${gymType}`;
 }
+
+/*
+ * ---------------------------------------------------------------------------
+ * The card battle engine (`docs/generation.md` section 125)
+ * ---------------------------------------------------------------------------
+ */
+
+/**
+ * One sandbox card battle's draws, on `battle`, opened on the battle's own
+ * seed and never on a run's. The opening shuffle, every reshuffle and each
+ * enemy's starting step come off it in sequence. The key names the battle;
+ * how far along it a draw sits is the battle's own business, as it is inside
+ * a Showdown battle's PRNG.
+ */
+export function cardBattleKey(encounterId: string): string {
+  return `cards/${encounterId}`;
+}
+
+/**
+ * The card engine's random bot, on `policy`, opened on the bot's own seed. A
+ * scripted player, like `SIM_POLICY_KEY`: nothing a person plays reads it.
+ */
+export const CARD_BOT_KEY = 'cards/bot';

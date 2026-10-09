@@ -30,7 +30,8 @@
     "glyphs": "vite-node scripts/visual/glyph-sheet.ts --write",
     "measure": "npm run build && node scripts/measure-bundle.mjs",
     "smoke": "node scripts/smoke.mjs",
-    "pool-report": "vite-node scripts/pool-report.ts"
+    "pool-report": "vite-node scripts/pool-report.ts",
+    "cards:replay": "vite-node scripts/cards-replay.ts --"
   },
   "dependencies": {
     "@pkmn/img": "^0.3.4",

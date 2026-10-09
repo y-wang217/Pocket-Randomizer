@@ -2354,7 +2354,7 @@ finding. `balance.md` section 16.5d has the reach and 16.4 the retake.
 Map generation is untouched: no keyed stream is opened, no structural draw is
 added, and `previewRun` is a function of the tables alone. The AI's noise draws
 from a sequence derived from each battle's own sim seed — a value
-`encounters.ts` already drew under `nodeKey` — so a run log, which records the
+`core/encounters.ts` already drew under `nodeKey` — so a run log, which records the
 player's decisions and not the opponent's, still replays into the same run.
 That is asserted directly in `test/ai-tiers.test.ts` rather than left to
 inference, because noise made it load-bearing for save and resume rather than
@@ -4015,7 +4015,7 @@ than guessed at.
 
 ### What it does not change
 
-`view.ts` is imported from and not modified: this branch adds **events**, not
+`core/battle/view.ts` is imported from and not modified: this branch adds **events**, not
 projections. Stat stages, status and volatiles were already projected and drawn
 as panel chips — present tense, what is true now — and what was missing is the
 moment of change. No `RUN_LOG_VERSION` bump, because flags are derived every
@@ -15596,3 +15596,278 @@ pass, 33 files and 195 tests each. Lint, hedge, typecheck, build, smoke and
 census pass; `test:node` and `trim:node` pass all 2259 tests each and are
 marked as runner errors only for vitest's reporter RPC timeout; WebKit
 skipped for no browser binary. No baseline file was edited.
+
+## 125. The card battle engine, a sandbox beside the game
+
+**2026-10-08**, on `claude/sweet-wozniak-40zdrr`, from `main` at `f85bfb7`.
+Prompt [`spec/gymrun-card-battle-engine-prompt.md`](spec/gymrun-card-battle-engine-prompt.md),
+rulings on its pre-code report
+[`spec/gymrun-card-battle-engine-rulings.md`](spec/gymrun-card-battle-engine-rulings.md).
+GYMRUN's own card battle engine, first slice: one fight behind a hidden entry
+on starter select, for a fun test. A separate system: it shares only
+`core/rng.ts` with a run, and nothing a run generates, resolves or logs moves.
+No version axis moves.
+
+### 125a. Where it lives, and why outside `src/data/`
+
+The engine is `src/core/cards/` and its tables are `src/cardData/`. The prompt
+offered two homes for the tables: a `cards` folder inside `src/data/`, behind
+the `contentHash` exclusion list, or anywhere else. The first is closed by the hash's own rule:
+the list names files, not globs, and `test/content-hash.test.ts` refuses an
+excluded file that `core/` imports, which the engine does. So the tables sit
+outside the glob, and that is a deliberate exception to CLAUDE.md's "every
+balance number lives in `data/`": the numbers are still in data, in a data
+directory of their own, and no resolver holds a literal. When the engine joins
+the run layer its tables move under `src/data/` and the hash covers them.
+Measured at the report: `865d3ba2` over 67 files with a card table outside
+`src/data/`, `ef835302` with one inside. `test/cards-boundaries.test.ts` holds
+that no hashed path is the engine's.
+
+### 125b. Randomness (the rulings)
+
+The author ruled the sandbox's randomness least effort and out of reach of
+every run seed. Each battle has its own seed string. Its draws come from
+`createRng(seed)` under one key, sequentially, with the count of draws held in
+the battle state so a step stays a pure function of its input; every reshuffle
+is a new draw. The prompt's per-shuffle keys (`cards:{battleId}:shuffle:{ordinal}`)
+are not built: a shuffle ordinal varies with play, which CLAUDE.md forbids in a
+key, and inside one battle's own stream there is nothing for keying to protect.
+This is the same shape as the sim's PRNG inside a Showdown battle. Built at
+checkpoint 2.
+
+### 125c. Outside the design bible (the rulings)
+
+The author ruled the card battler outside the design bible's scope: it is a
+new battle screen and gets its own presentation document at a later stage. The
+bible is not amended and its rules do not bind the sandbox's screen. Recorded
+here so it reads as a ruling and not as a patch quietly doing something else.
+
+### 125d. Checkpoint 1: types, tables, zones, legality with projection
+
+- **Tables** (`src/cardData/`): `rules.ts` carries every R and E default as one
+  typed object, plus `roundCap` (30, not in the snapshot) and two readings the
+  snapshot leaves open, below. `cards.ts` is the Puppeteer deck, checked
+  against the author's card sheet
+  ([`spec/assets/card-battle-puppeteer-card-sheet.jpg`](spec/assets/card-battle-puppeteer-card-sheet.jpg)).
+  Every card's `type` is `null` until the typed list arrives.
+- **Legality** (`src/core/cards/plan.ts`, `legal.ts`): `checkPlan` is the one
+  definition of a legal plan. Moves are checked in plan order against the board
+  the Moves before them leave; every other play against the final projection.
+  `legalActions` and `choicesFor` are built on it, so what is offered and what
+  `select` accepts cannot drift.
+
+Deviations from the prompt, each a reading it left open:
+
+- **A damage card needs something to hit** (`rules.damageNeedsTarget`). A
+  Strike with no enemy in the lane, a Slash over an empty column, or a Fire!
+  centred where no enemy stands is unplayable, with reason `noTarget`. Enemies
+  do not move during the plan, so this is a fact of the board, not a forecast.
+- **Strike counts from the attacker's side of the board** (`laneFromSide`),
+  the prompt's wording for an enemy's Strike applied to both sides. It differs
+  from "nearest the attacker" only when two units have passed each other in the
+  danger zone.
+- **`select` refuses a play that would leave an earlier one illegal**, reason
+  `breaksPlan`: a Move that walks a planned Slash out of range. The prompt says
+  only that the plan is always legal as a whole; refusing is the reading that
+  never removes a play the player did not touch.
+- **No `onceUsed` reason.** A Once card leaves for `spent` after it resolves,
+  so a hand card is never a used Once card.
+- **A bare-name reference resolved.** Section 13g named the run's encounter
+  generator by its bare filename, which `src/cardData/` now shares; it now
+  reads `core/encounters.ts`.
+
+`step` and `createBattle` do not exist yet: `select` and `unselect` are the
+plan's two halves, and `commit` is checkpoint 2.
+
+### 125e. Checkpoint 2: `step`, the deck and hand, the resolvers
+
+- **`step(state, action)`** in `src/core/cards/step.ts` dispatches to
+  `select`, `unselect` and `commit` (`resolve.ts`), and rejects anything else
+  as `malformed` with the same state object. **It takes no RNG argument**, a
+  deviation from the prompt's signature: the battle's stream is rebuilt from
+  `state.seed` and `state.rngDraws` (`random.ts`), so stepping one state twice
+  gives the same result twice, which a stream object passed in and shared
+  across calls would not. `createBattle(encounterId, seed)` likewise takes no
+  deck id and no RNG: the encounter names its deck.
+- **Randomness** (125b, built). `cardBattleKey` joins `core/streamKeys.ts`; it
+  is opened only on a sandbox battle's own seed. `createBattle` draws each
+  enemy's starting step in spawn order, then the opening shuffle; each
+  reshuffle draws again. Nothing else draws.
+- **Phase order** is the prompt's section 3, with 5 to 7 left for checkpoint 3.
+  The battle opens by running phase 8 once: round 1, A's turn-1 MP, five cards.
+
+Readings the prompt left open:
+
+- **B's ability** applies to the card in B's first slot, in plan order, and
+  reads B's HP at the start of the turn (the author's card sheet: *"first card
+  played each turn gains pierce if HP full (turn start)"*). Command placed in
+  B's first slot fills it, so the card after it does not convert. Only a
+  Strike converts; no B card carries a Target, and a targeted Strike would not.
+- **Several hits land front to back**: column, then lane, from the player's
+  side.
+- **A card with nothing left to hit fizzles**, `nothingHit`, the same as one
+  whose chosen target is gone (`targetGone`): used, paid, retired. This is the
+  case where an earlier card in the same round killed everything in the
+  pattern.
+- **Every MP gain is capped** at R2, card grants and Focus included. A grant
+  the cap swallows is lost, not banked.
+- **The round cap** is checked as a round starts: a battle that would begin
+  round 31 is lost.
+- **Need Help's extra card** is drawn after the five, from what is left of the
+  draw pile, and the pile is never reshuffled for it (the author's ruling).
+
+### 125f. Checkpoint 3: enemy scripts, movement, telegraph, the encounter
+
+`src/core/cards/enemies.ts` is the interpreter for phases 5 to 7; `commit`
+runs them between the MP gain and the next hand, and `createBattle` runs 6
+and 7 once before dealing round 1, so the battle opens with every intent lit.
+Nothing in it draws: the only enemy randomness is the starting step, rolled
+at creation.
+
+Readings the prompt left open:
+
+- **The rolled step is the first step played.** Battle start runs phase 6
+  without advancing the cycle; every later phase 6 advances first. Advancing
+  at battle start would skip the step that was rolled.
+- **Conditions live on the enemy** (`conds`), set once in phase 6 before the
+  move and read by phase 7. Drone step 3 therefore stays and Slashes, or Hunts
+  and Strikes, on one evaluation.
+- **A Strike or Pierce telegraph lights its lane's tiles in player reach**,
+  columns 1 to 4. The Strike lands on the first unit on them counted from the
+  enemy's side, at action time; with nobody there it misses (`enemyMissed`),
+  which is the dodge the playtest readout counts. A Slash lights the three
+  tiles of the next column, fixed at telegraph, since enemies do not move
+  between telegraph and action.
+- **Hunt compares HP, not shields**, when breaking a tie by the front unit,
+  and the front unit is the one nearest the enemy's side. With no reachable
+  lane the enemy stays (`enemyWaited`, `noLane`).
+- **An enemy's Shield clears as its next action begins** even when that
+  action is none (E5).
+- **The battle is lost the moment the last unit faints**, mid phase 5; no
+  enemy after it acts and no next hand is dealt.
+
+Measured on the shipped encounter: a player who only ends turns loses every
+one of five seeds inside the round cap. That is a termination check, not a
+balance number.
+
+### 125g. Checkpoint 4: random bot, fuzz, speed, log and replay, the readout
+
+- **`randomBot`** (`bots.ts`) picks End Turn, a play to take back, or a
+  card-and-unit pair at random, and for a pair one of its legal choices at
+  random. It is **not uniform over every legal action**, a deviation from the
+  plainest reading: listing every action every step to pick one cost half the
+  speed budget, and weighting by pair keeps it from spending most of its moves
+  on whichever card has the most tiles. Its draws come from its own seed under
+  `CARD_BOT_KEY`, never the battle's stream. `playBattle` drives any policy and
+  records the log.
+- **`checkInvariants`** (`invariants.ts`) is the prompt's list, plus: a fainted
+  unit has no tile, a dead enemy has none, no shield is negative, and a
+  finished battle holds no plan.
+- **The log** (`log.ts`) is every accepted action in order, selects and
+  unselects included, stamped `CARD_ENGINE_VERSION` (`cards-0.1.0`), which is
+  not one of the run's four axes. `replay` throws on a version mismatch naming
+  both values, on an unknown encounter, and on any action the engine refuses,
+  naming its index. `summarize` is the playtest readout; `formatReadout` is its
+  text, and `npm run cards:replay -- <file>` prints it.
+- **Speed.** `legalActions` tests candidate tiles only (Move destinations and
+  Blast centres from the projection) and asks `checkAppend`, which walks the
+  current plan once per state and checks each candidate against it. `select`
+  still takes the full walk, and the fuzz gate holds the two to the same
+  answers: every action `legalActions` offers is accepted, and random
+  well-formed actions are accepted exactly when it offers them. A round copies
+  only what it changes; the card table is shared.
+
+Readout readings: a unit's danger-zone round is one where it stood in columns
+3 to 4 when its round resolved (after its planned moves). A telegraph is
+*dodged* when the enemy's damaging action found nobody on its lit tiles and
+*taken* when it found anyone; a Pierce that hits two units is one taken. A
+no-choice round is one whose plan began with no card the player could play.
+
+Gate results, prefix `FUZZ` / `BOT`, 2,000 seeds: 0 invariant violations, 0
+refused bot actions, 0 battles the engine failed to end. **4 of 2,000 ended at
+the round cap**, each a single surviving unit stepping out of a lone Drone's
+telegraphed lane every round until round 30: a lone survivor with Move cards
+can dodge one Drone indefinitely. Recorded, not retuned (balance is not a
+gate). The random bot wins 49 of 2,000, mean 11.69 rounds. 1,000 battles run
+in about 1.4 seconds headless.
+
+### 125h. Checkpoint 5: the sandbox screen, the hidden entry, placeholder assets
+
+- **`viewOf`** (`src/core/cards/view.ts`) is the UI contract: 18 tiles with
+  zone, occupant, the enemies telegraphing onto each and any planned-move
+  ghost; units with their planned slots and reserved MP; enemies with their
+  intent; the hand grouped by owner, Neutrals last, each card with `playable`,
+  `reason`, `needs` and the units that could play it. The screen computes no
+  rule.
+- **The screen** (`src/ui/cardbattle/sandbox.ts`, `sandbox.css`) is a full
+  frame layer over the app, not a router screen. A tap becomes an engine
+  action; the new state is drawn at once and the events play back as one-line
+  beats in a banner that never takes input: any tap anywhere skips them and
+  still lands. Under reduced motion the beats collapse to the last line and
+  the hit flash is off. Long press or Inspect opens a card in full and never
+  plays it. The menu holds the seed, Restart, New seed, Copy log and Exit; a
+  finished battle opens it. Nothing is written to the run save or to storage.
+  Every word is in `src/cardData/copy.ts`.
+- **The entry** (`src/ui/cardbattle-entry.ts`) is the key sequence, attached
+  as a window capture listener only while the router shows starter select, and
+  `#test`, read at the top of `mountApp` before `start` rewrites the hash. The
+  completing Enter is cancelled and stopped, so it never also presses a focused
+  starter card or the Choose button. The sandbox loads through the entry's one
+  dynamic import, which `test/encounter-registry.test.ts` now allows by name.
+- **Assets** (`src/ui/cardbattle/assets.ts`) are the contract's IDs in their
+  own manifest, reached only from the lazy chunk, globbing
+  `src/ui/assets/cardbattle/**/*.svg`. No file exists yet, so every ID draws
+  a placeholder at its contract size; icons draw as masks in `currentColor`
+  once their files arrive.
+
+Deviations and measurements:
+
+- **The top bar is 44px**, not the prompt's 40, so Exit is a 44px target. The
+  frame is 608px tall at 390x844, with no scroll.
+- **Unit panels size to their slots** rather than a third of the column each:
+  a three-slot unit needs two rows of 44px slots and its stats, which a 128px
+  panel cannot hold. The three panels sit at the bottom beside the player rows
+  and fit the 384px column. Enemy panels keep a third each.
+- **A card's unplayable reason is probed with a placeholder choice** of the
+  card's shape, so a Fire! in the backline reads "Danger zone only" rather than
+  failing first on the missing choice.
+- **The main bundle grows by 1,202 bytes, 645 gzipped**: the entry and the
+  lazy-load stub. That is over the "under 1 kB" reading of "unchanged" when
+  counted raw and under it over the wire. The sandbox chunk is 40,423 bytes
+  (13,726 gzipped) of script and 9,578 (2,514) of style. `contentHash` reads
+  `865d3ba2` over 67 files, as before.
+- **Two bare-name references resolved**: one passage in
+  `docs/architecture.md` and one here named the battle view by its bare
+  filename, which the card engine's view now shares; both read
+  `core/battle/view.ts`.
+
+### 125i. The asset pack, v1
+
+**2026-10-09.** The author's pack `cardbattle-assets-1` (60 SVGs, a manifest,
+a palette and a preview page) is in `src/ui/assets/cardbattle/`, the SVGs
+only. Every one of the contract's IDs is present and nothing else; no file
+carries a script, an external reference or text; every icon draws in
+`currentColor`.
+
+- **One size differs from the contract table**: the corner badge is drawn on
+  its own 48 by 48 grid, not the card's 240 by 336. It renders at that size.
+- **Sliced pieces.** The pack's manifest marks the panel frame and the three
+  button states nine-slice and the pill and both bar pieces three-slice, with
+  their insets. They draw through CSS `border-image` with those insets, so
+  corners and caps keep their drawn size; `SLICES` in `assets.ts` holds them.
+- **The palette** is the pack's: warm paper, navy ink, teal for the player and
+  a legal choice, red for the enemy and a telegraph. The sandbox stylesheet
+  takes its tokens from it; the earlier dark placeholder theme is gone.
+- **The card face follows the frame**: cost in the left disc, the first
+  effect's number in the right, its keyword's icon in the field, the name in
+  the bottom strip, the owner in the corner badge, and small Target and Once
+  marks on the field. The effect sentences moved to the inspect card, whose
+  frame has a description region for them.
+- **A filled slot's card name** rides a chip on the slot's bottom edge, clear
+  of the pack's check mark.
+- **Inlined files need quoted URLs.** Vite inlines small SVGs as `data:` URLs
+  carrying quotes, so the manifest quotes every `url()` it writes.
+
+Measured: the main bundle is byte identical to checkpoint 5's (4,198,984
+bytes); the sandbox chunk is 70,360 bytes of script with the pack inlined and
+11,300 of style. The phone fit and the 44px floor hold with the art in.

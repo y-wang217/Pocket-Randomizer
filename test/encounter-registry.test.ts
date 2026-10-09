@@ -82,7 +82,11 @@ describe('who imports the route half', () => {
   });
 
   it('keeps every other dynamic import out of src/', () => {
-    const dynamic = files.filter(([path, source]) => /\bimport\s*\(/.test(source) && !['src/ui/app.ts', 'src/ui/gallery.ts'].includes(path));
+    // `ui/cardbattle-entry.ts` is the card battle sandbox's one lazy load, so
+    // the sandbox stays out of the main bundle (docs/generation.md section 125,
+    // allowed by the author's rulings on the card engine's pre-code report).
+    const allowed = ['src/ui/app.ts', 'src/ui/gallery.ts', 'src/ui/cardbattle-entry.ts'];
+    const dynamic = files.filter(([path, source]) => /\bimport\s*\(/.test(source) && !allowed.includes(path));
     expect(dynamic.map(([path]) => path)).toEqual([]);
   });
 

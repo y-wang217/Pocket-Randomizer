@@ -281,7 +281,7 @@ Stage 4.5 brief asked for the name; the brief did not know it was taken. So the
 projection is `BattleUiView`, the policy view is untouched, and the two coexist.
 
 **The adapter emits facts, the projection decides what is shown.** `factsFor`
-reports the opponent's ability and item *unconditionally*; `view.ts` gates them
+reports the opponent's ability and item *unconditionally*; `core/battle/view.ts` gates them
 on `tuning.revealOpponentAbility` and `revealOpponentItem` and carries the flag
 out as `revealed`. A projection that could not see the ability could not decide
 to hide it, and — more to the point — could not refuse to leak it through the
