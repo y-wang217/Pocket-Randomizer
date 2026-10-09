@@ -40,11 +40,15 @@ export interface EnemyState {
   id: EnemyId;
   def: EnemyDefId;
   spawnIndex: number;
-  /** `null` once dead. */
+  /** `null` once dead, and before its wave arrives. */
   pos: Pos | null;
   hp: number;
   shield: number;
   baseShield: number;
+  /** The wave it belongs to, from 0. */
+  wave: number;
+  /** Where it arrives: its scenario tile, or the one drawn for it at creation (`null` only before then). */
+  spawn: Pos | null;
   /** Index into the script's cycle of the step it is on. */
   step: number;
   /** The step's conditions, evaluated once in the move phase; the act reads these. */
@@ -81,7 +85,10 @@ export interface BattleState {
   deckId: string;
   /** Draws taken from the battle's own stream; see `docs/generation.md` section 125. */
   rngDraws: number;
+  /** The round of the current wave: it starts again at 1 each wave. */
   round: number;
+  /** The wave being fought, from 0. */
+  wave: number;
   /**
    * `deploy` until the player starts the battle: units are placed, the hand
    * is drawn, and no enemy has moved or telegraphed yet.

@@ -19,7 +19,7 @@ import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
 import { openingSteps } from './enemies';
-import type { EncounterDef } from './defs';
+import type { EncounterDef, EnemySpawn } from './defs';
 import type { BattleEvent } from './events';
 import type { Ctx } from './keywords';
 import { nextHand } from './resolve';
@@ -33,7 +33,12 @@ import { allTiles, samePos, zoneOf } from './zones';
  * fixed and only the tiles are drawn.
  */
 export function gradeTotal(encounter: EncounterDef): number {
-  return encounter.enemies.reduce((sum, { def }) => sum + ENEMIES[def].grade, 0);
+  return wavesOf(encounter).flat().reduce((sum, { def }) => sum + ENEMIES[def].grade, 0);
+}
+
+/** A scenario's waves, the first being its `enemies`. */
+export function wavesOf(encounter: EncounterDef): (readonly EnemySpawn[])[] {
+  return [encounter.enemies, ...(encounter.waves ?? [])];
 }
 
 /** The unshuffled battle for an encounter, or `null` for an unknown id. */
@@ -56,6 +61,7 @@ export function layoutBattle(encounterId: string, seed: string): BattleState | n
     deckId: deck.id,
     rngDraws: 0,
     round: 0,
+    wave: 0,
     phase: 'plan',
     units: encounter.units.map(({ def, pos }) => ({
       id: def,
@@ -68,11 +74,14 @@ export function layoutBattle(encounterId: string, seed: string): BattleState | n
       fainted: false,
       pendingMp: [],
     })),
-    enemies: encounter.enemies.map(({ def, pos }, spawnIndex) => ({
+    // Every wave's enemies, ids continuing across waves; a later wave's stand nowhere until it arrives.
+    enemies: wavesOf(encounter).flatMap((wave, index) => wave.map((spawn) => ({ ...spawn, wave: index }))).map(({ def, pos, wave }, spawnIndex) => ({
       id: `e${spawnIndex}`,
       def,
       spawnIndex,
-      pos: pos ? { ...pos } : null,
+      wave,
+      spawn: pos ? { ...pos } : null,
+      pos: pos && wave === 0 ? { ...pos } : null,
       hp: ENEMIES[def].hp,
       shield: 0,
       baseShield: ENEMIES[def].baseShield,
@@ -100,11 +109,14 @@ export function createBattle(encounterId: string, seed: string): CreateResult {
       const steps = openingSteps(ENEMIES[enemy.def]);
       enemy.step = steps[stream.nextInt(steps.length)]!;
     }
-    // Spawns: each unplaced enemy, in spawn order, on a free tile of the spawn zone.
+    // Spawns: each unplaced enemy, in spawn order, on a tile of the spawn zone free in its wave.
+    // Every wave's are drawn now, so nothing is drawn when a wave arrives but its reshuffle.
     for (const enemy of s.enemies) {
-      if (enemy.pos) continue;
-      const free = allTiles().filter((t) => zoneOf(t) === RULES.spawnZone && !s.enemies.some((e) => samePos(e.pos, t)));
-      enemy.pos = { ...free[stream.nextInt(free.length)]! };
+      if (enemy.spawn) continue;
+      const taken = s.enemies.filter((e) => e.wave === enemy.wave);
+      const free = allTiles().filter((t) => zoneOf(t) === RULES.spawnZone && !taken.some((e) => samePos(e.spawn, t)));
+      enemy.spawn = { ...free[stream.nextInt(free.length)]! };
+      if (enemy.wave === 0) enemy.pos = { ...enemy.spawn };
     }
     s.piles.draw = shuffled(stream, s.piles.draw);
   });

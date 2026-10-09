@@ -109,7 +109,7 @@ describe('card data', () => {
       expect(gradeTotal(encounter), id).toBe(grade);
     }
     // The shipped scenarios keep their ids and layouts and gain a total.
-    expect(Object.keys(ENCOUNTERS)).toEqual(['skirmish', 'test', 'staggered', 'turret-alley', 'wall-and-gun', 'the-pack']);
+    expect(Object.keys(ENCOUNTERS)).toEqual(['skirmish', 'test', 'staggered', 'turret-alley', 'wall-and-gun', 'the-pack', 'siege']);
     expect(['skirmish', 'test', 'staggered'].map((id) => gradeTotal(ENCOUNTERS[id]!))).toEqual([5, 5, 5]);
   });
 

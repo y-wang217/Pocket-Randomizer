@@ -600,7 +600,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   function renderTop(view: BattleView): void {
     const status = el('div', 'cb-status');
     status.append(
-      el('span', 'cb-round', `${CARD_COPY.round} ${view.round}`),
+      el('span', 'cb-round', view.waves > 1 ? `${CARD_COPY.wave(view.wave + 1, view.waves)} · ${CARD_COPY.round} ${view.round}` : `${CARD_COPY.round} ${view.round}`),
       el('span', 'cb-piles', `${CARD_COPY.draw} ${view.piles.draw} · ${CARD_COPY.discard} ${view.piles.discard}`),
     );
     const idle = state.phase === 'deploy' ? CARD_COPY.deployHint : graceShowing(view) ? CARD_COPY.graceBoard : '';

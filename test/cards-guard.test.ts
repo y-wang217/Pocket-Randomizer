@@ -31,7 +31,9 @@ describe('the guard bot', () => {
         });
         expect(problems, `${id} GUARD${i}`).toEqual([]);
         expect(['won', 'lost'], `${id} GUARD${i}`).toContain(played.state.phase);
-        expect(played.log.actions.filter((a) => a.type === 'start')).toHaveLength(1);
+        // One Start per wave reached (Part C).
+        const waves = played.events.filter((e) => e.t === 'waveStarted').length + 1;
+        expect(played.log.actions.filter((a) => a.type === 'start')).toHaveLength(waves);
       }
     }
   });

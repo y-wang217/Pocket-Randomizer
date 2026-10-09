@@ -47,7 +47,7 @@ function narrate(log: BattleLog): string[] {
     if (i.act === 'shield') return `Shield ${i.n} (self)`;
     return `${i.act[0]!.toUpperCase()}${i.act.slice(1)} ${i.n} on ${tiles(i.tiles)}`;
   };
-  const board = (title = `ROUND ${s.round}`): void => {
+  const board = (title = s.wave > 0 ? `WAVE ${s.wave + 1} ROUND ${s.round}` : `ROUND ${s.round}`): void => {
     out.push('', title);
     for (const u of s.units) {
       out.push(u.fainted
@@ -98,6 +98,7 @@ function narrate(log: BattleLog): string[] {
       case 'enemyWaited': return `${who(e.enemy)} stays put (${{ noLane: 'no lane to hunt into', blocked: 'blocked', limit: 'at its advance limit' }[e.why]})`;
       case 'reshuffled': return `(discard pile shuffled back into the draw pile)`;
       case 'extraDrew': return `(Need Help: extra card ${card(e.card)})`;
+      case 'waveStarted': return `WAVE ${e.wave + 1} ARRIVES: HP carries over; shields, MP and the deck start again`;
       case 'won': return 'WON';
       case 'lost': return `LOST (${e.why === 'allFainted' ? 'every unit fainted' : 'round cap'})`;
       default: return null;
@@ -108,8 +109,9 @@ function narrate(log: BattleLog): string[] {
   out.push(`enemy starting steps (rolled from the seed): ${s.enemies.map((e) => `${e.id} step ${e.step + 1} of ${ENEMIES[e.def].script.steps.length}`).join(', ')}`);
   // Opening grace and Fast: how each enemy's starting step was chosen.
   for (const e of s.enemies) {
-    if (ENEMIES[e.def].fast) out.push(`${who(e.id)} is Fast: starts on an attack step`);
-    else if (RULES.openingGrace) out.push(`grace: ${e.id} starts on a setup step`);
+    const wave = e.wave > 0 ? ` (wave ${e.wave + 1})` : '';
+    if (ENEMIES[e.def].fast) out.push(`${who(e.id)} is Fast: starts on an attack step${wave}`);
+    else if (RULES.openingGrace) out.push(`grace: ${e.id} starts on a setup step${wave}`);
   }
   board('DEPLOY (the units on their default tiles; the enemies have not moved yet)');
   let plan: string[] = [];
@@ -142,6 +144,7 @@ function narrate(log: BattleLog): string[] {
       plan = [];
       s = result.state;
       if (s.phase === 'plan') board();
+      if (s.phase === 'deploy') board(`WAVE ${s.wave + 1} DEPLOY (the units back on their default tiles)`);
     } else {
       s = result.state;
     }

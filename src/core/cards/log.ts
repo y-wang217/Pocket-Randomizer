@@ -12,7 +12,7 @@
  */
 import { CARDS } from '../../cardData/cards';
 import { ENCOUNTERS } from '../../cardData/encounters';
-import { createBattle, gradeTotal } from './create';
+import { createBattle, gradeTotal, wavesOf } from './create';
 import type { BattleEvent } from './events';
 import { legalActions } from './legal';
 import { cardDefOf, livingUnits, project } from './plan';
@@ -77,8 +77,11 @@ export interface PlaytestReadout {
   /** The scenario's grade total, provisional (`gradeTotal`). */
   grade: number;
   outcome: 'won' | 'lost' | 'unfinished';
-  /** The round the battle ended on, or the round it stands on. */
+  /** The round the battle ended on, or the round it stands on, of the wave in `wave`. */
   rounds: number;
+  /** The wave it ended on, from 1, and how many the scenario has. */
+  wave: number;
+  waves: number;
   /** Rounds each unit stood in the danger zone when its round resolved. */
   dangerRounds: Record<UnitId, number>;
   /** Telegraphed damaging actions that found nobody, against those that hit. */
@@ -101,6 +104,8 @@ export function summarize(log: BattleLog): PlaytestReadout {
     grade: Object.hasOwn(ENCOUNTERS, log.encounterId) ? gradeTotal(ENCOUNTERS[log.encounterId]!) : 0,
     outcome: 'unfinished',
     rounds: 0,
+    wave: 1,
+    waves: Object.hasOwn(ENCOUNTERS, log.encounterId) ? wavesOf(ENCOUNTERS[log.encounterId]!).length : 1,
     dangerRounds: { A: 0, B: 0, C: 0 },
     telegraphs: { dodged: 0, taken: 0 },
     cardsPerRound: [],
@@ -136,6 +141,7 @@ export function summarize(log: BattleLog): PlaytestReadout {
   });
   readout.outcome = state.phase === 'plan' || state.phase === 'deploy' ? 'unfinished' : state.phase;
   readout.rounds = state.round;
+  readout.wave = state.wave + 1;
   return readout;
 }
 
@@ -144,7 +150,7 @@ export function formatReadout(r: PlaytestReadout): string {
   const units = (record: Record<string, number>) => Object.entries(record).map(([id, n]) => `${id} ${n}`).join(', ');
   return [
     `card engine ${r.engineVersion}  seed ${r.seed}  encounter ${r.encounterId}  grade ${r.grade}`,
-    `outcome            ${r.outcome} on round ${r.rounds}`,
+    `outcome            ${r.outcome} on round ${r.rounds}${r.waves > 1 ? ` of wave ${r.wave}/${r.waves}` : ''}`,
     `danger zone rounds ${units(r.dangerRounds)}`,
     `telegraphs         ${r.telegraphs.dodged} dodged, ${r.telegraphs.taken} taken`,
     `cards per round    ${r.cardsPerRound.join(' ') || '-'}`,

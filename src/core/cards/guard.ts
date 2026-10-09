@@ -62,6 +62,9 @@ export function evaluate(state: BattleState, w: GuardWeights = GUARD_WEIGHTS): n
   const reach = w.reach * (1 + w.urgency * state.round);
   score += reach * livingEnemies(state).filter((e) => lanes.has(e.pos!.lane)).length;
   if (state.phase === 'won') score += w.win;
+  // A wave cleared is worth a win: the next wave's enemies cost as any do, so
+  // without it the search would rather leave the last enemy of a wave standing.
+  score += w.win * state.wave;
   const threats = state.phase === 'won' ? {} : incoming(state);
   for (const unit of livingUnits(state)) {
     score += w.unit[unit.id] + w.hp * unit.hp + w.baseShield * unit.baseShield + w.mp * unit.mp;
@@ -221,5 +224,5 @@ export function guardBot(w: GuardWeights = GUARD_WEIGHTS, search: GuardSearch = 
 }
 
 function follows(planned: BattleState, state: BattleState): boolean {
-  return planned.seed === state.seed && planned.round === state.round && planned.phase === state.phase;
+  return planned.seed === state.seed && planned.wave === state.wave && planned.round === state.round && planned.phase === state.phase;
 }

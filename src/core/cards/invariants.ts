@@ -30,7 +30,10 @@ export function checkInvariants(s: BattleState): string[] {
   for (const e of s.enemies) {
     if (e.pos) place(e.id, 'enemy', e.pos);
     if (e.hp < 0) out.push(`${e.id} has negative HP`);
-    if ((e.hp > 0) !== (e.pos !== null)) out.push(`${e.id} HP ${e.hp} but pos ${JSON.stringify(e.pos)}`);
+    if (e.wave > s.wave) {
+      if (e.pos !== null || e.intent !== null) out.push(`${e.id} of wave ${e.wave} is on the board in wave ${s.wave}`);
+    } else if ((e.hp > 0) !== (e.pos !== null)) out.push(`${e.id} HP ${e.hp} but pos ${JSON.stringify(e.pos)}`);
+    if (e.wave < s.wave && e.hp > 0) out.push(`${e.id} of wave ${e.wave} still stands in wave ${s.wave}`);
   }
 
   const all = PILES.flatMap((pile) => s.piles[pile]);

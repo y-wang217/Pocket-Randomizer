@@ -87,7 +87,8 @@ describe('opening grace and Fast', () => {
       for (let i = 0; i < 500; i++) {
         const { state } = begun(id, `OPEN${i}`);
         for (const enemy of state.enemies) {
-          if (ENEMIES[enemy.def].fast) continue;
+          // A later wave's enemies open on their own Start (test/cards-waves.test.ts).
+          if (ENEMIES[enemy.def].fast || enemy.wave !== state.wave) continue;
           const act = enemy.intent!.act;
           expect(act === 'none' || act === 'shield', `${id} seed OPEN${i}: ${enemy.id} ${enemy.def} opens on ${act}`).toBe(true);
         }

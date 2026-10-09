@@ -90,5 +90,27 @@ export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
       { def: 'pikeman', pos: at(2, 7) },
     ],
   },
+  // Part C: waves, each harder than the last
+  // (`docs/spec/gymrun-card-battle-rulings-waves-boss-reskin.md`, C7 and C8).
+  siege: {
+    id: 'siege',
+    name: 'Siege',
+    blurb: 'Two waves, the second harder. HP carries over; shields and MP do not.',
+    deckId: 'puppeteer',
+    units: PUPPETEER_FRONT,
+    enemies: [
+      { def: 'drone', pos: at(1, 6) },
+      { def: 'lancer', pos: at(2, 7) },
+      { def: 'hound', pos: at(3, 6) },
+    ],
+    waves: [
+      [
+        { def: 'bulwark', pos: at(1, 6) },
+        { def: 'sniper', pos: at(2, 7) },
+        { def: 'lancer' },
+        { def: 'hound', pos: at(3, 6) },
+      ],
+    ],
+  },
 };
 

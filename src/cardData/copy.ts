@@ -10,6 +10,8 @@ import type { PlayBlock } from '../core/cards/state';
 export const CARD_COPY = {
   title: 'Card battle test',
   round: 'Round',
+  /** Part C: the wave being fought, in the status line. */
+  wave: (n: number, of: number) => `Wave ${n}/${of}`,
   draw: 'Draw',
   discard: 'Discard',
   endTurn: 'End Turn',
@@ -122,6 +124,7 @@ export const CARD_COPY = {
     telegraph: (who: string, act: string) => `${who}: ${act}`,
     reshuffled: 'Discard shuffled in',
     round: (n: number) => `Round ${n}`,
+    wave: (n: number) => `Wave ${n} arrives`,
     step: (n: number, of: number) => `${n}/${of}`,
   },
 } as const;

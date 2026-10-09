@@ -255,6 +255,9 @@ export function roundSteps(before: BattleState, events: readonly BattleEvent[], 
         current('next', L.next).lines.push(L.telegraph(who(event.enemy), actWord(event.intent.act, event.intent.n)));
         break;
       }
+      case 'waveStarted':
+        begin('round', L.wave(event.wave + 1));
+        break;
       case 'roundStarted':
         draft.round = event.round;
         begin('round', L.round(event.round));

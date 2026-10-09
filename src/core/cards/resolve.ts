@@ -15,6 +15,7 @@
  * The whole round resolves in this one call and returns every event, so the
  * UI never waits on an intermediate state.
  */
+import { ENCOUNTERS } from '../../cardData/encounters';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
 import { enemyActions, enemyMovesAndTelegraph } from './enemies';
@@ -88,8 +89,12 @@ export function commit(state: BattleState): StepResult {
     else playCard(ctx, play, () => resolveEffects(ctx, play, def, converts(play, index)));
   });
 
-  // 3. Win check.
+  // 3. Win check: the last enemy of a wave brings the next wave, of the last wave wins.
   if (livingEnemies(s).length === 0 && s.phase === 'plan') {
+    if (s.enemies.some((e) => e.wave > s.wave)) {
+      startWave(ctx, s.wave + 1);
+      return { ok: true, state: s, events: ctx.events };
+    }
     s.phase = 'won';
     ctx.events.push({ t: 'won' });
   }
@@ -106,6 +111,40 @@ export function commit(state: BattleState): StepResult {
   // 8. The next hand.
   nextHand(ctx);
   return { ok: true, state: s, events: ctx.events };
+}
+
+/**
+ * The next wave arrives (Part C; `RULES.betweenWaves`). Each living unit keeps
+ * its HP, loses its card shield, gets its base shield back, goes to 0 MP and
+ * back to its scenario tile; owed MP and extra draws clear; every card a faint
+ * did not remove, Once cards included, is shuffled into a fresh draw pile, in
+ * deck order first so the shuffle reads no history. Then the round count
+ * starts again with round 1's hand, and the battle is back in `deploy`: the
+ * player places again and Start brings the wave's opening moves, under grace.
+ */
+export function startWave(ctx: Ctx, wave: number): void {
+  const { s } = ctx;
+  s.wave = wave;
+  s.plan = [];
+  s.pendingDraws = [];
+  const encounter = ENCOUNTERS[s.encounterId]!;
+  for (const unit of livingUnits(s)) {
+    unit.shield = 0;
+    unit.baseShield = UNITS[unit.id].baseShield;
+    unit.mp = RULES.mp.start;
+    unit.pendingMp = [];
+    unit.pos = { ...encounter.units.find((u) => u.def === unit.id)!.pos };
+  }
+  for (const enemy of s.enemies) {
+    if (enemy.wave === wave) enemy.pos = { ...enemy.spawn! };
+  }
+  const index = (iid: string): number => Number(iid.slice(1));
+  const deck = [...s.piles.draw, ...s.piles.hand, ...s.piles.discard, ...s.piles.spent].sort((a, b) => index(a) - index(b));
+  s.piles = { draw: withStream(s, (stream) => shuffled(stream, deck)), hand: [], discard: [], spent: [], removed: s.piles.removed };
+  ctx.events.push({ t: 'waveStarted', wave });
+  s.round = 0;
+  nextHand(ctx);
+  s.phase = 'deploy';
 }
 
 function playCard(ctx: Ctx, play: PlannedPlay, resolve: () => void): void {

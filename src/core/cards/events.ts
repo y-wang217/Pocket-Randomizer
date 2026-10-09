@@ -48,6 +48,8 @@ export type BattleEvent =
   | { t: 'drew'; cards: CardIid[] }
   | { t: 'extraDrew'; card: CardIid }
   | { t: 'extraDrawFizzled' }
+  /** Part C: the last enemy of a wave fell and the next arrives; the battle is back in deploy. */
+  | { t: 'waveStarted'; wave: number }
   // The end.
   | { t: 'won' }
   | { t: 'lost'; why: 'allFainted' | 'roundCap' };

@@ -121,6 +121,9 @@ export interface PlanPreview extends PlayPreview {
 
 export interface BattleView {
   round: number;
+  /** The wave being fought, from 0, and how many the scenario has (Part C). */
+  wave: number;
+  waves: number;
   phase: BattleState['phase'];
   canCommit: boolean;
   /** Before the battle starts: the tiles a unit may be placed on. Empty once it has. */
@@ -194,7 +197,8 @@ export function viewOf(state: BattleState): BattleView {
     };
   });
 
-  const enemies: EnemyView[] = state.enemies.map((e) => ({
+  // The current wave's enemies: an earlier wave's are gone, a later one's not here yet.
+  const enemies: EnemyView[] = state.enemies.filter((e) => e.wave === state.wave).map((e) => ({
     id: e.id,
     def: e.def,
     name: ENEMIES[e.def].name,
@@ -221,6 +225,8 @@ export function viewOf(state: BattleState): BattleView {
 
   return {
     round: state.round,
+    wave: state.wave,
+    waves: Math.max(...state.enemies.map((e) => e.wave)) + 1,
     phase: state.phase,
     canCommit: live,
     deployTiles: state.phase === 'deploy' ? deployTiles() : [],

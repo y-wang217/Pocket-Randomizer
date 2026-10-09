@@ -115,6 +115,12 @@ export interface DeckDef {
   cards: readonly string[];
 }
 
+/** One enemy of a scenario: a fixed tile, or none for a tile drawn from the seed. */
+export interface EnemySpawn {
+  def: EnemyDefId;
+  pos?: Pos;
+}
+
 export interface EncounterDef {
   id: string;
   /** What the sandbox's scenario list shows. */
@@ -128,7 +134,13 @@ export interface EncounterDef {
    * no `pos` starts on a free tile of `RULES.spawnZone`, drawn from the
    * battle's seed when the battle is created.
    */
-  enemies: readonly { def: EnemyDefId; pos?: Pos }[];
+  enemies: readonly EnemySpawn[];
+  /**
+   * Waves after the first, in order (Part C). The next wave arrives when the
+   * last enemy of the current one falls; the battle is won when the last wave
+   * falls. Ids continue across waves (`e0`, `e1`, ... in the order listed).
+   */
+  waves?: readonly (readonly EnemySpawn[])[];
 }
 
 export type HuntTieBreak = 'nearestLane' | 'lowestHp' | 'upperLane';
@@ -198,8 +210,15 @@ export interface Rules {
    * `cards-0.3.0`. A Fast enemy starts on its first damaging step either way.
    */
   openingGrace: boolean;
-  /** A battle still running after this many rounds ends as a loss. */
+  /** A battle still running after this many rounds of one wave ends as a loss: the count restarts each wave (C6). */
   roundCap: number;
+  /**
+   * Between waves (the author's rulings, C1 to C5): each living unit keeps its
+   * HP, loses its card shield, has its base shield restored and its MP reset;
+   * every card not removed by a faint is shuffled back, Once cards included;
+   * owed MP and extra draws are cleared; the units are placed again.
+   */
+  betweenWaves: { mp: 'reset'; deck: 'reshuffleAll'; owed: 'clear'; units: 'placeAgain' };
 }
 
 /**
