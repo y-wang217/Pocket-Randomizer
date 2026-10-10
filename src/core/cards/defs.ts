@@ -28,7 +28,7 @@ export type UnitDefId = 'A' | 'B' | 'C';
 export type ClassId = 'special' | 'ranged' | 'melee';
 export type TypeId = 'fire' | 'plasma' | 'water';
 export type CardOwner = UnitDefId | 'neutral';
-export type EnemyDefId = 'drone' | 'lancer' | 'hound' | 'turret' | 'bulwark' | 'sniper' | 'pikeman' | 'colossus';
+export type EnemyDefId = 'drone' | 'lancer' | 'hound' | 'turret' | 'bulwark' | 'sniper' | 'pikeman' | 'colossus' | 'dummy';
 
 export type DamageKeyword = 'strike' | 'pierce' | 'slash' | 'blast';
 
@@ -88,6 +88,11 @@ export interface UnitDef {
   hp: number;
   baseShield: number;
   abilities: readonly Ability[];
+  /**
+   * The card its MP bar marks: the cost it is saving toward. Presentation
+   * only; the engine never reads it. Absent for a unit with no card above 1 MP.
+   */
+  ult?: string;
 }
 
 export type Cond = 'slashInRange';
@@ -171,6 +176,11 @@ export interface EncounterDef {
    * falls. Ids continue across waves (`e0`, `e1`, ... in the order listed).
    */
   waves?: readonly (readonly EnemySpawn[])[];
+  /**
+   * The tutorial's own battle: left out of the Menu's scenario list, the
+   * bench and the trainer (`SCENARIO_IDS`), opened by the tutorial instead.
+   */
+  tutorial?: true;
 }
 
 export type HuntTieBreak = 'nearestLane' | 'lowestHp' | 'upperLane';

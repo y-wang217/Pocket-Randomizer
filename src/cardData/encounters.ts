@@ -114,5 +114,18 @@ export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
       [{ def: 'colossus', pos: at(1, 6) }],
     ],
   },
+  // The tutorial's battle: one Target Dummy in the middle of the danger zone,
+  // in the Gunner's lane, so Shoot reaches it from where the Gunner starts.
+  tutorial: {
+    id: 'tutorial',
+    name: 'Tutorial',
+    blurb: 'One Target Dummy. It never moves and never fights back.',
+    deckId: 'puppeteer',
+    units: PUPPETEER_FRONT,
+    enemies: [{ def: 'dummy', pos: at(2, 4) }],
+    tutorial: true,
+  },
 };
 
+/** The scenarios a player picks from, and the bench and trainer play: every encounter but the tutorial's. */
+export const SCENARIO_IDS: readonly string[] = Object.keys(ENCOUNTERS).filter((id) => !ENCOUNTERS[id]!.tutorial);

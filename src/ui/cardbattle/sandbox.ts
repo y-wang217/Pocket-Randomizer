@@ -25,7 +25,7 @@ import './sandbox.css';
 
 import { CARDS } from '../../cardData/cards';
 import { CARD_COPY, CARD_LANGUAGES, LANGUAGE_NAMES, cardLanguage, nameOf, setCardLanguage } from '../../cardData/copy';
-import { ENCOUNTERS } from '../../cardData/encounters';
+import { ENCOUNTERS, SCENARIO_IDS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
@@ -94,6 +94,7 @@ const ENEMY_MARKER: Record<EnemyDefId, CardAssetId> = {
   sniper: 'marker-enemy-sniper',
   pikeman: 'marker-enemy-pikeman',
   colossus: 'marker-enemy-colossus',
+  dummy: 'marker-enemy-dummy',
 };
 const INTENT_ICON: Record<string, CardAssetId> = {
   strike: 'icon-strike',
@@ -1296,7 +1297,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   function scenarios(): HTMLElement {
     const list = el('div', 'cb-scenarios');
     list.append(el('div', 'cb-scenarios-title', CARD_COPY.scenario));
-    for (const encounter of Object.values(ENCOUNTERS)) {
+    for (const encounter of SCENARIO_IDS.map((id) => ENCOUNTERS[id]!)) {
       const grade = CARD_COPY.grade(gradeTotal(encounter));
       const pick = button('cb-btn cb-scenario', nameOf(encounter.name), () => {
         encounterId = encounter.id;
