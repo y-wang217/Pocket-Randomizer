@@ -13,6 +13,7 @@
 import { CARDS } from '../../cardData/cards';
 import { ENCOUNTERS } from '../../cardData/encounters';
 import { createBattle, gradeTotal, wavesOf } from './create';
+import type { Loadout } from './defs';
 import type { BattleEvent } from './events';
 import { legalActions } from './legal';
 import { cardDefOf, livingUnits, project } from './plan';
@@ -21,18 +22,20 @@ import { step } from './step';
 import { inDanger } from './zones';
 
 /** Bumps when a logged action, a rule or a resolver changes what a log replays to. */
-export const CARD_ENGINE_VERSION = 'cards-0.4.0';
+export const CARD_ENGINE_VERSION = 'cards-0.5.0';
 
 export interface BattleLog {
   engineVersion: string;
   seed: string;
   encounterId: string;
   deckId: string;
+  /** The card run's deck and boosts, when the battle was one of a run's (`create.ts`). */
+  loadout?: Loadout;
   actions: Action[];
 }
 
-export function newLog(seed: string, encounterId: string, deckId: string): BattleLog {
-  return { engineVersion: CARD_ENGINE_VERSION, seed, encounterId, deckId, actions: [] };
+export function newLog(seed: string, encounterId: string, deckId: string, loadout?: Loadout): BattleLog {
+  return { engineVersion: CARD_ENGINE_VERSION, seed, encounterId, deckId, ...(loadout ? { loadout } : {}), actions: [] };
 }
 
 export interface Replayed {
@@ -49,8 +52,8 @@ export function replay(log: BattleLog, onStep?: (before: BattleState, action: Ac
   if (log.engineVersion !== CARD_ENGINE_VERSION) {
     throw new Error(`card engine version mismatch: the log was written by ${log.engineVersion}, this build is ${CARD_ENGINE_VERSION}`);
   }
-  const created = createBattle(log.encounterId, log.seed);
-  if (!created.ok) throw new Error(`the log names an unknown encounter: ${log.encounterId}`);
+  const created = createBattle(log.encounterId, log.seed, log.loadout);
+  if (!created.ok) throw new Error(`the log names an unknown encounter or card: ${log.encounterId}`);
   if (created.state.deckId !== log.deckId) {
     throw new Error(`deck mismatch: the log was played with ${log.deckId}, encounter ${log.encounterId} deals ${created.state.deckId}`);
   }

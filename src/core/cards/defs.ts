@@ -72,6 +72,14 @@ export interface CardDef {
   retain?: true;
   /** The picture its face shows, for flavour, in place of its first effect's icon. */
   face?: 'shovel' | 'harpoon';
+  /** The card whose illustration it wears: an upgrade wears its base card's. Its own id when absent. */
+  art?: string;
+  /**
+   * Equipment (the card run): one use, and once used it leaves the run's deck
+   * for good. Inside a battle it is a `uses: 1` card that a new wave does not
+   * bring back.
+   */
+  equipment?: true;
 }
 
 export type Ability =
@@ -171,6 +179,29 @@ export interface EncounterDef {
    * falls. Ids continue across waves (`e0`, `e1`, ... in the order listed).
    */
   waves?: readonly (readonly EnemySpawn[])[];
+}
+
+/**
+ * What the card run adds to one unit for the rest of the run (its boss
+ * upgrades): extra card slots, max HP, base shield and MP at the start of a
+ * battle and of each wave.
+ */
+export interface UnitBoost {
+  slots?: number;
+  hp?: number;
+  baseShield?: number;
+  mp?: number;
+}
+
+/**
+ * What a battle deals and fields in place of its encounter's defaults: the
+ * card run's deck, in order, and its units' boosts. Absent, a battle deals the
+ * encounter's deck to unboosted units, as the sandbox always has.
+ */
+export interface Loadout {
+  /** Card definition ids, one per instance, in the order the unshuffled draw pile holds them. */
+  cards: readonly string[];
+  units?: Partial<Record<UnitDefId, UnitBoost>>;
 }
 
 export type HuntTieBreak = 'nearestLane' | 'lowestHp' | 'upperLane';

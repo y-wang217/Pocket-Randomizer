@@ -6,10 +6,12 @@
  * unnamed on both; it ships as "Focus", the prompt's placeholder.
  */
 import type { CardDef, DeckDef } from '../core/cards/defs';
+import { EQUIPMENT_CARDS, TOWN_CARDS, upgradesOf } from './runCards';
 
 const card = (def: CardDef): CardDef => def;
 
-export const CARDS: Readonly<Record<string, CardDef>> = {
+/** The Puppeteer's fifteen and the Harpoon: the sandbox's cards. */
+export const PUPPETEER_CARDS: Readonly<Record<string, CardDef>> = {
   'call-medic': card({ id: 'call-medic', name: 'Call Medic', owner: 'A', cost: 1, type: null, effects: [{ k: 'shield', n: 1, to: 'friendly' }] }),
   command: card({ id: 'command', name: 'Command', owner: 'A', cost: 1, type: null, effects: [{ k: 'grantMove', n: 1 }] }),
   focus: card({ id: 'focus', name: 'Focus', owner: 'A', cost: 1, type: null, effects: [{ k: 'mpNextTurns', n: 1, turns: 2 }] }),
@@ -28,6 +30,20 @@ export const CARDS: Readonly<Record<string, CardDef>> = {
   // Part D: not in any deck. The Colossus grants it when its wave arrives.
   harpoon: card({ id: 'harpoon', name: 'Harpoon', owner: 'neutral', cost: 2, type: null, effects: [{ k: 'harpoon', pin: 2, range: 3 }], uses: 2, retain: true, face: 'harpoon' }),
 };
+
+/**
+ * Every card the engine knows: the Puppeteer's, then the card run's new
+ * cards, its equipment, and every upgrade (`runCards.ts`).
+ */
+export const CARDS: Readonly<Record<string, CardDef>> = (() => {
+  const base = { ...PUPPETEER_CARDS, ...TOWN_CARDS, ...EQUIPMENT_CARDS };
+  return { ...base, ...upgradesOf(base) };
+})();
+
+/** The upgrade of each card that has one: base id to upgraded id. */
+export const UPGRADE_OF: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.values(CARDS).flatMap((def) => (def.id.endsWith('+') ? [[def.id.slice(0, -1), def.id]] : [])),
+);
 
 export const DECKS: Readonly<Record<string, DeckDef>> = {
   puppeteer: {

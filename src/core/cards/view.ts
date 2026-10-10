@@ -210,7 +210,7 @@ export function viewOf(state: BattleState): BattleView {
       mp: u.mp,
       mpCap: RULES.mp.cap,
       reserved,
-      slots: slotsOf(u.id),
+      slots: slotsOf(state, u.id),
       planned,
       fainted: u.fainted,
       pos: u.pos,
