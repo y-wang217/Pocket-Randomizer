@@ -710,7 +710,7 @@ export async function openApp(browser, url, seed, viewport = PHONE, contextOptio
     problems.push(`console: ${msg.text()}`);
   });
   page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
-  await page.goto(`${url}/#seed=${seed}`, { waitUntil: 'load' });
+  await page.goto(`${url}/gymrun.html#seed=${seed}`, { waitUntil: 'load' });
   await page.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
   // Fonts, if any are declared, must be in before anything is measured.
   await page.evaluate(() => globalThis.document.fonts.ready);

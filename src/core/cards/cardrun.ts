@@ -118,6 +118,8 @@ export interface RunBattle {
   seed: string;
   loadout: Loadout;
   state: BattleState;
+  /** Every action the battle accepted, in order: with the seed, encounter and loadout, its battle log. */
+  actions: Action[];
 }
 
 export interface CardRunState {
@@ -356,7 +358,7 @@ function startBattle(s: CardRunState, kind: FightKind, encounter: string, seed: 
   const created = createBattle(encounter, seed, loadout);
   // A table naming an encounter or card that does not exist is a broken build, not a decision.
   if (!created.ok) throw new Error(`card run: cannot lay out ${encounter} with this deck`);
-  s.battle = { kind, encounter, seed, loadout, state: created.state };
+  s.battle = { kind, encounter, seed, loadout, state: created.state, actions: [] };
   s.screen = { k: 'battle', kind };
 }
 
@@ -446,7 +448,7 @@ export function stepRun(state: CardRunState, action: RunAction | unknown): RunRe
     const result = step(state.battle.state, a.action);
     if (!result.ok) return refuse('battleRefused', result.reason);
     const s = clone({ ...state, battle: null });
-    const battle: RunBattle = { ...state.battle, state: result.state };
+    const battle: RunBattle = { ...state.battle, state: result.state, actions: [...state.battle.actions, a.action as Action] };
     s.battle = battle;
     if (result.state.phase === 'won') battleWon(s, battle);
     else if (result.state.phase === 'lost') s.screen = { k: 'over', won: false };

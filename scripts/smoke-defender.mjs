@@ -39,7 +39,8 @@ await new Promise((resolve) => server.listen(0, resolve));
 
 const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'DEF-SMOKE-1';
 const GYM = Number(process.env.GYMRUN_SMOKE_GYM ?? 0);
-const url = `http://127.0.0.1:${server.address().port}/#seed=${SEED}`;
+// The deployed page is the card run; GYMRUN itself is gymrun.html (docs/generation.md 125r).
+const url = `http://127.0.0.1:${server.address().port}/gymrun.html#seed=${SEED}`;
 
 const PINNED = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/opt/pw-browsers/chromium'];
 const executablePath = PINNED.find((candidate) => existsSync(candidate));

@@ -25,7 +25,7 @@ const RUNTIME_DEPENDENCIES = ['@pkmn/img', '@pkmn/protocol', '@pkmn/sim', '@pkmn
 
 describe('the 5.0 guards', () => {
   it('draws no canvas anywhere in the app', () => {
-    const sources = [...filesUnder(join(process.cwd(), 'src')), join(process.cwd(), 'index.html')].filter((path) => /\.(ts|html|css)$/.test(path));
+    const sources = [...filesUnder(join(process.cwd(), 'src')), join(process.cwd(), 'index.html'), join(process.cwd(), 'gymrun.html')].filter((path) => /\.(ts|html|css)$/.test(path));
     expect(sources.length).toBeGreaterThan(50);
     for (const path of sources) {
       const text = readFileSync(path, 'utf8');

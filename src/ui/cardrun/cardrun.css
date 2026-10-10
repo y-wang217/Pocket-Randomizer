@@ -1,0 +1,428 @@
+/*
+ * The card run's screens: the battle's paper and ink (`cardbattle/sandbox.css`),
+ * one column at phone width, centred on a wider screen. Every touch target is
+ * at least 44px; nothing needs hover.
+ */
+.cr {
+  --cr-bg: #f3efe6;
+  --cr-surface: #fffcf5;
+  --cr-ink: #243c50;
+  --cr-dim: rgba(36, 60, 80, 0.8);
+  --cr-line: rgba(36, 60, 80, 0.25);
+  --cr-teal: #23877d;
+  --cr-teal-text: #1f6f67;
+  --cr-amber: #d59a3a;
+  --cr-red-text: #a8463d;
+  --cr-city: #356b96;
+  --cr-town: #8a5a1c;
+  --cr-wild: #2f6b3a;
+  --cr-own: var(--cr-ink);
+
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: max(10px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--cr-ink);
+  font: 14px/1.35 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+.cr *,
+.cr *::before,
+.cr *::after {
+  box-sizing: border-box;
+}
+html:has(.cr),
+body:has(.cr) {
+  background: #f3efe6;
+  margin: 0;
+}
+
+.cr [data-owner='A'] {
+  --cr-own: #23877d;
+}
+.cr [data-owner='B'] {
+  --cr-own: #4c87b7;
+}
+.cr [data-owner='C'] {
+  --cr-own: #8664ac;
+}
+.cr [data-owner='neutral'] {
+  --cr-own: #6b7378;
+}
+
+/* ---------------------------------------------------------------- buttons */
+.cr-btn {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--cr-surface);
+  box-shadow: inset 0 0 0 2px var(--cr-ink);
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cr-btn:active {
+  transform: translateY(1px);
+}
+.cr-btn:disabled {
+  cursor: default;
+  color: var(--cr-dim);
+  box-shadow: inset 0 0 0 2px var(--cr-line);
+  transform: none;
+}
+.cr-btn--primary {
+  background: var(--cr-teal);
+  box-shadow: none;
+  color: #fff;
+}
+.cr-btn--primary:disabled {
+  background: var(--cr-line);
+}
+.cr-btn--quiet {
+  background: none;
+  box-shadow: none;
+  color: var(--cr-dim);
+  font-weight: 600;
+}
+.cr-btn--small {
+  min-height: 44px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+.cr-btn--option {
+  width: 100%;
+  text-align: left;
+}
+
+/* ------------------------------------------------------------------ title */
+.cr-title {
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+}
+.cr-title-name {
+  margin: 0;
+  font-size: 34px;
+  letter-spacing: 0.02em;
+}
+.cr-title-tag {
+  margin: 0 0 12px;
+  color: var(--cr-dim);
+}
+
+/* ----------------------------------------------------------------- header */
+.cr-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cr-where {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.cr-act {
+  font-weight: 800;
+  font-size: 16px;
+}
+.cr-seed {
+  color: var(--cr-dim);
+  font-size: 11px;
+}
+.cr-supplies {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--cr-surface);
+  box-shadow: inset 0 0 0 2px var(--cr-amber);
+  font-weight: 800;
+}
+.cr-supplies-icon {
+  color: var(--cr-amber);
+}
+
+/* ------------------------------------------------------- the progress strip */
+.cr-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cr-node {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  font-size: 12px;
+  background: var(--cr-surface);
+  box-shadow: inset 0 0 0 1px var(--cr-line);
+  color: var(--cr-dim);
+}
+.cr-node[data-act='start'] {
+  margin-left: 8px;
+}
+.cr-node[data-kind='stop'] {
+  width: 12px;
+  background: none;
+  box-shadow: none;
+}
+.cr-node[data-kind='boss'] {
+  color: var(--cr-red-text);
+}
+.cr-node[data-state='done'] {
+  opacity: 0.45;
+}
+.cr-node[data-state='here'] {
+  background: var(--cr-teal);
+  color: #fff;
+  box-shadow: none;
+}
+
+/* ------------------------------------------------------------------- team */
+.cr-team {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.cr-unit {
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--cr-surface);
+  box-shadow: inset 4px 0 0 var(--cr-own), inset 0 0 0 1px var(--cr-line);
+}
+.cr-unit-name {
+  font-weight: 800;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cr-unit-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  font-size: 11px;
+  color: var(--cr-dim);
+}
+.cr-unit-stat[data-boosted='true'] {
+  color: var(--cr-teal-text);
+  font-weight: 800;
+}
+
+/* ---------------------------------------------------------------- screens */
+.cr-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cr-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cr-heading-text {
+  margin: 0;
+  font-size: 20px;
+}
+.cr-heading-sub,
+.cr-note {
+  margin: 2px 0 0;
+  color: var(--cr-dim);
+}
+.cr-message {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--cr-surface);
+  color: var(--cr-red-text);
+  font-weight: 700;
+}
+.cr-why {
+  color: var(--cr-red-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cr-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cr-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 44px;
+  padding: 10px 12px 10px 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--cr-surface);
+  box-shadow: inset 6px 0 0 var(--cr-own), inset 0 0 0 1px var(--cr-line);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.cr-choice:active {
+  transform: translateY(1px);
+}
+.cr-choice[data-kind='city'] {
+  --cr-own: var(--cr-city);
+}
+.cr-choice[data-kind='town'] {
+  --cr-own: var(--cr-town);
+}
+.cr-choice[data-kind='wild'] {
+  --cr-own: var(--cr-wild);
+}
+.cr-choice-name {
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--cr-own);
+}
+.cr-choice-what {
+  font-weight: 600;
+}
+.cr-choice-line {
+  color: var(--cr-dim);
+  font-size: 12px;
+}
+
+/* ------------------------------------------------------------------ cards */
+.cr-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.cr-deck {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 6px;
+}
+.cr-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--cr-surface);
+  box-shadow: inset 0 0 0 3px var(--cr-own);
+}
+.cr-card[data-equipment='true'] {
+  box-shadow: inset 0 0 0 3px var(--cr-own), inset 0 0 0 5px var(--cr-amber);
+}
+.cr-card--tap {
+  cursor: pointer;
+}
+.cr-card-top {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.cr-card-cost {
+  flex: none;
+  min-width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--cr-ink);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+.cr-card-name {
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.cr-card-owner {
+  color: var(--cr-own);
+  font-size: 11px;
+  font-weight: 700;
+}
+.cr-card-line {
+  font-size: 12px;
+}
+.cr-card .cr-btn {
+  margin-top: auto;
+}
+.cr-upgrade {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.cr-upgrade-arrow {
+  font-weight: 800;
+  color: var(--cr-teal-text);
+}
+
+/* ------------------------------------------------------------------ event */
+.cr-event {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--cr-surface);
+  box-shadow: inset 0 0 0 2px var(--cr-ink);
+}
+.cr-event-name {
+  margin: 0;
+  font-size: 17px;
+}
+.cr-event-text {
+  margin: 0;
+}
+
+/* --------------------------------------------------------- footer, overlay */
+.cr-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cr-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(36, 60, 80, 0.55);
+}
+.cr-overlay-panel {
+  width: min(448px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--cr-bg);
+}
