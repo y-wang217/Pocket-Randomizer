@@ -218,10 +218,9 @@ describe('the card battle sandbox in every language', () => {
     expect(await page.locator('.cb-sheet-title').textContent()).toBe(CARD_COPY_BY_LANGUAGE.ja.title);
     await page.locator('.cb-settings .cb-btn', { hasText: CARD_COPY_BY_LANGUAGE.ja.settings.paletteTritan }).click();
     expect(await page.locator('.cb').getAttribute('data-palette')).toBe('tritan');
-    // The baked art is redrawn: the home tile's blue is gone from its file.
-    const tile = await page.locator('.cb-tile--playerBackline [data-asset="tile-player-backline"]').first().getAttribute('style');
-    expect(tile).toContain('data:image/svg+xml');
-    expect(decodeURIComponent(tile!)).not.toMatch(/#4C87B7/i);
+    // B's owner colour leaves blue, the one a blue-green viewer cannot tell from A's teal.
+    const blue = await page.evaluate(() => getComputedStyle(globalThis.document.querySelector('.cb')!).getPropertyValue('--cb-blue').trim());
+    expect(blue).toBe('#8c6d1f');
     expect(await page.evaluate(() => globalThis.localStorage.getItem('gymrun.cardbattle.prefs'))).toBe(
       JSON.stringify({ language: 'ja', palette: 'tritan' }),
     );

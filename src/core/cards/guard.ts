@@ -27,7 +27,7 @@ import { livingEnemies, livingUnits } from './plan';
 import { enemyThreat } from './preview';
 import type { Action, BattleState, UnitId } from './state';
 import { step } from './step';
-import { inDanger, samePos } from './zones';
+import { inDanger, lanesOf, samePos } from './zones';
 
 function apply(state: BattleState, action: Action): BattleState {
   const result = step(state, action);
@@ -60,8 +60,11 @@ export function evaluate(state: BattleState, w: GuardWeights = GUARD_WEIGHTS): n
   let score = -enemyCost - w.round * state.round;
   const lanes = new Set(livingUnits(state).map((u) => u.pos!.lane));
   const reach = w.reach * (1 + w.urgency * state.round);
-  score += reach * livingEnemies(state).filter((e) => lanes.has(e.pos!.lane)).length;
+  score += reach * livingEnemies(state).filter((e) => lanesOf(e).some((lane) => lanes.has(lane))).length;
   if (state.phase === 'won') score += w.win;
+  // A wave cleared is worth a win: the next wave's enemies cost as any do, so
+  // without it the search would rather leave the last enemy of a wave standing.
+  score += w.win * state.wave;
   const threats = state.phase === 'won' ? {} : incoming(state);
   for (const unit of livingUnits(state)) {
     score += w.unit[unit.id] + w.hp * unit.hp + w.baseShield * unit.baseShield + w.mp * unit.mp;
@@ -221,5 +224,5 @@ export function guardBot(w: GuardWeights = GUARD_WEIGHTS, search: GuardSearch = 
 }
 
 function follows(planned: BattleState, state: BattleState): boolean {
-  return planned.seed === state.seed && planned.round === state.round && planned.phase === state.phase;
+  return planned.seed === state.seed && planned.wave === state.wave && planned.round === state.round && planned.phase === state.phase;
 }

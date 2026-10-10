@@ -23,7 +23,23 @@
   --cb-red: #c85a50;
   --cb-blue: #4c87b7;
   --cb-purple: #8664ac;
-  --cb-dim: rgba(36, 60, 80, 0.62);
+  /* Neutral cards (A5). */
+  --cb-grey: #6b7378;
+  /*
+   * The same hues dark enough for text: each passes 4.5:1 on the paper and
+   * the surface, and the surface passes 4.5:1 on each. The tokens above are
+   * fills and outlines; text and a chip that carries text use these.
+   */
+  --cb-teal-text: #1f6f67;
+  --cb-blue-text: #356b96;
+  --cb-purple-text: #7356a0;
+  --cb-red-text: #a8463d;
+  --cb-red-deep: #7f2f2a;
+  --cb-grey-text: #5c656b;
+  --cb-own: var(--cb-teal);
+  --cb-own-text: var(--cb-teal-text);
+  /* 0.62 in the pack; 0.8 so dim text passes 4.5:1 on the paper (A5). */
+  --cb-dim: rgba(36, 60, 80, 0.8);
   --cb-line: rgba(36, 60, 80, 0.25);
   /* The washes' channels, so a palette moves them with the solid colours. */
   --cb-teal-rgb: 35, 135, 125;
@@ -48,20 +64,24 @@
 
 /*
  * The blue-green safe palette (docs/spec/gymrun-patch-card-battle-accessibility.md),
- * for a tritan-type viewer: the colours that viewer confuses moved apart, the
- * same table as `TRITAN_SWAP` in `assets.ts`, which recolours the baked art.
- * Blue goes to slate, so the home rows no longer melt into the teal of a legal
- * tile; amber goes to a bright yellow, lighter than the red it sat beside;
- * purple goes deep, so Slash parts from Strike by lightness as well as by its
- * dashes.
+ * for a tritan-type viewer, who sees blue and teal as one colour and yellow
+ * drift toward pink. Measured under the Machado 2009 tritanopia simulation,
+ * CIELAB distance: the owner colours were A teal / B blue 7 apart and
+ * C purple / Neutral grey 14; with B bronze, C deep indigo and Neutral a
+ * lighter grey, no two of A, B, C, Neutral, the enemy red and the amber
+ * highlight are closer than 29. Teal and ink do not move. The art carries
+ * its own colours; what this moves is every tint the screen draws.
  */
 .cb[data-palette='tritan'] {
-  --cb-blue: #7c7f86;
-  --cb-purple: #4a2e7a;
+  --cb-blue: #8c6d1f;
+  --cb-blue-text: #6b5214;
+  --cb-purple: #3a2560;
+  --cb-purple-text: #3a2560;
+  --cb-purple-rgb: 58, 37, 96;
+  --cb-grey: #8e969b;
   --cb-amber: #e8b000;
   --cb-red: #c8463c;
   --cb-red-rgb: 200, 70, 60;
-  --cb-purple-rgb: 74, 46, 122;
 }
 .cb:focus {
   outline: none;
@@ -135,7 +155,7 @@
   flex: 1;
   font-size: 11px;
   font-weight: 700;
-  color: var(--cb-teal);
+  color: var(--cb-teal-text);
   line-height: 1.25;
 }
 .cb-exit {
@@ -192,7 +212,7 @@
   font-weight: 700;
 }
 .cb-btn--primary {
-  color: var(--cb-teal);
+  color: var(--cb-teal-text);
 }
 .cb-btn--primary .cb-btn-label {
   font-weight: 800;
@@ -212,9 +232,13 @@
   grid-template-columns: repeat(3, 64px);
   grid-template-rows: repeat(7, 64px);
 }
+/* One panel per enemy, sharing the column's height: three at 128px, four
+   (The Pack) at 112px. */
 .cb-enemies {
   display: grid;
-  grid-template-rows: repeat(3, 128px);
+  grid-auto-rows: minmax(0, 1fr);
+  height: 448px;
+  min-height: 0;
 }
 /* Unit panels size to their slots, so a three-slot unit has room; they sit
    at the bottom, beside the player rows. */
@@ -278,7 +302,7 @@
 .cb-threat[data-act='strike'] {
   margin: 2px;
   border-radius: 8px;
-  background: rgba(var(--cb-red-rgb), 0.2);
+  background: repeating-linear-gradient(-45deg, rgba(var(--cb-red-rgb), 0.38) 0 3px, transparent 3px 9px);
   box-shadow: inset 0 0 0 2.5px var(--cb-red);
 }
 .cb-threat[data-act='strike'][data-stop='true']::after {
@@ -294,8 +318,8 @@
 .cb-threat[data-act='slash'] {
   margin: 2px;
   border-radius: 8px;
-  border: 2.5px dashed var(--cb-purple);
-  background: rgba(var(--cb-purple-rgb), 0.22);
+  border: 2.5px dashed var(--cb-red-deep);
+  background: repeating-linear-gradient(45deg, rgba(127, 47, 42, 0.32) 0 3px, transparent 3px 9px);
 }
 .cb-threat-chips {
   position: absolute;
@@ -317,11 +341,17 @@
   font-size: 9px;
   font-weight: 800;
   line-height: 1;
-  background: var(--cb-red);
+  background: var(--cb-red-text);
   color: var(--cb-surface);
 }
 .cb-threat-chip[data-act='slash'] {
-  background: var(--cb-purple);
+  background: var(--cb-red-deep);
+}
+/* Which enemy the attack is from, as its token names it. */
+.cb-threat-from {
+  margin-left: 2px;
+  font-size: 8px;
+  opacity: 0.9;
 }
 
 /*
@@ -334,8 +364,8 @@
   border-radius: 8px;
 }
 .cb-attack[data-act='strike'] {
-  background: rgba(var(--cb-teal-rgb), 0.2);
-  box-shadow: inset 0 0 0 2.5px var(--cb-teal);
+  background: color-mix(in srgb, var(--cb-own) 20%, transparent);
+  box-shadow: inset 0 0 0 2.5px var(--cb-own);
 }
 .cb-attack[data-act='strike'][data-stop='true']::after {
   content: '';
@@ -345,11 +375,11 @@
   top: 3px;
   height: 5px;
   border-radius: 3px;
-  background: var(--cb-teal);
+  background: var(--cb-own);
 }
 .cb-attack[data-act='pierce'] {
-  background: repeating-linear-gradient(-45deg, rgba(var(--cb-teal-rgb), 0.4) 0 3px, transparent 3px 9px);
-  box-shadow: inset 0 0 0 2.5px var(--cb-teal);
+  background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--cb-own) 40%, transparent) 0 3px, transparent 3px 9px);
+  box-shadow: inset 0 0 0 2.5px var(--cb-own);
 }
 .cb-attack[data-act='pierce']::after {
   content: '';
@@ -358,13 +388,13 @@
   top: -2px;
   bottom: -2px;
   width: 3px;
-  background: var(--cb-teal);
+  background: var(--cb-own);
   opacity: 0.75;
 }
 .cb-attack[data-act='slash'],
 .cb-attack[data-act='blast'] {
-  border: 2.5px dashed var(--cb-teal);
-  background: rgba(var(--cb-teal-rgb), 0.2);
+  border: 2.5px dashed var(--cb-own);
+  background: color-mix(in srgb, var(--cb-own) 20%, transparent);
 }
 .cb-attack[data-act='blast'] {
   border-style: dotted;
@@ -400,7 +430,7 @@
   font-size: 9px;
   font-weight: 800;
   line-height: 1;
-  background: var(--cb-teal);
+  background: var(--cb-own-text);
   color: var(--cb-surface);
 }
 .cb-attack-chip > .cb-asset--placeholder {
@@ -511,7 +541,7 @@
   display: grid;
   place-items: center;
   font-weight: 800;
-  color: var(--cb-teal);
+  color: var(--cb-teal-text);
 }
 .cb-ghost > .cb-asset--placeholder,
 .cb-ring > .cb-asset--placeholder {
@@ -620,7 +650,7 @@
   animation: cb-float 800ms ease-out forwards;
 }
 .cb-float[data-hp='true'] {
-  background: var(--cb-red);
+  background: var(--cb-red-text);
 }
 @keyframes cb-float {
   0% {
@@ -801,10 +831,10 @@
   position: relative;
 }
 .cb-pill[data-act='slash'] {
-  color: var(--cb-purple);
+  color: var(--cb-red-deep);
 }
 .cb-pill[data-act='slash'] > .cb-asset--placeholder:first-child {
-  box-shadow: inset 0 0 0 2px var(--cb-purple);
+  box-shadow: inset 0 0 0 2px var(--cb-red-deep);
 }
 .cb-pill-text {
   min-width: 0;
@@ -813,6 +843,7 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--cb-ink);
+  white-space: nowrap;
 }
 .cb-mp {
   display: flex;
@@ -866,7 +897,7 @@
   box-shadow: inset 0 0 0 2px var(--cb-ink);
 }
 .cb-slot--filled > .cb-asset--placeholder {
-  background: var(--cb-teal);
+  background: var(--cb-own);
 }
 /* The card's name rides a chip along the slot's bottom edge, clear of the
    pack's check mark. */
@@ -919,6 +950,10 @@
   --cb-card-w: 60px;
   --cb-card-h: 84px;
 }
+.cb-hand[data-count='8'] .cb-card {
+  --cb-card-w: 50px;
+  --cb-card-h: 70px;
+}
 .cb-card > .cb-asset--placeholder {
   border-radius: 6px;
   background: var(--cb-surface);
@@ -938,7 +973,7 @@
 }
 .cb-card-cost {
   left: 6.7%;
-  color: var(--cb-blue);
+  color: var(--cb-blue-text);
 }
 .cb-card-n {
   right: 6.7%;
@@ -998,7 +1033,7 @@
   position: relative;
   font-weight: 800;
   font-size: calc(var(--cb-card-w) * 0.12);
-  color: var(--cb-teal);
+  color: var(--cb-own-text);
   line-height: 1;
 }
 .cb-card .cb-ov {
@@ -1058,7 +1093,7 @@
 }
 .cb-sheet-status {
   min-height: 14px;
-  color: var(--cb-teal);
+  color: var(--cb-teal-text);
   font-weight: 700;
 }
 .cb-sheet-panel--log {
@@ -1080,9 +1115,21 @@
   font-size: 11px;
   font-weight: 700;
 }
-.cb-scenario .cb-btn-label,
 .cb-setting .cb-btn-label {
   font-size: 11px;
+}
+.cb-scenario .cb-btn-label {
+  flex-direction: column;
+  gap: 1px;
+  font-size: 10px;
+  line-height: 1.15;
+  text-align: center;
+  padding: 3px 0;
+}
+/* The scenario's grade total, under its name. */
+.cb-scenario-grade {
+  font-size: 9px;
+  font-weight: 600;
 }
 .cb-settings {
   display: grid;
@@ -1158,7 +1205,7 @@
 }
 .cb-full-cost {
   left: 16px;
-  color: var(--cb-blue);
+  color: var(--cb-blue-text);
 }
 .cb-full-n {
   right: 16px;
@@ -1200,7 +1247,7 @@
   font-size: 11px;
 }
 .cb-full-reason {
-  color: var(--cb-red);
+  color: var(--cb-red-text);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1216,4 +1263,513 @@
   .cb-card[data-selected='true'] {
     transform: none;
   }
+}
+
+/* ------------------------------------------------------ friendly fire
+   R14: a Blast hits allies on its tiles. While it is aimed and once it is
+   planned, every ally it would hit wears a dashed warning outline and the
+   damage it would take; a centre that would hit one carries the allies'
+   letters. */
+.cb {
+  --cb-warn: #b4410f;
+}
+.cb-token[data-warn='true']::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2.5px dashed var(--cb-warn);
+  pointer-events: none;
+}
+.cb-token-warn {
+  position: absolute;
+  left: -6px;
+  bottom: -2px;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+  background: var(--cb-warn);
+  color: #fff;
+  z-index: 2;
+}
+.cb-panel--unit[data-warn='true'] {
+  box-shadow: inset 0 0 0 2.5px var(--cb-warn);
+  border-radius: 12px;
+}
+.cb-friendly {
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+  background: var(--cb-surface);
+  color: var(--cb-warn);
+  box-shadow: 0 0 0 2px var(--cb-warn);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* --------------------------------------------------------- owner colours
+   A5: the Commander teal, the Gunner blue, the Sword dasher purple, Neutral
+   grey. A card wears its owner's colour as its frame and its letter in the
+   badge (a Neutral, a grey frame and no letter); a unit its panel stripe and
+   name, its token ring and label, its filled slots and its own attack
+   previews. Colour is never the only signal: the letter is always there.
+   Enemies and their telegraphs stay in the red family. */
+[data-owner='A'] {
+  --cb-own: var(--cb-teal);
+  --cb-own-text: var(--cb-teal-text);
+}
+[data-owner='B'] {
+  --cb-own: var(--cb-blue);
+  --cb-own-text: var(--cb-blue-text);
+}
+[data-owner='C'] {
+  --cb-own: var(--cb-purple);
+  --cb-own-text: var(--cb-purple-text);
+}
+[data-owner='neutral'] {
+  --cb-own: var(--cb-grey);
+  --cb-own-text: var(--cb-grey-text);
+}
+.cb-card-edge {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 3px var(--cb-own);
+  pointer-events: none;
+}
+.cb-full > .cb-card-edge {
+  border-radius: 18px;
+  box-shadow: inset 0 0 0 5px var(--cb-own);
+}
+.cb-panel--unit::before {
+  content: '';
+  z-index: 1;
+  position: absolute;
+  left: 1px;
+  top: 10px;
+  bottom: 10px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--cb-own);
+}
+.cb-panel--unit .cb-panel-name {
+  color: var(--cb-own-text);
+}
+.cb-token--unit::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--cb-own);
+  pointer-events: none;
+}
+.cb-token--unit .cb-token-label {
+  color: var(--cb-own-text);
+  box-shadow: 0 0 0 1.5px var(--cb-own);
+}
+.cb-token--unit > .cb-asset--placeholder {
+  background: var(--cb-own);
+}
+
+/* Fast (A1): on the enemy's token and its panel. */
+.cb-fast {
+  display: inline-block;
+  height: 13px;
+  padding: 0 4px;
+  border-radius: 7px;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 13px;
+  text-transform: uppercase;
+  background: var(--cb-red-text);
+  color: var(--cb-surface);
+}
+.cb-panel-name > .cb-fast {
+  margin-left: 4px;
+  vertical-align: 1px;
+}
+.cb-token-fast {
+  position: absolute;
+  left: -6px;
+  bottom: -2px;
+  box-shadow: 0 0 0 1.5px var(--cb-surface);
+}
+
+/* ---------------------------------------------------------- unit filter
+   A6, provisional: a tapped unit's panel is outlined in its colour, and the
+   hand opens on a column of two chips, what it shows (a tap clears it) and
+   how many cards it folded away. */
+.cb-panel--unit[data-filter='true'] {
+  box-shadow: inset 0 0 0 3px var(--cb-own);
+  border-radius: 12px;
+}
+.cb-filter {
+  flex: none;
+  width: 58px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cb .cb-filter-chip {
+  min-height: 44px;
+  padding: 3px 2px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--cb-surface);
+  box-shadow: inset 0 0 0 2px var(--cb-own);
+  color: var(--cb-ink);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
+  cursor: pointer;
+}
+.cb-filter-showing > span {
+  display: block;
+  white-space: nowrap;
+}
+.cb-filter-showing > span:first-child {
+  color: var(--cb-own-text);
+}
+.cb-filter-other {
+  color: var(--cb-dim);
+}
+
+/* ------------------------------------------------------ inspect entries
+   A7: a Blast card's friendly fire line, and an enemy's own entry. */
+.cb-full-rule {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cb-warn);
+}
+.cb-enemy-card {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--cb-ink);
+  color: var(--cb-surface);
+}
+.cb-enemy-card-name {
+  font-size: 17px;
+  font-weight: 800;
+}
+.cb-enemy-card-line {
+  font-size: 12px;
+  font-weight: 700;
+}
+.cb-enemy-card-rule {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ----------------------------------------------------------- Part D
+   An enemy's grant is black (the author's ruling): Neutral grey, a unit's
+   own colour, an enemy's black. The Colossus's token spans its 2 by 2 from
+   its anchor tile, bottom left. A Scream lights the tiles touching it,
+   hatched in the deeper red with a dotted edge. */
+[data-owner='enemy'] {
+  --cb-own: #1d1d22;
+  --cb-own-text: #1d1d22;
+}
+.cb-token[data-size='2x2'] {
+  top: auto;
+  bottom: 8px;
+  width: 112px;
+  height: 112px;
+  z-index: 2;
+}
+.cb-threat[data-act='scream'] {
+  margin: 2px;
+  border-radius: 8px;
+  border: 2.5px dotted var(--cb-red-deep);
+  background: repeating-linear-gradient(90deg, rgba(127, 47, 42, 0.3) 0 3px, transparent 3px 8px);
+}
+.cb-threat-chip[data-act='scream'] {
+  background: var(--cb-red-deep);
+}
+.cb-pill[data-act='scream'] {
+  color: var(--cb-red-deep);
+}
+.cb-card-uses {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--cb-ink);
+  color: var(--cb-surface);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 12px;
+  text-align: center;
+}
+.cb-boss-line {
+  font-size: 10px;
+  font-weight: 700;
+}
+.cb-boss-line--pinned {
+  color: #f6c7c0;
+}
+.cb-tile[data-big='true'] {
+  z-index: 2;
+}
+
+/* ===================================================================
+   Part E, the reskin (`docs/spec/gymrun-card-battle-rulings-waves-boss-reskin.md`,
+   the meadow pack `meadow-card-battler-assets`). The author's reference
+   (`docs/spec/assets/card-battle-reskin-reference.webp`): the meadow behind
+   everything, the enemy roster across the top, the board across the screen
+   with shorter rows (E2), the unit panels under it, the hand and the actions
+   last. Every fact the old layout carried stays: enemy shields, MP numbers,
+   telegraph chips naming their enemy, owner letters on the cards.
+   =================================================================== */
+.cb {
+  background: #9ad06b var(--cb-meadow, none) center top / cover no-repeat;
+}
+.cb-frame {
+  box-sizing: border-box;
+  padding: 0 6px;
+  gap: 5px;
+}
+/* The status line on a cream plate, so its text reads on the meadow. */
+.cb-top {
+  border-radius: 12px;
+  background: rgba(255, 252, 245, 0.94);
+  box-shadow: inset 0 0 0 2px var(--cb-ink);
+}
+
+/* The roster: one panel per enemy of the wave, side by side. */
+.cb-enemies {
+  height: auto;
+  min-height: 62px;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-rows: auto;
+  gap: 4px;
+}
+.cb-panel--enemy {
+  padding: 4px 6px 5px;
+  gap: 2px;
+}
+.cb-panel--enemy .cb-pill {
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+.cb-panel--enemy .cb-panel-name {
+  font-size: 10.5px;
+}
+
+/* The board: three lanes across, seven rows of 52px (E2: shorter tiles). */
+.cb-mid {
+  height: auto;
+  display: block;
+}
+.cb-board {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(7, 52px);
+  gap: 4px;
+}
+.cb-tile {
+  width: auto;
+  height: 52px;
+}
+/* The pack's grass, cropped to the wide tile, with the outline drawn here. */
+.cb-tile > .cb-asset--art {
+  background-size: cover;
+  background-position: center;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 2.5px var(--cb-ink);
+}
+.cb-tile > .cb-ov,
+.cb-threat,
+.cb-attack {
+  border-radius: 10px;
+}
+.cb-token,
+.cb-ghost {
+  left: calc(50% - 24px);
+  top: 3px;
+}
+.cb-token[data-size='2x2'] {
+  left: 4px;
+  top: auto;
+  bottom: 4px;
+  width: calc(200% - 4px);
+  height: calc(200% - 4px);
+}
+.cb-token[data-size='2x2'] > .cb-asset--art {
+  background-size: contain;
+  background-position: center;
+}
+.cb-banner {
+  left: 50%;
+  width: 240px;
+  transform: translateX(-50%);
+}
+
+/* The units: one panel each, the Sword dasher's wider for its three slots. */
+.cb-units {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.32fr;
+  gap: 4px;
+}
+.cb-panel--unit {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  grid-auto-rows: auto;
+  column-gap: 4px;
+  row-gap: 2px;
+  padding: 6px 5px 5px 8px;
+}
+.cb-panel--unit > :not(.cb-asset):not(.cb-panel-portrait) {
+  grid-column: 1 / -1;
+}
+.cb-panel--unit > .cb-panel-name {
+  grid-column: 2;
+  align-self: center;
+}
+.cb-panel-portrait {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px var(--cb-own);
+}
+.cb-slots {
+  display: flex;
+  gap: 2px;
+}
+
+/* Cards: the illustration behind the frame's art window, the owner band
+   tinted over the frame's grey (E3), text in the frame's own regions. */
+.cb-card-picture,
+.cb-full-picture {
+  position: absolute;
+  left: 8.33%;
+  top: 23.76%;
+  width: 83.33%;
+  height: 49.5%;
+}
+.cb-card-picture > .cb-asset--art,
+.cb-full-picture > .cb-asset--art {
+  background-size: contain;
+}
+.cb-card-edge[data-mask='true'] {
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--cb-own);
+  -webkit-mask: var(--cb-band) center / 100% 100% no-repeat;
+  mask: var(--cb-band) center / 100% 100% no-repeat;
+}
+.cb-card-cost,
+.cb-card-n {
+  top: 3.63%;
+  width: 16.67%;
+  height: 11.88%;
+}
+.cb-card-cost {
+  left: 4.63%;
+}
+.cb-card-n {
+  right: 4.63%;
+}
+/* The keyword's icon, small, in the art window's corner: the art is flavour, the icon the rule. */
+.cb-card-field {
+  left: 10%;
+  top: 25%;
+  width: 22%;
+  height: 16%;
+  border-radius: 50%;
+  background: rgba(255, 252, 245, 0.9);
+  box-shadow: 0 0 0 1.5px var(--cb-ink);
+}
+.cb-card-name {
+  left: 7.87%;
+  right: auto;
+  width: 84.26%;
+  top: 79.21%;
+  height: 12.54%;
+}
+.cb-card-badge {
+  left: 79.17%;
+  right: auto;
+  top: 86.47%;
+  bottom: auto;
+  width: 13%;
+}
+
+/* Inspect: the card on the full frame, its words on a plate under it. */
+.cb-full-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.cb-full-cost,
+.cb-full-n {
+  top: 12px;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+}
+.cb-full-cost {
+  left: 11px;
+}
+.cb-full-n {
+  right: 11px;
+}
+.cb-full-name {
+  left: 19px;
+  right: 19px;
+  top: 266px;
+  height: 42px;
+  line-height: 42px;
+}
+.cb-full-art {
+  display: none;
+}
+.cb-full-body {
+  position: static;
+  width: 240px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--cb-surface);
+  box-shadow: inset 0 0 0 2px var(--cb-ink);
+}
+.cb-full-badge {
+  left: 79.17%;
+  right: auto;
+  top: 86.47%;
+  bottom: auto;
+}
+/* The sheet and Inspect sit over the board, whose big-token tiles are raised. */
+.cb-sheet,
+.cb-inspect {
+  z-index: 10;
+}
+/* The art window is open in the frame: the card's paper shows behind the picture. */
+.cb-card-picture,
+.cb-full-picture {
+  background: var(--cb-surface);
 }

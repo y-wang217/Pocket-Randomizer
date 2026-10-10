@@ -45,9 +45,15 @@ if (files.length === 0) {
  * `[vitest-worker]: Timeout calling "onTaskUpdate"` — vitest's reporter RPC
  * giving up while every test passes. `docs/generation.md` sections 15, 33 and
  * 36 all record it, and on Actions it took the Node half of the gate red with
- * `1650 passed (1650)` printed directly underneath. `scripts/check.mjs` now
- * reports that as ERRORED rather than FAILED, which stops the gate lying; this
- * is the other half, which is to stop provoking it.
+ * `1650 passed (1650)` printed directly underneath. `scripts/check.mjs` used to
+ * report that as ERRORED rather than FAILED; this was the other half, which was
+ * to stop provoking it.
+ *
+ * **2026-10-09: the reading below is wrong, and the cap is kept only until it
+ * gets its own change.** The timeout was one test holding its worker's event
+ * loop past vitest's 60s RPC timer, not contention; it reproduces on an idle
+ * box. That test now yields, ERRORED is gone, and the timeout fails its leg.
+ * `docs/generation.md` section 126.
  *
  * ## Why capping workers is the lever
  *

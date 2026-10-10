@@ -758,6 +758,16 @@ describe('save during a forced switch', () => {
     expect(atSwitch.length, 'this seed never switched, so it proves nothing').toBeGreaterThan(0);
 
     for (const [index, save] of atSwitch.entries()) {
+      /*
+       * **One macrotask per resume, for vitest's reporter and not for the run.**
+       * `core/` has no timers, so this sweep never turns the worker's event
+       * loop, and it runs past the 60s vitest gives an `onTaskUpdate` reply to
+       * arrive. The reply is only read when the loop turns, so the update sent
+       * when this test started times out, and the leg exits 1 with every test
+       * passed. Yielding here lets the reply in; the sweep is unchanged.
+       * `docs/generation.md` section 126.
+       */
+      await new Promise((resolve) => setImmediate(resolve));
       const resumed = await resumeRun(save, collector());
       expect(resumed.outcome, `resuming from switch save ${index}`).toBe(original.outcome);
       expect(resumed.log.decisions, `resuming from switch save ${index}`).toEqual(original.log.decisions);

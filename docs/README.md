@@ -174,6 +174,25 @@ one-seed solver (`npm run cards:solve`), and Bot turn under Menu. Built and
 stopped for review. `CARD_ENGINE_VERSION` moves to `cards-0.3.0`; none of the
 run's four axes moves.
 
+**Card battle sandbox: opening grace, friendly fire, new enemies and
+scenarios.** Branch `claude/vibrant-hopper-axlk79`, on top of `cards-0.3.0`,
+prompt
+[`spec/gymrun-patch-card-battle-grace-friendly-fire.md`](spec/gymrun-patch-card-battle-grace-friendly-fire.md),
+record [`generation.md`](generation.md) section 125o. Part A: in round 1 a
+normal enemy opens on a step that deals no damage and a Fast one attacks for
+1; a player Blast hurts allies on its tiles, not its caster; Hound, Turret,
+Bulwark, Sniper and Pikeman with provisional grades; Turret Alley, Wall and
+Gun and The Pack, each scenario showing its grade total; owner colours on
+cards, panels and tokens; a tap on a unit filters the hand. Built and stopped
+for review. Then, after merging `main` (#106, the guard bot) and the author's
+rulings ([`spec/gymrun-card-battle-rulings-waves-boss-reskin.md`](spec/gymrun-card-battle-rulings-waves-boss-reskin.md)):
+**waves** and **Siege**, three waves ending in **the Colossus**, a 2x2 boss
+that stalks once at half HP, and **the Harpoon** it grants, which pins it
+(record [`generation.md`](generation.md) section 125p), and **the reskin** on
+the meadow art pack: roster on top, a full-width board, unit panels below,
+illustrated cards with owner bands (section 125q). `CARD_ENGINE_VERSION` moves to `cards-0.4.0`; none of the
+run's four axes moves, `contentHash` holds at `865d3b`.
+
 **Also in flight: Defender Mode v0, a fun test.** Branch
 `claude/eager-turing-0059br`, prompt
 [`spec/gymrun-defender-mode-v0-fun-test.md`](spec/gymrun-defender-mode-v0-fun-test.md),
@@ -738,7 +757,9 @@ nothing under `src/`, `contentHash` unmoved at `b8b419`, no axis moves.
   Open item below.
 - **A green suite stops reporting as FAILED.** `scripts/check.mjs` matched its
   reporter-timeout guard against coloured output and so never fired in CI; it
-  strips CSI sequences now and reports a fourth status, ERRORED.
+  stripped CSI sequences and reported a fourth status, ERRORED. **ERRORED was
+  retired on 2026-10-09** (`generation.md` section 126a): it could mask a second
+  unhandled error, and the timeout it forgave was one test, now fixed.
 - **The Node half is capped at two forks under `CI`**, against the reporter RPC
   timeout. Unconfirmed against the failure itself — open item below.
 - **WebKit is off the critical path**, in its own non-blocking workflow with a
@@ -1657,12 +1678,12 @@ One line each. The analysis lives where the pointer goes, not here.
    contrast rule between a filled pip and an empty one, which is a different
    assertion in a different file. `generation.md` section 47.3.
 
-0. **The CI fork cap is wired but unconfirmed.** Two forks on the Node half
-   under `CI` is the answer to `[vitest-worker]: Timeout calling "onTaskUpdate"`,
-   and it has not yet been run against the failure: `check.yml` fires on `push`
-   to `main` and on `pull_request` only, so the branch that carries the cap
-   cannot trigger one. It wants three runs of the leg at the cap.
-   `generation.md` section 47.7.
+0. **The CI fork cap answers a cause that was not the cause.** Two forks on
+   the Node half under `CI` was the answer to
+   `[vitest-worker]: Timeout calling "onTaskUpdate"` read as load. Section 126
+   found one test holding its worker past 60s and fixed it; the cap did not
+   stop the timeout in any run it was on. Whether to keep it is its own
+   change. `generation.md` sections 47.7 and 126.
 
 0. **A red WebKit now blocks nothing, and one issue is the whole signal.** The
    new workflow is non-blocking by construction. The issue it edits has to be

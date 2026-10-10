@@ -7,7 +7,9 @@
  * `createBattle` makes every draw the battle makes at creation, in one pass
  * and a fixed order: each enemy's starting step (E6), then a spawn tile for
  * each unplaced enemy in spawn order, then the shuffle. The count depends only
- * on the encounter. It then deals the round 1 hand and opens in `deploy`, so
+ * on the encounter. A starting step is one draw for every enemy, a Fast one
+ * included (it draws among the one step it may start on), so opening grace
+ * and Fast move no spawn tile and no card of the shuffle. It then deals the round 1 hand and opens in `deploy`, so
  * the player places its units seeing the hand and the enemies; `start`
  * (`deploy.ts`) runs the enemies' opening move and telegraph.
  */
@@ -16,12 +18,28 @@ import { ENCOUNTERS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
+import { openingSteps } from './enemies';
+import type { EncounterDef, EnemySpawn } from './defs';
 import type { BattleEvent } from './events';
 import type { Ctx } from './keywords';
-import { nextHand } from './resolve';
+import { grantWave, nextHand } from './resolve';
 import { shuffled, withStream } from './random';
 import type { BattleState, CardInstance } from './state';
 import { allTiles, samePos, zoneOf } from './zones';
+
+/**
+ * A scenario's difficulty, provisional: the sum of its enemies' grades. Known
+ * before any draw, a seeded-spawn scenario's included, since the enemy set is
+ * fixed and only the tiles are drawn.
+ */
+export function gradeTotal(encounter: EncounterDef): number {
+  return wavesOf(encounter).flat().reduce((sum, { def }) => sum + ENEMIES[def].grade, 0);
+}
+
+/** A scenario's waves, the first being its `enemies`. */
+export function wavesOf(encounter: EncounterDef): (readonly EnemySpawn[])[] {
+  return [encounter.enemies, ...(encounter.waves ?? [])];
+}
 
 /** The unshuffled battle for an encounter, or `null` for an unknown id. */
 export function layoutBattle(encounterId: string, seed: string): BattleState | null {
@@ -36,6 +54,15 @@ export function layoutBattle(encounterId: string, seed: string): BattleState | n
     cards[iid] = { iid, def, owner: CARDS[def]!.owner };
     draw.push(iid);
   });
+  // A card an enemy grants is an instance after the deck's, held out until its wave arrives.
+  const reserve: string[] = [];
+  for (const { def } of wavesOf(encounter).flat()) {
+    const granted = ENEMIES[def].grants;
+    if (!granted) continue;
+    const iid = `c${Object.keys(cards).length}`;
+    cards[iid] = { iid, def: granted, owner: CARDS[granted]!.owner, granted: true };
+    reserve.push(iid);
+  }
 
   return {
     seed,
@@ -43,6 +70,7 @@ export function layoutBattle(encounterId: string, seed: string): BattleState | n
     deckId: deck.id,
     rngDraws: 0,
     round: 0,
+    wave: 0,
     phase: 'plan',
     units: encounter.units.map(({ def, pos }) => ({
       id: def,
@@ -55,21 +83,28 @@ export function layoutBattle(encounterId: string, seed: string): BattleState | n
       fainted: false,
       pendingMp: [],
     })),
-    enemies: encounter.enemies.map(({ def, pos }, spawnIndex) => ({
+    // Every wave's enemies, ids continuing across waves; a later wave's stand nowhere until it arrives.
+    enemies: wavesOf(encounter).flatMap((wave, index) => wave.map((spawn) => ({ ...spawn, wave: index }))).map(({ def, pos, wave }, spawnIndex) => ({
       id: `e${spawnIndex}`,
       def,
       spawnIndex,
-      pos: pos ? { ...pos } : null,
+      wave,
+      spawn: pos ? { ...pos } : null,
+      pos: pos && wave === 0 ? { ...pos } : null,
       hp: ENEMIES[def].hp,
       shield: 0,
       baseShield: ENEMIES[def].baseShield,
       step: 0,
+      pinned: 0,
+      stripped: 0,
+      stalked: false,
       conds: {},
       intent: null,
     })),
     cards,
-    piles: { draw, hand: [], discard: [], spent: [], removed: [] },
+    piles: { draw, hand: [], discard: [], spent: [], removed: [], reserve },
     plan: [],
+    uses: Object.fromEntries(Object.values(cards).flatMap((c) => (CARDS[c.def]!.uses ? [[c.iid, CARDS[c.def]!.uses!]] : []))),
     pendingDraws: [],
   };
 }
@@ -82,17 +117,24 @@ export function createBattle(encounterId: string, seed: string): CreateResult {
   if (!s) return { ok: false, reason: 'unknownEncounter' };
   const ctx: Ctx = { s, events: [] };
   withStream(s, (stream) => {
-    // E6: each enemy's starting step, in spawn order.
-    for (const enemy of s.enemies) enemy.step = stream.nextInt(ENEMIES[enemy.def].script.steps.length);
-    // Spawns: each unplaced enemy, in spawn order, on a free tile of the spawn zone.
+    // E6 and A1: each enemy's starting step, in spawn order, among the steps it may open on.
     for (const enemy of s.enemies) {
-      if (enemy.pos) continue;
-      const free = allTiles().filter((t) => zoneOf(t) === RULES.spawnZone && !s.enemies.some((e) => samePos(e.pos, t)));
-      enemy.pos = { ...free[stream.nextInt(free.length)]! };
+      const steps = openingSteps(ENEMIES[enemy.def]);
+      enemy.step = steps[stream.nextInt(steps.length)]!;
+    }
+    // Spawns: each unplaced enemy, in spawn order, on a tile of the spawn zone free in its wave.
+    // Every wave's are drawn now, so nothing is drawn when a wave arrives but its reshuffle.
+    for (const enemy of s.enemies) {
+      if (enemy.spawn) continue;
+      const taken = s.enemies.filter((e) => e.wave === enemy.wave);
+      const free = allTiles().filter((t) => zoneOf(t) === RULES.spawnZone && !taken.some((e) => samePos(e.spawn, t)));
+      enemy.spawn = { ...free[stream.nextInt(free.length)]! };
+      if (enemy.wave === 0) enemy.pos = { ...enemy.spawn };
     }
     s.piles.draw = shuffled(stream, s.piles.draw);
   });
-  // The round 1 hand. The enemies move and telegraph once the player starts.
+  // The round 1 hand, after any card wave 1 grants. The enemies move and telegraph once the player starts.
+  grantWave(ctx);
   nextHand(ctx);
   s.phase = 'deploy';
   return { ok: true, state: s, events: ctx.events };

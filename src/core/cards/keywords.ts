@@ -11,8 +11,8 @@ import { UNITS } from '../../cardData/units';
 import type { CardDef, DamageKeyword, Pos } from './defs';
 import type { BattleEvent } from './events';
 import { cardDefOf, damageOf, livingEnemies, livingUnits, unitOf } from './plan';
-import type { BattleState, EnemyState, PileName, PlannedPlay, UnitState } from './state';
-import { blastTiles, laneFromSide, moveDestinations, samePos, slashTiles } from './zones';
+import type { BattleState, EnemyState, PileName, PlannedPlay, UnitId, UnitState } from './state';
+import { blastTiles, covers, enemyTiles, laneFromSide, moveDestinations, samePos, slashTiles, tile as tileAt } from './zones';
 
 export interface Ctx {
   s: BattleState;
@@ -26,7 +26,7 @@ const byBoardOrder = (a: EnemyState, b: EnemyState): number => a.pos!.col - b.po
 
 export function enemiesOn(s: BattleState, tiles: readonly Pos[]): EnemyState[] {
   return livingEnemies(s)
-    .filter((e) => tiles.some((t) => samePos(t, e.pos)))
+    .filter((e) => tiles.some((t) => covers(e, t)))
     .sort(byBoardOrder);
 }
 
@@ -93,7 +93,7 @@ function patternHits(ctx: Ctx, k: DamageKeyword, from: Pos, tile: Pos | undefine
     case 'strike': {
       // R4: the first enemy in the lane, counted from the attacker's side of the board.
       const lane = laneFromSide('player', from.lane);
-      const first = lane.map((t) => livingEnemies(s).find((e) => samePos(e.pos, t))).find((e) => e !== undefined);
+      const first = lane.map((t) => livingEnemies(s).find((e) => covers(e, t))).find((e) => e !== undefined);
       return first ? [first] : [];
     }
     case 'pierce':
@@ -103,6 +103,56 @@ function patternHits(ctx: Ctx, k: DamageKeyword, from: Pos, tile: Pos | undefine
     case 'blast':
       return tile ? enemiesOn(s, blastTiles(tile)) : [];
   }
+}
+
+/**
+ * R14: the player units a Blast on `tiles` hits, by `RULES.blastFriendlyFire`.
+ * Units are listed in deck order; `positions` reads a projected board (the
+ * preview's), and the board itself when omitted.
+ */
+export function alliesOn(
+  s: BattleState,
+  caster: UnitId,
+  tiles: readonly Pos[],
+  positions?: Readonly<Record<UnitId, Pos | null>>,
+): UnitId[] {
+  const mode = RULES.blastFriendlyFire;
+  if (mode === 'none' || tiles.length === 0) return [];
+  return livingUnits(s)
+    .filter((u) => (mode === 'allies' || u.id !== caster) && tiles.some((t) => samePos(t, positions ? positions[u.id] : u.pos)))
+    .map((u) => u.id);
+}
+
+function alliesBlasted(s: BattleState, caster: UnitId, tiles: readonly Pos[]): UnitState[] {
+  return alliesOn(s, caster, tiles).map((id) => unitOf(s, id)!);
+}
+
+/**
+ * D: a Harpoon pins a boss for `turns` of its turns. Every shield goes (the
+ * base shield is held, returned on its second pinned turn), and its telegraph
+ * becomes a Scream at once, so the board shows what the pin changed.
+ */
+export function pin(ctx: Ctx, boss: EnemyState, turns: number, card: string): void {
+  const shields = boss.shield + boss.baseShield;
+  boss.pinned = turns;
+  boss.stripped = boss.baseShield;
+  boss.baseShield = 0;
+  boss.shield = 0;
+  boss.intent = { act: 'scream', n: RULES.scream.n, tiles: screamTiles(boss) };
+  ctx.events.push({ t: 'harpooned', enemy: boss.id, card, turns, shields });
+}
+
+/** The tiles touching an enemy's footprint, along lanes and rows (no diagonals). */
+export function screamTiles(enemy: EnemyState): Pos[] {
+  const own = enemyTiles(enemy);
+  const out: Pos[] = [];
+  for (const t of own) {
+    for (const [dl, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) {
+      const p = tileAt(t.lane + dl, t.col + dc);
+      if (p && !own.some((o) => samePos(o, p)) && !out.some((o) => samePos(o, p))) out.push(p);
+    }
+  }
+  return out;
 }
 
 /** Move: the unit, or for Command the chosen ally, steps to the chosen tile. */
@@ -118,7 +168,7 @@ export function resolveMove(ctx: Ctx, play: PlannedPlay, def: CardDef): void {
   }
   const occupied = [
     ...livingUnits(s).filter((u) => u.id !== mover.id).map((u) => u.pos!),
-    ...livingEnemies(s).map((e) => e.pos!),
+    ...livingEnemies(s).flatMap((e) => enemyTiles(e)),
   ];
   if (!moveDestinations('player', mover.pos, n, occupied).some((d) => samePos(d, to))) {
     ctx.events.push({ t: 'fizzled', card: play.card, unit: play.unit, why: 'nothingHit' });
@@ -148,22 +198,33 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
       ctx.events.push({ t: 'converted', unit: unit.id, card: play.card, from: ability.from, to: ability.to });
     }
     let hits: EnemyState[];
+    // A Blast's footprint, fixed before anything on it is hit.
+    let blasted: Pos[] = [];
     if (targeted) {
       // R13: Target lands on the chosen unit at any range; a Blast centres on it.
       const chosen = livingEnemies(s).find((e) => e.id === play.choice?.unit);
-      hits = !chosen ? [] : k === 'blast' ? enemiesOn(s, blastTiles(chosen.pos!)) : [chosen];
+      if (chosen && k === 'blast') blasted = blastTiles(chosen.pos!);
+      hits = !chosen ? [] : k === 'blast' ? enemiesOn(s, blasted) : [chosen];
       if (!chosen) {
         fizzled = true;
         ctx.events.push({ t: 'fizzled', card: play.card, unit: unit.id, why: 'targetGone' });
       }
     } else {
+      if (k === 'blast' && play.choice?.tile) blasted = blastTiles(play.choice.tile);
       hits = patternHits(ctx, k, unit.pos!, play.choice?.tile);
-      if (hits.length === 0) {
-        fizzled = true;
-        ctx.events.push({ t: 'fizzled', card: play.card, unit: unit.id, why: 'nothingHit' });
-      }
+    }
+    const allies = alliesBlasted(s, unit.id, blasted);
+    if (!fizzled && hits.length === 0 && allies.length === 0) {
+      fizzled = true;
+      ctx.events.push({ t: 'fizzled', card: play.card, unit: unit.id, why: 'nothingHit' });
     }
     for (const enemy of hits) if (enemy.pos) damage(ctx, enemy, dmg.n);
+    // R14: the Blast hits the allies on its tiles too, after the enemies.
+    for (const ally of allies) {
+      if (s.phase !== 'plan' || !ally.pos) continue;
+      ctx.events.push({ t: 'friendlyFire', card: play.card, unit: ally.id });
+      damage(ctx, ally, dmg.n);
+    }
   }
 
   for (const effect of def.effects) {
@@ -189,6 +250,15 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
         s.pendingDraws.push({ n: effect.n, filter: effect.filter, owner: def.owner });
         ctx.events.push({ t: 'drawQueued', card: play.card, n: effect.n });
         break;
+      case 'harpoon': {
+        const boss = livingEnemies(s).find((e) => e.id === play.choice?.unit);
+        if (!boss || boss.pinned > 0) {
+          ctx.events.push({ t: 'fizzled', card: play.card, unit: unit.id, why: 'targetGone' });
+          break;
+        }
+        pin(ctx, boss, effect.pin, play.card);
+        break;
+      }
       default:
         // Damage, Target, Move and Command are handled above or in the move
         // phase; the reserved effects have no resolver and no shipped card uses one.
@@ -197,13 +267,23 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
   }
 }
 
-/** A played card leaves the hand: Once cards for `spent`, the rest for `discard`. */
-export function retire(s: BattleState, play: PlannedPlay): void {
+/** A played card leaves the hand: for `spent` on its last use, otherwise for `discard`. */
+export function retire(ctx: Ctx, play: PlannedPlay): void {
+  const { s } = ctx;
   const def = cardDefOf(s, play.card)!;
   s.piles.hand = s.piles.hand.filter((c) => c !== play.card);
   // A fainted owner's cards are already in `removed`; nothing to retire.
   if (s.piles.removed.includes(play.card)) return;
-  s.piles[def.once ? 'spent' : 'discard'].push(play.card);
+  // Uses (D7): the last one spends the card until the next wave; before that it goes back into the deck.
+  if (def.uses !== undefined) {
+    s.uses[play.card] = (s.uses[play.card] ?? def.uses) - 1;
+    if (s.uses[play.card]! <= 0) {
+      s.piles.spent.push(play.card);
+      ctx.events.push({ t: 'usedUp', card: play.card });
+      return;
+    }
+  }
+  s.piles.discard.push(play.card);
 }
 
 export function payFor(unit: UnitState | undefined, def: CardDef): void {

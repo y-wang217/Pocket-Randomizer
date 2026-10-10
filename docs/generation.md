@@ -13115,15 +13115,15 @@ A guard exercised only in the environment where it cannot fail is untested,
 which is the cry-wolf problem `test/boundaries.test.ts` already warns about —
 and it had been sitting in the gate itself.
 
-The tally predicates move to `scripts/check-tally.mjs` **byte-for-byte**, with
+The tally predicates move to scripts/check-tally.mjs (deleted 2026-10-09, section 126) **byte-for-byte**, with
 their prose, so a test can reach them. `check.mjs` ends in
 `process.exit(await main())`, so a test that imported it would run the gate; an
 `import.meta.url` entry guard was the alternative and is the worse seam,
 because a guard that fails open means a test run invokes the ten-leg gate it is
-part of. `scripts/check-tally.d.mts` follows the convention
+part of. scripts/check-tally.d.mts (deleted with it) follows the convention
 `scripts/visual/contrast.d.mts` sets.
 
-`test/check-gate.test.ts` is the first test to cover the runner. Its fixtures
+test/check-gate.test.ts (deleted with it) is the first test to cover the runner. Its fixtures
 are real: the escape pattern is what this repo emits under `FORCE_COLOR=1`, the
 failing shape is run 37205550086's chromium leg, and the passing counts are
 47.5's own. Against the coloured passing tally under an `onTaskUpdate` timeout:
@@ -16130,7 +16130,310 @@ log replays to.
   round from the plan so far, through the same taps' actions, so the log and
   the playback are a player's.
 
-### 125o. A colour mode and a language setting
+### 125o. Opening grace, Fast, Blast friendly fire, five enemies, three scenarios, colour coding, the unit filter
+
+**2026-10-09**, on `claude/vibrant-hopper-axlk79` (the session's designated
+branch), from `claude/wizardly-cannon-l8fktg` at `6afdaa8` (`cards-0.3.0`).
+Prompt
+[`spec/gymrun-patch-card-battle-grace-friendly-fire.md`](spec/gymrun-patch-card-battle-grace-friendly-fire.md),
+Part A only; Parts B to G are queued and not begun. **`CARD_ENGINE_VERSION`
+moves from `cards-0.3.0` to `cards-0.4.0`**: starting steps and Blast
+resolution change, so an older log is refused, naming both values. None of
+the run's four axes moves; `contentHash` holds at `865d3b` (nothing under
+`src/data/` or `build-config/` changed).
+
+- **A1, grace and Fast.** `openingSteps(def)` (`core/cards/enemies.ts`) is
+  what a starting step is rolled among: under `RULES.openingGrace` the steps
+  whose act cannot deal damage (`actCanDamage`: a conditional counts as
+  damage when either branch deals it), every step with it off, and for a
+  `fast` enemy its first damaging step only. Every enemy still takes exactly
+  one draw (`nextInt` consumes one value whatever its bound), so spawns and
+  the shuffle are drawn exactly as in `cards-0.3.0`: same seed, same tiles,
+  same deck order, grace on or off (`test/cards-opening.test.ts`). The roll
+  stays at creation, where the shipped code makes it; the prompt's "when the
+  player presses Start" is where the rolled step first shows. The data test
+  holds every non-Fast enemy to a non-damaging step, naming it, and every
+  Fast enemy to attacks of 1. `RULES.friendlyFire` (R14, read by nothing)
+  is replaced by `blastFriendlyFire`.
+- **A2, Blast friendly fire.** A player Blast's footprint is fixed before
+  anything on it is hit; the enemies on it are damaged first, then the allies
+  `alliesOn` names under `RULES.blastFriendlyFire` (`'alliesExceptCaster'`,
+  the default; `'allies'`; `'none'`). A new `friendlyFire` event precedes each
+  ally's `damaged`. A Blast fizzles only when it hits nobody at all. A unit a
+  Blast fells faints as any unit does; **new:** the commit loop now skips
+  every later play by a fainted unit, with a `planPruned` event of reason
+  `fainted` (before this patch nothing could faint during the player's half
+  of a round, so the loop never had to). Legality is unchanged.
+  `PlayPreview.allies` carries the allies a Blast would hit, and
+  `friendlyFireFor` each tile or enemy a Blast being aimed could take that
+  would hit one. On screen: a dashed warning outline and the damage on each
+  such ally (token and panel), and the allies' letters on each such choice.
+- **A3, five enemies.** Hound (Fast), Turret, Bulwark, Sniper, Pikeman, from
+  the existing vocabulary; Bulwark's conditional with Shield as the else-act
+  needed no widening. `EnemyDef.grade` on all seven. Their markers are
+  placeholders drawn in the pack's style (the diamond and a glyph) under
+  `src/ui/assets/cardbattle/markers/`, five more IDs in the card battle
+  manifest, until the author's art arrives.
+- **A4, scenarios.** `turret-alley`, `wall-and-gun`, `the-pack`, spawns fixed
+  as listed. `gradeTotal(encounter)` (`core/cards/create.ts`) sums the
+  grades; Menu shows it under each scenario's name, the readout and
+  `cards:narrate` print it. **Deviation:** the prompt's heading says *Four
+  more scenarios*; its table lists three, and three are built.
+- **A5, colour coding.** Owner colour as `--cb-own` per `data-owner`:
+  Commander teal, Gunner blue, Sword dasher purple, Neutral the new
+  `--cb-grey`. A card wears it as its frame with the owner's letter in the
+  badge (a Neutral has no badge); a unit as its panel stripe and name, token
+  ring and label, filled slots, and its own attack previews. **Every enemy
+  telegraph is now hatched** (Strike was a solid wash, Slash a purple one; the
+  prompt's *telegraphs hatched, zones solid*), Slash in a deeper red, so purple
+  is the Sword dasher's alone; each telegraph chip names its enemy (`D1`), as
+  the token does. Zones keep their solid fills. **Contrast:** the pack's
+  teal, blue and red fail 4.5:1 as text on the paper (4.24, 3.76, 4.07) and
+  `--cb-dim` did too (3.70), so text and text-bearing chips use new darker
+  `-text` shades and `--cb-dim` goes from 0.62 to 0.8;
+  `test/cards-contrast.test.ts` holds twenty pairs to 4.5:1 off the
+  stylesheet's own tokens. Not covered: text drawn over the pack's art (a
+  card's cost disc), whose colours live in the SVGs. Enemy panels share the
+  column's height, so The Pack's four fit.
+- **A6, the unit filter.** Presentation only. With nothing being chosen, a
+  tap on a unit shows the cards it can play now (own and Neutral) and those it
+  has planned; the rest fold into `+N other`, beside `Showing B · Show all`.
+  The chip, the same unit again, End Turn, or the unit fainting clears it. A
+  card tapped under the filter skips *Pick who plays it* when the filtered unit
+  can play it.
+- **A7, communication.** Grace: the note line in round 1, an enemy's Inspect
+  entry (new: Inspect, then an enemy, shows its numbers, grade and how it
+  opens), and `grace: e1 starts on a setup step` in narrate. Fast: the badge,
+  the entry, `e1 Hound is Fast: starts on an attack step`. Friendly fire: the
+  aiming warning, the Blast card's entry, `B Gunner takes 1 from Fire!
+  (friendly fire)` and `... has fainted: c9 Slash is not played`. The round
+  playback says `B: friendly fire` and `Not played: fainted`. **Reading:** the
+  prompt's *round 1 intent strip* is built as the note line over the board,
+  the one place a round-wide notice already lives.
+- **A8.** The guide is at `cards-0.4.0`; its worked example stays the
+  `cards-0.2.0` game, with a note on what grace and friendly fire change,
+  because no `cards-0.4.0` game by a person exists yet.
+
+Measured at A8:
+
+| what | value |
+|---|---|
+| main chunk | 4,198,984 B before and after: **0 B delta** (the sandbox is lazy) |
+| sandbox chunk | 85,625 to 95,599 B minified (+9,974), 22.84 to 25.14 kB gzipped; its CSS 17,301 to 21,221 B |
+| board at 390x844 | `.cb-board` 448px (7 x 64), `.cb-mid` 448px, frame bottom 758px, no scroll, in all six scenarios and with the filter on |
+| `contentHash` | `865d3b`, unmoved |
+
+Starting steps under grace, seeds `GRACE0` to `GRACE1999` across all six
+scenarios (n is enemy-starts): Drone steps 2/4/6 at 33.3/33.3/33.4%
+(n 12,000); Lancer 1/2 at 50.5/49.5% (6,000); Turret 1/3 at 50.4/49.6%
+(4,000); Bulwark 1/3 at 50.4/49.6% (4,000); Sniper 1/2 at 48.8/51.3% (2,000);
+Pikeman 1/2/3 at 34.1/32.6/33.2% (2,000); Hound step 1 at 100% (8,000).
+
+Random-bot wins, battle seeds `RB0` to `RB1999`, bot seeds `RBB0` to
+`RBB1999`, 2,000 per scenario, on `cards-0.4.0` and, for comparison, with
+grace off and friendly fire `'none'` on the same seeds:
+
+| scenario | grade | wins, 0.4.0 rules | wins, grace off, no friendly fire |
+|---|---|---|---|
+| `skirmish` | 5 | 36 (1.80%) | 19 (0.95%) |
+| `test` | 5 | 33 (1.65%) | 27 (1.35%) |
+| `staggered` | 5 | 28 (1.40%) | 24 (1.20%) |
+| `turret-alley` | 5 | 21 (1.05%) | 17 (0.85%) |
+| `wall-and-gun` | 7 | 6 (0.30%) | 7 (0.35%) |
+| `the-pack` | 6 | 23 (1.15%) | 21 (1.05%) |
+
+Every scenario can be won. A random bot is a floor, not a difficulty
+measure; Part B's bot is what corrects the grades. Balance is not a gate.
+
+### 125p. Waves, the Colossus and the Harpoon, and the bench on `cards-0.4.0`
+
+**2026-10-09**, on `claude/vibrant-hopper-axlk79`, after merging `main`
+(#106, the guard bot) and from the author's rulings
+[`spec/gymrun-card-battle-rulings-waves-boss-reskin.md`](spec/gymrun-card-battle-rulings-waves-boss-reskin.md)
+and its follow-up. Parts C and D; Part E (the reskin) waits on its art, as
+ruled. `CARD_ENGINE_VERSION` stays `cards-0.4.0`: Part A's version had not
+merged, and no log of the six earlier scenarios replays differently (Once
+became Uses 1 with the same effect). None of the run's four axes moves;
+`contentHash` holds.
+
+**The bench, Part B's measurement on the new rules.** Guard bot, shipped
+weights, seeds `GB0..GB199`, 200 per scenario: skirmish 200, test 199,
+staggered 200, Turret Alley 195, Wall and Gun 198, The Pack 200, Siege 183;
+units kept on a win 2.94 / 2.83 / 2.88 / **2.50** / 2.84 / 2.79 / 1.36; rounds
+to a win 8.2 / 8.7 / 8.4 / 13.7 / 16.0 / 8.0 / 21.7. By units kept, Turret
+Alley (grade 5) is the hardest of the one-wave scenarios and Wall and Gun
+(grade 7) sits with the easy ones, so the Turret looks under-graded and the
+Bulwark or Sniper over. Recorded, not retuned: balance is not a gate, and a
+grade change is the author's.
+
+**Part C, waves.** `EncounterDef.waves` lists the waves after the first.
+Every wave's enemies are in the state from creation (ids continue, `wave` on
+each, `spawn` the tile it arrives on, `pos` null until then); every
+starting step and seeded spawn is drawn at creation, so a one-wave scenario
+draws exactly as before. When the last enemy of a wave falls in phase 3,
+`startWave` (`resolve.ts`): each living unit keeps its HP, loses its card
+shield, gets its base shield back, goes to 0 MP (C1) and back to its
+scenario tile; owed MP and Need Help's draw clear (C5); every card not
+removed by a faint, Uses cards with their uses back (C4), is sorted into
+deck order and shuffled (C2); the round count restarts, so the 30-round loss
+is per wave (C6); the battle is back in `deploy` (C3), and Start opens the
+wave under grace. Siege's grade total is the sum of its waves (C8). The guard
+bot counts a cleared wave as a win, or its search would leave a wave's last
+enemy standing rather than face the next.
+
+**Siege** (C7, the session's draft): Drone, Lancer, Hound (grade 4); Bulwark,
+Sniper, a seeded Lancer, Hound (7); the Colossus (10). Guard bot, seeds
+`SG0..SG199`: won 196/200; per battle reaching the wave, unit HP lost 0.16,
+0.53, 2.63 and faints 0.01, 0.20, 1.52, so each wave is harder (C8). The
+random bot, bot seeds `SGR0..SGR199`, won 0/200.
+
+**Part D, the Colossus.** `EnemyDef.size` (2 by 2 from its position, its
+front row toward the player), `advanceSteps` 3, `boss`, `stalks`, `grants`.
+Every enemy lookup reads a footprint (`enemyTiles`, `covers`, `lanesOf`):
+blocking, Strike's first enemy in a lane, Pierce, Slash, Blast, movement and
+the invariants. A card hits it once however many of its tiles it covers (D1).
+Its script: Crush (Pierce 2 down both its lanes); advance up to three rows,
+never past C3, then Stomp (Slash 1 on every lane of the row in front, C2 once
+it stands on C3, D4 as read back); Shield 3, its only step without damage, so
+grace always opens on it (D5). A step may carry a `label`, shown in place of
+the keyword.
+
+- **The stalk (D3, as ruled after the follow-up).** Once, the first move
+  phase it stands at or under half HP (6 of 12) and is not pinned, it stalks
+  instead of its scripted move: up to `RULES.stalk.steps` (3) rows forward.
+  Each step stomps the two tiles it is about to move into for
+  `RULES.stalk.damage` (1); anyone there, or the edge of its reach, stops it,
+  so a unit close enough is hit and not walked over. Each step is its own
+  playback beat, lit like a Slash (the author's *"3 separate animations, kind
+  of like slashes"*). The panel shows *Stalks at 6 HP* until it has.
+  **Reading:** the ruling says it brings the monster "much closer" without
+  saying which way; it is straight forward, in its own two lanes.
+- **The Harpoon.** Granted into hand from a new `reserve` pile when the
+  Colossus's wave arrives, drawn **black** (the author's side note: an
+  enemy's grant black, Neutral grey, a unit's cards its colour). Neutral (any
+  unit), 2 MP, **Retain** (an unplayed copy stays, and the next hand draws to
+  five with it, D6), **Uses 2** (back into the deck after a use, spent after
+  the last, D7). Range: the playing unit's lane, in a straight line, the
+  boss's nearest tile at most 3 ahead; otherwise *Too far: 3 tiles ahead in
+  its lane* (D8), read off the projected board. It pins for 2 of the boss's
+  turns: no moves and no script step; every shield goes at once, the base
+  shield back at the start of its second pinned turn (D9 *"its shields renew
+  on the second turn"*); each pinned turn it Screams instead of acting,
+  `RULES.scream.n` (1) on every tile touching its footprint along lanes and
+  rows, its own allies included (D2, D10 and the read-back). A pin delays the
+  stalk. Not stackable: a pinned boss is not a target.
+- **Uses, a keyword (D7).** `CardDef.once` is replaced by `uses`; Prep and
+  Dig In are Uses 1, the same as before. The card face shows the keyword's
+  mark and the uses left; Inspect shows *Uses 1/2*. Dig In shows a shovel
+  (`face`), the Harpoon a harpoon.
+- **On screen.** The Colossus's token spans its four tiles from its anchor
+  (its tile raised over its neighbours, since every tile isolates). A Scream
+  is hatched in the deeper red with a dotted edge. The panel shows *Pinned
+  N*. Enemies are numbered within their wave, token and panel alike. New
+  placeholders: the Colossus marker and the shovel, harpoon and scream icons.
+
+### 125q. Part E, the reskin on the meadow pack
+
+**2026-10-09**, on `claude/vibrant-hopper-axlk79`, after Parts C and D as ruled
+(E5), from the art the author had made from the session's prompt
+(`meadow-card-battler-assets`, 22 sheets and 96 sprites with an atlas),
+styled on the author's reference
+([`spec/assets/card-battle-reskin-reference.webp`](spec/assets/card-battle-reskin-reference.webp)).
+Presentation only: no engine, log or version change.
+
+- **The files.** 89 of the pack's sprites, converted to WebP (468 KB in all;
+  the 1170 by 2532 background down to 780 wide, 59 KB) and named by the
+  existing asset IDs in each group folder of `src/ui/assets/cardbattle/`. A `.webp`
+  wins over the first pack's `.svg` of the same ID, so anything the meadow
+  pack does not draw (the card badge, the shovel) keeps its old file. New IDs:
+  the owner band masks, the green primary button, the background, five
+  icons, the pinned Colossus, three portraits, and an `art` group of the 16
+  card illustrations. The pack's nine-slice insets are in `MEADOW_SLICES`,
+  with the width each is drawn at.
+- **The layout** (the ruling's *enemy roster strip on top, unit panels below
+  the board*): the meadow behind; the status line on a cream plate (E4: no
+  header); the wave's enemies side by side; the board across the screen, three
+  lanes of about 120px and seven rows of **52px** (E2: shrunk from 64 and
+  checked readable at 390x844: tokens, chips and the 2x2 Colossus all read);
+  the three unit panels in a row, the Sword dasher's wider for its three 44px
+  slots, each with its portrait; the hand; the actions, End Turn in green.
+  The board is 388px tall and the screen fits 390x844 with no scroll.
+- **Cards** (E3, *"the colours can show better if the cards have a border"*):
+  the illustration behind the frame's open art window, the pack's owner band
+  tinted in the owner's colour (teal, blue, purple, Neutral grey, an enemy's
+  grant black), the keyword's icon in the art window's corner (the art is
+  flavour, the icon the rule), cost and power in the frame's discs, the name in
+  its strip, the owner letter in its badge. Inspect shows the full frame and
+  puts the card's words on a plate under it.
+- **Kept**, as Part E requires: enemy shields (now one line, *HP 3/3 · Sh
+  0+1*, as a unit's), MP numbers, telegraph chips naming their enemy, owner
+  letters. The Colossus shows its pinned art while pinned.
+
+## 126. The Node leg's reporter timeout was one test, not load
+
+**2026-10-09**, on `claude/sharp-ritchie-qb95px`, from `main` at `f58835e`.
+Prompt [`spec/gymrun-patch-node-leg-rpc-timeout.md`](spec/gymrun-patch-node-leg-rpc-timeout.md).
+Test-only: nothing under `src/` changes, and no version axis moves.
+
+**This corrects sections 15, 17, 34, 36 and 47**, which recorded
+`[vitest-worker]: Timeout calling "onTaskUpdate"` as the runner under load, and
+the comment in `scripts/vitest-split.mjs` that capped the forks on that reading.
+
+- **The mechanism.** Vitest's worker RPC arms a 60s timer on every call, and
+  the reply is only read when the worker's event loop turns. `core/` has no
+  timers, so a `playRun` or `resumeRun` never turns it however `async` it is.
+  A test that runs for more than 60s therefore expires the timer for the update
+  sent when it started, vitest counts that as an unhandled error, and the leg
+  exits 1 with every test passed. That is the shape on `test:node` and
+  `trim:node` in every recent `check` run, which `scripts/check.mjs` reports as
+  ERRORED.
+- **Not load.** Reproduced on an idle box with one scratch file of seventy 1s
+  synchronous tests; the same file with one `setImmediate` before each test is
+  clean. The fork count does not enter into it.
+- **The test.** `test/party.test.ts`, "resumes from the save taken at every
+  forced switch to an identical run", resumes the whole run once per switch
+  save: 62 saves, 80 to 90s locally. Every other test in the Node half is under
+  36s; `test/run-replay.test.ts`'s every-point resume, at 35.6s, is the next
+  nearest.
+- **The fix.** That loop awaits one `setImmediate` before each resume. Every
+  forced switch is still checked. The longest stretch without a turn is now
+  the seed search ahead of the loop, 2.8s locally; the slowest resume is 2.3s.
+  Run alone, the test raised the error without the yield and does not with it.
+- **Measured in Actions.** PR 107's first run, all six checks green:
+  `node suite` PASS in 248.7s and strict trim's `trim:node` PASS in 409.3s,
+  0 runner errors on both, where every recent `main` run had reported ERRORED.
+- **Not done here.** The two-fork cap in CI, whose comment now says its
+  reading is wrong; the leaked `setTimeout` in `src/ui/scene.ts` that failed
+  run 37928075949 from `test/species-label.test.ts`. Each is its own change.
+
+### 126a. ERRORED is retired
+
+**2026-10-09**, message 3 of the same prompt. **Supersedes the ERRORED status
+of section 34** and the tally test section 47.5 wrote for it.
+
+- **The mask.** ERRORED read a failed leg's output and reported it green when
+  it held the `onTaskUpdate` string, a passing files tally and no `N failed`.
+  An unhandled error is not a failed test, so a second one printed beside the
+  timeout met all three: fed a real `ReferenceError` from a leaked timer plus
+  the timeout under a passing tally, the guard returned true. Run 37928075949
+  printed that `ReferenceError` and was reported FAILED only because no
+  timeout fired in it.
+- **Retired, not tightened.** Counting errors against timeouts was the other
+  way, and it is still a parser overruling an exit code: under Actions vitest
+  also writes each error as an `##[error]` annotation, so the string count
+  and the error count do not even agree. And section 126 took away the reason
+  to forgive the timeout at all: it is a test holding its worker past 60s,
+  which is that test's to fix, the way the forced-switch sweep was.
+- **What changed.** `scripts/check.mjs` has three statuses, PASS, FAILED and
+  SKIPPED, read from the exit code; a dependency runs only after PASS. The
+  tally module, its type stub and test/check-gate.test.ts went with it,
+  since ERRORED was all they served. Section 47.5's mentions of them are
+  unbackticked with a note, as earlier deletions in this file were.
+- **The trade.** A test that crosses 60s now turns its leg red with vitest's
+  own message instead of a green line. That is the intended signal; the next
+  nearest, `test/run-replay.test.ts`, ran 35.6s locally.
+
+## 127. The card battle sandbox: a colour mode and a language setting
 
 **2026-10-09**, on `claude/nifty-lamport-6bj8bd`, from `main` at `a8b0c96`.
 From [`spec/gymrun-patch-card-battle-accessibility.md`](spec/gymrun-patch-card-battle-accessibility.md).
@@ -16164,16 +16467,21 @@ unmoved, because nothing under `src/data/` changed.
   `Shield 0 · Base 0` on an enemy panel. German's Pierce is `Stich` because
   `Durchschlag` did not fit the pill even at 60%.
 - **Colours.** The author is blue-green colour blind, so the mode is tuned
-  for a tritan-type deficiency, not red-green. Measured under the Machado
-  2009 tritanopia simulation, CIELAB distance, standard → blue-green safe:
-  the home-row blue against the teal of a legal tile 7 → 31; the amber
-  highlight against the red telegraph 28 → 44; Slash's purple against the
-  teal 42 → 45, and it is now dark, so it parts from Strike's red by
-  lightness too. Teal and ink do not move. The pack bakes the palette's
-  exact hexes into its art, so the art is recoloured by swapping them in each
-  SVG's text (`TRITAN_SWAP`, `ui/cardbattle/assets.ts`) and the stylesheet's
-  tokens move with the same table.
+  for a tritan-type deficiency, not red-green. Built first on the v1 pack,
+  then redone on merging main's meadow reskin (125q), which made the owner
+  colours the thing to tell apart: A teal, B blue, C purple, Neutral grey.
+  Measured under the Machado 2009 tritanopia simulation, CIELAB distance,
+  standard: A/B 7, C/Neutral 14, red telegraph/amber highlight 28. The
+  blue-green safe palette moves B to bronze, C to deep indigo, Neutral to a
+  lighter grey, amber to a bright yellow and the red a shade deeper, with
+  their text variants; no two of A, B, C, Neutral, the red and the amber are
+  then closer than 29. Teal and ink do not move. It is tokens only
+  (`.cb[data-palette='tritan']` in `sandbox.css`): every owner band, panel
+  edge, wash and chip the screen tints follows them. The meadow art's own
+  baked colours do not move. The v1 build's SVG recolouring was dropped in
+  the merge, since the art it recoloured is now WebP.
 - **Tested.** `test/visual-card-battle.test.ts`: every language on both
   palettes at 390x844, no scroll, every touch target at least 44px, and no
   label out of its box on the board, in the menu, and over eight more deals
-  per language; the menu switches both settings and they survive a reload.
+  per language; the menu switches both settings, B's colour leaves blue, and
+  both survive a reload.

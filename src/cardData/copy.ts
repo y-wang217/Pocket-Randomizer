@@ -27,6 +27,8 @@ import { ZH_HANT } from './translations/zh-Hant';
 const EN = {
   title: 'Card battle test',
   round: 'Round',
+  /** Part C: the wave being fought, in the status line. */
+  wave: (n: number, of: number) => `Wave ${n}/${of}`,
   draw: 'Draw',
   discard: 'Discard',
   endTurn: 'End Turn',
@@ -34,6 +36,8 @@ const EN = {
   deployHint: 'Place your units on the home rows, then Start',
   placeUnit: (unit: string) => `${unit}: pick a home tile`,
   scenario: 'Scenario',
+  /** A scenario's grade total, the sum of its enemies' provisional grades. */
+  grade: (n: number) => `Grade ${n}`,
   botTurn: 'Bot turn',
   undo: 'Undo',
   cancel: 'Cancel',
@@ -55,8 +59,33 @@ const EN = {
   pickAlly: 'Pick an ally',
   pickTile: 'Pick a tile',
   pickTileBlock: 'Pick a tile · a shield blocks a Strike',
-  inspectHint: 'Tap a card to inspect it',
-  once: 'Once',
+  pickTileAllies: 'Pick a tile · a marked tile hits an ally too',
+  pickTargetAllies: 'Pick a target · a marked one hits an ally too',
+  inspectHint: 'Tap a card or an enemy to inspect it',
+  /** Round 1 under opening grace (A1, A7): the note line, while nothing else is said. */
+  graceBoard: 'Round 1: enemies are getting into position',
+  /** Inspect entries for the rules of the grace and friendly fire patch (A7). */
+  rule: {
+    grace: 'Round 1: most enemies set up instead of attacking.',
+    fast: 'Fast: attacks from round 1, for 1.',
+    blastAllies: 'Blast hits allies on its tiles too. Not the unit that plays it.',
+    blastAlliesCaster: 'Blast hits allies on its tiles too, the unit that plays it included.',
+  },
+  enemyStats: (hp: number, base: number) => `HP ${hp} · Base ${base}`,
+  /** The unit filter (A6): tap a unit to see only what it can play. */
+  filterShowing: (unit: string) => `Showing ${unit}`,
+  filterShowAll: 'Show all',
+  filterOther: (n: number) => `+${n} other`,
+  /** The Uses keyword (D7), left of total. */
+  uses: (left: number, of: number) => `Uses ${left}/${of}`,
+  retain: 'Retain: stays in hand',
+  /** Part D, the boss's panel and Inspect entry. */
+  pinned: (turns: number) => `Pinned ${turns}`,
+  stalkAt: (hp: number) => `Stalks at ${hp} HP`,
+  bossRules: {
+    stalk: 'Once, at half HP, it stalks up to 3 rows toward you, stomping each tile it moves into.',
+    pin: 'A Harpoon pins it for 2 turns: no moves, no shields until the second turn, and it Screams at every tile touching it.',
+  },
   neutral: 'Neutral',
   cost: 'MP',
   hp: 'HP',
@@ -65,12 +94,15 @@ const EN = {
   baseShield: 'Base',
   slots: 'Slots',
   intentNone: 'Wait',
+  /** The Fast badge on an enemy's token and panel. */
+  fast: 'Fast',
   reasons: {
     noMp: 'Not enough MP',
     noSlot: 'No free slot',
     wrongZone: 'Danger zone only',
     noTarget: 'Nothing to hit',
     fainted: 'Fainted',
+    outOfRange: 'Too far: 3 tiles ahead in its lane',
   } satisfies Record<PlayBlock, string>,
   keyword: {
     strike: 'Strike',
@@ -80,7 +112,8 @@ const EN = {
     move: 'Move',
     shield: 'Shield',
     target: 'Target',
-  } satisfies Record<DamageKeyword | 'move' | 'shield' | 'target', string>,
+    scream: 'Scream',
+  } satisfies Record<DamageKeyword | 'move' | 'shield' | 'target' | 'scream', string>,
   effect: {
     shieldSelf: (n: number) => `Shield ${n}, self`,
     shieldFriendly: (n: number) => `Shield ${n}, ally`,
@@ -88,6 +121,7 @@ const EN = {
     mpNextTurns: (n: number, turns: number) => `+${n} MP next ${turns} turns`,
     grantMove: (n: number) => `Ally: Move ${n}, no MP`,
     drawNext: (n: number) => `Next hand +${n}, not mine`,
+    harpoon: (range: number, pin: number) => `Pin a boss ${range} ahead, ${pin} turns`,
   },
   roundLog: 'Round log',
   replayRound: 'Replay round',
@@ -103,6 +137,15 @@ const EN = {
     converted: 'Strike becomes Pierce',
     fizzledGone: 'Fizzled: target gone',
     fizzledNothing: 'Fizzled: nothing to hit',
+    friendlyFire: (who: string) => `${who}: friendly fire`,
+    harpooned: (who: string, turns: number) => `${who} pinned for ${turns} turns, shields gone`,
+    shieldsReturned: (who: string, n: number) => `${who} shields back: base ${n}`,
+    pinEnded: (who: string) => `${who} tears the harpoon out`,
+    stalked: (who: string) => `${who} stalks!`,
+    stomp: (who: string, n: number, of: number) => `${who} stomps ${n}/${of}`,
+    granted: (card: string) => `${card} into your hand`,
+    usedUp: (card: string) => `${card}: no uses left this wave`,
+    notPlayed: 'Not played: fainted',
     hit: (who: string, n: number) => `${who} hit for ${n}`,
     absorbed: { shield: (n: number) => `shield -${n}`, baseShield: (n: number) => `base -${n}`, hp: (n: number) => `HP -${n}` },
     missed: 'Missed: nobody on the lit tiles',
@@ -117,6 +160,7 @@ const EN = {
     telegraph: (who: string, act: string) => `${who}: ${act}`,
     reshuffled: 'Discard shuffled in',
     round: (n: number) => `Round ${n}`,
+    wave: (n: number) => `Wave ${n} arrives`,
     step: (n: number, of: number) => `${n}/${of}`,
   },
   /**
