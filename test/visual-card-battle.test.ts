@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { CARD_LANGUAGES, CARD_COPY_BY_LANGUAGE, LANGUAGE_NAMES } from '../src/cardData/copy';
 
-import { openApp } from '../scripts/visual/browser.mjs';
+import { openApp, skipTutorialIn } from '../scripts/visual/browser.mjs';
 import { openHarness, type Harness } from './visual/harness';
 
 const SEED = 'GYMRUN-715122-DNCFGVFU';
@@ -18,6 +18,13 @@ const PHONE = { width: 390, height: 844 };
 const SEQUENCE = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'];
 
 let harness: Harness;
+
+/** A phone context past every first open, the card battle tutorial's included: the tutorial has its own test below. */
+async function phone(viewport: { width: number; height: number } = PHONE) {
+  const context = await harness.browser.newContext({ viewport, hasTouch: true });
+  await skipTutorialIn(context);
+  return context;
+}
 
 beforeAll(async () => {
   harness = await openHarness();
@@ -50,7 +57,7 @@ const screen = (page: Page) => page.evaluate(() => globalThis.document.querySele
 
 describe('the card battle sandbox at 390x844', () => {
   it('opens on #test, fits with no scroll, and every touch target is at least 44px, through a few rounds', async () => {
-    const context = await harness.browser.newContext({ viewport: PHONE, hasTouch: true });
+    const context = await phone();
     const page = await context.newPage();
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
@@ -82,6 +89,85 @@ describe('the card battle sandbox at 390x844', () => {
 });
 
 /*
+ * The tutorial on a first open, at the phone frame
+ * (`docs/spec/gymrun-patch-card-battle-hearts-and-tutorial.md`): each step's
+ * panel and anchor on screen, its buttons 44px, and a step that waits for a
+ * tap on the board, the units, the hand or the actions never covering them.
+ */
+describe('the card battle tutorial at 390x844', () => {
+  it('opens on a first visit and walks to the dummy with every step on screen', async () => {
+    const context = await harness.browser.newContext({ viewport: PHONE, hasTouch: true });
+    const page = await context.newPage();
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.goto(`${harness.url}/#test`, { waitUntil: 'load' });
+    await page.waitForSelector('.cb .cb-coach:not([hidden])', { timeout: 20_000 });
+
+    const look = () =>
+      page.evaluate(() => {
+        const d = globalThis.document;
+        const box = (selector: string) => d.querySelector(selector)?.getBoundingClientRect() ?? null;
+        const coach = d.querySelector<HTMLElement>('.cb-coach')!;
+        const c = coach.getBoundingClientRect();
+        const overlaps = (selector: string) => {
+          const r = box(selector);
+          return !!r && r.top < c.bottom && r.bottom > c.top && r.left < c.right && r.right > c.left;
+        };
+        const anchor = d.querySelector('[data-coach-target="true"]')?.getBoundingClientRect() ?? null;
+        const buttons = [...coach.querySelectorAll<HTMLElement>('button')].filter((b) => !b.hidden).map((b) => b.getBoundingClientRect());
+        return {
+          step: coach.dataset['step'],
+          wait: coach.dataset['wait'] === 'true',
+          coach: { top: c.top, bottom: c.bottom, left: c.left, right: c.right },
+          anchor: anchor && { top: anchor.top, bottom: anchor.bottom },
+          covers: ['.cb-board', '.cb-units', '.cb-hand', '.cb-actions'].filter(overlaps),
+          small: buttons.filter((b) => b.width < 44 || b.height < 44).length,
+          scroll: d.documentElement.scrollHeight - globalThis.innerHeight,
+        };
+      });
+    const check = async (step: string) => {
+      const l = await look();
+      expect(l.step).toBe(step);
+      expect(l.coach.top, step).toBeGreaterThanOrEqual(0);
+      expect(l.coach.bottom, step).toBeLessThanOrEqual(PHONE.height);
+      expect(l.coach.left, step).toBeGreaterThanOrEqual(0);
+      expect(l.coach.right, step).toBeLessThanOrEqual(PHONE.width);
+      expect(l.anchor, `${step}: an anchor`).not.toBeNull();
+      expect(l.anchor!.top, step).toBeGreaterThanOrEqual(0);
+      expect(l.anchor!.bottom, step).toBeLessThanOrEqual(PHONE.height);
+      expect(l.small, `${step}: buttons under 44px`).toBe(0);
+      expect(l.scroll, step).toBeLessThanOrEqual(0);
+      // A waiting step leaves the pieces it waits on uncovered, bar the board's farthest row.
+      if (l.wait) expect(l.covers.filter((c) => c !== '.cb-board'), step).toEqual([]);
+    };
+
+    await check('place');
+    await page.locator('.cb-tile[data-lane="1"][data-col="2"]').click();
+    await page.locator('.cb-tile[data-lane="1"][data-col="1"]').click();
+    await check('start');
+    await page.locator('[data-coach="end"]').click();
+    for (const step of ['hand', 'vitals', 'mana']) {
+      await check(step);
+      await page.locator('.cb-coach-next').click();
+    }
+    await check('move');
+    await page.locator('.cb-card[data-card="move"]').click();
+    await page.locator('.cb-panel[data-id="C"]').click();
+    await page.locator('.cb-tile:has(.cb-ov--selectable)').first().click();
+    await check('slots');
+    await page.locator('.cb-coach-next').click();
+    await check('attack');
+    await page.locator('.cb-card[data-card="shoot"]').click();
+    await check('end');
+    await page.locator('[data-coach="end"]').click();
+    await page.locator('.cb-coach[data-step="finish"]:not([hidden])').waitFor({ timeout: 20_000 });
+    await check('finish');
+    expect(errors).toEqual([]);
+    await context.close();
+  }, 120_000);
+});
+
+/*
  * 390x844 is an iPhone's whole screen; Safari shows less of it between its
  * bars, and the frame was cut off top and bottom there
  * (`docs/spec/gymrun-patch-iphone-viewport-fit.md`). 790 is a short gap the
@@ -91,7 +177,7 @@ describe('the card battle sandbox at 390x844', () => {
 describe('the card battle sandbox inside Safari on an iPhone', () => {
   for (const height of [790, 713, 664]) {
     it(`at 390x${height} the whole frame is on screen`, async () => {
-      const context = await harness.browser.newContext({ viewport: { width: 390, height }, hasTouch: true });
+      const context = await phone({ width: 390, height });
       const page = await context.newPage();
       await page.goto(`${harness.url}/#test`, { waitUntil: 'load' });
       await page.waitForSelector('.cb .cb-tile', { timeout: 20_000 });
@@ -185,7 +271,7 @@ describe('the card battle sandbox in every language', () => {
   for (const language of CARD_LANGUAGES) {
     it(`${LANGUAGE_NAMES[language]} fits the phone frame, on the board and in the menu, on both palettes`, async () => {
       for (const palette of ['standard', 'tritan']) {
-        const context = await harness.browser.newContext({ viewport: PHONE, hasTouch: true });
+        const context = await phone();
         await context.addInitScript(
           (prefs) => globalThis.localStorage.setItem('gymrun.cardbattle.prefs', prefs),
           JSON.stringify({ language, palette }),
@@ -236,7 +322,7 @@ describe('the card battle sandbox in every language', () => {
   }
 
   it('switches language and palette from the menu, and remembers them', async () => {
-    const context = await harness.browser.newContext({ viewport: PHONE, hasTouch: true });
+    const context = await phone();
     const page = await context.newPage();
     await page.goto(`${harness.url}/#test`, { waitUntil: 'load' });
     await page.waitForSelector('.cb .cb-tile');

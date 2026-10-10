@@ -16603,3 +16603,83 @@ unmoved, because nothing under `src/data/` changed.
   label out of its box on the board, in the menu, and over eight more deals
   per language; the menu switches both settings, B's colour leaves blue, and
   both survive a reload.
+
+## 130. The card battle sandbox: hearts, bubbles, an MP bar with the ult marked, and an interactive tutorial
+
+**2026-10-10**, on `claude/card-battle-hearts-tutorial`, from `main` at `c40143b`.
+From [`spec/gymrun-patch-card-battle-hearts-and-tutorial.md`](spec/gymrun-patch-card-battle-hearts-and-tutorial.md).
+The card battle sandbox only, outside the design bible, so no bible rule is
+touched. No version axis moves: `CARD_ENGINE_VERSION` holds at `cards-0.4.0`
+because no rule changes and every existing encounter, enemy and card is as it
+was (a log from before replays unchanged), and `contentHash` is unmoved
+because nothing under `src/data/` changed.
+
+- **The meters** (`ui/cardbattle/meters.ts`). They replace each panel's
+  `HP 2/3 · Sh 1+1` line, its HP bar and the MP pips, and keep every fact
+  those carried. HP is a heart per point, full or empty; past six (the
+  Colossus's 12) one heart and the numbers. Shields are bubbles, a filled one
+  per point of card shield (it wears off) and a ringed one per point of base
+  shield (used once); past six, one of each kind and its count. MP is one cell
+  per point up to the cap, free, held by a planned card (striped) or empty.
+  Each meter carries its numbers as its accessible name. Shape tells each
+  apart; colour repeats it, and the tritan palette moves the bubble's blue to
+  a cool grey.
+- **The ult mark.** The brief's "4/5 bars for moon strike" is read as each
+  unit's most expensive card, named in its data (`UnitDef.ult`, presentation
+  only, the engine never reads it): Moon Strike for the Commander, Artillery
+  for the Gunner, both 4. A gold tick runs through the bar at the end of that
+  cell with a star on it, hollow until the unit holds that much MP, filled
+  and glowing once it does. **The Sword dasher has no card above 1 MP, so it
+  shows no mark**; naming one is the author's call.
+- **A shield on the piece.** Any shielded token wears a bubble dome over its
+  marker and the shield's total in a bubble at its top right corner: solid
+  when any of it is card shield, dashed when all of it is base shield. Base
+  shields are on every unit from the start, so the dashed dome is the common
+  case and the solid one the event. A player's card shield clears at the
+  start of the next turn (R3), so on a unit it is seen in the round's
+  playback; an enemy's lasts until its own next action (E5) and is seen
+  while planning. The HP number on a token now sits on a heart.
+- **The Target Dummy and its battle.** A new enemy (`cardData/enemies.ts`,
+  grade 0, 3 HP, base shield 1, one step that neither moves nor acts) and a
+  new encounter, `tutorial`, with the dummy at lane 2, column 4: the middle
+  of the danger zone, in the Gunner's lane, so Shoot reaches it from where
+  the Gunner starts and the first hit visibly pops a bubble.
+  `EncounterDef.tutorial` keeps it out of the Menu's scenario list, the bench
+  and the trainer (`SCENARIO_IDS`); the engine's gates and the guard bot's
+  battle test still play it, since they iterate every encounter. Seed
+  `TUTOR1` is fixed for it: its first hand holds Move, Shoot and Call Medic.
+  The guard bot beats it in 3 rounds there.
+- **The tutorial** (`ui/cardbattle/tutorial.ts` for the steps, with no DOM;
+  `ui/cardbattle/coach.ts` for the panel). Shaped like GYMRUN's coach marks:
+  one step at a time, anchored to the real element by selector, a tap on the
+  panel never reaching what is under it, Skip on the first step, no timers.
+  Ten steps: placement, Start, the hand, hearts and bubbles, MP, a Move, the
+  card slots, an attack, End Turn, and beating the dummy. **Interactive** as
+  the brief asks: six of them wait for the act on the real board and offer
+  only Skip step; a waiting step's panel docks over the status bar and the
+  roster, so the board, the units, the hand and the actions stay uncovered.
+  Every wait reads the battle and the actions taken since the tutorial began,
+  so a step the player already did passes at once. Winning ends it and the
+  result sheet says so, with a button into Skirmish.
+- **When it shows.** The hidden entry opens it on the first visit only
+  (`gymrun.cardbattle.tutorial` in local storage, guarded like the prefs),
+  read inside the sandbox's own chunk so the main bundle gains nothing. Skip
+  tutorial marks it seen and opens Skirmish on a new seed. Menu → Tutorial
+  opens it again; Restart keeps it; New seed or a scenario leaves it.
+  `openSandbox` never opens it unasked, so a caller that names a scenario
+  gets that scenario. `skipTutorialIn` (`scripts/visual/browser.mjs`) now
+  seeds this flag too, so the browser suite's other cases open on the
+  default scenario as before.
+- **Copy.** Every new word is in `cardData/copy.ts` under `meters` and
+  `tutorial`, and in all seven translations, machine-drafted like the rest
+  and not yet read by a native speaker.
+- **Tested.** `test/cards-tutorial.test.ts` (headless: the dummy never moves
+  or attacks, the encounter is out of `SCENARIO_IDS`, each unit's ult is its
+  most expensive card, the seed's hand, and the script walked to a win by
+  engine actions alone, steps already done passing at once);
+  `test/cards-sandbox-tutorial.test.ts` (jsdom: hearts, bubbles, domes, the
+  MP cells and star, the held state, the whole tutorial by taps, Skip step,
+  Skip tutorial, the Menu entry, the first-visit-only entry);
+  `test/visual-card-battle.test.ts` (Chromium at 390x844: every step's panel
+  and anchor on screen, its buttons at least 44px, no scroll, and no waiting
+  step covering the units, the hand or the actions).

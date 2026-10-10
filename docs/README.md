@@ -193,6 +193,16 @@ the meadow art pack: roster on top, a full-width board, unit panels below,
 illustrated cards with owner bands (section 125q). `CARD_ENGINE_VERSION` moves to `cards-0.4.0`; none of the
 run's four axes moves, `contentHash` holds at `865d3b`.
 
+**Card battle sandbox: hearts, bubbles, an MP bar, and an interactive
+tutorial.** Branch `claude/card-battle-hearts-tutorial`, prompt
+[`spec/gymrun-patch-card-battle-hearts-and-tutorial.md`](spec/gymrun-patch-card-battle-hearts-and-tutorial.md),
+record [`generation.md`](generation.md) section 130. HP as hearts, shields as
+bubbles (filled for card shield, ringed for base) and as a dome on the
+shielded piece, MP as five cells with each unit's ult starred at its cost;
+a first-open tutorial against a new Target Dummy, ten steps, six of which
+wait for the player to act on the real board. The Sword dasher has no ult to
+mark until one is named. Built and stopped for review. No version axis moves.
+
 **Also in flight: Defender Mode v0, a fun test.** Branch
 `claude/eager-turing-0059br`, prompt
 [`spec/gymrun-defender-mode-v0-fun-test.md`](spec/gymrun-defender-mode-v0-fun-test.md),

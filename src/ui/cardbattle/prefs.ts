@@ -46,3 +46,26 @@ export function saveCardPrefs(prefs: CardPrefs): void {
     // Non-fatal: the setting holds until the sandbox closes.
   }
 }
+
+/**
+ * Whether the tutorial has been seen, finished or skipped: the entry opens it
+ * on the first visit only. Its own key, guarded the same way; a browser that
+ * refuses storage sees it on every open, and Skip is one tap.
+ */
+const TUTORIAL_KEY = 'gymrun.cardbattle.tutorial';
+
+export function tutorialSeen(): boolean {
+  try {
+    return globalThis.localStorage.getItem(TUTORIAL_KEY) === 'seen';
+  } catch {
+    return false;
+  }
+}
+
+export function saveTutorialSeen(): void {
+  try {
+    globalThis.localStorage.setItem(TUTORIAL_KEY, 'seen');
+  } catch {
+    // Non-fatal: it shows again next time.
+  }
+}

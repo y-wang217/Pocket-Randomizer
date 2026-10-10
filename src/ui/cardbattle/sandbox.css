@@ -1775,3 +1775,315 @@
 .cb-full-picture {
   background: var(--cb-surface);
 }
+
+/* ===================================================================
+   Hearts, bubbles and the MP bar, and the tutorial
+   (`docs/spec/gymrun-patch-card-battle-hearts-and-tutorial.md`).
+   HP is a row of hearts, full or empty; a shield is a row of bubbles,
+   filled for card shield and ringed for base shield; MP is one cell per
+   point up to the cap, free, held or empty, with the ult's star on its
+   cost. A shield up wears a bubble on the piece itself. Shape tells each
+   apart; colour only repeats it.
+   =================================================================== */
+.cb {
+  --cb-heart: #d64a4a;
+  --cb-bubble: #2b86c8;
+  --cb-bubble-rgb: 43, 134, 200;
+  --cb-star: #e2a521;
+  --cb-heart-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 22'%3E%3Cpath d='M12 21L3.6 12.8C-1.4 7.9 5.4 0.4 12 6.6C18.6 0.4 25.4 7.9 20.4 12.8Z'/%3E%3C/svg%3E");
+  --cb-heart-ring: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 22'%3E%3Cpath d='M12 19L4.8 12C0.6 7.9 6.4 2 12 7.6C17.6 2 23.4 7.9 19.2 12Z' fill='none' stroke='black' stroke-width='2.6' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --cb-star-ring: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3.6L14.5 9.6L20.9 10.2L16 14.4L17.5 20.7L12 17.3L6.5 20.7L8 14.4L3.1 10.2L9.5 9.6Z' fill='none' stroke='black' stroke-width='2.8' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --cb-star-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.5L15 8.6L22.6 9.3L16.8 14.3L18.6 21.8L12 17.8L5.4 21.8L7.2 14.3L1.4 9.3L9 8.6Z'/%3E%3C/svg%3E");
+}
+/* Tritan: the bubble leaves blue for a cool grey, apart from the player's teal by shape and tone. */
+.cb[data-palette='tritan'] {
+  --cb-bubble: #8a9aa8;
+  --cb-bubble-rgb: 138, 154, 168;
+}
+
+.cb-vitals {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 5px;
+  row-gap: 1px;
+  min-height: 12px;
+}
+.cb-hearts,
+.cb-bubbles {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.5px;
+}
+.cb-heart {
+  flex: none;
+  width: 12px;
+  height: 11px;
+  background: var(--cb-heart);
+  -webkit-mask: var(--cb-heart-mask) center / contain no-repeat;
+  mask: var(--cb-heart-mask) center / contain no-repeat;
+}
+.cb-heart[data-full='false'] {
+  background: var(--cb-dim);
+  -webkit-mask-image: var(--cb-heart-ring);
+  mask-image: var(--cb-heart-ring);
+  opacity: 0.7;
+}
+.cb-bubble {
+  flex: none;
+  box-sizing: border-box;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--cb-bubble);
+  background: radial-gradient(circle at 34% 30%, #fff 0 16%, rgba(var(--cb-bubble-rgb), 0.55) 46%, var(--cb-bubble) 100%);
+}
+/* Base shield: a ring with a glint, used once. */
+.cb-bubble[data-base='true'] {
+  border-width: 2px;
+  background: radial-gradient(circle at 34% 30%, #fff 0 14%, transparent 18%);
+}
+.cb-meter-count {
+  font-size: 10px;
+  font-weight: 800;
+  margin-left: 1px;
+}
+
+.cb-mana {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 14px;
+}
+.cb-mana-label {
+  flex: none;
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--cb-dim);
+}
+.cb-mana-cells {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 2px;
+}
+.cb-mana-cell {
+  position: relative;
+  height: 7px;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px var(--cb-line);
+}
+.cb-mana-cell[data-state='free'] {
+  background: var(--cb-teal);
+  box-shadow: none;
+}
+/* Held by a planned card: striped, the colour at half strength. */
+.cb-mana-cell[data-state='held'] {
+  background: repeating-linear-gradient(135deg, rgba(var(--cb-teal-rgb), 0.55) 0 2px, rgba(var(--cb-teal-rgb), 0.18) 2px 4px);
+  box-shadow: inset 0 0 0 1px rgba(var(--cb-teal-rgb), 0.7);
+}
+/* The ult's cost: a gold tick through the bar at the end of its cell, the star on the tick. */
+.cb-mana-cell[data-ult='true']::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--cb-star);
+}
+.cb-mana-star {
+  position: absolute;
+  z-index: 1;
+  right: -7px;
+  top: -9px;
+  width: 12px;
+  height: 12px;
+  background: var(--cb-star);
+  -webkit-mask: var(--cb-star-mask) center / contain no-repeat;
+  mask: var(--cb-star-mask) center / contain no-repeat;
+}
+/* Not yet enough MP for the ult: the star hollow. Enough: filled and glowing. */
+.cb-mana-star:not([data-ready='true']) {
+  -webkit-mask-image: var(--cb-star-ring);
+  mask-image: var(--cb-star-ring);
+}
+.cb-mana-star[data-ready='true'] {
+  filter: drop-shadow(0 0 2px var(--cb-star));
+}
+
+/* A shield on the piece: a bubble over its marker, and the total in a bubble at its corner. */
+.cb-token-bubble {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 3px solid var(--cb-bubble);
+  background: radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.9) 0 8%, rgba(255, 255, 255, 0) 15%),
+    radial-gradient(circle, rgba(var(--cb-bubble-rgb), 0.12) 45%, rgba(var(--cb-bubble-rgb), 0.5) 100%);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(255, 255, 255, 0.85),
+    0 0 6px rgba(var(--cb-bubble-rgb), 0.8);
+  pointer-events: none;
+  z-index: 1;
+}
+/* Base shield only: the same dome, dashed and clearer, so it reads as the one that lasts until hit. */
+.cb-token-bubble[data-kind='base'] {
+  border-width: 3px;
+  border-style: dashed;
+  background: radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.85) 0 7%, rgba(255, 255, 255, 0) 13%),
+    radial-gradient(circle, rgba(var(--cb-bubble-rgb), 0) 55%, rgba(var(--cb-bubble-rgb), 0.3) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+.cb-token[data-size='2x2'] > .cb-token-bubble {
+  border-radius: 22%;
+}
+.cb-token-shield {
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  z-index: 2;
+  box-sizing: border-box;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 2px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 13px;
+  text-align: center;
+  color: var(--cb-ink);
+  border: 1.5px solid var(--cb-bubble);
+  background: radial-gradient(circle at 30% 28%, #fff 0 22%, #e6f2fa 60%);
+}
+.cb-token-shield[data-kind='base'] {
+  border-style: dashed;
+}
+/* HP on the piece: the number on a heart. */
+.cb .cb-token-hp {
+  isolation: isolate;
+  z-index: 2;
+  min-width: 20px;
+  height: 18px;
+  padding: 0;
+  bottom: -4px;
+  right: -7px;
+  line-height: 16px;
+  background: none;
+  box-shadow: none;
+  color: #fff;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.45);
+}
+.cb .cb-token-hp::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--cb-heart);
+  -webkit-mask: var(--cb-heart-mask) center / contain no-repeat;
+  mask: var(--cb-heart-mask) center / contain no-repeat;
+  filter: drop-shadow(0 0 0.5px var(--cb-ink));
+}
+.cb-token-label,
+.cb-token-fast,
+.cb-token-warn {
+  z-index: 2;
+}
+
+/* ------------------------------------------------------------ tutorial
+   The coach panel: over the status bar while a step waits for the player,
+   beside its anchor otherwise. Hidden under the Menu and Inspect. The
+   anchor wears a gold outline. */
+.cb-coach {
+  position: absolute;
+  z-index: 20;
+  box-sizing: border-box;
+  padding: 9px 10px 6px;
+  border-radius: 12px;
+  background: var(--cb-ink);
+  color: var(--cb-surface);
+  box-shadow:
+    0 0 0 2px var(--cb-star),
+    0 6px 18px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+.cb-coach[hidden],
+.cb-sheet:not([hidden]) ~ .cb-coach,
+.cb-inspect:not([hidden]) ~ .cb-coach {
+  display: none;
+}
+.cb-coach[data-wait='true'] {
+  cursor: default;
+}
+.cb-coach-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--cb-star);
+}
+.cb-coach-text {
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+.cb-coach-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.cb-coach-progress {
+  margin-right: auto;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.75;
+}
+.cb .cb-coach-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--cb-surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.cb .cb-coach-skip {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+.cb .cb-coach-next {
+  background: var(--cb-star);
+  color: var(--cb-ink);
+}
+.cb-coach-btn[hidden] {
+  display: none;
+}
+[data-coach-target='true'] {
+  outline: 3px solid var(--cb-star);
+  outline-offset: 2px;
+  border-radius: 10px;
+  animation: cb-coach-pulse 1.2s ease-in-out infinite alternate;
+}
+@keyframes cb-coach-pulse {
+  from {
+    outline-color: var(--cb-star);
+  }
+  to {
+    outline-color: rgba(226, 165, 33, 0.35);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-coach-target='true'] {
+    animation: none;
+  }
+}
+.cb-sheet-tutorial {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--cb-teal-text);
+}
