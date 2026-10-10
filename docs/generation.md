@@ -16432,3 +16432,88 @@ of section 34** and the tally test section 47.5 wrote for it.
 - **The trade.** A test that crosses 60s now turns its leg red with vitest's
   own message instead of a green line. That is the intended signal; the next
   nearest, `test/run-replay.test.ts`, ran 35.6s locally.
+
+## 127. The Node half's fork cap comes off, and no DOM test's timer outlives its file
+
+**2026-10-09**, on `claude/sharp-ritchie-qb95px`, from `main` at `3d0847e`.
+Prompt [`spec/gymrun-patch-fork-cap-and-scene-timer.md`](spec/gymrun-patch-fork-cap-and-scene-timer.md).
+The two items section 126 left open. Test and tooling only: nothing under
+`src/` changes, and no version axis moves.
+
+### 127a. Timers die with their file
+
+- **The failure.** Run 37928075949 failed `node suite` with every test passing,
+  on `ReferenceError: document is not defined` from the scene's replay
+  (`Timeout.draw`), after `test/species-label.test.ts`'s jsdom was torn down.
+  Each test there mounts a battle screen and plays a turn, which starts the
+  per-step replay on real timers; nothing ends it, and a timer that fires
+  between teardown and the worker exiting finds no `document`.
+- **A class, counted.** A scratch setup that counted pending timers at the end
+  of each file found 9 of the 18 files that mount a battle screen or scene
+  ending with timers pending: five from the replay (`battle-outro`,
+  `battle-screen-stage2`, `event-strip`, `forecast-feedback`,
+  `species-label`), three from the band, the overlay and the settings save
+  (`band-badge`, `defender-ui`, `tutorial`), and one in `threat-readout`
+  whose source the counter could not name.
+- **Not reproduced as a failure locally.** Each file runs in its own process
+  here, and the window between teardown and exit is short; the race needs a
+  slow runner. The pending timers are what was measured: 8 in
+  `species-label` before, 0 after.
+- **The fix.** `test/setup/timers-die-with-their-file.ts`, registered in
+  `vite.config.ts`: in a DOM file only, it wraps `setTimeout` and
+  `setInterval`, tracks what is pending, and clears it in an `afterAll` that
+  runs after the file's own. Once, for every DOM file, rather than nine
+  `screen.cancel()` calls and a tenth nobody remembers. A test that fakes
+  timers swaps the wrappers out and gets them back as usual.
+- **Not an app defect.** In the app the document never goes away; a replay on
+  a screen that is left settles on its own or is ended by the next `update`,
+  `cancel` or `reset`.
+
+### 127b. The Node half is uncapped
+
+- **What it was.** `scripts/vitest-split.mjs` passed `--maxWorkers=2` under
+  `CI` on both halves. The Node half's cap was section 47's answer to the
+  `onTaskUpdate` timeout read as load; section 126 found one test instead, and
+  the cap had not stopped the timeout in any run it was on.
+- **What changed.** The cap applies to the browser half only, which keeps its
+  own reason (section 47's browser-suite measurement: Chromium painting late on
+  a saturated runner). The superseded Node reasoning is deleted from the
+  comment and recorded here.
+- **Measured.** `CI=1 node scripts/check.mjs --only=test:node` on this box,
+  four cores: **324.0s uncapped**, against 451.6s, 463.7s and 479.2s at the cap
+  earlier the same day. One uncapped run, so the figure is indicative; the
+  Actions runs on the PR are the number that counts.
+- **Actions does not confirm it.** `test:node` on PR 107 and PR 109, same
+  runner class: capped 248.7s and 322.1s; uncapped 228.5s, then 392.3s with
+  127c's yield in. `trim:node`: capped 409.3s; uncapped 390.6s (the failed
+  run) and 363.8s. Runs of one configuration differ by about 100s, so these
+  four cannot show a speedup either way. The cap comes off because its reason
+  was wrong, not because the leg is measurably faster without it.
+
+### 127c. The loop turns before every test, because a file's tests add up
+
+**2026-10-09**, after PR 109's first `strict trim` run failed `trim:node` on
+`[vitest-worker]: Timeout calling "onTaskUpdate"`, every test passing, with the
+Node half uncapped. `node suite` passed on the same commit.
+
+- **Section 126 was half right.** It found one *test* holding the worker past
+  60s and fixed that test. But vitest does not turn the event loop between
+  tests either: a file of synchronous `playRun` tests is one unbroken stretch,
+  and the stretch is the file's. Measured as the longest gap a 100ms interval
+  saw in each file, strict trim, four cores, uncapped: `economy` **48.4s**,
+  `locales` 47.7s, `nicknames-graveyard` 41.8s, `run-replay` 35.6s,
+  `defender-economy` 31.8s. No single test in the first three is over 16s.
+- **Why the cap hid it.** Two forks left the runner a core spare, so these
+  stretches stayed under 60s on Actions; three forks in the Playwright
+  container slowed one past it. The cap was margin, not a fix, and section
+  127b's lifting it is what showed the margin was all there was.
+- **The fix.** `test/setup/yield-between-tests.ts`: one `setImmediate` in a
+  `beforeEach` for every test, the reference taken at load so a file that
+  fakes timers does not stall. And `test/run-replay.test.ts`'s every-point
+  resume sweep yields per resume, as `test/party.test.ts`'s does since 126.
+- **Measured after,** same probe and box: longest stretch **14.1s**
+  (`attacker-generation-golden`), every file under it; `run-replay` under 6s.
+  2,468 of 2,468 pass, strict trim's Node half in 325.8s.
+- **The rule this leaves.** The longest stretch is the slowest single
+  synchronous test. One that nears 60s should yield inside itself, as the
+  two sweeps do; it will otherwise fail its leg with vitest's own message.

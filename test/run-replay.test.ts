@@ -257,6 +257,10 @@ describe('save mid-run, reload, continue', () => {
     // boundaries — but it needs a timeout that reflects the run length rather
     // than the default five seconds sized for Stage 1's single segment.
     for (const save of saves) {
+      // One macrotask per resume, so vitest's reporter reply can land: this
+      // sweep alone holds the worker for over half its 60s RPC timeout.
+      // `docs/generation.md` sections 126 and 127c.
+      await new Promise((resolve) => setImmediate(resolve));
       const resumed = await resumeRun(save, wobbling());
       expect(fingerprint(resumed), `resuming after ${save.decisions.length} decisions`).toEqual(
         fingerprint(original),
