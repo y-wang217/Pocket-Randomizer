@@ -1578,19 +1578,21 @@
   font-size: 10.5px;
 }
 
-/* The board: three lanes across, seven rows of 52px (E2: shorter tiles). */
+/* The board: three lanes across, seven rows of 52px (E2: shorter tiles).
+   On a screen shorter than the frame, `fitFrame` in sandbox.ts gives the rows
+   back first, down to 46px, which keeps a tile above the 44px target. */
 .cb-mid {
   height: auto;
   display: block;
 }
 .cb-board {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(7, 52px);
+  grid-template-rows: repeat(7, var(--cb-row, 52px));
   gap: 4px;
 }
 .cb-tile {
   width: auto;
-  height: 52px;
+  height: var(--cb-row, 52px);
 }
 /* The pack's grass, cropped to the wide tile, with the outline drawn here. */
 .cb-tile > .cb-asset--art {

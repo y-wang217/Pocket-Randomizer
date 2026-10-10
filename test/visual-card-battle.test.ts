@@ -81,6 +81,35 @@ describe('the card battle sandbox at 390x844', () => {
   }, 120_000);
 });
 
+/*
+ * 390x844 is an iPhone's whole screen; Safari shows less of it between its
+ * bars, and the frame was cut off top and bottom there
+ * (`docs/spec/gymrun-patch-iphone-viewport-fit.md`). 790 is a short gap the
+ * board's rows absorb alone, 713 the screenshot's, 664 Safari with both bars
+ * out.
+ */
+describe('the card battle sandbox inside Safari on an iPhone', () => {
+  for (const height of [790, 713, 664]) {
+    it(`at 390x${height} the whole frame is on screen`, async () => {
+      const context = await harness.browser.newContext({ viewport: { width: 390, height }, hasTouch: true });
+      const page = await context.newPage();
+      await page.goto(`${harness.url}/#test`, { waitUntil: 'load' });
+      await page.waitForSelector('.cb .cb-tile', { timeout: 20_000 });
+      const fit = await page.evaluate(() => {
+        const frame = globalThis.document.querySelector<HTMLElement>('.cb-frame')!;
+        const r = frame.getBoundingClientRect();
+        const tile = globalThis.document.querySelector('.cb-tile')!.getBoundingClientRect();
+        return { top: r.top, bottom: r.bottom, scaled: frame.style.transform !== '', tile: tile.height };
+      });
+      expect(fit.top).toBeGreaterThanOrEqual(0);
+      expect(fit.bottom).toBeLessThanOrEqual(height);
+      // A gap the rows can absorb costs no scale, and the tiles stay targets.
+      if (height === 790) expect([fit.scaled, fit.tile >= 44]).toEqual([false, true]);
+      await context.close();
+    }, 120_000);
+  }
+});
+
 describe('the hidden key sequence on starter select', () => {
   it('opens the sandbox, and the completing Enter does not pick the focused starter', async () => {
     const { page, context, problems } = await openApp(harness.browser, harness.url, SEED, PHONE);

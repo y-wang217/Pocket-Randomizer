@@ -16518,7 +16518,40 @@ Node half uncapped. `node suite` passed on the same commit.
   synchronous test. One that nears 60s should yield inside itself, as the
   two sweeps do; it will otherwise fail its leg with vitest's own message.
 
-## 128. The card battle sandbox: a colour mode and a language setting
+## 128. The card battle fits the height Safari shows, not the phone's screen
+
+**2026-10-10**, on `claude/patch-iphone-viewport-fit`, from `main` at `ccd5b34`.
+Prompt [`spec/gymrun-patch-iphone-viewport-fit.md`](spec/gymrun-patch-iphone-viewport-fit.md).
+UI only: nothing under `core/` or `data/` changes, and no version axis moves.
+
+- **The failure.** The sandbox frame is 390 wide and 818px tall at its natural
+  size. `.cb` is fixed to the viewport and centres it with overflow hidden, so
+  on any viewport shorter than 818 the frame is cut equally top and bottom.
+  The screenshot is iOS Safari at about 713px between its bars: half the top
+  bar and half the action row gone.
+- **Why the test missed it.** `test/visual-card-battle.test.ts` held the fit
+  at 390x844, which is an iPhone's whole screen. Safari never shows that much;
+  with both bars out it shows about 664.
+- **The fix, `fitFrame` in `ui/cardbattle/sandbox.ts`.** After every render
+  and on every `resize` and `visualViewport` resize: the board's seven rows
+  give the overflow back first, from 52px down to 46px (`--cb-row`), up to
+  42px in all, which keeps a tile above the 44px touch floor (section 125)
+  and costs no fact. Only a screen still too short scales the whole frame
+  down uniformly (`transform`), rather than clipping any row of it. Heights
+  are read unrounded, because a frame a fraction of a pixel over is still cut.
+- **The trade, recorded.** Under about 776px of height the scale applies and
+  every target shrinks with it: at 713 the factor is 0.92 and a 44px button
+  is 40px; at 664 it is 0.86. A smaller button that is on screen was taken
+  over a 44px one that is not. The 844 test still holds the 44px floor at
+  full size, where nothing scales.
+- **Bible.** The sandbox is not a bible surface, and no rule of the bible is
+  touched. No fact is removed: everything that was drawn is drawn, smaller.
+- **Held by** three new cases in `test/visual-card-battle.test.ts`, at 390x790
+  (the rows alone absorb it, no scale, tiles at least 44px), 390x713 and
+  390x664 (the frame wholly on screen). All three fail on `ccd5b34` and pass
+  here.
+
+## 129. The card battle sandbox: a colour mode and a language setting
 
 **2026-10-09**, on `claude/nifty-lamport-6bj8bd`, from `main` at `a8b0c96`.
 From [`spec/gymrun-patch-card-battle-accessibility.md`](spec/gymrun-patch-card-battle-accessibility.md).
