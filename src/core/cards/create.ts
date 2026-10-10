@@ -19,7 +19,7 @@ import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
 import { openingSteps } from './enemies';
-import type { EncounterDef, EnemySpawn } from './defs';
+import type { EncounterDef, EnemySpawn, Loadout } from './defs';
 import type { BattleEvent } from './events';
 import type { Ctx } from './keywords';
 import { grantWave, nextHand } from './resolve';
@@ -41,15 +41,27 @@ export function wavesOf(encounter: EncounterDef): (readonly EnemySpawn[])[] {
   return [encounter.enemies, ...(encounter.waves ?? [])];
 }
 
-/** The unshuffled battle for an encounter, or `null` for an unknown id. */
-export function layoutBattle(encounterId: string, seed: string): BattleState | null {
+/** Whether a loadout names only known cards and units. */
+function validLoadout(loadout: Loadout): boolean {
+  if (!Array.isArray(loadout.cards) || !loadout.cards.every((id) => typeof id === 'string' && Object.hasOwn(CARDS, id))) return false;
+  return Object.keys(loadout.units ?? {}).every((id) => Object.hasOwn(UNITS, id));
+}
+
+/**
+ * The unshuffled battle for an encounter, or `null` for an unknown id or a
+ * loadout naming an unknown card. A loadout deals its own deck and boosts the
+ * units (the card run); without one the encounter's deck is dealt.
+ */
+export function layoutBattle(encounterId: string, seed: string, loadout?: Loadout): BattleState | null {
   const encounter = Object.hasOwn(ENCOUNTERS, encounterId) ? ENCOUNTERS[encounterId] : undefined;
   const deck = encounter && Object.hasOwn(DECKS, encounter.deckId) ? DECKS[encounter.deckId] : undefined;
   if (!encounter || !deck) return null;
+  if (loadout && !validLoadout(loadout)) return null;
+  const boosts = loadout?.units;
 
   const cards: Record<string, CardInstance> = {};
   const draw: string[] = [];
-  deck.cards.forEach((def, index) => {
+  (loadout?.cards ?? deck.cards).forEach((def, index) => {
     const iid = `c${index}`;
     cards[iid] = { iid, def, owner: CARDS[def]!.owner };
     draw.push(iid);
@@ -75,11 +87,11 @@ export function layoutBattle(encounterId: string, seed: string): BattleState | n
     units: encounter.units.map(({ def, pos }) => ({
       id: def,
       pos: { ...pos },
-      hp: UNITS[def].hp,
-      maxHp: UNITS[def].hp,
+      hp: UNITS[def].hp + (boosts?.[def]?.hp ?? 0),
+      maxHp: UNITS[def].hp + (boosts?.[def]?.hp ?? 0),
       shield: 0,
-      baseShield: UNITS[def].baseShield,
-      mp: RULES.mp.start,
+      baseShield: UNITS[def].baseShield + (boosts?.[def]?.baseShield ?? 0),
+      mp: Math.min(RULES.mp.cap, RULES.mp.start + (boosts?.[def]?.mp ?? 0)),
       fainted: false,
       pendingMp: [],
     })),
@@ -106,14 +118,15 @@ export function layoutBattle(encounterId: string, seed: string): BattleState | n
     plan: [],
     uses: Object.fromEntries(Object.values(cards).flatMap((c) => (CARDS[c.def]!.uses ? [[c.iid, CARDS[c.def]!.uses!]] : []))),
     pendingDraws: [],
+    ...(boosts ? { boosts: JSON.parse(JSON.stringify(boosts)) as typeof boosts } : {}),
   };
 }
 
 export type CreateResult = { ok: true; state: BattleState; events: BattleEvent[] } | { ok: false; reason: 'unknownEncounter' };
 
 /** A battle ready for its first plan, or a rejection for an unknown encounter. Never throws. */
-export function createBattle(encounterId: string, seed: string): CreateResult {
-  const s = typeof encounterId === 'string' && typeof seed === 'string' ? layoutBattle(encounterId, seed) : null;
+export function createBattle(encounterId: string, seed: string, loadout?: Loadout): CreateResult {
+  const s = typeof encounterId === 'string' && typeof seed === 'string' ? layoutBattle(encounterId, seed, loadout) : null;
   if (!s) return { ok: false, reason: 'unknownEncounter' };
   const ctx: Ctx = { s, events: [] };
   withStream(s, (stream) => {

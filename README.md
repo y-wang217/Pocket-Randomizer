@@ -30,10 +30,17 @@ disagrees with one of the documents below, the document is right.
 
 ```sh
 npm install
-npm run dev      # play it
+npm run dev      # play it: / is the card run, /gymrun.html is GYMRUN
 npm run check    # the nine-leg gate; every leg runs, table at the end
 npm run build    # static bundle in dist/, deploys to any static host
 ```
+
+**The deployed page is the card run** (`index.html`): the card battler's
+scenarios stitched into three acts with City, Town and Wild stops between
+fights and a Colossus at the end of each act
+([`docs/generation.md`](docs/generation.md) section 125r). GYMRUN itself is
+built beside it as `gymrun.html`, unlinked; the smoke run plays that page.
+`npm run cards:run` plays whole card runs headless and prints how far each got.
 
 After a build:
 

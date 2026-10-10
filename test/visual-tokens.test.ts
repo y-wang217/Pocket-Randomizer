@@ -42,8 +42,11 @@ function stripTs(source: string): string {
  * values into tokens.css would also grow the main bundle's stylesheet.
  */
 const SANDBOX = join(UI, 'cardbattle');
-const cssFiles = walk(UI).filter((file) => file.endsWith('.css') && file !== TOKENS && !file.startsWith(SANDBOX));
-const tsFiles = walk(UI).filter((file) => file.endsWith('.ts') && !file.startsWith(SANDBOX));
+/* The card run's screens wrap that battle and stand under the same ruling (docs/generation.md 125r). */
+const CARD_RUN = join(UI, 'cardrun');
+const outside = (file: string): boolean => file.startsWith(SANDBOX) || file.startsWith(CARD_RUN);
+const cssFiles = walk(UI).filter((file) => file.endsWith('.css') && file !== TOKENS && !outside(file));
+const tsFiles = walk(UI).filter((file) => file.endsWith('.ts') && !outside(file));
 
 /** Each declaration in a stylesheet, with the line it starts on. */
 function declarations(source: string): { line: number; prop: string; value: string }[] {

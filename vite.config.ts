@@ -22,6 +22,10 @@ export default defineConfig({
     // from the one dynamic import in src/ui/app.ts, installed before the
     // first run (docs/generation.md section 108).
     chunkSizeWarningLimit: 3500,
+    // Two pages. `index.html`, what the deployment shows, is the card run
+    // alone and loads no part of the Showdown engine; `gymrun.html` is GYMRUN
+    // itself, which the smoke run drives (docs/generation.md section 125r).
+    rollupOptions: { input: { index: 'index.html', gymrun: 'gymrun.html' } },
   },
   test: {
     environment: 'node',

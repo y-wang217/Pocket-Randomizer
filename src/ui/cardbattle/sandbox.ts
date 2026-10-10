@@ -25,7 +25,8 @@ import './sandbox.css';
 
 import { CARDS } from '../../cardData/cards';
 import { CARD_COPY, CARD_LANGUAGES, LANGUAGE_NAMES, cardLanguage, nameOf, setCardLanguage } from '../../cardData/copy';
-import { ENCOUNTERS } from '../../cardData/encounters';
+import { RUN_COPY } from '../../cardData/cardrunCopy';
+import { ENCOUNTERS, SCENARIOS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
@@ -55,6 +56,17 @@ export interface SandboxOptions {
   /** The scenario to open on; the default scenario when absent or unknown. */
   encounter?: string;
   onExit?: () => void;
+  /**
+   * A card run's battle (`ui/cardrun/`): opened where it stands, its deck and
+   * boosts already in its state, each accepted action reported so the run
+   * steps with it. In a run there is no restart, no new seed and no scenario
+   * list; the top bar's button and the end of the battle hand back to the run.
+   */
+  run?: {
+    state: BattleState;
+    log: BattleLog;
+    onAction: (action: Action) => void;
+  };
 }
 
 interface Pending {
@@ -350,10 +362,17 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
 
   function start(nextSeed: string): void {
     seed = nextSeed;
-    const created = createBattle(encounterId, seed);
-    if (!created.ok) return;
-    state = created.state;
-    log = newLog(seed, encounterId, state.deckId);
+    if (options.run) {
+      state = options.run.state;
+      log = JSON.parse(JSON.stringify(options.run.log)) as BattleLog;
+      seed = state.seed;
+      encounterId = state.encounterId;
+    } else {
+      const created = createBattle(encounterId, seed);
+      if (!created.ok) return;
+      state = created.state;
+      log = newLog(seed, encounterId, state.deckId);
+    }
     pending = null;
     placing = null;
     filter = null;
@@ -375,6 +394,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     const before = state;
     state = result.state;
     log.actions.push(action);
+    options.run?.onAction(action);
     pending = null;
     placing = null;
     message = '';
@@ -695,7 +715,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     );
     const idle = state.phase === 'deploy' ? CARD_COPY.deployHint : graceShowing(view) ? CARD_COPY.graceBoard : '';
     const note = el('div', 'cb-note', message || (inspectMode ? CARD_COPY.inspectHint : idle));
-    top.replaceChildren(status, note, button('cb-btn cb-exit', CARD_COPY.exit, () => close()));
+    top.replaceChildren(status, note, button('cb-btn cb-exit', options.run ? RUN_COPY.inBattle.toRun : CARD_COPY.exit, () => close()));
   }
 
   /** Round 1 under opening grace, with an enemy it held back: the note says so (A7). */
@@ -1137,6 +1157,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     for (const line of effectLines(card.effects)) body.append(el('div', 'cb-full-line', line));
     if (card.uses) body.append(el('div', 'cb-full-line', CARD_COPY.uses(card.uses.left, card.uses.of)));
     if (card.retain) body.append(el('div', 'cb-full-line', CARD_COPY.retain));
+    if (CARDS[card.def]?.equipment) body.append(el('div', 'cb-full-rule', RUN_COPY.inBattle.equipment));
     const allies = blastAlliesLine(card.effects);
     if (allies) body.append(el('div', 'cb-full-rule', allies));
     if (card.reason) body.append(el('div', 'cb-full-reason', CARD_COPY.reasons[card.reason]));
@@ -1155,7 +1176,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   /** A card's illustration, or nothing for a card the pack has none for. */
   function cardArt(def: string, className = 'cb-card-picture'): HTMLElement {
     const wrap = el('span', className);
-    const id = `art-${def}` as CardAssetId;
+    const id = `art-${CARDS[def]?.art ?? def}` as CardAssetId;
     if ((CARD_ASSET_GROUPS.art.ids as readonly string[]).includes(id)) wrap.append(cardAsset(id, 'fill'));
     return wrap;
   }
@@ -1247,21 +1268,29 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       playRound(last);
     });
     replay.disabled = !last;
+    if (options.run) {
+      // A run's battle: no restart, no new seed, no other scenario. Its end hands back to the run.
+      const ended = state.phase === 'won' || state.phase === 'lost';
+      panel.append(
+        ...(ended ? [button('cb-btn cb-btn--primary', state.phase === 'won' ? RUN_COPY.inBattle.continue : RUN_COPY.inBattle.runOver, () => close())] : []),
+        button('cb-btn', CARD_COPY.copyLog, () => copyLog(status, copyArea)),
+        button('cb-btn', CARD_COPY.roundLog, () => openRoundLog()),
+        botTurn(),
+        settings(),
+        replay,
+        ...(ended ? [] : [button('cb-btn', CARD_COPY.close, () => (sheet.hidden = true))]),
+        status,
+        copyArea,
+      );
+      sheet.replaceChildren(panel);
+      sheet.hidden = false;
+      fitLabels(sheet);
+      return;
+    }
     panel.append(
       button('cb-btn', CARD_COPY.restart, () => start(seed)),
       button('cb-btn', CARD_COPY.newSeed, () => start(newSeed())),
-      button('cb-btn', CARD_COPY.copyLog, () => {
-        const text = JSON.stringify(log);
-        const fallback = (): void => {
-          copyArea.value = text;
-          copyArea.hidden = false;
-          copyArea.select();
-          status.textContent = CARD_COPY.copyFailed;
-        };
-        const clipboard = globalThis.navigator?.clipboard;
-        if (!clipboard) return fallback();
-        clipboard.writeText(text).then(() => (status.textContent = CARD_COPY.copied), fallback);
-      }),
+      button('cb-btn', CARD_COPY.copyLog, () => copyLog(status, copyArea)),
       button('cb-btn', CARD_COPY.roundLog, () => openRoundLog()),
       botTurn(),
       scenarios(),
@@ -1275,6 +1304,20 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     sheet.replaceChildren(panel);
     sheet.hidden = false;
     fitLabels(sheet);
+  }
+
+  /** The battle log onto the clipboard, or into the text box when the clipboard is out of reach. */
+  function copyLog(status: HTMLElement, copyArea: HTMLTextAreaElement): void {
+    const text = JSON.stringify(log);
+    const fallback = (): void => {
+      copyArea.value = text;
+      copyArea.hidden = false;
+      copyArea.select();
+      status.textContent = CARD_COPY.copyFailed;
+    };
+    const clipboard = globalThis.navigator?.clipboard;
+    if (!clipboard) return fallback();
+    clipboard.writeText(text).then(() => (status.textContent = CARD_COPY.copied), fallback);
   }
 
   /** The guard bot places the units, or plays this round on top of the plan so far. */
@@ -1296,7 +1339,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   function scenarios(): HTMLElement {
     const list = el('div', 'cb-scenarios');
     list.append(el('div', 'cb-scenarios-title', CARD_COPY.scenario));
-    for (const encounter of Object.values(ENCOUNTERS)) {
+    for (const encounter of Object.values(SCENARIOS)) {
       const grade = CARD_COPY.grade(gradeTotal(encounter));
       const pick = button('cb-btn cb-scenario', nameOf(encounter.name), () => {
         encounterId = encounter.id;

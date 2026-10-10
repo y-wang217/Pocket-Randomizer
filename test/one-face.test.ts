@@ -141,6 +141,7 @@ describe('no symbol reads a density setting (5.0/1, test 6)', () => {
   const files = [
     ...roots.flatMap(filesUnder).filter((path) => /\.(ts|mjs|css)$/.test(path)),
     join(process.cwd(), 'index.html'),
+    join(process.cwd(), 'gymrun.html'),
     join(process.cwd(), 'gallery.html'),
   ];
   const forbidden = [

@@ -139,9 +139,10 @@ export function startWave(ctx: Ctx, wave: number): void {
   s.pendingDraws = [];
   const encounter = ENCOUNTERS[s.encounterId]!;
   for (const unit of livingUnits(s)) {
+    const boost = s.boosts?.[unit.id];
     unit.shield = 0;
-    unit.baseShield = UNITS[unit.id].baseShield;
-    unit.mp = RULES.mp.start;
+    unit.baseShield = UNITS[unit.id].baseShield + (boost?.baseShield ?? 0);
+    unit.mp = Math.min(RULES.mp.cap, RULES.mp.start + (boost?.mp ?? 0));
     unit.pendingMp = [];
     unit.pos = { ...encounter.units.find((u) => u.def === unit.id)!.pos };
   }
@@ -149,10 +150,13 @@ export function startWave(ctx: Ctx, wave: number): void {
     if (enemy.wave === wave) enemy.pos = { ...enemy.spawn! };
   }
   const index = (iid: string): number => Number(iid.slice(1));
-  const deck = [...s.piles.draw, ...s.piles.hand, ...s.piles.discard, ...s.piles.spent].sort((a, b) => index(a) - index(b));
-  s.piles = { draw: withStream(s, (stream) => shuffled(stream, deck)), hand: [], discard: [], spent: [], removed: s.piles.removed, reserve: s.piles.reserve };
-  // Uses come back with the reshuffle (C4).
-  for (const iid of Object.keys(s.uses)) s.uses[iid] = CARDS[s.cards[iid]!.def]!.uses!;
+  // Equipment once used is gone for the run, so a new wave does not bring it back.
+  const usedUp = (iid: string): boolean => CARDS[s.cards[iid]!.def]!.equipment === true;
+  const gone = s.piles.spent.filter(usedUp);
+  const deck = [...s.piles.draw, ...s.piles.hand, ...s.piles.discard, ...s.piles.spent.filter((iid) => !usedUp(iid))].sort((a, b) => index(a) - index(b));
+  s.piles = { draw: withStream(s, (stream) => shuffled(stream, deck)), hand: [], discard: [], spent: gone, removed: s.piles.removed, reserve: s.piles.reserve };
+  // Uses come back with the reshuffle (C4), but not on used equipment.
+  for (const iid of Object.keys(s.uses)) if (!gone.includes(iid)) s.uses[iid] = CARDS[s.cards[iid]!.def]!.uses!;
   ctx.events.push({ t: 'waveStarted', wave });
   grantWave(ctx);
   s.round = 0;

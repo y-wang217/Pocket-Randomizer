@@ -18,7 +18,8 @@ const PUPPETEER_FRONT = [
   { def: 'C', pos: at(3, 2) },
 ] as const;
 
-export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
+/** The sandbox's scenarios: what its Menu lists. */
+export const SCENARIOS: Readonly<Record<string, EncounterDef>> = {
   skirmish: {
     id: 'skirmish',
     name: 'Skirmish',
@@ -116,3 +117,53 @@ export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
   },
 };
 
+const quest = (id: string, name: string, blurb: string, enemies: EncounterDef['enemies']): EncounterDef => ({
+  id,
+  name,
+  blurb,
+  deckId: 'puppeteer',
+  units: PUPPETEER_FRONT,
+  enemies,
+});
+
+/**
+ * The card run's own fights (`docs/spec/gymrun-card-run-prompt.md`): the
+ * first two act bosses, and the quests a Town, a City or a ? ambush sends the
+ * player on, three tiers for the three acts. Every enemy spawns on a tile
+ * drawn from the battle's seed. Provisional, like every grade
+ * (`docs/generation.md` 125r).
+ */
+export const RUN_ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
+  'colossus-lair': {
+    id: 'colossus-lair',
+    name: 'Colossus Lair',
+    blurb: 'The Colossus alone. It grants the Harpoon as it arrives.',
+    deckId: 'puppeteer',
+    units: PUPPETEER_FRONT,
+    enemies: [{ def: 'colossus', pos: at(1, 6) }],
+  },
+  'colossus-escort': {
+    id: 'colossus-escort',
+    name: 'Colossus Escort',
+    blurb: 'The Colossus with two Hounds running the open lane.',
+    deckId: 'puppeteer',
+    units: PUPPETEER_FRONT,
+    enemies: [
+      { def: 'colossus', pos: at(1, 6) },
+      { def: 'hound', pos: at(3, 6) },
+      { def: 'hound', pos: at(3, 7) },
+    ],
+  },
+  'bandit-camp': quest('bandit-camp', 'Bandit Camp', 'Two Hounds and a Lancer.', [{ def: 'hound' }, { def: 'lancer' }, { def: 'hound' }]),
+  'stray-drones': quest('stray-drones', 'Stray Drones', 'Two Drones.', [{ def: 'drone' }, { def: 'drone' }]),
+  outriders: quest('outriders', 'Outriders', 'Two Hounds, a Drone and a Lancer.', [{ def: 'hound' }, { def: 'drone' }, { def: 'hound' }, { def: 'lancer' }]),
+  'gun-nest': quest('gun-nest', 'Gun Nest', 'A Turret, a Lancer and a Hound.', [{ def: 'turret' }, { def: 'lancer' }, { def: 'hound' }]),
+  raiders: quest('raiders', 'Raiders', 'A Sniper, a Hound and a Bulwark.', [{ def: 'sniper' }, { def: 'hound' }, { def: 'bulwark' }]),
+  warband: quest('warband', 'Warband', 'A Pikeman, a Hound and a Drone.', [{ def: 'pikeman' }, { def: 'hound' }, { def: 'drone' }]),
+  gatehouse: quest('gatehouse', 'Gatehouse', 'Defend the gate: a Bulwark and a Lancer.', [{ def: 'bulwark' }, { def: 'lancer' }]),
+  'the-walls': quest('the-walls', 'The Walls', 'Defend the walls: a Bulwark, a Turret and a Hound.', [{ def: 'bulwark' }, { def: 'turret' }, { def: 'hound' }]),
+  'last-stand': quest('last-stand', 'Last Stand', 'Defend the keep: a Bulwark, a Pikeman and a Sniper.', [{ def: 'bulwark' }, { def: 'pikeman' }, { def: 'sniper' }]),
+};
+
+/** Every encounter the engine can lay out: the sandbox's scenarios and the card run's fights. */
+export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = { ...SCENARIOS, ...RUN_ENCOUNTERS };

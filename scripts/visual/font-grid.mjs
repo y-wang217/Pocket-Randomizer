@@ -43,7 +43,7 @@ try {
   for (const scale of [1, 2, 3]) {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: scale });
     const page = await context.newPage();
-    await page.goto(server.url);
+    await page.goto(`${server.url}/gymrun.html`);
     await page.evaluate(() => Promise.all([
       globalThis.document.fonts.load('12px "Pixelify Sans"'),
       globalThis.document.fonts.load('bold 12px "Pixelify Sans"'),

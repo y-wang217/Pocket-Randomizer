@@ -61,20 +61,31 @@ describe('card engine boundaries', () => {
     expect(listContentFiles(ROOT).filter((path) => path.startsWith('src/cardData/') || path.startsWith('src/core/cards/'))).toEqual([]);
   });
 
-  it('is imported by nothing outside the card engine but its own sandbox screen', () => {
-    // The sandbox screen (`src/ui/cardbattle/`) is the engine's one consumer,
-    // and it is reached only through the lazy import in `ui/cardbattle-entry.ts`.
+  it('is imported by nothing outside the card engine but its own screens', () => {
+    // The sandbox screen (`src/ui/cardbattle/`) and the card run's screens
+    // (`src/ui/cardrun/`, docs/generation.md 125r) are the engine's consumers.
+    // GYMRUN reaches the sandbox only through the lazy import in
+    // `ui/cardbattle-entry.ts`; the card run is the deployed page's entry.
     const outside = walk(join(ROOT, 'src'))
       .map(posix)
-      .filter((file) => ![...ENGINE, 'src/ui/cardbattle'].some((dir) => file.startsWith(`${dir}/`)) && /\.(ts|mjs|js)$/.test(file));
+      .filter((file) => ![...ENGINE, 'src/ui/cardbattle', 'src/ui/cardrun'].some((dir) => file.startsWith(`${dir}/`)) && /\.(ts|mjs|js)$/.test(file));
     const offenders = outside.filter((file) => /\b(core\/cards|cardData)\//.test(strip(readFileSync(join(ROOT, file), 'utf8'))));
     expect(offenders).toEqual([]);
   });
 
-  it('reaches the sandbox screen only through the one lazy import', () => {
-    const files = walk(join(ROOT, 'src')).map(posix).filter((file) => !file.startsWith('src/ui/cardbattle/') && file.endsWith('.ts'));
+  it('reaches the sandbox screen from GYMRUN only through the one lazy import', () => {
+    const files = walk(join(ROOT, 'src'))
+      .map(posix)
+      .filter((file) => !file.startsWith('src/ui/cardbattle/') && !file.startsWith('src/ui/cardrun/') && file.endsWith('.ts'));
     const importers = files.filter((file) => /['"][^'"]*cardbattle\/[^'"]*['"]/.test(strip(readFileSync(join(ROOT, file), 'utf8'))));
     expect(importers).toEqual(['src/ui/cardbattle-entry.ts']);
     expect(readFileSync(join(ROOT, 'src/ui/cardbattle-entry.ts'), 'utf8')).toMatch(/import\(\s*'\.\/cardbattle\/sandbox'\s*\)/);
+  });
+
+  it('keeps the card run off GYMRUN\'s page: only the deployed entry mounts it', () => {
+    const files = walk(join(ROOT, 'src')).map(posix).filter((file) => !file.startsWith('src/ui/cardrun/') && file.endsWith('.ts'));
+    const importers = files.filter((file) => /['"][^'"]*\/cardrun\/[^'"]*['"]/.test(strip(readFileSync(join(ROOT, file), 'utf8'))));
+    expect(importers).toEqual(['src/main.ts']);
+    expect(readFileSync(join(ROOT, 'src/gymrun-main.ts'), 'utf8')).not.toMatch(/cardrun|cardData|core\/cards/);
   });
 });

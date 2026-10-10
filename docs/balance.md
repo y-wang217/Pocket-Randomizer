@@ -103,6 +103,20 @@ rather than being filled in from memory.
 | `randomizer-30` · `c4bf74`, 400 | `ai-7-tiers-reach-the-app`, table | RETUNE | 1.8% | **2.00** | **the Gen 5 to 9 rivals join the challenger pool**, 2026-10-05. Read against the row directly above, same prefix, same AI: **+0.11 mean gyms, completion 1.0% to 1.8%**. 282 rival records with set moves enter the windows; a challenger is now as often Hau's Popplio or Hop's Wooloo as Brock's Onix, and the first two gyms clear more often (285 of 323 at gym 1, 88.2% against 86.4%; 211 of 255 at gym 2) while gym 3 holds (124 of 181, 68.5%). Gyms 4 to 8 are inside the noise of their counts. The species check passes (Dhelmise in 15.3% of runs). `RANDOMIZER_VERSION` `-29` to `-30`, `contentHash` `16dc95` to `c4bf74`; `generation.md` section 111. **Recorded, not chased.** Report `sim-reports/benchmarks/2026-10-05T16-53-06-339Z-gymrun-randomizer-29-400.json` |
 | `randomizer-30` · `998fc2`, 400 | `ai-7-tiers-reach-the-app`, table | RETUNE | 1.8% | **2.00** | **the Defender Mode v0 merge**, 2026-10-06, on the merged tree. Read against the row directly above, same prefix, same AI: **identical to the run**. Every count is the row above's to the seed (285 of 323 at gym 1, 211 of 255, 124 of 181, 81 of 104, 46 of 69, 31 of 44, 13 of 25, 7 of 10); the two reports differ only in the four stamps and the wall-clock durations. The merge brought no attacker draw with it, which is what `test/attacker-generation-golden.test.ts`, re-minted on this tree, now pins across 200 whole maps. `RANDOMIZER_VERSION` holds at `-30` (the merged tree's number; the row above was stamped `-29`), `RUN_LOG_VERSION` `-23` to `-24` (main's), `contentHash` `c4bf74` to `998fc2` (both sets of tables); `generation.md` section 113. **Recorded, not chased.** Report `sim-reports/benchmarks/2026-10-06T00-05-16-042Z-gymrun-randomizer-30-400.json` |
 
+### The card run (`docs/generation.md` 125r)
+
+A separate game with its own yardstick: read it only down its own rows. The
+player is the run bot (`core/cards/cardrunBot.ts`): the guard bot on its
+shipped weights in every battle, and a fixed order of preferences elsewhere
+(the camp whenever affordable, stops cycling Town, Wild, City, the first of
+every offer). Benchmarked on **mean fights won**, of up to 15 with quests;
+the run has 9 main fights. `npm run cards:run -- 20 CRUN`.
+
+| stamp | prefix, count | runs won | mean fights won | mean bosses | note |
+|---|---|---|---|---|---|
+| `cardrun-0.1.0` · `cards-0.5.0` | `CRUN`, 20 | 20/20 | **13.30** | 3.00 | the first draft, 2026-10-10. Every run won: the scenarios were graded as single fights for a full-HP party, and the run hands out about 10 upgrades. Difficulty is the first thing a playtest will tune. **Recorded, not chased** |
+
+
 The four rows from `995fae` to `c4bf74` were recorded on the Stage 6.0 branch as `randomizer-26` to `-29`, and renumbered to `-27` to `-30` when `main`'s Defender Mode v0, which had taken `-26`, merged in at checkpoint 10 (`generation.md` section 113). The reports under `sim-reports/benchmarks/` keep the strings they were stamped with; read a row by its hash.
 
 > **Every event figure recorded before `9ce1895` is confounded.** Until that
