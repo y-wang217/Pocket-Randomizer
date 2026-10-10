@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { ENCOUNTERS, SCENARIO_IDS } from '../src/cardData/encounters';
+import { BENCH_IDS, ENCOUNTERS, SCENARIOS, TUTORIAL_ENCOUNTERS } from '../src/cardData/encounters';
 import { ENEMIES } from '../src/cardData/enemies';
 import { CARDS } from '../src/cardData/cards';
 import { UNITS } from '../src/cardData/units';
@@ -47,9 +47,10 @@ describe('the Target Dummy', () => {
   });
 
   it('is a battle of its own, out of the scenario list, the bench and the trainer', () => {
-    expect(ENCOUNTERS[TUTORIAL_ENCOUNTER]!.unlisted).toBe(true);
-    expect(SCENARIO_IDS).not.toContain(TUTORIAL_ENCOUNTER);
-    expect(SCENARIO_IDS).toEqual(Object.keys(ENCOUNTERS).filter((id) => id !== TUTORIAL_ENCOUNTER));
+    expect(Object.keys(TUTORIAL_ENCOUNTERS)).toEqual([TUTORIAL_ENCOUNTER]);
+    expect(ENCOUNTERS[TUTORIAL_ENCOUNTER]).toBe(TUTORIAL_ENCOUNTERS[TUTORIAL_ENCOUNTER]);
+    expect(Object.keys(SCENARIOS)).not.toContain(TUTORIAL_ENCOUNTER);
+    expect(BENCH_IDS).toEqual(Object.keys(ENCOUNTERS).filter((id) => id !== TUTORIAL_ENCOUNTER));
   });
 });
 

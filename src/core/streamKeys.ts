@@ -240,6 +240,16 @@ export function cardBattleKey(encounterId: string): string {
 }
 
 /**
+ * The card run's generation (`core/cards/cardrun.ts`), on `map`, opened on the
+ * run's own seed. One key per thing a node draws, named by the node's place in
+ * the run (`a1/s0`, `a2/boss`) and never by how the player got there, so a
+ * stop the player never visits draws exactly what it would have.
+ */
+export function cardRunKey(node: string, what: string): string {
+  return `cardrun/${node}/${what}`;
+}
+
+/**
  * The card engine's random bot, on `policy`, opened on the bot's own seed. A
  * scripted player, like `SIM_POLICY_KEY`: nothing a person plays reads it.
  */

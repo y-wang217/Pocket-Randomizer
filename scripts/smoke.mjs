@@ -101,7 +101,8 @@ await new Promise((resolve) => server.listen(0, resolve));
  * headlessly. Candidates are a filter; this harness is the test.
  */
 const SEED = process.env.GYMRUN_SMOKE_SEED ?? 'SMK50-128';
-const url = `http://127.0.0.1:${server.address().port}/#seed=${SEED}`;
+// The deployed page is the card run; GYMRUN itself is gymrun.html (docs/generation.md 125r).
+const url = `http://127.0.0.1:${server.address().port}/gymrun.html#seed=${SEED}`;
 
 // This container ships a pinned Chromium that may not match the Playwright
 // build's expected revision, so point at it explicitly when it is present

@@ -5,9 +5,9 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { CARDS, DECKS } from '../src/cardData/cards';
+import { CARDS, DECKS, PUPPETEER_CARDS } from '../src/cardData/cards';
 import { CLASS_SLOTS } from '../src/cardData/classes';
-import { ENCOUNTERS } from '../src/cardData/encounters';
+import { ENCOUNTERS, SCENARIOS } from '../src/cardData/encounters';
 import { ENEMIES } from '../src/cardData/enemies';
 import { RULES } from '../src/cardData/rules';
 import { UNITS } from '../src/cardData/units';
@@ -43,14 +43,14 @@ describe('card data', () => {
       ['attack', 'neutral', 1, false],
     ];
     // Every card but the Harpoon, which the Colossus grants (Part D) and no deck holds.
-    expect(Object.keys(CARDS).filter((id) => id !== 'harpoon').sort()).toEqual(table.map(([id]) => id).sort());
+    expect(Object.keys(PUPPETEER_CARDS).filter((id) => id !== 'harpoon').sort()).toEqual(table.map(([id]) => id).sort());
     for (const [id, owner, cost, once] of table) {
       expect([CARDS[id]!.owner, CARDS[id]!.cost, CARDS[id]!.uses === 1], id).toEqual([owner, cost, once]);
     }
   });
 
   it('builds the Puppeteer deck from one copy of every card', () => {
-    expect([...DECKS['puppeteer']!.cards].sort()).toEqual(Object.keys(CARDS).filter((id) => id !== 'harpoon').sort());
+    expect([...DECKS['puppeteer']!.cards].sort()).toEqual(Object.keys(PUPPETEER_CARDS).filter((id) => id !== 'harpoon').sort());
   });
 
   it('matches the snapshot units and classes', () => {
@@ -110,7 +110,7 @@ describe('card data', () => {
       expect(gradeTotal(encounter), id).toBe(grade);
     }
     // The shipped scenarios keep their ids and layouts and gain a total.
-    expect(Object.keys(ENCOUNTERS)).toEqual(['skirmish', 'test', 'staggered', 'turret-alley', 'wall-and-gun', 'the-pack', 'siege', 'tutorial']);
+    expect(Object.keys(SCENARIOS)).toEqual(['skirmish', 'test', 'staggered', 'turret-alley', 'wall-and-gun', 'the-pack', 'siege']);
     expect(['skirmish', 'test', 'staggered'].map((id) => gradeTotal(ENCOUNTERS[id]!))).toEqual([5, 5, 5]);
   });
 

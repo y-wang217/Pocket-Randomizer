@@ -35,7 +35,8 @@
     "cards:narrate": "vite-node scripts/cards-narrate.ts --",
     "cards:bench": "vite-node scripts/cards-bench.ts --",
     "cards:train": "vite-node scripts/cards-train.ts --",
-    "cards:solve": "vite-node scripts/cards-solve.ts --"
+    "cards:solve": "vite-node scripts/cards-solve.ts --",
+    "cards:run": "vite-node scripts/cards-run.ts --"
   },
   "dependencies": {
     "@pkmn/img": "^0.3.4",

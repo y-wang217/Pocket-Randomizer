@@ -5,7 +5,7 @@
  * The plan lives here, not in the UI. `select` and `unselect` edit
  * `state.plan`, and every legality question is answered from this object.
  */
-import type { CardOwner, Col, Cond, EnemyDefId, Lane, Pos, UnitDefId } from './defs';
+import type { CardOwner, Col, Cond, EnemyDefId, Lane, Pos, UnitBoost, UnitDefId } from './defs';
 
 export type { Pos, Lane, Col };
 
@@ -116,6 +116,8 @@ export interface BattleState {
   uses: Record<CardIid, number>;
   /** Extra draws owed to the next hand (Need Help). */
   pendingDraws: { n: number; filter: 'notOwner'; owner: CardOwner }[];
+  /** The card run's boosts to each unit (`Loadout.units`); absent in a sandbox battle. */
+  boosts?: Partial<Record<UnitDefId, UnitBoost>>;
 }
 
 export type Action =

@@ -193,6 +193,20 @@ the meadow art pack: roster on top, a full-width board, unit panels below,
 illustrated cards with owner bands (section 125q). `CARD_ENGINE_VERSION` moves to `cards-0.4.0`; none of the
 run's four axes moves, `contentHash` holds at `865d3b`.
 
+**In flight: the card run, the battler as the deployment.** Branch
+`claude/battler-deployment-overhaul-t4tvgs`, prompt
+[`spec/gymrun-card-run-prompt.md`](spec/gymrun-card-run-prompt.md), record
+[`generation.md`](generation.md) section 125r. The deployed page
+(`index.html`) is now the card battler alone: the scenarios stitched into
+three acts, a City, Town or Wild stop between every two fights, a Colossus
+boss every third fight and a unit upgrade after each. GYMRUN moved to an
+unlinked `gymrun.html`, which the smoke run drives. Headless first
+(`core/cards/cardrun.ts`, a whole run under Node with `npm run cards:run`),
+then the run's screens (`ui/cardrun/`). Every reading the prompt left open
+is listed in 125r as provisional, for a playtest. Built and stopped for
+review. `CARD_ENGINE_VERSION` moves to `cards-0.5.0`, the run has its own
+`cardrun-0.1.0`; none of GYMRUN's four axes moves.
+
 **Card battle sandbox: hearts, bubbles, an MP bar, and an interactive
 tutorial.** Branch `claude/card-battle-hearts-tutorial`, prompt
 [`spec/gymrun-patch-card-battle-hearts-and-tutorial.md`](spec/gymrun-patch-card-battle-hearts-and-tutorial.md),

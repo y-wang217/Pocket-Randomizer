@@ -8,7 +8,7 @@
  * and lane it chose, as a share of battles). `--random` adds the random bot
  * as a floor. Every figure is stamped with its seed prefix and count.
  */
-import { ENCOUNTERS, SCENARIO_IDS } from '../src/cardData/encounters';
+import { ENCOUNTERS, BENCH_IDS } from '../src/cardData/encounters';
 import { runSuite, summarize, type BattleResult } from '../src/core/cards/bench';
 import { botStream, randomBot } from '../src/core/cards/bots';
 import { guardBot } from '../src/core/cards/guard';
@@ -21,7 +21,7 @@ const opt = (name: string, fallback: string): string => {
 };
 const seeds = Number(opt('seeds', '50'));
 const prefix = opt('prefix', 'GB');
-const scenarios = args.includes('--scenario') ? [opt('scenario', '')] : SCENARIO_IDS;
+const scenarios = args.includes('--scenario') ? [opt('scenario', '')] : BENCH_IDS;
 for (const id of scenarios) {
   if (!Object.hasOwn(ENCOUNTERS, id)) {
     console.error(`cards:bench: no scenario ${id}`);

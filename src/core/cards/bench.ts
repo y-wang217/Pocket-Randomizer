@@ -2,7 +2,7 @@
  * Scoring a policy over many battles: the numbers `cards:bench` prints and
  * `cards:train` optimizes. Counts only; nothing here judges a scenario.
  */
-import { SCENARIO_IDS } from '../../cardData/encounters';
+import { BENCH_IDS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { playBattle } from './bots';
@@ -76,7 +76,7 @@ export function runSuite(
   makePolicy: () => (state: BattleState) => Action | null,
   prefix: string,
   count: number,
-  scenarios: readonly string[] = SCENARIO_IDS,
+  scenarios: readonly string[] = BENCH_IDS,
 ): BattleResult[] {
   const out: BattleResult[] = [];
   for (const encounterId of scenarios) for (let i = 0; i < count; i++) out.push(runBattle(encounterId, `${prefix}${i}`, makePolicy()));

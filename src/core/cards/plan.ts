@@ -81,8 +81,9 @@ export function livingEnemies(state: BattleState): BattleState['enemies'] {
   return state.enemies.filter((e) => e.pos !== null && e.hp > 0);
 }
 
-export function slotsOf(id: UnitId): number {
-  return CLASS_SLOTS[UNITS[id].class];
+/** A unit's card slots each turn: its class's, and any the card run has added. */
+export function slotsOf(state: BattleState, id: UnitId): number {
+  return CLASS_SLOTS[UNITS[id].class] + (state.boosts?.[id]?.slots ?? 0);
 }
 
 function choiceFits(needs: Needs, choice: Choice | undefined): boolean {
@@ -203,14 +204,14 @@ function checkCommon(state: BattleState, play: PlannedPlay, def: CardDef | undef
   mpUsed[unit.id] = (mpUsed[unit.id] ?? 0) + def.cost;
   if (mpUsed[unit.id]! > unit.mp) return 'noMp';
   slotsUsed[unit.id] = (slotsUsed[unit.id] ?? 0) + 1;
-  if (slotsUsed[unit.id]! > slotsOf(unit.id)) return 'noSlot';
+  if (slotsUsed[unit.id]! > slotsOf(state, unit.id)) return 'noSlot';
 
   if (effect(def, 'grantMove')) {
     // Command: another friendly unit's slot, none of its MP.
     const ally = unitOf(state, play.choice?.unit);
     if (!ally || ally.id === unit.id || ally.fainted) return 'badChoice';
     slotsUsed[ally.id] = (slotsUsed[ally.id] ?? 0) + 1;
-    if (slotsUsed[ally.id]! > slotsOf(ally.id)) return 'noSlot';
+    if (slotsUsed[ally.id]! > slotsOf(state, ally.id)) return 'noSlot';
   }
 
   return choiceFits(needsOf(def), play.choice) ? null : 'badChoice';

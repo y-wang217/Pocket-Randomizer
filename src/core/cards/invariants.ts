@@ -58,7 +58,7 @@ export function checkInvariants(s: BattleState): string[] {
     }
   }
   for (const u of s.units) {
-    if ((slots[u.id] ?? 0) > slotsOf(u.id)) out.push(`${u.id} uses ${slots[u.id]} slots of ${slotsOf(u.id)}`);
+    if ((slots[u.id] ?? 0) > slotsOf(s, u.id)) out.push(`${u.id} uses ${slots[u.id]} slots of ${slotsOf(s, u.id)}`);
     if ((mp[u.id] ?? 0) > u.mp) out.push(`${u.id} reserves ${mp[u.id]} MP of ${u.mp}`);
   }
   const plan = checkPlan(s, s.plan);
