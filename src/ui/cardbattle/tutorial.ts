@@ -83,9 +83,11 @@ export function waitMet(wait: TutorialWait, state: BattleState, actions: readonl
 /**
  * The step to show: from `index`, past every waiting step whose act is
  * already done. A `tap` step is never passed here; only its panel passes it.
- * `TUTORIAL_STEPS.length` when the script is done.
+ * `TUTORIAL_STEPS.length` when the script is done, which a won battle always
+ * is: beating the dummy is the goal, however the player got there.
  */
 export function settle(index: number, state: BattleState, actions: readonly Action[]): number {
+  if (state.phase === 'won') return TUTORIAL_STEPS.length;
   let at = index;
   while (at < TUTORIAL_STEPS.length) {
     const wait = TUTORIAL_STEPS[at]!.wait;

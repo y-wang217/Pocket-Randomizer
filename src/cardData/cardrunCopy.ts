@@ -17,6 +17,8 @@ export const RUN_COPY = {
   newRun: 'New run',
   continueRun: 'Continue run',
   sandbox: 'Sandbox',
+  /** The battle screen's tutorial (`ui/cardbattle/coach.ts`), against the Target Dummy. */
+  tutorial: 'Tutorial',
   seed: (seed: string) => `Seed ${seed}`,
   act: (n: number, of: number) => `Act ${n}/${of}`,
   fight: (n: number) => `Fight ${n}`,

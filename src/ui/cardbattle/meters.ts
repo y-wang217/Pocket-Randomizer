@@ -12,14 +12,18 @@
  *     shield (used once). Past `BUBBLE_ROW`, one of each kind with its count.
  *   - MP free, MP held by planned cards, and the cap: a cell each, filled,
  *     dimmed or empty. The ult's cost is a star on its cell, lit once the unit
- *     holds that much MP, planned or not.
+ *     holds that much MP, planned or not. An ult is a card marked `ult` in
+ *     this battle's deck, so an upgrade that cheapens it moves the star, and a
+ *     unit whose deck holds none (the Sword dasher, until a card run hands it
+ *     one) has no star.
  *
  * Shape tells each apart, never colour alone, and each meter carries its
  * numbers as its accessible name. No rules: every number is the view's.
  */
 import { CARDS } from '../../cardData/cards';
 import { CARD_COPY, nameOf } from '../../cardData/copy';
-import { UNITS } from '../../cardData/units';
+import type { CardDef, UnitDefId } from '../../core/cards/defs';
+import type { BattleState } from '../../core/cards/state';
 import type { UnitView } from '../../core/cards/view';
 
 /** The most hearts or bubbles a meter draws one by one. */
@@ -72,18 +76,26 @@ function bubble(base: boolean): HTMLElement {
   return node;
 }
 
-/** The unit's ult and its cost, or `null` for a unit that names none. */
-export function ultOf(unit: Pick<UnitView, 'id' | 'mpCap'>): { name: string; cost: number } | null {
-  const id = UNITS[unit.id].ult;
-  const card = id ? CARDS[id] : undefined;
-  if (!card || card.cost < 1 || card.cost > unit.mpCap) return null;
-  return { name: card.name, cost: card.cost };
+export interface Ult {
+  name: string;
+  cost: number;
+}
+
+/** Every card in the battle, once per definition: the deck the ults are read from. */
+export function deckOf(state: BattleState): CardDef[] {
+  return [...new Set(Object.values(state.cards).map((c) => c.def))].flatMap((def) => (CARDS[def] ? [CARDS[def]] : []));
+}
+
+/** The unit's ult in this deck, the cheapest if it holds more than one, or `null` when it holds none it could ever pay for. */
+export function ultOf(unit: UnitDefId, deck: readonly CardDef[], mpCap: number): Ult | null {
+  const ults = deck.filter((card) => card.ult && card.owner === unit && card.cost >= 1 && card.cost <= mpCap);
+  const card = ults.sort((a, b) => a.cost - b.cost)[0];
+  return card ? { name: card.name, cost: card.cost } : null;
 }
 
 /** The MP bar: one cell per MP up to the cap, free, held or empty, and the ult's star. */
-export function manaBar(unit: Pick<UnitView, 'id' | 'mp' | 'reserved' | 'mpCap'>): HTMLElement {
+export function manaBar(unit: Pick<UnitView, 'id' | 'mp' | 'reserved' | 'mpCap'>, ult: Ult | null): HTMLElement {
   const free = Math.max(0, unit.mp - unit.reserved);
-  const ult = ultOf(unit);
   const row = span('cb-mana');
   row.dataset['coach'] = 'mana';
   row.setAttribute('role', 'img');

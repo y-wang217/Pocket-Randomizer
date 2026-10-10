@@ -80,6 +80,13 @@ export interface CardDef {
    * bring back.
    */
   equipment?: true;
+  /**
+   * An ult: its owner's MP bar marks its cost, the MP the unit is saving
+   * toward. Presentation only; the engine never reads it. An upgrade keeps it.
+   * A unit holds one only if its deck does: the Sword dasher has none until a
+   * card run hands it one.
+   */
+  ult?: true;
 }
 
 export type Ability =
@@ -96,11 +103,6 @@ export interface UnitDef {
   hp: number;
   baseShield: number;
   abilities: readonly Ability[];
-  /**
-   * The card its MP bar marks: the cost it is saving toward. Presentation
-   * only; the engine never reads it. Absent for a unit with no card above 1 MP.
-   */
-  ult?: string;
 }
 
 export type Cond = 'slashInRange';

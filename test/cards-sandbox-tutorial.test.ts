@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { openCardTest } from '../src/ui/cardbattle-entry';
 import { openSandbox } from '../src/ui/cardbattle/sandbox';
+import { mountCardRun } from '../src/ui/cardrun/shell';
 import { tutorialSeen } from '../src/ui/cardbattle/prefs';
 
 const all = (root: ParentNode, selector: string) => [...root.querySelectorAll<HTMLElement>(selector)];
@@ -221,5 +222,38 @@ describe('the tutorial', () => {
     expect(stepOf(again)).toBeNull();
     expect(all(again, '.cb-panel--enemy')).toHaveLength(3);
     one(again, '.cb-exit').click();
+  });
+
+  it("leads the card run's title on a first visit, and hands back to the title when skipped or done", () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    const { root } = mountCardRun(host);
+    const titleButtons = () => all(root, '.cr-title .cr-btn').map((b) => `${b.textContent}${b.classList.contains('cr-btn--primary') ? '*' : ''}`);
+    expect(titleButtons()).toEqual(['Tutorial*', 'New run', 'Sandbox']);
+
+    all(root, '.cr-btn').find((b) => b.textContent === 'Tutorial')!.click();
+    const battle = one(document, '.cb');
+    expect(stepOf(battle)).toBe('place');
+    one(battle, '.cb-coach-skip').click();
+    // Skip leaves the battle screen for the title, not for Skirmish.
+    expect(document.querySelector('.cb')).toBeNull();
+    expect(tutorialSeen()).toBe(true);
+    expect(titleButtons()).toEqual(['New run*', 'Tutorial', 'Sandbox']);
+
+    // Finished from the title: the result sheet's button is Exit.
+    all(root, '.cr-btn').find((b) => b.textContent === 'Tutorial')!.click();
+    const again = one(document, '.cb');
+    begin(again);
+    for (let round = 0; round < 12 && !again.querySelector('.cb-sheet-tutorial'); round++) {
+      menu(again);
+      sheetButton(again, 'Bot turn')!.click();
+      const end = all(again, '.cb-btn--primary')[0] as HTMLButtonElement;
+      if (!end.disabled) end.click();
+      skipBeats(again);
+    }
+    expect(sheetButton(again, 'Play Skirmish')).toBeUndefined();
+    all(again, '.cb-sheet .cb-btn--primary')[0]!.click();
+    expect(document.querySelector('.cb')).toBeNull();
+    host.remove();
   });
 });

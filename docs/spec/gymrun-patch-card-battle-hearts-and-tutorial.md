@@ -31,3 +31,18 @@ so this patch touches no rule of it. Scope is the card battle sandbox only.
   board, rather than advancing on a tap.
 - The dummy is a new enemy, the Target Dummy, which never moves or attacks,
   in a tutorial scenario of its own, outside the scenario list and the bench.
+
+## The follow-up, verbatim
+
+2026-10-10, after the build was reported, with `main` moved to `82e2f66`
+(the card run, #112). Filed with the merge of that `main`.
+
+> Ok main moved check for that and then open the pr when ready
+> Sword wont have an ult until he picks one up in the campaign
+
+## How the follow-up is read
+
+An ult is a card, not a unit's fixed property: a unit has one when its deck
+holds a card marked as an ult, so the Sword dasher has none until the card
+run hands him one. The reading above, "the unit's most expensive card", is
+superseded by it (`../generation.md` section 130).

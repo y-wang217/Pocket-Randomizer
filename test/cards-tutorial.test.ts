@@ -7,14 +7,14 @@ import { describe, expect, it } from 'vitest';
 
 import { BENCH_IDS, ENCOUNTERS, SCENARIOS, TUTORIAL_ENCOUNTERS } from '../src/cardData/encounters';
 import { ENEMIES } from '../src/cardData/enemies';
-import { CARDS } from '../src/cardData/cards';
-import { UNITS } from '../src/cardData/units';
+import { CARDS, DECKS } from '../src/cardData/cards';
 import { createBattle } from '../src/core/cards/create';
 import { planRound } from '../src/core/cards/guard';
 import { choicesFor } from '../src/core/cards/legal';
 import type { Action, BattleState } from '../src/core/cards/state';
 import { step } from '../src/core/cards/step';
 import { viewOf } from '../src/core/cards/view';
+import { ultOf } from '../src/ui/cardbattle/meters';
 import { TUTORIAL_ENCOUNTER, TUTORIAL_SEED, TUTORIAL_STEPS, settle, waitMet } from '../src/ui/cardbattle/tutorial';
 
 function run(state: BattleState, actions: Action[], action: Action): BattleState {
@@ -55,18 +55,23 @@ describe('the Target Dummy', () => {
 });
 
 describe('each unit marks its ult', () => {
-  it('as its most expensive card, and none for a unit with nothing above 1 MP', () => {
-    expect(UNITS.A.ult).toBe('moon-strike');
-    expect(UNITS.B.ult).toBe('artillery');
-    expect(UNITS.C.ult).toBeUndefined();
-    for (const unit of Object.values(UNITS)) {
-      const own = Object.values(CARDS).filter((c) => c.owner === unit.id);
-      const top = Math.max(...own.map((c) => c.cost));
-      if (unit.ult) {
-        expect(CARDS[unit.ult]!.owner).toBe(unit.id);
-        expect(CARDS[unit.ult]!.cost).toBe(top);
-      } else expect(top).toBeLessThanOrEqual(1);
-    }
+  const deck = (ids: string[]) => ids.map((id) => CARDS[id]!);
+  const puppeteer = deck([...DECKS.puppeteer!.cards]);
+
+  it('as the card marked ult in its deck: Moon Strike and Artillery, and none for the Sword dasher', () => {
+    expect(Object.values(CARDS).filter((c) => c.ult && !c.id.endsWith('+')).map((c) => c.id).sort()).toEqual(['artillery', 'moon-strike']);
+    expect(ultOf('A', puppeteer, 5)).toEqual({ name: 'Moon Strike', cost: 4 });
+    expect(ultOf('B', puppeteer, 5)).toEqual({ name: 'Artillery', cost: 4 });
+    expect(ultOf('C', puppeteer, 5)).toBeNull();
+  });
+
+  it('follows the deck a card run builds: an upgrade keeps the mark and moves it, a new card for the dasher is no ult', () => {
+    const upgraded = deck([...DECKS.puppeteer!.cards.filter((id) => id !== 'moon-strike'), 'moon-strike+', 'cleave']);
+    expect(CARDS['moon-strike+']!.ult).toBe(true);
+    expect(ultOf('A', upgraded, 5)).toEqual({ name: 'Moon Strike+', cost: 3 });
+    expect(ultOf('C', upgraded, 5)).toBeNull();
+    // A card the campaign marks as the dasher's ult gives it one.
+    expect(ultOf('C', [...upgraded, { ...CARDS['cleave']!, ult: true }], 5)).toEqual({ name: 'Cleave', cost: 2 });
   });
 });
 
@@ -150,5 +155,18 @@ describe('the tutorial script', () => {
       expect(TUTORIAL_STEPS[settle(move, state, actions)]!.id).toBe('slots');
       expect(TUTORIAL_STEPS[settle(move + 2, state, actions)]!.id).toBe('finish');
     }
+  });
+
+  it('ends on a win from any step: beating the dummy is the goal, a Move never played or not', () => {
+    const created = createBattle(TUTORIAL_ENCOUNTER, TUTORIAL_SEED);
+    if (!created.ok) throw new Error('create');
+    const actions: Action[] = [];
+    let state = run(created.state, actions, { type: 'start' });
+    for (let round = 0; round < 10 && state.phase === 'plan'; round++) {
+      for (const action of planRound(state).actions) state = run(state, actions, action);
+      if (state.phase === 'plan') state = run(state, actions, { type: 'commit' });
+    }
+    expect(state.phase).toBe('won');
+    for (let index = 0; index < TUTORIAL_STEPS.length; index++) expect(settle(index, state, actions)).toBe(TUTORIAL_STEPS.length);
   });
 });

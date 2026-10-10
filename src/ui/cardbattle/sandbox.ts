@@ -48,7 +48,7 @@ import { samePos } from '../../core/cards/zones';
 import { newSeed } from '../seed';
 import { CARD_ASSET_GROUPS, cardAsset, cardAssetUrl, type CardAssetId } from './assets';
 import { createCoach } from './coach';
-import { manaBar, ultOf, vitals } from './meters';
+import { deckOf, manaBar, ultOf, vitals } from './meters';
 import { roundSteps, type RoundRecord, type Step } from './playback';
 import { CARD_PALETTES, loadCardPrefs, saveCardPrefs, saveTutorialSeen, type CardPalette, type CardPrefs } from './prefs';
 import { TUTORIAL_ENCOUNTER, TUTORIAL_SEED, type TutorialStep } from './tutorial';
@@ -66,6 +66,12 @@ export interface SandboxOptions {
   encounter?: string;
   /** Open on the tutorial instead: its battle, its seed and its coach. The entry asks for it on a first open. */
   tutorial?: boolean;
+  /**
+   * Where Skip tutorial and a finished tutorial lead: into Skirmish (the
+   * sandbox's own entry), or out of the battle screen, back to whatever opened
+   * it (the card run's title).
+   */
+  afterTutorial?: 'skirmish' | 'exit';
   onExit?: () => void;
   /**
    * A card run's battle (`ui/cardrun/`): opened where it stands, its deck and
@@ -348,6 +354,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     words: stepWords,
     onSkip: () => {
       saveTutorialSeen();
+      if (options.afterTutorial === 'exit') return close();
       encounterId = DEFAULT_ENCOUNTER;
       start(newSeed());
     },
@@ -426,7 +433,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   function stepWords(step: TutorialStep): { title: string; text: string } {
     const words = CARD_COPY.tutorial.steps;
     if (step.id === 'mana') {
-      const ult = ultOf({ id: 'A', mpCap: RULES.mp.cap });
+      const ult = ultOf('A', deckOf(state), RULES.mp.cap);
       return { title: words.mana.title, text: words.mana.text(nameOf(ult?.name ?? ''), ult?.cost ?? RULES.mp.cap, RULES.mp.cap) };
     }
     return words[step.id];
@@ -1000,6 +1007,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
 
   function renderPanels(view: BattleView): void {
     const warned = allyWarnings(view);
+    const deck = deckOf(state);
     enemySide.replaceChildren(
       ...view.enemies.map((enemy, index) => {
         const target = !!pending && pending.stage !== 'tile' && pending.units.includes(enemy.id);
@@ -1048,7 +1056,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         const portrait = el('span', 'cb-panel-portrait');
         portrait.append(cardAsset(UNIT_PORTRAIT[unit.id], 'fill'));
         panel.append(portrait, el('div', 'cb-panel-name', `${unit.id} ${nameOf(unit.name)}`));
-        panel.append(vitals(unit.hp, unit.maxHp, unit.shield, unit.baseShield), manaBar(unit));
+        panel.append(vitals(unit.hp, unit.maxHp, unit.shield, unit.baseShield), manaBar(unit, ultOf(unit.id, deck, unit.mpCap)));
         const slots = el('div', 'cb-slots');
         slots.dataset['coach'] = 'slots';
         for (let i = 0; i < unit.slots; i++) {
@@ -1307,10 +1315,12 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     if (tutorialDone && state.phase === 'won') {
       panel.append(
         el('div', 'cb-sheet-tutorial', CARD_COPY.tutorial.complete),
-        button('cb-btn cb-btn--primary', CARD_COPY.tutorial.play(nameOf(ENCOUNTERS[DEFAULT_ENCOUNTER]!.name)), () => {
-          encounterId = DEFAULT_ENCOUNTER;
-          start(newSeed());
-        }),
+        options.afterTutorial === 'exit'
+          ? button('cb-btn cb-btn--primary', CARD_COPY.exit, () => close())
+          : button('cb-btn cb-btn--primary', CARD_COPY.tutorial.play(nameOf(ENCOUNTERS[DEFAULT_ENCOUNTER]!.name)), () => {
+              encounterId = DEFAULT_ENCOUNTER;
+              start(newSeed());
+            }),
       );
     }
     const copyArea = el('textarea', 'cb-log');

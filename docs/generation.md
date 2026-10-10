@@ -16742,13 +16742,20 @@ because nothing under `src/data/` changed.
   Each meter carries its numbers as its accessible name. Shape tells each
   apart; colour repeats it, and the tritan palette moves the bubble's blue to
   a cool grey.
-- **The ult mark.** The brief's "4/5 bars for moon strike" is read as each
-  unit's most expensive card, named in its data (`UnitDef.ult`, presentation
-  only, the engine never reads it): Moon Strike for the Commander, Artillery
-  for the Gunner, both 4. A gold tick runs through the bar at the end of that
-  cell with a star on it, hollow until the unit holds that much MP, filled
-  and glowing once it does. **The Sword dasher has no card above 1 MP, so it
-  shows no mark**; naming one is the author's call.
+- **The ult mark.** An ult is a card marked `ult` (`CardDef.ult`,
+  presentation only, the engine never reads it): Moon Strike for the
+  Commander and Artillery for the Gunner, both 4, and their card-run upgrades,
+  which keep the mark (Moon Strike+ at 3 moves the star to 3). Each bar marks
+  the cheapest ult its unit holds in this battle's deck. A gold tick runs
+  through the bar at the end of that cell with a star on it, hollow until the
+  unit holds that much MP, filled and glowing once it does. **The Sword
+  dasher has none until the campaign hands him one**, by the author's ruling
+  in the prompt's follow-up.
+  - *2026-10-10, superseded:* the first build read the ult as each unit's
+    most expensive card, named on the unit (`UnitDef.ult`). Merging `main`'s
+    card run broke that reading twice: Moon Strike+ costs 3, and the Town's
+    Cleave would have made a 2-cost card the dasher's ult. The author ruled
+    the dasher has no ult until he picks one up; `UnitDef.ult` is deleted.
 - **A shield on the piece.** Any shielded token wears a bubble dome over its
   marker and the shield's total in a bubble at its top right corner: solid
   when any of it is card shield, dashed when all of it is base shield. Base
@@ -16762,9 +16769,9 @@ because nothing under `src/data/` changed.
   new encounter, `tutorial`, with the dummy at lane 2, column 4: the middle
   of the danger zone, in the Gunner's lane, so Shoot reaches it from where
   the Gunner starts and the first hit visibly pops a bubble.
-  `EncounterDef.unlisted` keeps it out of the Menu's scenario list, the bench
-  and the trainer (`SCENARIO_IDS`), named so because `core/` never mentions
-  the tutorial (`test/tutorial.test.ts`); the engine's gates and the guard bot's
+  It sits in `TUTORIAL_ENCOUNTERS`, beside `main`'s `SCENARIOS` and
+  `RUN_ENCOUNTERS`, so the Menu's scenario list (`SCENARIOS`) never shows it
+  and the bench and the trainer play `BENCH_IDS`, every encounter but it; the engine's gates and the guard bot's
   battle test still play it, since they iterate every encounter. Seed
   `TUTOR1` is fixed for it: its first hand holds Move, Shoot and Call Medic.
   The guard bot beats it in 3 rounds there.
@@ -16778,15 +16785,20 @@ because nothing under `src/data/` changed.
   only Skip step; a waiting step's panel docks over the status bar and the
   roster, so the board, the units, the hand and the actions stay uncovered.
   Every wait reads the battle and the actions taken since the tutorial began,
-  so a step the player already did passes at once. Winning ends it and the
-  result sheet says so, with a button into Skirmish.
+  so a step the player already did passes at once, and a win ends it from any
+  step: beating the dummy is the goal. The result sheet says so, with a
+  button into Skirmish, or Exit when the card run's title opened it.
 - **When it shows.** The hidden entry opens it on the first visit only
   (`gymrun.cardbattle.tutorial` in local storage, guarded like the prefs),
   read inside the sandbox's own chunk so the main bundle gains nothing. Skip
   tutorial marks it seen and opens Skirmish on a new seed. Menu → Tutorial
   opens it again; Restart keeps it; New seed or a scenario leaves it.
   `openSandbox` never opens it unasked, so a caller that names a scenario
-  gets that scenario. `skipTutorialIn` (`scripts/visual/browser.mjs`) now
+  gets that scenario. **On the deployed page**, `main`'s card run title, it is
+  a Tutorial button: the primary one on a first visit with no saved run,
+  quiet beside New run after. It is a button rather than a panel that opens
+  by itself, so the title's first tap stays the player's; Skip and Exit hand
+  back to the title. `skipTutorialIn` (`scripts/visual/browser.mjs`) now
   seeds this flag too, so the browser suite's other cases open on the
   default scenario as before.
 - **Copy.** Every new word is in `cardData/copy.ts` under `meters` and

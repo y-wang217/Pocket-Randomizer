@@ -44,7 +44,7 @@ import {
 import type { UnitDefId } from '../../core/cards/defs';
 import { newLog } from '../../core/cards/log';
 import { newSeed } from '../seed';
-import { effectLines, openSandbox } from '../cardbattle/sandbox';
+import { effectLines, openSandbox, tutorialSeen } from '../cardbattle/sandbox';
 import { loadCardPrefs } from '../cardbattle/prefs';
 
 const SAVE_KEY = 'gymrun.cardrun.v1';
@@ -180,7 +180,14 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
     panel.append(el('h1', 'cr-title-name', RUN_COPY.title), el('p', 'cr-title-tag', RUN_COPY.tagline));
     const saved = loadSave();
     if (saved) panel.append(btn('cr-btn--primary', RUN_COPY.continueRun, () => resume(saved)));
-    panel.append(btn(saved ? '' : 'cr-btn--primary', RUN_COPY.newRun, () => begin(newSeed())));
+    // The tutorial leads on a first visit, before any run, and steps back once seen or skipped.
+    const first = !saved && !tutorialSeen();
+    const tutorial = btn(first ? 'cr-btn--primary' : 'cr-btn--quiet', RUN_COPY.tutorial, () =>
+      openSandbox(globalThis.document.body, { tutorial: true, afterTutorial: 'exit', onExit: () => render() }),
+    );
+    if (first) panel.append(tutorial);
+    panel.append(btn(saved || first ? '' : 'cr-btn--primary', RUN_COPY.newRun, () => begin(newSeed())));
+    if (!first) panel.append(tutorial);
     panel.append(btn('cr-btn--quiet', RUN_COPY.sandbox, () => openSandbox(globalThis.document.body, {})));
     if (message) panel.append(el('div', 'cr-message', message));
     root.append(panel);
