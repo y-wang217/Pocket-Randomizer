@@ -74,6 +74,10 @@ interface Pending {
 /** The scenario the sandbox opens on: enemies drawn anywhere on their backline. */
 const DEFAULT_ENCOUNTER = 'skirmish';
 const LONG_PRESS_MS = 450;
+/** The board's row height in sandbox.css, the rows it has, and how much each may give a short screen. */
+const ROW = 52;
+const BOARD_ROWS = 7;
+const ROW_GIVE = 6;
 /** How long each kind of playback step holds. */
 const STEP_MS: Record<Step['kind'], number> = { card: 900, enemy: 900, move: 600, next: 900, round: 700, end: 900 };
 
@@ -273,6 +277,9 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   const previousOverflow = document.documentElement.style.overflow;
   document.documentElement.style.overflow = 'hidden';
   host.append(root);
+  // A phone's browser bars change the height under the frame, so it refits.
+  globalThis.addEventListener('resize', fitFrame);
+  globalThis.visualViewport?.addEventListener('resize', fitFrame);
 
   const onKey = (event: KeyboardEvent): void => {
     if (event.key !== 'Escape') return;
@@ -607,6 +614,28 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     renderHand(view);
     renderActions(view);
     if (shown) decorate(shown);
+    fitFrame();
+  }
+
+  /**
+   * Fit the frame to the screen's height, so nothing is cut off above or
+   * below it. The 390-wide layout is about 820px tall, more than an iPhone's
+   * Safari shows between its bars. The board's seven rows give the height
+   * back first, from 52px down to 46px, which keeps every tile a 46px target
+   * and costs no fact. Only a screen shorter than that scales the whole frame
+   * down, the same everywhere, rather than clip a row of it.
+   */
+  function fitFrame(): void {
+    frame.style.removeProperty('--cb-row');
+    frame.style.removeProperty('transform');
+    // Unrounded heights: a frame a fraction of a pixel over is still cut.
+    const room = root.getBoundingClientRect().height;
+    const over = frame.getBoundingClientRect().height - room;
+    if (room <= 0 || over <= 0) return;
+    const give = Math.min(ROW_GIVE, Math.ceil(over / BOARD_ROWS));
+    frame.style.setProperty('--cb-row', `${ROW - give}px`);
+    const height = frame.getBoundingClientRect().height;
+    if (height > room) frame.style.transform = `scale(${room / height})`;
   }
 
   /** A planned card's place in the order the plan resolves, from 1. */
@@ -1265,6 +1294,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   function close(): void {
     skipBeats();
     root.removeEventListener('keydown', onKey);
+    globalThis.removeEventListener('resize', fitFrame);
+    globalThis.visualViewport?.removeEventListener('resize', fitFrame);
     root.remove();
     document.documentElement.style.overflow = previousOverflow;
     options.onExit?.();
