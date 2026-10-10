@@ -13,7 +13,7 @@
  * No DOM here; the sandbox does the drawing.
  */
 import { CARDS } from '../../cardData/cards';
-import { CARD_COPY } from '../../cardData/copy';
+import { CARD_COPY, nameOf } from '../../cardData/copy';
 import { RULES } from '../../cardData/rules';
 import { ENEMIES } from '../../cardData/enemies';
 import type { Pos } from '../../core/cards/defs';
@@ -59,23 +59,16 @@ export interface RoundRecord {
   steps: Step[];
 }
 
-const ACT_WORD: Record<Exclude<Intent['act'], 'none'>, string> = {
-  strike: CARD_COPY.keyword.strike,
-  pierce: CARD_COPY.keyword.pierce,
-  slash: CARD_COPY.keyword.slash,
-  shield: CARD_COPY.keyword.shield,
-  scream: CARD_COPY.keyword.scream,
-};
-
 function actWord(act: Intent['act'], n: number): string {
-  return act === 'none' ? CARD_COPY.intentNone : `${ACT_WORD[act]} ${n}`;
+  // Read at call time: the language can change between rounds.
+  return act === 'none' ? CARD_COPY.intentNone : `${CARD_COPY.keyword[act]} ${n}`;
 }
 
 /** A unit by its letter, an enemy by its name and spawn number. */
 export function whoOf(state: BattleState, id: string): string {
   if (state.units.some((u) => u.id === id)) return id;
   const enemy = state.enemies.find((e) => e.id === id);
-  return enemy ? `${ENEMIES[enemy.def].name} ${enemyNumber(state, id)}` : id;
+  return enemy ? `${nameOf(ENEMIES[enemy.def].name)} ${enemyNumber(state, id)}` : id;
 }
 
 /**
@@ -122,7 +115,7 @@ export function roundSteps(before: BattleState, events: readonly BattleEvent[], 
         // The forecast the plan showed for this card, on the board it resolves on.
         const planned = before.plan.findIndex((p) => p.card === event.card);
         const attack = planned >= 0 ? previewPlay(before, before.plan[planned]!, planned).attack : null;
-        begin('card', L.plays(event.unit, def.name), {
+        begin('card', L.plays(event.unit, nameOf(def.name)), {
           actor: event.unit,
           ...(attack ? { act: attack.act === 'blast' ? 'strike' : attack.act, tiles: attack.tiles.map((t) => t.pos) } : {}),
         });
@@ -184,10 +177,10 @@ export function roundSteps(before: BattleState, events: readonly BattleEvent[], 
         break;
       }
       case 'granted':
-        (open ?? begin('round', '')).lines.push(L.granted(CARDS[draft.cards[event.card]!.def]!.name));
+        (open ?? begin('round', '')).lines.push(L.granted(nameOf(CARDS[draft.cards[event.card]!.def]!.name)));
         break;
       case 'usedUp':
-        current('card', '').lines.push(L.usedUp(CARDS[draft.cards[event.card]!.def]!.name));
+        current('card', '').lines.push(L.usedUp(nameOf(CARDS[draft.cards[event.card]!.def]!.name)));
         break;
       case 'friendlyFire':
         current('card', '').lines.push(L.friendlyFire(who(event.unit)));
@@ -195,7 +188,7 @@ export function roundSteps(before: BattleState, events: readonly BattleEvent[], 
       case 'planPruned': {
         // Only a commit prunes with a reason of `fainted`: a unit a Blast felled earlier in the round.
         const def = CARDS[draft.cards[event.card]!.def]!;
-        begin('card', L.plays(event.unit, def.name), { actor: event.unit }).lines.push(L.notPlayed);
+        begin('card', L.plays(event.unit, nameOf(def.name)), { actor: event.unit }).lines.push(L.notPlayed);
         draft.plan = draft.plan.filter((p) => p.card !== event.card);
         break;
       }

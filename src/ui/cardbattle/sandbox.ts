@@ -24,7 +24,7 @@
 import './sandbox.css';
 
 import { CARDS } from '../../cardData/cards';
-import { CARD_COPY } from '../../cardData/copy';
+import { CARD_COPY, CARD_LANGUAGES, LANGUAGE_NAMES, cardLanguage, nameOf, setCardLanguage } from '../../cardData/copy';
 import { ENCOUNTERS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
@@ -36,12 +36,14 @@ import { choicesFor } from '../../core/cards/legal';
 import { newLog, type BattleLog } from '../../core/cards/log';
 import { friendlyFireFor, interceptsFor, previewPlay, type AttackPreview, type FriendlyFire, type Intercept } from '../../core/cards/preview';
 import type { Action, BattleState, CardIid, TargetId, UnitId } from '../../core/cards/state';
+import type { BattleEvent } from '../../core/cards/events';
 import { step } from '../../core/cards/step';
 import { enemyNumber, viewOf, type BattleView, type HandCardView, type TileThreat, type TileView } from '../../core/cards/view';
 import { samePos } from '../../core/cards/zones';
 import { newSeed } from '../seed';
 import { CARD_ASSET_GROUPS, cardAsset, cardAssetUrl, type CardAssetId } from './assets';
 import { roundSteps, type RoundRecord, type Step } from './playback';
+import { CARD_PALETTES, loadCardPrefs, saveCardPrefs, type CardPalette, type CardPrefs } from './prefs';
 
 export interface Sandbox {
   root: HTMLElement;
@@ -177,6 +179,45 @@ function effectFace(effects: readonly Effect[]): { icon: CardAssetId; n: number 
   return { icon: 'icon-wait', n: null, targeted };
 }
 
+/** The labels that sit in a fixed box: a card's name, a slot's, a panel's, a stat line, an intent. */
+const FIT = '.cb-card-name, .cb-full-name, .cb-slot-name, .cb-panel-name, .cb-stat, .cb-pill-text';
+/** How far a label may shrink to fit before it is cut with an ellipsis. */
+const FIT_FLOOR = 0.6;
+const FIT_STEP = 0.05;
+/** The horizontal padding `sandbox.css` gives a label, in px, where it has any. */
+const FIT_PADDING: Record<string, number> = { 'cb-slot-name': 4 };
+
+/**
+ * Shrink each fixed-box label until it fits, down to `FIT_FLOOR` of its size.
+ * English fits as written; a longer language would otherwise lose the end of
+ * a card's name. The stylesheet multiplies each label's size by `--cb-fit`,
+ * so nothing here reads a computed style (`test/no-computed-timing.test.ts`).
+ * Measures the laid-out page, so it does nothing where nothing is laid out.
+ */
+export function fitLabels(scope: ParentNode): void {
+  for (const node of scope.querySelectorAll<HTMLElement>(FIT)) {
+    node.style.removeProperty('--cb-fit');
+    let scale = 1;
+    while (overflows(node) && scale > FIT_FLOOR) {
+      scale = Math.max(FIT_FLOOR, scale - FIT_STEP);
+      node.style.setProperty('--cb-fit', scale.toFixed(2));
+    }
+  }
+}
+
+/**
+ * Whether a label's text is wider than its box, to the sub-pixel: an ellipsis
+ * shows at any overflow, and `scrollWidth` rounds a fraction of a pixel away.
+ */
+export function overflows(node: HTMLElement): boolean {
+  const box = node.getBoundingClientRect().width;
+  if (box === 0) return false;
+  const range = node.ownerDocument.createRange();
+  range.selectNodeContents(node);
+  const padding = [...node.classList].reduce((sum, name) => sum + (FIT_PADDING[name] ?? 0), 0);
+  return range.getBoundingClientRect().width > box - padding + 0.01;
+}
+
 function reducedMotion(): boolean {
   return typeof globalThis.matchMedia === 'function' && globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
@@ -239,14 +280,14 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   let inspectMode = false;
   let message = '';
   let beatTimer: ReturnType<typeof setTimeout> | null = null;
-  /** Every committed round, as the log lists it. */
-  let rounds: RoundRecord[] = [];
+  /** Every committed round, as the log lists it, with what it needs to be told again in another language. */
+  let rounds: (RoundRecord & { events: readonly BattleEvent[]; after: BattleState })[] = [];
+  let prefs: CardPrefs = loadCardPrefs();
   /** The round being played back: its loud steps, the one showing, and each planned card's place in the order. */
   let playback: { steps: Step[]; index: number; order: Map<CardIid, number> } | null = null;
 
   const root = el('div', 'cb');
   root.setAttribute('role', 'dialog');
-  root.setAttribute('aria-label', CARD_COPY.title);
   const frame = el('div', 'cb-frame');
   root.append(frame);
 
@@ -340,7 +381,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     // End Turn clears the filter, and so does the filtered unit fainting.
     if (action.type === 'commit' || (filter && state.units.find((u) => u.id === filter)?.fainted)) filter = null;
     if (action.type === 'commit') {
-      const record = { round: before.round, before, steps: roundSteps(before, result.events, state) };
+      const record = { round: before.round, before, steps: roundSteps(before, result.events, state), events: result.events, after: state };
       rounds.push(record);
       if (playRound(record)) return true;
     }
@@ -613,6 +654,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     renderPanels(view);
     renderHand(view);
     renderActions(view);
+    fitLabels(frame);
     if (shown) decorate(shown);
     fitFrame();
   }
@@ -812,7 +854,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   /** An enemy as its token names it: its name's initial and spawn number. */
   function enemyLabel(id: string): string {
     const enemy = state.enemies.find((e) => e.id === id);
-    return enemy ? `${ENEMIES[enemy.def].name[0]}${enemyNumber(state, id)}` : id;
+    return enemy ? `${[...nameOf(ENEMIES[enemy.def].name)][0]}${enemyNumber(state, id)}` : id;
   }
 
   function layer(id: CardAssetId, className: string): HTMLElement {
@@ -875,7 +917,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         panel.dataset['id'] = enemy.id;
         if (enemy.dead) panel.dataset['dead'] = 'true';
         if (target) panel.dataset['target'] = 'true';
-        const name = el('div', 'cb-panel-name', `${enemy.name} ${index + 1}`);
+        const name = el('div', 'cb-panel-name', `${nameOf(enemy.name)} ${index + 1}`);
         if (enemy.fast) name.append(el('span', 'cb-fast', CARD_COPY.fast));
         panel.append(name);
         // One line, as a unit's: HP, then card shield plus base shield.
@@ -914,7 +956,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         if (filter === unit.id) panel.dataset['filter'] = 'true';
         const portrait = el('span', 'cb-panel-portrait');
         portrait.append(cardAsset(UNIT_PORTRAIT[unit.id], 'fill'));
-        panel.append(portrait, el('div', 'cb-panel-name', `${unit.id} ${unit.name}`));
+        panel.append(portrait, el('div', 'cb-panel-name', `${unit.id} ${nameOf(unit.name)}`));
         panel.append(statLine(CARD_COPY.hp, `${unit.hp}/${unit.maxHp} · ${CARD_COPY.shieldShort} ${unit.shield}+${unit.baseShield}`), bar(unit.hp, unit.maxHp));
         const mp = el('div', 'cb-mp');
         mp.append(el('span', 'cb-mp-text', `${CARD_COPY.cost} ${unit.mp - unit.reserved}/${unit.mp}`));
@@ -931,7 +973,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
           if (play) {
             const slot = el('button', 'cb-slot cb-slot--filled');
             slot.type = 'button';
-            slot.append(cardAsset('slot-filled', 'fill'), el('span', 'cb-slot-name', play.name));
+            slot.append(cardAsset('slot-filled', 'fill'), el('span', 'cb-slot-name', nameOf(play.name)));
             const order = orderOf(play.card);
             if (order !== undefined) slot.append(el('span', 'cb-order cb-slot-order', String(order)));
             slot.addEventListener('click', (event) => {
@@ -1012,7 +1054,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         // Player cards in their unit's colour, Neutrals grey, an enemy's grant black.
         node.dataset['owner'] = card.granted ? 'enemy' : card.owner;
         node.dataset['card'] = card.def;
-        node.setAttribute('aria-label', [card.name, `${card.cost} ${CARD_COPY.cost}`, ...effectLines(card.effects)].join(', '));
+        node.setAttribute('aria-label', [nameOf(card.name), `${card.cost} ${CARD_COPY.cost}`, ...effectLines(card.effects)].join(', '));
         const face = faceOf(card.effects, CARDS[card.def]?.face);
         // The card's illustration sits behind the frame's open art window.
         node.append(cardArt(card.def));
@@ -1031,7 +1073,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
           field.append(mark);
         }
         node.append(field);
-        node.append(el('span', 'cb-card-name', card.name));
+        node.append(el('span', 'cb-card-name', nameOf(card.name)));
         // A Neutral has a grey frame and no letter.
         if (card.owner !== 'neutral' && !card.granted) {
           const badge = el('span', 'cb-card-badge');
@@ -1086,12 +1128,12 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     full.dataset['owner'] = card.granted ? 'enemy' : card.owner;
     full.append(cardArt(card.def, 'cb-full-picture'), cardAsset('card-frame-full', 'fill'), ownerBand('card-band-full'));
     full.append(el('div', 'cb-full-cost', String(card.cost)), el('div', 'cb-full-n', face.n === null ? '' : String(face.n)));
-    full.append(el('div', 'cb-full-name', card.name));
+    full.append(el('div', 'cb-full-name', nameOf(card.name)));
     const art = el('div', 'cb-full-art');
     art.append(cardAsset(face.icon, 'fill'));
     full.append(art);
     const body = el('div', 'cb-full-body');
-    body.append(el('div', 'cb-full-owner', card.owner === 'neutral' ? CARD_COPY.neutral : `${card.owner} ${UNITS[card.owner].name}`));
+    body.append(el('div', 'cb-full-owner', card.owner === 'neutral' ? CARD_COPY.neutral : `${card.owner} ${nameOf(UNITS[card.owner].name)}`));
     for (const line of effectLines(card.effects)) body.append(el('div', 'cb-full-line', line));
     if (card.uses) body.append(el('div', 'cb-full-line', CARD_COPY.uses(card.uses.left, card.uses.of)));
     if (card.retain) body.append(el('div', 'cb-full-line', CARD_COPY.retain));
@@ -1145,7 +1187,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   /** An enemy's Inspect entry: its numbers, its grade, and how it opens. */
   function showEnemyInspect(enemy: BattleView['enemies'][number]): void {
     const card = el('div', 'cb-enemy-card');
-    card.append(el('div', 'cb-enemy-card-name', `${enemy.name} ${enemyNumber(state, enemy.id)}`));
+    card.append(el('div', 'cb-enemy-card-name', `${nameOf(enemy.name)} ${enemyNumber(state, enemy.id)}`));
     const def = ENEMIES[enemy.def];
     card.append(el('div', 'cb-enemy-card-line', `${CARD_COPY.enemyStats(def.hp, def.baseShield)} · ${CARD_COPY.grade(def.grade)}`));
     if (enemy.fast) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.rule.fast));
@@ -1154,6 +1196,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     if (def.boss) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.bossRules.pin));
     inspect.replaceChildren(card);
     inspect.hidden = false;
+    fitLabels(inspect);
   }
 
   function cornerIcon(id: CardAssetId, className: string): HTMLElement {
@@ -1222,6 +1265,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       button('cb-btn', CARD_COPY.roundLog, () => openRoundLog()),
       botTurn(),
       scenarios(),
+      settings(),
       replay,
       button('cb-btn', CARD_COPY.close, () => (sheet.hidden = true)),
       button('cb-btn', CARD_COPY.exit, () => close()),
@@ -1230,6 +1274,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     );
     sheet.replaceChildren(panel);
     sheet.hidden = false;
+    fitLabels(sheet);
   }
 
   /** The guard bot places the units, or plays this round on top of the plan so far. */
@@ -1253,17 +1298,66 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     list.append(el('div', 'cb-scenarios-title', CARD_COPY.scenario));
     for (const encounter of Object.values(ENCOUNTERS)) {
       const grade = CARD_COPY.grade(gradeTotal(encounter));
-      const pick = button('cb-btn cb-scenario', encounter.name, () => {
+      const pick = button('cb-btn cb-scenario', nameOf(encounter.name), () => {
         encounterId = encounter.id;
         start(seed);
       });
       pick.querySelector('.cb-btn-label')!.append(el('span', 'cb-scenario-grade', grade));
-      pick.setAttribute('aria-label', `${encounter.name}, ${grade}`);
-      pick.title = encounter.blurb;
+      pick.setAttribute('aria-label', `${nameOf(encounter.name)}, ${grade}`);
+      pick.title = nameOf(encounter.blurb);
       if (encounter.id === encounterId) pick.dataset['on'] = 'true';
       list.append(pick);
     }
     return list;
+  }
+
+  /**
+   * The two settings: the language, each named in itself so it can always be
+   * found again, and the palette. A tap applies at once and redraws the menu
+   * in the new words.
+   */
+  function settings(): HTMLElement {
+    const box = el('div', 'cb-settings');
+    box.append(el('div', 'cb-scenarios-title', CARD_COPY.settings.language));
+    const languages = el('div', 'cb-settings-languages');
+    for (const language of CARD_LANGUAGES) {
+      const pick = button('cb-btn cb-setting', LANGUAGE_NAMES[language], () => choose({ ...prefs, language }));
+      pick.lang = language;
+      if (language === prefs.language) pick.dataset['on'] = 'true';
+      languages.append(pick);
+    }
+    box.append(languages, el('div', 'cb-scenarios-title', CARD_COPY.settings.colours));
+    const palettes = el('div', 'cb-settings-palettes');
+    const word: Record<CardPalette, string> = { standard: CARD_COPY.settings.paletteStandard, tritan: CARD_COPY.settings.paletteTritan };
+    for (const palette of CARD_PALETTES) {
+      const pick = button('cb-btn cb-setting', word[palette], () => choose({ ...prefs, palette }));
+      if (palette === prefs.palette) pick.dataset['on'] = 'true';
+      palettes.append(pick);
+    }
+    box.append(palettes);
+    return box;
+  }
+
+  function choose(next: CardPrefs): void {
+    const relabel = next.language !== cardLanguage();
+    prefs = next;
+    saveCardPrefs(prefs);
+    applyPrefs();
+    if (relabel) {
+      // The rounds already played are told again in the new language.
+      rounds = rounds.map((r) => ({ ...r, steps: roundSteps(r.before, r.events, r.after) }));
+      message = '';
+    }
+    render();
+    openSheet();
+  }
+
+  /** Every render after this one draws in the chosen words and colours. */
+  function applyPrefs(): void {
+    setCardLanguage(prefs.language);
+    root.lang = prefs.language;
+    root.dataset['palette'] = prefs.palette;
+    root.setAttribute('aria-label', CARD_COPY.title);
   }
 
   /** Every committed round, step by step in the order it resolved, numbered as the playback numbers it. */
@@ -1301,6 +1395,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     options.onExit?.();
   }
 
+  applyPrefs();
   start(seed);
   root.tabIndex = -1;
   root.focus();

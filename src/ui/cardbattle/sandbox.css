@@ -41,6 +41,10 @@
   /* 0.62 in the pack; 0.8 so dim text passes 4.5:1 on the paper (A5). */
   --cb-dim: rgba(36, 60, 80, 0.8);
   --cb-line: rgba(36, 60, 80, 0.25);
+  /* The washes' channels, so a palette moves them with the solid colours. */
+  --cb-teal-rgb: 35, 135, 125;
+  --cb-red-rgb: 200, 90, 80;
+  --cb-purple-rgb: 134, 100, 172;
 
   position: fixed;
   inset: 0;
@@ -56,6 +60,28 @@
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * The blue-green safe palette (docs/spec/gymrun-patch-card-battle-accessibility.md),
+ * for a tritan-type viewer, who sees blue and teal as one colour and yellow
+ * drift toward pink. Measured under the Machado 2009 tritanopia simulation,
+ * CIELAB distance: the owner colours were A teal / B blue 7 apart and
+ * C purple / Neutral grey 14; with B bronze, C deep indigo and Neutral a
+ * lighter grey, no two of A, B, C, Neutral, the enemy red and the amber
+ * highlight are closer than 29. Teal and ink do not move. The art carries
+ * its own colours; what this moves is every tint the screen draws.
+ */
+.cb[data-palette='tritan'] {
+  --cb-blue: #8c6d1f;
+  --cb-blue-text: #6b5214;
+  --cb-purple: #3a2560;
+  --cb-purple-text: #3a2560;
+  --cb-purple-rgb: 58, 37, 96;
+  --cb-grey: #8e969b;
+  --cb-amber: #e8b000;
+  --cb-red: #c8463c;
+  --cb-red-rgb: 200, 70, 60;
 }
 .cb:focus {
   outline: none;
@@ -259,7 +285,7 @@
  * sheltered and unlit. Slash: a dashed purple wash over its three tiles.
  */
 .cb-threat[data-act='pierce'] > .cb-asset--placeholder {
-  background: repeating-linear-gradient(-45deg, rgba(200, 90, 80, 0.45) 0 3px, transparent 3px 9px);
+  background: repeating-linear-gradient(-45deg, rgba(var(--cb-red-rgb), 0.45) 0 3px, transparent 3px 9px);
   border-radius: 8px;
   box-shadow: inset 0 0 0 2.5px var(--cb-red);
 }
@@ -276,7 +302,7 @@
 .cb-threat[data-act='strike'] {
   margin: 2px;
   border-radius: 8px;
-  background: repeating-linear-gradient(-45deg, rgba(200, 90, 80, 0.38) 0 3px, transparent 3px 9px);
+  background: repeating-linear-gradient(-45deg, rgba(var(--cb-red-rgb), 0.38) 0 3px, transparent 3px 9px);
   box-shadow: inset 0 0 0 2.5px var(--cb-red);
 }
 .cb-threat[data-act='strike'][data-stop='true']::after {
@@ -435,7 +461,7 @@
 /* A tile the card may go to: the pack's dashed outline, a firmer wash and a
    dot in the middle, so the open spaces read at a glance. */
 .cb-ov--selectable {
-  background: rgba(35, 135, 125, 0.22);
+  background: rgba(var(--cb-teal-rgb), 0.22);
   border-radius: 8px;
 }
 .cb-ov--selectable::after {
@@ -450,11 +476,11 @@
   opacity: 0.85;
 }
 .cb-ov--selectable > .cb-asset--placeholder {
-  background: rgba(35, 135, 125, 0.3);
+  background: rgba(var(--cb-teal-rgb), 0.3);
   box-shadow: inset 0 0 0 2px var(--cb-teal);
 }
 .cb-ov--selected > .cb-asset--placeholder {
-  background: rgba(35, 135, 125, 0.45);
+  background: rgba(var(--cb-teal-rgb), 0.45);
 }
 .cb-ov--unavailable > .cb-asset--placeholder {
   background: rgba(36, 60, 80, 0.25);
@@ -586,14 +612,14 @@
   animation: cb-flash 700ms ease-out;
 }
 .cb-tile[data-flash='strike']::after {
-  background: rgba(200, 90, 80, 0.55);
+  background: rgba(var(--cb-red-rgb), 0.55);
 }
 .cb-tile[data-flash='pierce']::after {
-  background: rgba(200, 90, 80, 0.55);
+  background: rgba(var(--cb-red-rgb), 0.55);
   box-shadow: inset 0 0 0 3px var(--cb-ink);
 }
 .cb-tile[data-flash='slash']::after {
-  background: rgba(134, 100, 172, 0.55);
+  background: rgba(var(--cb-purple-rgb), 0.55);
 }
 @keyframes cb-flash {
   0% {
@@ -750,7 +776,7 @@
 }
 .cb-panel-name {
   font-weight: 800;
-  font-size: 11px;
+  font-size: calc(11px * var(--cb-fit, 1));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -758,7 +784,7 @@
 .cb-stat {
   display: flex;
   gap: 4px;
-  font-size: 11px;
+  font-size: calc(11px * var(--cb-fit, 1));
   white-space: nowrap;
 }
 .cb-stat-label {
@@ -811,6 +837,11 @@
   box-shadow: inset 0 0 0 2px var(--cb-red-deep);
 }
 .cb-pill-text {
+  min-width: 0;
+  font-size: calc(12px * var(--cb-fit, 1));
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   color: var(--cb-ink);
   white-space: nowrap;
 }
@@ -879,7 +910,7 @@
   border-radius: 3px;
   background: var(--cb-ink);
   color: var(--cb-surface);
-  font-size: 8px;
+  font-size: calc(8px * var(--cb-fit, 1));
   line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
@@ -977,7 +1008,7 @@
   display: grid;
   place-items: center;
   font-weight: 800;
-  font-size: calc(var(--cb-card-w) * 0.11);
+  font-size: calc(var(--cb-card-w) * 0.11 * var(--cb-fit, 1));
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -1068,7 +1099,7 @@
 .cb-sheet-panel--log {
   max-height: calc(100% - 32px);
 }
-/* The scenario list: one button each, the current one pressed. */
+/* The scenario list and the settings: one button each, the current one pressed. */
 .cb-sheet-panel {
   max-height: calc(100% - 32px);
   overflow-y: auto;
@@ -1084,6 +1115,9 @@
   font-size: 11px;
   font-weight: 700;
 }
+.cb-setting .cb-btn-label {
+  font-size: 11px;
+}
 .cb-scenario .cb-btn-label {
   flex-direction: column;
   gap: 1px;
@@ -1096,6 +1130,16 @@
 .cb-scenario-grade {
   font-size: 9px;
   font-weight: 600;
+}
+.cb-settings {
+  display: grid;
+  gap: 4px;
+}
+.cb-settings-languages,
+.cb-settings-palettes {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
 }
 .cb-roundlog {
   flex: 1;
@@ -1173,7 +1217,7 @@
   top: 14px;
   height: 22px;
   text-align: center;
-  font-size: 17px;
+  font-size: calc(17px * var(--cb-fit, 1));
   font-weight: 800;
   white-space: nowrap;
   overflow: hidden;

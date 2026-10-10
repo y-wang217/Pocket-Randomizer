@@ -16550,3 +16550,56 @@ UI only: nothing under `core/` or `data/` changes, and no version axis moves.
   (the rows alone absorb it, no scale, tiles at least 44px), 390x713 and
   390x664 (the frame wholly on screen). All three fail on `ccd5b34` and pass
   here.
+
+## 129. The card battle sandbox: a colour mode and a language setting
+
+**2026-10-09**, on `claude/nifty-lamport-6bj8bd`, from `main` at `a8b0c96`.
+From [`spec/gymrun-patch-card-battle-accessibility.md`](spec/gymrun-patch-card-battle-accessibility.md).
+The card battle sandbox only. No version axis moves; `contentHash` is
+unmoved, because nothing under `src/data/` changed.
+
+- **Where the settings live.** Menu → Language and Colours, under the
+  scenarios. Saved under `gymrun.cardbattle.prefs` (`ui/cardbattle/prefs.ts`),
+  apart from the run save and the app's settings, as the sandbox's own rule
+  requires. A tap applies at once and redraws the menu in the new words; the
+  rounds already played are told again in the new language, so a record keeps
+  its events and its after-state beside its steps.
+- **Language.** English, 繁體中文, 简体中文, 日本語, Deutsch, Українська,
+  Español, Français, each named in itself in the picker. `CARD_COPY` is now a
+  live binding over one table per language (`cardData/translations/`); every
+  sentence with a slot was already a function. The names the card data
+  carries (cards, units, enemies, scenarios and their blurbs) are not copied
+  into the data per language: `nameOf` looks the English name up in the
+  table's `names`, and English reads the data. The sandbox's root carries
+  `lang`, so a phone draws Japanese and both Chinese scripts with their own
+  glyph forms. **Machine-drafted and not read by a native speaker**: that read
+  is open. The copied battle log is JSON and is never translated.
+- **Labels that do not fit shrink.** German, Ukrainian and French run past
+  the fixed boxes of a card's name, a slot, a panel's name and stat line, and
+  an enemy's intent pill. `fitLabels` shrinks each to fit, measured to the
+  sub-pixel because an ellipsis shows at less than one, down to 60% of its
+  size before the ellipsis is allowed. The stylesheet multiplies each such
+  label's size by `--cb-fit` and the screen only sets that, because nothing
+  under `src/` may read a computed style (`test/no-computed-timing.test.ts`). It also fixes two English labels that
+  were already cut by a fraction of a pixel: `Call Medic` in a slot and
+  `Shield 0 · Base 0` on an enemy panel. German's Pierce is `Stich` because
+  `Durchschlag` did not fit the pill even at 60%.
+- **Colours.** The author is blue-green colour blind, so the mode is tuned
+  for a tritan-type deficiency, not red-green. Built first on the v1 pack,
+  then redone on merging main's meadow reskin (125q), which made the owner
+  colours the thing to tell apart: A teal, B blue, C purple, Neutral grey.
+  Measured under the Machado 2009 tritanopia simulation, CIELAB distance,
+  standard: A/B 7, C/Neutral 14, red telegraph/amber highlight 28. The
+  blue-green safe palette moves B to bronze, C to deep indigo, Neutral to a
+  lighter grey, amber to a bright yellow and the red a shade deeper, with
+  their text variants; no two of A, B, C, Neutral, the red and the amber are
+  then closer than 29. Teal and ink do not move. It is tokens only
+  (`.cb[data-palette='tritan']` in `sandbox.css`): every owner band, panel
+  edge, wash and chip the screen tints follows them. The meadow art's own
+  baked colours do not move. The v1 build's SVG recolouring was dropped in
+  the merge, since the art it recoloured is now WebP.
+- **Tested.** `test/visual-card-battle.test.ts`: every language on both
+  palettes at 390x844, no scroll, every touch target at least 44px, and no
+  label out of its box on the board, in the menu, and over eight more deals
+  per language; the menu switches both settings, B's colour leaves blue, and
+  both survive a reload.
