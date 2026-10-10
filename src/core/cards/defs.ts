@@ -177,10 +177,10 @@ export interface EncounterDef {
    */
   waves?: readonly (readonly EnemySpawn[])[];
   /**
-   * The tutorial's own battle: left out of the Menu's scenario list, the
-   * bench and the trainer (`SCENARIO_IDS`), opened by the tutorial instead.
+   * A battle opened by its own entry rather than picked: left out of the
+   * Menu's scenario list, the bench and the trainer (`SCENARIO_IDS`).
    */
-  tutorial?: true;
+  unlisted?: true;
 }
 
 export type HuntTieBreak = 'nearestLane' | 'lowestHp' | 'upperLane';

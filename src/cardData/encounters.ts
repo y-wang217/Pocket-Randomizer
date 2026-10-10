@@ -123,9 +123,9 @@ export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
     deckId: 'puppeteer',
     units: PUPPETEER_FRONT,
     enemies: [{ def: 'dummy', pos: at(2, 4) }],
-    tutorial: true,
+    unlisted: true,
   },
 };
 
-/** The scenarios a player picks from, and the bench and trainer play: every encounter but the tutorial's. */
-export const SCENARIO_IDS: readonly string[] = Object.keys(ENCOUNTERS).filter((id) => !ENCOUNTERS[id]!.tutorial);
+/** The scenarios a player picks from, and the bench and trainer play: every encounter but an unlisted one. */
+export const SCENARIO_IDS: readonly string[] = Object.keys(ENCOUNTERS).filter((id) => !ENCOUNTERS[id]!.unlisted);

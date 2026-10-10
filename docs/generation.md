@@ -16644,8 +16644,9 @@ because nothing under `src/data/` changed.
   new encounter, `tutorial`, with the dummy at lane 2, column 4: the middle
   of the danger zone, in the Gunner's lane, so Shoot reaches it from where
   the Gunner starts and the first hit visibly pops a bubble.
-  `EncounterDef.tutorial` keeps it out of the Menu's scenario list, the bench
-  and the trainer (`SCENARIO_IDS`); the engine's gates and the guard bot's
+  `EncounterDef.unlisted` keeps it out of the Menu's scenario list, the bench
+  and the trainer (`SCENARIO_IDS`), named so because `core/` never mentions
+  the tutorial (`test/tutorial.test.ts`); the engine's gates and the guard bot's
   battle test still play it, since they iterate every encounter. Seed
   `TUTOR1` is fixed for it: its first hand holds Move, Shoot and Call Medic.
   The guard bot beats it in 3 rounds there.

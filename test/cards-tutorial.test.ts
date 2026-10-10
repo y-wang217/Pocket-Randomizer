@@ -47,7 +47,7 @@ describe('the Target Dummy', () => {
   });
 
   it('is a battle of its own, out of the scenario list, the bench and the trainer', () => {
-    expect(ENCOUNTERS[TUTORIAL_ENCOUNTER]!.tutorial).toBe(true);
+    expect(ENCOUNTERS[TUTORIAL_ENCOUNTER]!.unlisted).toBe(true);
     expect(SCENARIO_IDS).not.toContain(TUTORIAL_ENCOUNTER);
     expect(SCENARIO_IDS).toEqual(Object.keys(ENCOUNTERS).filter((id) => id !== TUTORIAL_ENCOUNTER));
   });
