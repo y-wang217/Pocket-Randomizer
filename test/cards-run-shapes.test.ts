@@ -132,12 +132,7 @@ describe('Group A (checkpoint 3): reward cards from the existing effects', () =>
 
   it('resolves every effect each one names', () => {
     const kinds = (events: BattleEvent[]) => events.map((e) => e.t);
-    const whirlwind = play('whirlwind');
-    expect(kinds(whirlwind)).toEqual(expect.arrayContaining(['damaged', 'shielded']));
-    expect(whirlwind).toContainEqual({ t: 'shielded', unit: 'C', amount: 2 });
-    const rally = play('rally');
-    expect(rally.some((e) => e.t === 'shielded' && e.amount === 2)).toBe(true);
-    expect(kinds(rally)).toContain('drawQueued');
+    // Whirlwind and Rally move first: `test/cards-move-follow-ups.test.ts` (4b).
     expect(kinds(play('mark-target'))).toContain('damaged');
     const suppress = play('suppress');
     expect(kinds(suppress)).toContain('damaged');

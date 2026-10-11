@@ -61,6 +61,20 @@ export function isMoveCard(def: CardDef): boolean {
   return def.effects.some((e) => e.k === 'move' || e.k === 'grantMove');
 }
 
+/**
+ * The effects a move card carries beyond its move (checkpoint 4b): checked
+ * against the board the move leaves and resolved after it, from where the
+ * unit then stands. A move card's follow-ups ask for no choice of their own
+ * (`FOLLOW_UPS`); a friendly Shield on a granted move lands on the ally that
+ * moved, the one the card's choice already names.
+ */
+export function followUps(def: CardDef): Effect[] {
+  return def.effects.filter((e) => e.k !== 'move' && e.k !== 'grantMove');
+}
+
+/** What a move card may carry: nothing that asks for a tile or an enemy of its own. */
+export const FOLLOW_UPS: readonly Effect['k'][] = ['strike', 'pierce', 'slash', 'shield', 'gainMp', 'drawNext', 'push', 'stealth'];
+
 export function needsOf(def: CardDef): Needs {
   if (effect(def, 'grantMove')) return 'unitThenTile';
   if (effect(def, 'move')) return 'tile';
@@ -238,7 +252,9 @@ function walk(state: BattleState, plan: readonly PlannedPlay[]): { check: PlanCh
     const def = cardDefOf(state, play.card);
     const reason =
       checkCommon(state, play, def, spent) ??
-      (isMoveCard(def!) ? checkMove(state, play, def!, positions) : checkEffects(state, play, def!, positions));
+      (isMoveCard(def!)
+        ? (checkMove(state, play, def!, positions) ?? (followUps(def!).length > 0 ? checkEffects(state, play, def!, positions) : null))
+        : checkEffects(state, play, def!, positions));
     if (reason) return { check: { ok: false, index, reason }, spent };
   }
   return { check: { ok: true, positions }, spent };
@@ -278,7 +294,7 @@ export function checkAppend(state: BattleState, play: PlannedPlay): PlanCheck {
     return reason ? fail(reason) : base.check;
   }
   const positions = { ...base.check.positions };
-  const moved = checkMove(state, play, def!, positions, base.moves);
+  const moved = checkMove(state, play, def!, positions, base.moves) ?? (followUps(def!).length > 0 ? checkEffects(state, play, def!, positions) : null);
   return moved ? fail(moved) : { ok: true, positions };
 }
 

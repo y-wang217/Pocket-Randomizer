@@ -17015,6 +17015,11 @@ A move that also strikes or shields is engine work: a resolver after the move,
 a preview from the moved tile, a legality check on the result. It belongs
 with Group B's resolvers in checkpoint 4 if the author wants it back.
 
+*2026-10-11, superseded by section 136:* checkpoint 4b built that engine
+work. Whirlwind is Move 1, Slash 3 and Rally is Grant Move 1, Shield 1 to
+the ally, as the filed table drafted them. The two substitutes above are
+gone.
+
 - **Whirlwind is the Dasher's first ult.** Section 130's ruling ("the Sword
   dasher has none until the campaign hands him one") is met, not changed:
   the run's reward is that hand-off. `test/cards-tutorial.test.ts` now lists
@@ -17115,4 +17120,64 @@ rest.
 fights, 2.60 bosses**, flat against section 134. The run bot takes the first
 offer and buys the first affordable market item, so it rarely holds Group B
 and cannot rate it. **Recorded, not chased.**
+
+## 136. Card run shapes, checkpoint 4b: a move that carries a second effect
+
+**2026-10-11**, on `claude/card-run-shapes`, after section 135. From the
+author's go-ahead filed under
+[`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md).
+`CARD_ENGINE_VERSION` moves to `cards-0.9.0` (a move card's other effects
+now resolve) and `CARD_RUN_VERSION` to `cardrun-0.6.0` (Whirlwind and Rally
+changed). `contentHash` holds.
+
+**The rule.** A move card (Move or Grant Move) may carry follow-up effects
+(`followUps` in `core/cards/plan.ts`). They resolve after the move, from
+where the unit then stands. That is the same order the engine already used
+for the plan's projection, so a card's move and attack read as one play.
+
+- **Allowed follow-ups** (`FOLLOW_UPS`): Strike, Pierce, Slash, Shield, +MP,
+  extra draw, Push and Stealth. These are the effects that ask for no choice
+  of their own; the move card's one choice is already its tile, or its ally
+  and tile. Blast, Target, Pull, Repair and Harpoon would each need a second
+  choice, so a move card cannot carry them.
+- **A granted move carries no damage**, since the damage would come from the
+  Commander rather than the ally that moved. A friendly Shield on it lands on
+  that ally, the unit its choice already names.
+- **Legality** (`walk` and `checkAppend`) runs the move's check, then the
+  follow-ups' check against the board the move leaves. So Whirlwind offers
+  only the tiles its Slash can hit from: in the danger zone, with an enemy in
+  the next column. A tile its Slash could not use is not offered rather than
+  allowed to fizzle.
+- **The preview** (`previewPlay`) lights a moving attack from its
+  destination, so the board shows what Whirlwind will hit from the tile
+  being chosen.
+- **A card's face** shows its attack before its move (`effectFace`), so
+  Whirlwind wears Slash 3. Its lines read Move 1, Slash 3, in the card's
+  order. Existing move cards carry no attack, so no face changed.
+
+**The cards, back to the drafts filed with the prompt:**
+
+| Card | Owner | Cost | Effects | Upgrade |
+|---|---|---|---|---|
+| Whirlwind (ult) | Dasher | 4 | Move 1, then Slash 3 | cost 3 |
+| Rally | Commander | 2 | Grant Move 1, then Shield 1 to that ally | cost 1 |
+
+Rally wears Command's art now, since it is Command with a shield.
+
+**Held by** `test/cards-move-follow-ups.test.ts`:
+
+- Every move card keeps to the allowed follow-ups, and a granted move
+  carries no damage.
+- Whirlwind offers exactly one tile on a board built for it (the one its
+  Slash can reach from) and previews its hits from there. It then moves and
+  hits both enemies in the next column for 3, every hit after the move.
+- Rally moves the Gunner where the Commander sends it, and the Shield lands
+  on the Gunner.
+
+The Group B random-bot sweep (section 135) holds the invariants with both
+cards in its deck. Group A's behaviour test leaves these two to this file.
+
+**The bench** (`balance.md`, the card run): **14 of 20 runs won, 12.00
+fights, 2.50 bosses**, against 16 of 20, 12.15 and 2.60. Within the noise
+of twenty seeds; only two cards changed. **Recorded, not chased.**
 

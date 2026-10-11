@@ -141,15 +141,16 @@ copied log with `npm run cards:replay -- <file>`. No version axis moves.
 **In flight: card run shapes.** Branch `claude/card-run-shapes`, prompt
 [`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md),
 runthrough [`reports/card-run-shapes-runthrough.md`](reports/card-run-shapes-runthrough.md),
-records [`generation.md`](generation.md) sections 132 to 135. Checkpoints
-1 to 4 of 7 are built; 4 is stopped for review. Between waves only the cards
+records [`generation.md`](generation.md) sections 132 to 136. Checkpoints
+1 to 4b are built; 4b is stopped for review. Between waves only the cards
 reset, and every run fight is three waves (no bench change). The run starts
 from a basic ten-card deck, the Puppeteer's cards come back as rewards, the
 Gunner's Pierce is the Marksman boss talent, and a card reward replaces a
 card: 14 of 20 runs won, the first draft that moves the bench. Group A's six
 cards are rewards (16 of 20, within noise). Group B's Push, Pull, Repair and
-Stealth have resolvers and four cards (bench flat). Next come 4b (a move with
-a second effect), shapes with cover and stun, enemy scaling, and the screens.
+Stealth have resolvers and four cards (bench flat). A move card carries
+follow-ups, so Whirlwind moves and slashes and Rally shields the ally it
+moves. Next come shapes with cover and stun, enemy scaling, and the screens.
 
 **Card battle sandbox: sides, telegraph kinds and card previews.** Branch
 `claude/card-battler-ui-layout-yejhur`, feedback

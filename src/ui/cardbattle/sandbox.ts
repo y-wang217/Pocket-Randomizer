@@ -183,7 +183,9 @@ export function faceOf(effects: readonly Effect[], face?: 'shovel' | 'harpoon'):
 
 function effectFace(effects: readonly Effect[]): { icon: CardAssetId; n: number | null; targeted: boolean } {
   const targeted = effects.some((e) => e.k === 'target');
-  for (const effect of effects) {
+  // A card that moves and attacks (4b) shows its attack: the damage keyword first, then the rest in order.
+  const damage = effects.filter((e) => e.k === 'strike' || e.k === 'pierce' || e.k === 'slash' || e.k === 'blast');
+  for (const effect of [...damage, ...effects]) {
     switch (effect.k) {
       case 'strike':
       case 'pierce':

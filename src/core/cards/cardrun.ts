@@ -43,7 +43,7 @@ import type { Action, BattleState } from './state';
 import { step } from './step';
 
 /** Bumps when a run's draws, its tables' meaning or a logged decision changes what a run log replays to. */
-export const CARD_RUN_VERSION = 'cardrun-0.5.0';
+export const CARD_RUN_VERSION = 'cardrun-0.6.0';
 
 export type StopKind = 'city' | 'town' | 'wild';
 

@@ -35,10 +35,11 @@ const TOWN: Readonly<Record<string, CardDef>> = {
   'guard-up': card({ id: 'guard-up', name: 'Guard Up', owner: 'C', cost: 0, type: null, effects: [{ k: 'shield', n: 1, to: 'self' }] }),
   sprint: card({ id: 'sprint', name: 'Sprint', owner: 'neutral', cost: 1, type: null, effects: [{ k: 'move', n: 2 }] }),
   jab: card({ id: 'jab', name: 'Jab', owner: 'neutral', cost: 0, type: null, effects: [{ k: 'strike', n: 1 }] }),
-  // Group A (`docs/spec/gymrun-card-run-shapes-prompt.md`, checkpoint 3): the
-  // existing effect vocabulary only. Whirlwind is the Dasher's first ult.
-  whirlwind: card({ id: 'whirlwind', name: 'Whirlwind', owner: 'C', cost: 4, type: null, effects: [{ k: 'blast', n: 2 }, { k: 'shield', n: 2, to: 'self' }], ult: true, art: 'slash' }),
-  rally: card({ id: 'rally', name: 'Rally', owner: 'A', cost: 2, type: null, effects: [{ k: 'shield', n: 2, to: 'friendly' }, { k: 'drawNext', n: 1, filter: 'notOwner' }], art: 'call-medic' }),
+  // Group A (`docs/spec/gymrun-card-run-shapes-prompt.md`, checkpoint 3).
+  // Whirlwind is the Dasher's first ult. Both it and Rally are a move with a
+  // follow-up, as first drafted, since checkpoint 4b taught the engine one.
+  whirlwind: card({ id: 'whirlwind', name: 'Whirlwind', owner: 'C', cost: 4, type: null, effects: [{ k: 'move', n: 1 }, { k: 'slash', n: 3 }], ult: true, art: 'slash' }),
+  rally: card({ id: 'rally', name: 'Rally', owner: 'A', cost: 2, type: null, effects: [{ k: 'grantMove', n: 1 }, { k: 'shield', n: 1, to: 'friendly' }], art: 'command' }),
   'mark-target': card({ id: 'mark-target', name: 'Mark Target', owner: 'A', cost: 1, type: null, effects: [{ k: 'strike', n: 1 }, { k: 'target', n: 1 }], art: 'moon-strike' }),
   suppress: card({ id: 'suppress', name: 'Suppress', owner: 'B', cost: 3, type: null, effects: [{ k: 'blast', n: 1 }, { k: 'target', n: 1 }, { k: 'shield', n: 1, to: 'self' }], art: 'fire' }),
   'second-wind': card({ id: 'second-wind', name: 'Second Wind', owner: 'neutral', cost: 1, type: null, effects: [{ k: 'gainMp', n: 1 }, { k: 'drawNext', n: 1, filter: 'notOwner' }], art: 'resupply' }),

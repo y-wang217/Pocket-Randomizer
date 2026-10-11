@@ -160,7 +160,9 @@ export function previewPlay(state: BattleState, play: PlannedPlay, at: number = 
   const targeted = def.effects.some((e) => e.k === 'target');
   let allies: AllyHit[] = [];
   const positions = projectAt(state, at);
-  const from = positions[play.unit];
+  // A move card's follow-up attack fires from the tile its own move lands on (4b).
+  const ownMove = def.effects.some((e) => e.k === 'move') && play.choice?.tile ? play.choice.tile : null;
+  const from = ownMove ?? positions[play.unit];
   if (dmg && from) {
     const k = convertsTo(state, play, dmg.k, targeted);
     if (targeted) {

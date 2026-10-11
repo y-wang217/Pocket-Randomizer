@@ -21,7 +21,7 @@ import { RULES } from '../../cardData/rules';
 import { enemyActions, enemyMovesAndTelegraph } from './enemies';
 import type { Ctx } from './keywords';
 import { gainMp, payFor, resolveEffects, resolveMove, retire } from './keywords';
-import { abilitiesOf, cardDefOf, checkPlan, isMoveCard, livingEnemies, livingUnits, type StepResult, unitOf } from './plan';
+import { abilitiesOf, cardDefOf, checkPlan, followUps, isMoveCard, livingEnemies, livingUnits, type StepResult, unitOf } from './plan';
 import { shuffled, withStream } from './random';
 import type { BattleState, PlannedPlay, UnitId } from './state';
 
@@ -93,8 +93,13 @@ export function commit(state: BattleState): StepResult {
       return;
     }
     const def = cardDefOf(s, play.card)!;
-    if (isMoveCard(def)) playCard(ctx, play, () => resolveMove(ctx, play, def));
-    else playCard(ctx, play, () => resolveEffects(ctx, play, def, converts(play, index)));
+    if (isMoveCard(def)) {
+      // A move card's follow-ups land after the move, from where the unit then stands (4b).
+      playCard(ctx, play, () => {
+        resolveMove(ctx, play, def);
+        if (followUps(def).length > 0 && s.phase === 'plan') resolveEffects(ctx, play, def, converts(play, index));
+      });
+    } else playCard(ctx, play, () => resolveEffects(ctx, play, def, converts(play, index)));
   });
 
   // 3. Win check: the last enemy of a wave brings the next wave, of the last wave wins.
