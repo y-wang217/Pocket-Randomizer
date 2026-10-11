@@ -197,7 +197,7 @@ describe('the corner stamps', () => {
     });
     await skipTutorialIn(context);
     const page = await context.newPage();
-    await page.goto(`${harness.url}/#seed=SMOKE24`, { waitUntil: 'load' });
+    await page.goto(`${harness.url}/gymrun.html#seed=SMOKE24`, { waitUntil: 'load' });
     await page.waitForSelector(`${visible('starter')} .starter`);
     // Past the starter screen, whose cards reach the bottom-left corner and
     // now correctly win the tap there. See the note above.

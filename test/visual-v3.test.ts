@@ -237,7 +237,7 @@ describe('the world', () => {
 
     await skipTutorialIn(reduced);
     const quiet = await reduced.newPage();
-    await quiet.goto(`${harness.url}/#seed=SMOKE24`, { waitUntil: 'load' });
+    await quiet.goto(`${harness.url}/gymrun.html#seed=SMOKE24`, { waitUntil: 'load' });
     await quiet.waitForSelector(`${visible('starter')} .starter`);
     await playUntil(quiet, (screen) => screen === 'map');
     expect(await quiet.locator('.world__drift').count()).toBe(0);

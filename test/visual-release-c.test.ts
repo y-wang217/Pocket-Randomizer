@@ -277,7 +277,7 @@ describe('reduced motion', () => {
     const reduced = await harness.browser.newContext({ viewport: PHONE, reducedMotion: 'reduce' });
     await skipTutorialIn(reduced);
     const page = await reduced.newPage();
-    await page.goto(`${harness.url}/#seed=S49R-2`, { waitUntil: 'load' });
+    await page.goto(`${harness.url}/gymrun.html#seed=S49R-2`, { waitUntil: 'load' });
     await page.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
     /*
      * A turn, sampled as the click returns: the first action's lunge is on
