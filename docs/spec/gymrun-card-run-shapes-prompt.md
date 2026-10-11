@@ -73,3 +73,9 @@ Read as: Q1 (a), every fight node is three waves back to back with HP carried
 inside it. Q2 yes, the units stay where they stand and the next wave spawns
 at once, under grace. Q3 full HP at each new fight. Q4 a card reward replaces
 a card the player chooses. Q5 cover and stun are built.
+
+## The author's go-ahead for checkpoint 2, verbatim
+
+Filed before any checkpoint 2 work.
+
+> Yes go for step 2. Everything we take away we give back in appropriate upgrades
