@@ -56,3 +56,20 @@ Group B, the reserved effects, each needing a resolver:
 > Or ranger builds support with equipment and helps cc enemies while slasher aoes them down
 >
 > These are all shapes of the deck and gives variance. Enemies should scale in hp and attack patterns. Lets do a runthrough for getting these ideas online
+
+## The author's answers to the runthrough's section 7, verbatim
+
+Filed before any build work. The questions are
+[`../reports/card-run-shapes-runthrough.md`](../reports/card-run-shapes-runthrough.md)
+section 7, Q1 to Q5 in order.
+
+> A
+> Yes
+> A each new fight (3 waves)
+> Replace user chosen
+> Yes lets try it
+
+Read as: Q1 (a), every fight node is three waves back to back with HP carried
+inside it. Q2 yes, the units stay where they stand and the next wave spawns
+at once, under grace. Q3 full HP at each new fight. Q4 a card reward replaces
+a card the player chooses. Q5 cover and stun are built.
