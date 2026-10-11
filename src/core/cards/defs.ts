@@ -285,12 +285,13 @@ export interface Rules {
   /** A battle still running after this many rounds of one wave ends as a loss: the count restarts each wave (C6). */
   roundCap: number;
   /**
-   * Between waves (the author's rulings, C1 to C5): each living unit keeps its
-   * HP, loses its card shield, has its base shield restored and its MP reset;
-   * every card not removed by a faint is shuffled back, Once cards included;
-   * owed MP and extra draws are cleared; the units are placed again.
+   * Between waves (the author's ruling of 2026-10-11, superseding C1 to C5):
+   * the cards reset and nothing else does. Each living unit keeps its HP, its
+   * base shield as spent, its MP and any MP owed, and stays on its tile; every
+   * card not removed by a faint is shuffled back, Once cards included; extra
+   * draws clear; the next wave spawns at once, with no placement.
    */
-  betweenWaves: { mp: 'reset'; deck: 'reshuffleAll'; owed: 'clear'; units: 'placeAgain' };
+  betweenWaves: { units: 'keepAll'; deck: 'reshuffleAll'; extraDraws: 'clear'; placement: 'none' };
 }
 
 /**

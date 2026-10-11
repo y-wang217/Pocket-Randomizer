@@ -9,7 +9,7 @@ import { CARDS, DECKS, UPGRADE_OF } from '../src/cardData/cards';
 import { ACTS, EVENTS, MARKET, RUN_RULES, TOWN_POOL } from '../src/cardData/cardrunTables';
 import { ENCOUNTERS } from '../src/cardData/encounters';
 import { UNITS } from '../src/cardData/units';
-import { createBattle, layoutBattle } from '../src/core/cards/create';
+import { createBattle, layoutBattle, wavesOf } from '../src/core/cards/create';
 import { guardBot } from '../src/core/cards/guard';
 import { replay } from '../src/core/cards/log';
 import { newLog } from '../src/core/cards/log';
@@ -76,10 +76,17 @@ describe('card run: shape and draws', () => {
     expect(last.kind === 'fight' && [last.encounter, last.boosts.length]).toEqual(['siege', 0]);
   });
 
-  it('uses every scenario the sandbox has, and every encounter it names exists', () => {
+  it('uses every scenario the sandbox has, every fight is three waves, and every encounter it names exists', () => {
     const named = ACTS.flatMap((a) => [...a.fights, a.boss, ...a.townQuests, ...a.defenseQuests]);
     for (const id of named) expect(Object.hasOwn(ENCOUNTERS, id), id).toBe(true);
-    for (const id of ['skirmish', 'test', 'staggered', 'turret-alley', 'wall-and-gun', 'the-pack', 'siege']) expect(named, id).toContain(id);
+    // Q1 (a): three waves back to back, the scenario itself the last of them (Siege is three waves already).
+    for (const id of named) expect(wavesOf(ENCOUNTERS[id]!), id).toHaveLength(3);
+    const reached = named.flatMap((id) => [id, id.replace(/^run-/, '')]);
+    for (const id of ['skirmish', 'test', 'staggered', 'turret-alley', 'wall-and-gun', 'the-pack', 'siege']) expect(reached, id).toContain(id);
+    for (const id of named.filter((n) => n.startsWith('run-'))) {
+      const base = ENCOUNTERS[id.replace(/^run-/, '')]!;
+      expect(wavesOf(ENCOUNTERS[id]!)[2], id).toEqual(base.enemies);
+    }
   });
 
   it('is a function of the seed: the same seed draws the same run, another seed another', () => {
@@ -316,7 +323,7 @@ describe('card run: the whole run, headless', () => {
   });
 
   it('refuses a run log from another version, naming both values', () => {
-    expect(() => replayRun({ version: 'cardrun-0.0.1', seed: 'X', actions: [] })).toThrow(/cardrun-0\.0\.1.*cardrun-0\.1\.0/);
+    expect(() => replayRun({ version: 'cardrun-0.0.1', seed: 'X', actions: [] })).toThrow(/cardrun-0\.0\.1.*cardrun-0\.2\.0/);
   });
 
   it('refuses anything malformed without throwing, and nothing once the run is over', () => {

@@ -16,7 +16,6 @@
  * UI never waits on an intermediate state.
  */
 import { CARDS } from '../../cardData/cards';
-import { ENCOUNTERS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
@@ -124,28 +123,21 @@ export function commit(state: BattleState): StepResult {
 }
 
 /**
- * The next wave arrives (Part C; `RULES.betweenWaves`). Each living unit keeps
- * its HP, loses its card shield, gets its base shield back, goes to 0 MP and
- * back to its scenario tile; owed MP and extra draws clear; every card a faint
- * did not remove, Once cards included, is shuffled into a fresh draw pile, in
- * deck order first so the shuffle reads no history. Then the round count
- * starts again with round 1's hand, and the battle is back in `deploy`: the
- * player places again and Start brings the wave's opening moves, under grace.
+ * The next wave arrives (`RULES.betweenWaves`, the author's ruling of
+ * 2026-10-11, `docs/spec/gymrun-card-run-shapes-prompt.md`). The cards reset
+ * and nothing else does: each living unit keeps its HP, its base shield as
+ * spent, its MP and any MP a card still owes it, and stays on its tile. Every
+ * card a faint did not remove, Once cards included, is shuffled into a fresh
+ * draw pile, in deck order first so the shuffle reads no history; extra draws
+ * owed clear. The new wave spawns at once with no placement: the round count
+ * starts again with round 1's hand, a card shield clears with it as at any
+ * turn start (R3), and the wave makes its opening moves under grace.
  */
 export function startWave(ctx: Ctx, wave: number): void {
   const { s } = ctx;
   s.wave = wave;
   s.plan = [];
   s.pendingDraws = [];
-  const encounter = ENCOUNTERS[s.encounterId]!;
-  for (const unit of livingUnits(s)) {
-    const boost = s.boosts?.[unit.id];
-    unit.shield = 0;
-    unit.baseShield = UNITS[unit.id].baseShield + (boost?.baseShield ?? 0);
-    unit.mp = Math.min(RULES.mp.cap, RULES.mp.start + (boost?.mp ?? 0));
-    unit.pendingMp = [];
-    unit.pos = { ...encounter.units.find((u) => u.def === unit.id)!.pos };
-  }
   for (const enemy of s.enemies) {
     if (enemy.wave === wave) enemy.pos = { ...enemy.spawn! };
   }
@@ -161,7 +153,8 @@ export function startWave(ctx: Ctx, wave: number): void {
   grantWave(ctx);
   s.round = 0;
   nextHand(ctx);
-  s.phase = 'deploy';
+  if (s.phase !== 'plan') return;
+  enemyMovesAndTelegraph(ctx, false);
 }
 
 /** The cards the arriving wave's enemies grant leave the reserve for the hand. */

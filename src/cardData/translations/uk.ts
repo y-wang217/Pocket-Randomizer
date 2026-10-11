@@ -198,7 +198,7 @@ export const UK: CardCopy = {
     'Two Turrets hold the outer lanes; a Hound runs the middle.': 'Дві турелі тримають крайні смуги; гончак біжить серединою.',
     'Two Bulwarks march on the outer lanes; a Sniper waits behind.': 'Два бастіони крокують крайніми смугами; снайпер чекає позаду.',
     'Three Hounds on the front row, a Pikeman behind them.': 'Три гончаки в передньому ряду, за ними пікінер.',
-    'Three waves, each harder, the Colossus last. HP carries over; shields and MP do not.': 'Три хвилі, кожна важча, остання — Колос. HP зберігається; щити й MP — ні.',
+    'Three waves, each harder, the Colossus last. Only the cards reset between waves.': 'Три хвилі, кожна важча, остання — Колос. Між хвилями скидаються лише карти.',
     'Target Dummy': 'Тренувальне опудало',
     Tutorial: 'Навчання',
     'One Target Dummy. It never moves and never fights back.': 'Одне тренувальне опудало. Воно не рухається й не відбивається.',

@@ -37,13 +37,13 @@ export interface ActDef {
 
 /**
  * The scenarios stitched into a row, each act harder than the last, every
- * third fight a boss. The last boss is Siege: three waves ending in the
- * Colossus.
+ * third fight a boss. Every fight is three waves (`RUN_FIGHTS`), HP carried
+ * between them; the last boss is Siege, three waves ending in the Colossus.
  */
 export const ACTS: readonly ActDef[] = [
-  { fights: ['test', 'staggered'], boss: 'colossus-lair', townQuests: ['bandit-camp', 'stray-drones'], defenseQuests: ['gatehouse'] },
-  { fights: ['skirmish', 'turret-alley'], boss: 'colossus-escort', townQuests: ['outriders', 'gun-nest'], defenseQuests: ['the-walls'] },
-  { fights: ['the-pack', 'wall-and-gun'], boss: 'siege', townQuests: ['raiders', 'warband'], defenseQuests: ['last-stand'] },
+  { fights: ['run-test', 'run-staggered'], boss: 'run-colossus-lair', townQuests: ['run-bandit-camp', 'run-stray-drones'], defenseQuests: ['run-gatehouse'] },
+  { fights: ['run-skirmish', 'run-turret-alley'], boss: 'run-colossus-escort', townQuests: ['run-outriders', 'run-gun-nest'], defenseQuests: ['run-the-walls'] },
+  { fights: ['run-the-pack', 'run-wall-and-gun'], boss: 'siege', townQuests: ['run-raiders', 'run-warband'], defenseQuests: ['run-last-stand'] },
 ];
 
 /** What a Town quest's card offer draws from. */

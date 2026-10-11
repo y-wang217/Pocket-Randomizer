@@ -198,7 +198,7 @@ export const ZH_HANT: CardCopy = {
     'Two Turrets hold the outer lanes; a Hound runs the middle.': '兩座砲塔守住兩側路線；一隻獵犬衝向中路。',
     'Two Bulwarks march on the outer lanes; a Sniper waits behind.': '兩座壁壘沿兩側路線推進；狙擊手在後方等待。',
     'Three Hounds on the front row, a Pikeman behind them.': '前排三隻獵犬，後面一名長槍兵。',
-    'Three waves, each harder, the Colossus last. HP carries over; shields and MP do not.': '三波敵人，一波比一波強，最後是巨像。HP 會保留；護盾和 MP 不會。',
+    'Three waves, each harder, the Colossus last. Only the cards reset between waves.': '三波敵人，一波比一波強，最後是巨像。波與波之間只重置卡牌。',
     'Target Dummy': '標靶假人',
     Tutorial: '教學',
     'One Target Dummy. It never moves and never fights back.': '一個標靶假人。它不會移動，也不會反擊。',

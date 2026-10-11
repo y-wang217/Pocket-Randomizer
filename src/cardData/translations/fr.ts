@@ -198,7 +198,7 @@ export const FR: CardCopy = {
     'Two Turrets hold the outer lanes; a Hound runs the middle.': 'Deux Tourelles tiennent les couloirs extérieurs ; un Molosse court au centre.',
     'Two Bulwarks march on the outer lanes; a Sniper waits behind.': 'Deux Remparts avancent sur les couloirs extérieurs ; un Tireur d’élite attend derrière.',
     'Three Hounds on the front row, a Pikeman behind them.': 'Trois Molosses au premier rang, un Piquier derrière eux.',
-    'Three waves, each harder, the Colossus last. HP carries over; shields and MP do not.': 'Trois vagues, chacune plus dure, le Colosse en dernier. Les PV restent ; les boucliers et les PM non.',
+    'Three waves, each harder, the Colossus last. Only the cards reset between waves.': 'Trois vagues, chacune plus dure, le Colosse en dernier. Entre les vagues, seules les cartes sont réinitialisées.',
     'Target Dummy': "Mannequin d'entraînement",
     Tutorial: 'Tutoriel',
     'One Target Dummy. It never moves and never fights back.': "Un Mannequin d'entraînement. Il ne bouge jamais et ne riposte jamais.",

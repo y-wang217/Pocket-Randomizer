@@ -198,7 +198,7 @@ export const JA: CardCopy = {
     'Two Turrets hold the outer lanes; a Hound runs the middle.': 'タレット2基が外側のレーンを守り、ハウンドが中央を走る。',
     'Two Bulwarks march on the outer lanes; a Sniper waits behind.': '防壁2体が外側のレーンを進み、スナイパーが後方で待つ。',
     'Three Hounds on the front row, a Pikeman behind them.': '前列にハウンド3体、その後ろに槍兵。',
-    'Three waves, each harder, the Colossus last. HP carries over; shields and MP do not.': '3つのウェーブ、次第に強くなり、最後にコロッサス。HPは引き継ぎ、シールドとMPは引き継がない。',
+    'Three waves, each harder, the Colossus last. Only the cards reset between waves.': '3つのウェーブ、次第に強くなり、最後にコロッサス。ウェーブの間でリセットされるのはカードだけ。',
     'Target Dummy': '標的のカカシ',
     Tutorial: 'チュートリアル',
     'One Target Dummy. It never moves and never fights back.': '標的のカカシが1体。動かず、反撃もしない。',

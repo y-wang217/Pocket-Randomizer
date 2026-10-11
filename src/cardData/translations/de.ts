@@ -198,7 +198,7 @@ export const DE: CardCopy = {
     'Two Turrets hold the outer lanes; a Hound runs the middle.': 'Zwei Türme halten die äußeren Bahnen; ein Jagdhund rennt in der Mitte.',
     'Two Bulwarks march on the outer lanes; a Sniper waits behind.': 'Zwei Bollwerke marschieren auf den äußeren Bahnen; ein Scharfschütze wartet dahinter.',
     'Three Hounds on the front row, a Pikeman behind them.': 'Drei Jagdhunde in der vorderen Reihe, ein Pikenier dahinter.',
-    'Three waves, each harder, the Colossus last. HP carries over; shields and MP do not.': 'Drei Wellen, jede härter, zuletzt der Koloss. HP bleiben; Schilde und MP nicht.',
+    'Three waves, each harder, the Colossus last. Only the cards reset between waves.': 'Drei Wellen, jede härter, zuletzt der Koloss. Zwischen den Wellen werden nur die Karten zurückgesetzt.',
     'Target Dummy': 'Übungspuppe',
     Tutorial: 'Tutorial',
     'One Target Dummy. It never moves and never fights back.': 'Eine Übungspuppe. Sie bewegt sich nie und wehrt sich nie.',

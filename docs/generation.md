@@ -16281,6 +16281,12 @@ wave under grace. Siege's grade total is the sum of its waves (C8). The guard
 bot counts a cleared wave as a win, or its search would leave a wave's last
 enemy standing rather than face the next.
 
+*2026-10-11, superseded:* C1, C3 and C5 as built above are replaced by the
+author's ruling in [`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md):
+between waves only the cards reset. MP, owed MP and spent base shield now
+carry, the units stay on their tiles, and the battle does not return to
+`deploy`. C2, C4 and C6 stand. Section 132.
+
 **Siege** (C7, the session's draft): Drone, Lancer, Hound (grade 4); Bulwark,
 Sniper, a seeded Lancer, Hound (7); the Colossus (10). Guard bot, seeds
 `SG0..SG199`: won 196/200; per battle reaching the wave, unit HP lost 0.16,
@@ -16827,7 +16833,7 @@ with it, but five tests that open a page themselves still went to
 map, which the card run never draws: `visual-v1` (the reload that resumes a
 saved run), `visual-v2` (copying the seed stamp), `visual-v3` (the parallax
 trace's reduced-motion page), `visual-motion` and `visual-release-c` (both
-reduced motion). Each now opens `${harness.url}/gymrun.html`, with its seed
+reduced motion). Each now opens `gymrun.html` under the harness URL, with its seed
 where it had one. No version axis moves.
 
 **2026-10-11, wider than filed.** The whole Chromium half, run after the five
@@ -16845,3 +16851,62 @@ were fixed, found the same cause in two more places, both red on `main` at
   It now fetches `./gymrun.html`.
 
 With both, the Chromium half is 34 files, all passing.
+
+## 132. Card run shapes, checkpoint 1: only the cards reset between waves, and every run fight is three waves
+
+**2026-10-11**, on `claude/card-run-shapes`, from `main` at `cf496bd`.
+Prompt [`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md),
+runthrough [`reports/card-run-shapes-runthrough.md`](reports/card-run-shapes-runthrough.md),
+the author's answers filed under the prompt. `CARD_ENGINE_VERSION` moves to
+`cards-0.6.0` (a log with a second wave replays differently) and
+`CARD_RUN_VERSION` to `cardrun-0.2.0` (every fight's encounter changed). A
+saved run from `cardrun-0.1.0` is dropped loudly, as section 125r built.
+None of GYMRUN's four axes moves; `contentHash` holds, since nothing under
+`src/data/` changed.
+
+- **The rule** (`RULES.betweenWaves`, `startWave` in `core/cards/resolve.ts`).
+  When the last enemy of a wave falls, only the cards reset: every card a
+  faint did not remove, Once cards included, is shuffled back in deck order
+  first, a fresh hand is dealt, and extra draws owed clear. Each living unit
+  keeps its HP, its MP and any MP a card still owes it. Its base shield stays
+  as spent, and it stays on its tile. A card shield clears with the new
+  round's start, as at any turn start (R3), which is what "shields don't
+  reset" leaves for it. The new wave spawns at once with no `deploy` phase:
+  its enemies make their opening move and telegraph straight away, under
+  grace, as `start` makes wave 1's. The round count restarts (C6 stands).
+  Superseded: C1, C3 and C5 (section 125p, dated note there). The old
+  literal is deleted from `Rules`, not kept behind a flag.
+- **The run's fights** (`RUN_FIGHTS` in `cardData/encounters.ts`, `ACTS` in
+  `cardData/cardrunTables.ts`). Every battle the run starts (main fights,
+  bosses, Town and City quests, the Wild's ambush) is three waves: two light
+  lead waves from `LEAD`, then the scenario itself as the third, on its own
+  tiles. Siege is three waves already and is played as it is. Units start
+  each fight at full HP (Q3). The lead waves are seeded tiles, grades 2 to 4,
+  heavier each act; every chain is the session's first draft. The sandbox's
+  scenarios are untouched, and its menu does not list the chains.
+- **Copy.** Siege's blurb now reads "Only the cards reset between waves." in
+  all eight languages; the chains' blurbs are English only, like the rest of
+  the run's copy (125r).
+- **Tests.** `test/cards-waves.test.ts` holds the new rule (MP 3 plus the
+  Commander's turn-start 1 plus the 1 Focus owes him is 5; tiles and spent
+  base shields kept; the wave telegraphing under grace in `plan`; a Start
+  refused). `test/cards-guard.test.ts` expects one Start per battle.
+  `test/cards-run.test.ts` holds that every fight the acts name is three
+  waves with its scenario last. The friendly-fire fixture log (Skirmish, one
+  wave, unchanged under the new rule) is restamped `cards-0.6.0`.
+- **The bench, recorded and not chased** (`balance.md`, the card run). Still
+  20 of 20 runs won and 13.30 fights, the same as `cardrun-0.1.0`. Runs are
+  about 44% longer (a mean of 675 actions against 469). A probe over the same
+  20 seeds, not committed, measured **0.71 HP lost per three-wave fight**,
+  against 0.80 per one-wave battle on `cardrun-0.1.0`. 60 faints in 266
+  fights (Commander 40, Gunner 17, Dasher 3), and 5 fights ended with 2 HP or
+  less left. Carrying MP is the reason, as the runthrough's section 2
+  warned: waves 2 and 3 open with the ults charged and the units already
+  forward. On its own the rule does not make the run harder for this bot.
+  Checkpoints 2 (the basic deck) and 6 (enemy scaling) are the levers left.
+- **Red on `main`, fixed here.** `test/boundaries.test.ts`'s documentation
+  path check failed on `main` at `cf496bd`, because section 131 backticked
+  `${harness.url}` followed by `/gymrun.html`, which the check reads as a repo
+  path. The sentence now names `gymrun.html` under the harness URL. Wording
+  only.
+

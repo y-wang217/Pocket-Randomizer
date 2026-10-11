@@ -7,7 +7,7 @@
  *
  * Units' tiles are where each starts before the player places it.
  */
-import type { EncounterDef, Pos } from '../core/cards/defs';
+import type { EncounterDef, EnemySpawn, Pos } from '../core/cards/defs';
 
 const at = (lane: Pos['lane'], col: Pos['col']): Pos => ({ lane, col });
 
@@ -96,7 +96,7 @@ export const SCENARIOS: Readonly<Record<string, EncounterDef>> = {
   siege: {
     id: 'siege',
     name: 'Siege',
-    blurb: 'Three waves, each harder, the Colossus last. HP carries over; shields and MP do not.',
+    blurb: 'Three waves, each harder, the Colossus last. Only the cards reset between waves.',
     deckId: 'puppeteer',
     units: PUPPETEER_FRONT,
     enemies: [
@@ -166,6 +166,72 @@ export const RUN_ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
 };
 
 /**
+ * Two light waves that open a run fight, each on tiles drawn from the battle's
+ * seed. Grades in the comments; each act's are heavier than the last.
+ */
+const LEAD: Readonly<Record<string, readonly EnemySpawn[]>> = {
+  lancers: [{ def: 'lancer' }, { def: 'lancer' }], // 2
+  houndLancer: [{ def: 'hound' }, { def: 'lancer' }], // 2
+  hounds: [{ def: 'hound' }, { def: 'hound' }], // 2
+  lancerDrone: [{ def: 'lancer' }, { def: 'drone' }], // 3
+  turretHound: [{ def: 'turret' }, { def: 'hound' }], // 3
+  drones: [{ def: 'drone' }, { def: 'drone' }], // 4
+  bulwarkLancer: [{ def: 'bulwark' }, { def: 'lancer' }], // 3
+  sniperHound: [{ def: 'sniper' }, { def: 'hound' }], // 4
+  pikemanHound: [{ def: 'pikeman' }, { def: 'hound' }], // 4
+};
+
+/**
+ * A run fight: three waves back to back, HP carried between them
+ * (`docs/spec/gymrun-card-run-shapes-prompt.md`, Q1 (a)). Two lead waves, then
+ * the scenario itself as the third, on its own tiles.
+ */
+const threeWaves = (base: EncounterDef, first: keyof typeof LEAD, second: keyof typeof LEAD): EncounterDef => ({
+  ...base,
+  id: `run-${base.id}`,
+  blurb: `Three waves. Last: ${base.blurb}`,
+  enemies: LEAD[first]!,
+  waves: [LEAD[second]!, base.enemies, ...(base.waves ?? [])],
+});
+
+const BASES: Readonly<Record<string, EncounterDef>> = { ...SCENARIOS, ...RUN_ENCOUNTERS };
+
+/**
+ * Every fight the card run sends the player into, as three waves. Siege is
+ * three waves already and is played as it is. Provisional: the first draft
+ * of the chains, for the author to playtest.
+ */
+export const RUN_FIGHTS: Readonly<Record<string, EncounterDef>> = Object.fromEntries(
+  (
+    [
+      // Act 1.
+      ['test', 'lancers', 'houndLancer'],
+      ['staggered', 'houndLancer', 'lancers'],
+      ['colossus-lair', 'lancers', 'hounds'],
+      ['bandit-camp', 'lancers', 'houndLancer'],
+      ['stray-drones', 'houndLancer', 'lancers'],
+      ['gatehouse', 'hounds', 'lancers'],
+      // Act 2.
+      ['skirmish', 'hounds', 'lancerDrone'],
+      ['turret-alley', 'lancerDrone', 'turretHound'],
+      ['colossus-escort', 'drones', 'turretHound'],
+      ['outriders', 'lancerDrone', 'hounds'],
+      ['gun-nest', 'hounds', 'lancerDrone'],
+      ['the-walls', 'lancerDrone', 'turretHound'],
+      // Act 3.
+      ['the-pack', 'bulwarkLancer', 'sniperHound'],
+      ['wall-and-gun', 'pikemanHound', 'sniperHound'],
+      ['raiders', 'bulwarkLancer', 'pikemanHound'],
+      ['warband', 'pikemanHound', 'bulwarkLancer'],
+      ['last-stand', 'sniperHound', 'bulwarkLancer'],
+    ] as const
+  ).map(([base, first, second]) => {
+    const fight = threeWaves(BASES[base]!, first, second);
+    return [fight.id, fight];
+  }),
+);
+
+/**
  * The tutorial's battle (`docs/spec/gymrun-patch-card-battle-hearts-and-tutorial.md`):
  * one Target Dummy in the middle of the danger zone, in the Gunner's lane, so
  * Shoot reaches it from where the Gunner starts. Not a scenario: the tutorial
@@ -182,8 +248,8 @@ export const TUTORIAL_ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
   },
 };
 
-/** Every encounter the engine can lay out: the sandbox's scenarios, the card run's fights and the tutorial's. */
-export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = { ...SCENARIOS, ...RUN_ENCOUNTERS, ...TUTORIAL_ENCOUNTERS };
+/** Every encounter the engine can lay out: the sandbox's scenarios, the card run's fights, their three-wave chains and the tutorial's. */
+export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = { ...SCENARIOS, ...RUN_ENCOUNTERS, ...RUN_FIGHTS, ...TUTORIAL_ENCOUNTERS };
 
 /** What the bench and the trainer play: every encounter but the tutorial's. */
 export const BENCH_IDS: readonly string[] = Object.keys(ENCOUNTERS).filter((id) => !Object.hasOwn(TUTORIAL_ENCOUNTERS, id));
