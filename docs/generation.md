@@ -16976,3 +16976,57 @@ action). None of GYMRUN's four axes moves; `contentHash` holds.
   never takes Marksman; the number is a floor for a player who would.
   **Recorded, not chased.**
 
+## 134. Card run shapes, checkpoint 3: Group A as rewards
+
+**2026-10-11**, on `claude/card-run-shapes`, after section 133. From
+[`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md)
+(Group A is the session's table, filed there as the referent) and the
+author's go-ahead filed under it. `CARD_RUN_VERSION` moves to
+`cardrun-0.4.0` (the card pool and the market draw from more cards).
+`CARD_ENGINE_VERSION` holds at `cards-0.7.0`: no rule or resolver changed,
+and every existing log replays as it did. `contentHash` holds.
+
+| Card | Owner | Cost | Effects | Upgrade |
+|---|---|---|---|---|
+| Whirlwind (ult) | Dasher | 4 | Blast 2, Shield 2 self | cost 3 |
+| Rally | Commander | 2 | Shield 2 ally, next hand +1 | cost 1 |
+| Mark Target | Commander | 1 | Strike 1, Target | Strike 2 |
+| Suppress | Gunner | 3 | Blast 1, Target, Shield 1 self | Shield 2 |
+| Second Wind | Neutral | 1 | +1 MP, next hand +1 | cost 0 |
+| Flashbang (equipment, Once) | Neutral | 0 | Blast 1, next hand +1 | none, like all equipment |
+
+The five cards join `TOWN_POOL`. Flashbang joins the City's `MARKET` at 3
+supplies.
+
+**2026-10-11, deviates from the table filed with the prompt.** Two of the
+session's drafts used combinations the engine does not resolve. A card with
+any Move is a move card: `isMoveCard` sends it to `resolveMove` alone, and
+`needsOf` asks only for a tile, so its other effects would be dropped
+silently. A damage card with a target cannot also shield an ally, because
+both read the one `choice.unit`. So:
+
+- **Whirlwind** was Move 1, Slash 3. It is **Blast 2 and Shield 2 self**:
+  still the Dasher's ult, and the area hit the Control shape asks of him
+  ("slasher aoes them down").
+- **Rally** was Grant Move 1, Shield 1 ally. It is **Shield 2 ally, next hand
+  +1**: Puppeteer support without the move.
+
+A move that also strikes or shields is engine work: a resolver after the move,
+a preview from the moved tile, a legality check on the result. It belongs
+with Group B's resolvers in checkpoint 4 if the author wants it back.
+
+- **Whirlwind is the Dasher's first ult.** Section 130's ruling ("the Sword
+  dasher has none until the campaign hands him one") is met, not changed:
+  the run's reward is that hand-off. `test/cards-tutorial.test.ts` now lists
+  three ult cards and reads the dasher's ult from a deck holding Whirlwind.
+- **Held by** `test/cards-run-shapes.test.ts`: each card is in its pool,
+  each has an upgrade, and each one, played on a board and committed, emits
+  every effect it names. That covers damage, the shield on its unit, the
+  queued draw, the MP, and the equipment used up.
+- **The bench** (`balance.md`, the card run): **16 of 20 runs won, 12.10
+  fights, 2.60 bosses**, against 14 of 20, 12.20 and 2.60. Fights and bosses
+  are flat. Two more wins in twenty seeds is within what one seed's battles
+  move, not a finding. The pool grew from 18 cards to 23, so any one card
+  shows up less. The bot takes the first card of every offer, so the bench
+  cannot tell a good card from a bad one. **Recorded, not chased.**
+

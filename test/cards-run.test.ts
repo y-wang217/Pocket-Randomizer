@@ -332,7 +332,7 @@ describe('card run: the whole run, headless', () => {
   });
 
   it('refuses a run log from another version, naming both values', () => {
-    expect(() => replayRun({ version: 'cardrun-0.0.1', seed: 'X', actions: [] })).toThrow(/cardrun-0\.0\.1.*cardrun-0\.3\.0/);
+    expect(() => replayRun({ version: 'cardrun-0.0.1', seed: 'X', actions: [] })).toThrow(/cardrun-0\.0\.1.*cardrun-0\.4\.0/);
   });
 
   it('refuses anything malformed without throwing, and nothing once the run is over', () => {

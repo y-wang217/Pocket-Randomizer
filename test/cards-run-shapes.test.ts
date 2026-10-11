@@ -7,12 +7,17 @@
 import { describe, expect, it } from 'vitest';
 
 import { CARDS, DECKS, UPGRADE_OF } from '../src/cardData/cards';
-import { RUN_RULES, STARTING_DECK, TOWN_POOL } from '../src/cardData/cardrunTables';
+import { MARKET, RUN_RULES, STARTING_DECK, TOWN_POOL } from '../src/cardData/cardrunTables';
 import { TALENTS, UNIT_TALENTS } from '../src/cardData/talents';
 import { UNITS } from '../src/cardData/units';
 import { createRun, offersFor, type CardRunState, type FightNode } from '../src/core/cards/cardrun';
-import { createBattle } from '../src/core/cards/create';
+import { createBattle, layoutBattle } from '../src/core/cards/create';
+import type { BattleEvent } from '../src/core/cards/events';
+import { completeChoices } from '../src/core/cards/legal';
 import { abilitiesOf } from '../src/core/cards/plan';
+import type { BattleState } from '../src/core/cards/state';
+import { step } from '../src/core/cards/step';
+import { at, iidOf } from './fixtures/card-battle';
 
 const MARKSMAN = { k: 'firstCardConverts', from: 'strike', to: 'pierce', while: 'fullHp' };
 
@@ -85,5 +90,61 @@ describe('everything taken away is given back', () => {
     }
     const taken: CardRunState = { ...run, boosts: { ...run.boosts, B: { talents: ['marksman'] } } };
     for (const boss of bosses) expect(offersFor(taken, boss)).toEqual(boss.boosts);
+  });
+});
+
+describe('Group A (checkpoint 3): reward cards from the existing effects', () => {
+  const GROUP_A = ['whirlwind', 'rally', 'mark-target', 'suppress', 'second-wind'];
+
+  /** The `test` encounter on this deck, in plan: units on the danger zone's edge, every enemy one step past it. */
+  function boardWith(card: string, mp: number): { state: BattleState; iid: string } {
+    const state = layoutBattle('test', 'GROUPA', { cards: [card, ...STARTING_DECK] })!;
+    const iid = iidOf(state, card);
+    state.piles.draw = state.piles.draw.filter((c) => c !== iid);
+    state.piles.hand.push(iid);
+    state.units.forEach((u, i) => Object.assign(u, { mp, pos: at((i + 1) as 1 | 2 | 3, 3) }));
+    state.enemies.forEach((e, i) => Object.assign(e, { pos: at((i + 1) as 1 | 2 | 3, 4), baseShield: 0 }));
+    return { state, iid };
+  }
+
+  /** Play the card with its first legal choice and commit the round. */
+  function play(card: string): BattleEvent[] {
+    const { state, iid } = boardWith(card, 5);
+    const owner = CARDS[card]!.owner;
+    const unit = owner === 'neutral' ? 'B' : owner;
+    const choice = completeChoices(state, iid, unit)[0];
+    const selected = step(state, { type: 'select', card: iid, unit, ...(choice ? { choice } : {}) });
+    if (!selected.ok) throw new Error(`${card}: ${selected.reason}`);
+    const committed = step(selected.state, { type: 'commit' });
+    if (!committed.ok) throw new Error(`${card}: ${committed.reason}`);
+    return committed.events;
+  }
+
+  it('offers each as a reward, each with an upgrade, and Flashbang at the market', () => {
+    for (const id of GROUP_A) {
+      expect(TOWN_POOL, id).toContain(id);
+      expect(UPGRADE_OF[id], id).toBeDefined();
+    }
+    expect(MARKET['flashbang']).toBeDefined();
+    expect(CARDS['flashbang']).toMatchObject({ equipment: true, uses: 1, owner: 'neutral' });
+    expect(CARDS['whirlwind']).toMatchObject({ owner: 'C', ult: true });
+  });
+
+  it('resolves every effect each one names', () => {
+    const kinds = (events: BattleEvent[]) => events.map((e) => e.t);
+    const whirlwind = play('whirlwind');
+    expect(kinds(whirlwind)).toEqual(expect.arrayContaining(['damaged', 'shielded']));
+    expect(whirlwind).toContainEqual({ t: 'shielded', unit: 'C', amount: 2 });
+    const rally = play('rally');
+    expect(rally.some((e) => e.t === 'shielded' && e.amount === 2)).toBe(true);
+    expect(kinds(rally)).toContain('drawQueued');
+    expect(kinds(play('mark-target'))).toContain('damaged');
+    const suppress = play('suppress');
+    expect(kinds(suppress)).toContain('damaged');
+    expect(suppress).toContainEqual({ t: 'shielded', unit: 'B', amount: 1 });
+    const second = play('second-wind');
+    expect(kinds(second)).toEqual(expect.arrayContaining(['drawQueued', 'mpGained']));
+    const flash = play('flashbang');
+    expect(kinds(flash)).toEqual(expect.arrayContaining(['damaged', 'drawQueued', 'usedUp']));
   });
 });
