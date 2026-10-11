@@ -12,16 +12,16 @@ import { ENEMIES } from '../src/cardData/enemies';
 import { RULES } from '../src/cardData/rules';
 import { UNITS } from '../src/cardData/units';
 import { createBattle, gradeTotal, layoutBattle } from '../src/core/cards/create';
-import { RESERVED_EFFECTS } from '../src/core/cards/defs';
 import { allTiles, inReach, samePos, zoneOf } from '../src/core/cards/zones';
 
 describe('card data', () => {
-  it('ships no card that uses a reserved effect', () => {
-    for (const card of Object.values(CARDS)) {
-      for (const effect of card.effects) {
-        expect((RESERVED_EFFECTS as readonly string[]).includes(effect.k), `${card.id} uses ${effect.k}`).toBe(false);
-      }
+  it("keeps the Puppeteer's deck off Group B's effects, which only the card run's cards use", () => {
+    // The reserved list is gone: card run shapes, checkpoint 4, gave each effect a resolver.
+    const groupB = ['push', 'pull', 'repair', 'stealth'];
+    for (const id of DECKS.puppeteer!.cards) {
+      for (const effect of CARDS[id]!.effects) expect(groupB.includes(effect.k), `${id} uses ${effect.k}`).toBe(false);
     }
+    for (const k of groupB) expect(Object.values(CARDS).some((c) => c.effects.some((e) => e.k === k)), k).toBe(true);
   });
 
   it('matches the snapshot card table: owner, cost and Uses 1 for the old Once cards', () => {

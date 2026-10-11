@@ -7,6 +7,7 @@
 import { createRng, type RngStream } from '../rng';
 import { CARD_BOT_KEY } from '../streamKeys';
 import { createBattle } from './create';
+import type { Loadout } from './defs';
 import type { BattleEvent } from './events';
 import { completeChoices, placeActions, playersOf } from './legal';
 import { newLog, type BattleLog } from './log';
@@ -73,12 +74,13 @@ export function playBattle(
   policy: (state: BattleState) => Action | null,
   onStep?: (before: BattleState, action: Action, result: StepResult) => void,
   maxSteps = 5000,
+  loadout?: Loadout,
 ): BotBattle {
-  const created = createBattle(encounterId, seed);
+  const created = createBattle(encounterId, seed, loadout);
   if (!created.ok) throw new Error(`unknown encounter ${encounterId}`);
   let state = created.state;
   const events = [...created.events];
-  const log = newLog(seed, encounterId, created.state.deckId);
+  const log = newLog(seed, encounterId, created.state.deckId, loadout);
   let steps = 0;
   while ((state.phase === 'plan' || state.phase === 'deploy') && steps < maxSteps) {
     const action = policy(state);

@@ -118,6 +118,7 @@ function stalk(ctx: Ctx, enemy: EnemyState): void {
     ctx.events.push({ t: 'stomped', enemy: enemy.id, tiles: ahead.map((t) => ({ ...t })), from: { ...from }, to: free ? { ...to } : null });
     for (const unit of unitsOn(s, ahead)) {
       if (s.phase !== 'plan') return;
+      if (unseen(ctx, unit, enemy)) continue;
       damage(ctx, unit, RULES.stalk.damage);
     }
     if (!free) return;
@@ -282,6 +283,7 @@ function enemyAct(ctx: Ctx, enemy: EnemyState): void {
     if (units.length + others.length === 0) ctx.events.push({ t: 'enemyMissed', enemy: enemy.id, act: 'scream' });
     for (const target of [...units, ...others]) {
       if (s.phase !== 'plan') return;
+      if ('mp' in target && unseen(ctx, target, enemy)) continue;
       if (target.pos) damage(ctx, target, intent.n);
     }
     return;
@@ -300,7 +302,43 @@ function enemyAct(ctx: Ctx, enemy: EnemyState): void {
   }
   for (const unit of hits) {
     if (s.phase !== 'plan') return;
+    if (unseen(ctx, unit, enemy)) continue;
     damage(ctx, unit, intent.n);
+  }
+}
+
+/**
+ * Stealth (Group B): an enemy's act passes over a unit under it. The act
+ * still lands where it was aimed, so a Strike stopping on a hidden unit hits
+ * nobody rather than the unit behind it.
+ */
+function unseen(ctx: Ctx, unit: UnitState, enemy: EnemyState): boolean {
+  if (!unit.stealth) return false;
+  ctx.events.push({ t: 'unseen', unit: unit.id, enemy: enemy.id });
+  return true;
+}
+
+/**
+ * Push or Pull (Group B): `enemy` moves up to `n` tiles in `dir` (+1 away from
+ * the player, -1 toward), a tile at a time, stopping where the next tile is
+ * off the board, outside its reach or held by anyone. A boss stands. A moved
+ * enemy aims again from where it now stands: its conditions are read anew and
+ * its telegraph replaced, its script step unchanged.
+ */
+export function displace(ctx: Ctx, enemy: EnemyState, dir: 1 | -1, n: number, card: string, how: 'push' | 'pull'): void {
+  const { s } = ctx;
+  if (!enemy.pos || ENEMIES[enemy.def].boss) return;
+  const from = { ...enemy.pos };
+  for (let i = 0; i < n; i++) {
+    const to = tile(enemy.pos.lane, enemy.pos.col + dir);
+    if (!to || !canStand(s, enemy, to)) break;
+    enemy.pos = to;
+  }
+  if (samePos(from, enemy.pos)) return;
+  ctx.events.push({ t: 'displaced', enemy: enemy.id, card, how, from, to: { ...enemy.pos } });
+  if (enemy.intent) {
+    enemy.conds = { slashInRange: holds(s, enemy, 'slashInRange') };
+    telegraph(ctx, enemy);
   }
 }
 

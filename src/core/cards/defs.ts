@@ -32,10 +32,6 @@ export type EnemyDefId = 'drone' | 'lancer' | 'hound' | 'turret' | 'bulwark' | '
 
 export type DamageKeyword = 'strike' | 'pierce' | 'slash' | 'blast';
 
-/** The effects reserved for later slices. A shipped card may not use one. */
-export const RESERVED_EFFECTS = ['stealth', 'repair', 'push', 'pull'] as const;
-export type ReservedEffect = (typeof RESERVED_EFFECTS)[number];
-
 export type Effect =
   | { k: DamageKeyword; n: number }
   | { k: 'move'; n: number }
@@ -53,7 +49,18 @@ export type Effect =
    * shield (they return on its second turn) and Screams instead of acting.
    */
   | { k: 'harpoon'; pin: number; range: number }
-  | { k: ReservedEffect; n: number };
+  /**
+   * Group B (`docs/spec/gymrun-card-run-shapes-prompt.md`, checkpoint 4).
+   * Push: every enemy the card's damage hit is pushed up to `n` tiles away
+   * from the player, stopping short of anything in the way. A boss stands.
+   */
+  | { k: 'push'; n: number }
+  /** Pull: a chosen enemy, not a boss, is pulled up to `n` tiles toward the player, never past the enemy reach. */
+  | { k: 'pull'; n: number }
+  /** Repair: a chosen friendly unit, the player included, heals `n` HP, never past its max. */
+  | { k: 'repair'; n: number }
+  /** Stealth: the playing unit is unseen by the enemies' acts for the next `n` enemy phases. */
+  | { k: 'stealth'; n: number };
 
 export interface CardDef {
   id: string;

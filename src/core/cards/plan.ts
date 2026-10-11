@@ -64,9 +64,9 @@ export function isMoveCard(def: CardDef): boolean {
 export function needsOf(def: CardDef): Needs {
   if (effect(def, 'grantMove')) return 'unitThenTile';
   if (effect(def, 'move')) return 'tile';
-  if (effect(def, 'target') || effect(def, 'harpoon')) return 'unit';
+  if (effect(def, 'target') || effect(def, 'harpoon') || effect(def, 'pull')) return 'unit';
   if (effect(def, 'blast')) return 'tile';
-  if (effect(def, 'shield')?.to === 'friendly') return 'unit';
+  if (effect(def, 'shield')?.to === 'friendly' || effect(def, 'repair')) return 'unit';
   return 'none';
 }
 
@@ -183,9 +183,15 @@ function checkEffects(state: BattleState, play: PlannedPlay, def: CardDef, posit
     if (reach.length === 0) return 'outOfRange';
     if (!reach.some((e) => e.id === play.choice?.unit)) return 'badChoice';
   }
-  if (effect(def, 'shield')?.to === 'friendly') {
+  if (effect(def, 'shield')?.to === 'friendly' || effect(def, 'repair')) {
     // R6: Target on a friendly keyword picks a friendly unit, the player included.
     if (!livingUnits(state).some((u) => u.id === play.choice?.unit)) return 'badChoice';
+  }
+  if (effect(def, 'pull')) {
+    // Group B: any enemy on the board but a boss, at any range.
+    const pullable = enemies.filter((e) => !ENEMIES[e.def].boss);
+    if (pullable.length === 0) return 'noTarget';
+    if (!pullable.some((e) => e.id === play.choice?.unit)) return 'badChoice';
   }
   return null;
 }

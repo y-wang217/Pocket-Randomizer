@@ -42,6 +42,9 @@ const TOWN: Readonly<Record<string, CardDef>> = {
   'mark-target': card({ id: 'mark-target', name: 'Mark Target', owner: 'A', cost: 1, type: null, effects: [{ k: 'strike', n: 1 }, { k: 'target', n: 1 }], art: 'moon-strike' }),
   suppress: card({ id: 'suppress', name: 'Suppress', owner: 'B', cost: 3, type: null, effects: [{ k: 'blast', n: 1 }, { k: 'target', n: 1 }, { k: 'shield', n: 1, to: 'self' }], art: 'fire' }),
   'second-wind': card({ id: 'second-wind', name: 'Second Wind', owner: 'neutral', cost: 1, type: null, effects: [{ k: 'gainMp', n: 1 }, { k: 'drawNext', n: 1, filter: 'notOwner' }], art: 'resupply' }),
+  // Group B (checkpoint 4): the four effects that were reserved, each with its resolver now.
+  shove: card({ id: 'shove', name: 'Shove', owner: 'C', cost: 1, type: null, effects: [{ k: 'slash', n: 1 }, { k: 'push', n: 1 }], art: 'dash' }),
+  'patch-up': card({ id: 'patch-up', name: 'Patch Up', owner: 'A', cost: 2, type: null, effects: [{ k: 'repair', n: 1 }], art: 'call-medic' }),
 };
 
 /**
@@ -58,6 +61,9 @@ const EQUIPMENT: Readonly<Record<string, CardDef>> = {
   flare: card({ id: 'flare', name: 'Flare', owner: 'neutral', cost: 0, type: null, effects: [{ k: 'drawNext', n: 2, filter: 'notOwner' }], uses: 1, equipment: true }),
   // Group A, checkpoint 3.
   flashbang: card({ id: 'flashbang', name: 'Flashbang', owner: 'neutral', cost: 0, type: null, effects: [{ k: 'blast', n: 1 }, { k: 'drawNext', n: 1, filter: 'notOwner' }], uses: 1, equipment: true }),
+  // Group B, checkpoint 4.
+  grapple: card({ id: 'grapple', name: 'Grapple', owner: 'neutral', cost: 0, type: null, effects: [{ k: 'pull', n: 2 }], uses: 1, equipment: true, face: 'harpoon' }),
+  smoke: card({ id: 'smoke', name: 'Smoke', owner: 'neutral', cost: 0, type: null, effects: [{ k: 'stealth', n: 1 }], uses: 1, equipment: true }),
 };
 
 /** One upgrade per card: the same card, better. It wears its base card's art and keeps its owner. */
@@ -105,6 +111,8 @@ export function upgradesOf(cards: Readonly<Record<string, CardDef>>): Record<str
     up(c('mark-target'), { effects: [{ k: 'strike', n: 2 }, { k: 'target', n: 1 }] }),
     up(c('suppress'), { effects: [{ k: 'blast', n: 1 }, { k: 'target', n: 1 }, { k: 'shield', n: 2, to: 'self' }] }),
     up(c('second-wind'), { cost: 0 }),
+    up(c('shove'), { effects: [{ k: 'slash', n: 1 }, { k: 'push', n: 2 }] }),
+    up(c('patch-up'), { effects: [{ k: 'repair', n: 2 }] }),
   ];
   return Object.fromEntries(list.map((def) => [def.id, def]));
 }

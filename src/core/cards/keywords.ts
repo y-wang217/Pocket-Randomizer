@@ -8,6 +8,7 @@
  */
 import { RULES } from '../../cardData/rules';
 import type { CardDef, DamageKeyword, Pos } from './defs';
+import { displace } from './enemies';
 import type { BattleEvent } from './events';
 import { abilitiesOf, cardDefOf, damageOf, livingEnemies, livingUnits, unitOf } from './plan';
 import type { BattleState, EnemyState, PileName, PlannedPlay, UnitId, UnitState } from './state';
@@ -62,6 +63,7 @@ export function faint(ctx: Ctx, unit: UnitState): void {
   unit.pos = null;
   unit.fainted = true;
   unit.shield = 0;
+  delete unit.stealth;
   const removed: string[] = [];
   for (const pile of PILES) {
     s.piles[pile] = s.piles[pile].filter((iid) => {
@@ -188,6 +190,8 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
   const dmg = damageOf(def);
   const targeted = def.effects.some((e) => e.k === 'target');
   let fizzled = false;
+  // Every enemy the damage landed on, for a Push.
+  let landed: EnemyState[] = [];
 
   if (dmg) {
     let k = dmg.k;
@@ -218,6 +222,7 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
       ctx.events.push({ t: 'fizzled', card: play.card, unit: unit.id, why: 'nothingHit' });
     }
     for (const enemy of hits) if (enemy.pos) damage(ctx, enemy, dmg.n);
+    landed = hits;
     // R14: the Blast hits the allies on its tiles too, after the enemies.
     for (const ally of allies) {
       if (s.phase !== 'plan' || !ally.pos) continue;
@@ -249,6 +254,34 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
         s.pendingDraws.push({ n: effect.n, filter: effect.filter, owner: def.owner });
         ctx.events.push({ t: 'drawQueued', card: play.card, n: effect.n });
         break;
+      case 'push':
+        // Away from the player: the player's forward. A defeated enemy has left the board.
+        for (const enemy of landed) if (enemy.pos) displace(ctx, enemy, RULES.forward.player as 1 | -1, effect.n, play.card, 'push');
+        break;
+      case 'pull': {
+        const enemy = livingEnemies(s).find((e) => e.id === play.choice?.unit);
+        if (!enemy) {
+          ctx.events.push({ t: 'fizzled', card: play.card, unit: unit.id, why: 'targetGone' });
+          break;
+        }
+        displace(ctx, enemy, RULES.forward.enemy as 1 | -1, effect.n, play.card, 'pull');
+        break;
+      }
+      case 'repair': {
+        const to = livingUnits(s).find((u) => u.id === play.choice?.unit);
+        if (!to) {
+          ctx.events.push({ t: 'fizzled', card: play.card, unit: unit.id, why: 'targetGone' });
+          break;
+        }
+        const amount = Math.min(effect.n, to.maxHp - to.hp);
+        to.hp += amount;
+        ctx.events.push({ t: 'repaired', unit: to.id, card: play.card, amount });
+        break;
+      }
+      case 'stealth':
+        unit.stealth = Math.max(unit.stealth ?? 0, effect.n);
+        ctx.events.push({ t: 'stealthed', unit: unit.id, card: play.card, turns: effect.n });
+        break;
       case 'harpoon': {
         const boss = livingEnemies(s).find((e) => e.id === play.choice?.unit);
         if (!boss || boss.pinned > 0) {
@@ -259,8 +292,7 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
         break;
       }
       default:
-        // Damage, Target, Move and Command are handled above or in the move
-        // phase; the reserved effects have no resolver and no shipped card uses one.
+        // Damage, Target, Move and Command are handled above or in the move phase.
         break;
     }
   }

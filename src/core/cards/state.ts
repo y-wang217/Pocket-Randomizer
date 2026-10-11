@@ -25,6 +25,11 @@ export interface UnitState {
   baseShield: number;
   mp: number;
   fainted: boolean;
+  /**
+   * Stealth: enemy phases left in which the enemies' acts pass over this unit.
+   * Absent when none, so a battle that never plays Stealth holds no field.
+   */
+  stealth?: number;
   /** Start-of-turn MP still owed by a card (Focus): one entry per grant. */
   pendingMp: { n: number; turns: number }[];
 }

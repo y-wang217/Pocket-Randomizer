@@ -54,7 +54,7 @@ export function choicesFor(state: BattleState, card: CardIid, unit: UnitId, chos
     case 'none':
       return NONE;
     case 'unit': {
-      const pool = def.effects.some((e) => e.k === 'target' || e.k === 'harpoon') ? livingEnemies(state).map((e) => e.id) : friendlies;
+      const pool = def.effects.some((e) => e.k === 'target' || e.k === 'harpoon' || e.k === 'pull') ? livingEnemies(state).map((e) => e.id) : friendlies;
       return { units: pool.filter((u) => fits(state, card, unit, { unit: u })), tiles: [] };
     }
     case 'tile':

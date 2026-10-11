@@ -70,6 +70,8 @@ export interface UnitView {
   slots: number;
   planned: PlannedView[];
   fainted: boolean;
+  /** Enemy phases left under Stealth: 0 when none. */
+  stealth: number;
   pos: Pos | null;
   /** Where its planned moves leave it. */
   projected: Pos | null;
@@ -213,6 +215,7 @@ export function viewOf(state: BattleState): BattleView {
       slots: slotsOf(state, u.id),
       planned,
       fainted: u.fainted,
+      stealth: u.stealth ?? 0,
       pos: u.pos,
       projected: projection[u.id] ?? null,
     };

@@ -2087,3 +2087,10 @@
   font-weight: 800;
   color: var(--cb-teal-text);
 }
+
+/* Stealth (card run shapes, checkpoint 4): a hidden unit's token fades, dashed. */
+.cb-token[data-hidden='true'] {
+  opacity: 0.55;
+  outline: 2px dashed currentColor;
+  outline-offset: -2px;
+}

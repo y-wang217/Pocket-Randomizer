@@ -179,6 +179,27 @@ export function roundSteps(before: BattleState, events: readonly BattleEvent[], 
       case 'granted':
         (open ?? begin('round', '')).lines.push(L.granted(nameOf(CARDS[draft.cards[event.card]!.def]!.name)));
         break;
+      case 'displaced': {
+        const enemy = enemyOf(event.enemy);
+        if (enemy) enemy.pos = { ...event.to };
+        current('card', '').lines.push(L.displaced(who(event.enemy), event.how));
+        break;
+      }
+      case 'repaired': {
+        const unit = unitOf(event.unit);
+        if (unit) unit.hp += event.amount;
+        current('card', '').lines.push(L.repaired(who(event.unit), event.amount));
+        break;
+      }
+      case 'stealthed': {
+        const unit = unitOf(event.unit);
+        if (unit) unit.stealth = event.turns;
+        current('card', '').lines.push(L.stealthed(who(event.unit)));
+        break;
+      }
+      case 'unseen':
+        (open ?? begin('card', '')).lines.push(L.unseen(who(event.unit)));
+        break;
       case 'usedUp':
         current('card', '').lines.push(L.usedUp(nameOf(CARDS[draft.cards[event.card]!.def]!.name)));
         break;

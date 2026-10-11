@@ -65,6 +65,8 @@ export const TOWN_POOL: readonly string[] = [
   'fortify', 'orders', 'snipe', 'volley', 'cleave', 'guard-up', 'sprint', 'jab',
   // Group A (checkpoint 3).
   'whirlwind', 'rally', 'mark-target', 'suppress', 'second-wind',
+  // Group B (checkpoint 4).
+  'shove', 'patch-up',
 ];
 
 /** What a City's market sells, at what price in supplies. */
@@ -76,6 +78,8 @@ export const MARKET: Readonly<Record<string, number>> = {
   grenade: 3,
   flare: 2,
   flashbang: 3,
+  grapple: 3,
+  smoke: 3,
 };
 
 /** A stat a boss upgrade adds to; a talent is offered in its place (`talents.ts`). */

@@ -186,7 +186,12 @@ export function previewPlay(state: BattleState, play: PlannedPlay, at: number = 
         add(play.unit);
         break;
       case 'grantMove':
+      case 'repair':
+      case 'pull':
         add(play.choice?.unit);
+        break;
+      case 'stealth':
+        add(play.unit);
         break;
       default:
         break;

@@ -17030,3 +17030,89 @@ with Group B's resolvers in checkpoint 4 if the author wants it back.
   shows up less. The bot takes the first card of every offer, so the bench
   cannot tell a good card from a bad one. **Recorded, not chased.**
 
+## 135. Card run shapes, checkpoint 4: Group B, the four reserved effects built
+
+**2026-10-11**, on `claude/card-run-shapes`, after section 134. From
+[`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md)
+and the author's go-ahead filed under it, read as Group B now and a move
+carrying a second effect as checkpoint 4b. `CARD_ENGINE_VERSION` moves to
+`cards-0.8.0` (four new effects, new events, a new unit field) and
+`CARD_RUN_VERSION` to `cardrun-0.5.0` (the pool and the market grew). Every
+existing log replays as it did; the wave-free fixture is restamped.
+`contentHash` holds.
+
+**The rules** (`Effect` in `core/cards/defs.ts`; `RESERVED_EFFECTS` is deleted
+now that each effect has a resolver, and the data test that guarded it now
+holds that the Puppeteer's deck uses none of them):
+
+- **Push n.** Every enemy the card's damage landed on moves up to n tiles
+  away from the player, one tile at a time. It stops where the next tile is
+  off the board, outside the enemy reach, or held by anyone. A boss stands.
+- **Pull n.** A chosen enemy, at any range, moves up to n tiles toward the
+  player under the same stops, so never past column 3, the enemies' nearest.
+  A boss is never a choice: with only a boss on the board the card has no
+  target (`checkEffects`, `noTarget`).
+- **Displaced enemies aim again.** `displace` (`core/cards/enemies.ts`)
+  re-reads the enemy's conditions and replaces its telegraph from its new
+  tile, its script step unchanged, before the enemies act. Pushing a Bulwark
+  out of the danger zone takes its Slash off the board. A push that moves
+  nothing emits nothing. Plan legality still projects only the units' Moves,
+  so a later card whose target a push moved fizzles at resolution, as one
+  whose target died always has.
+- **Repair n.** A chosen friendly unit, the player included, heals up to n
+  HP, never past its max. A unit at full HP takes the card for 0, and says
+  so (`repaired`, amount 0).
+- **Stealth n.** The playing unit's `stealth` holds n. While it does, an
+  enemy's act passes over that unit: a Strike, Pierce, Slash, Scream or stalk
+  stomp that would hit it emits `unseen` and does nothing to it. The act
+  still lands where it was aimed, so a Strike stopping on a hidden unit hits
+  nobody rather than the unit behind. It wears off a turn at a time with the
+  card shield, so n = 1 covers exactly the enemy phase after the card. A
+  fainting unit loses it. The field is absent when 0, so a battle that never
+  plays Stealth carries no new key.
+
+**The cards:**
+
+| Card | Owner | Cost | Effects | Upgrade | Where |
+|---|---|---|---|---|---|
+| Shove | Dasher | 1 | Slash 1, Push 1 | Push 2 | card pool |
+| Patch Up | Commander | 2 | Repair 1, ally | Repair 2 | card pool |
+| Grapple (equipment, Once) | Neutral | 0 | Pull 2 | none | market, 3 |
+| Smoke (equipment, Once) | Neutral | 0 | Stealth 1, self | none | market, 3 |
+
+**Screens** (the sandbox, outside the bible). A card's face shows the move
+icon for Push and Pull and the pack's existing repair and stealth icons. Its
+lines read "Push n", "Pull an enemy n", "Repair n, ally" and "Hidden n turn".
+The round playback narrates a displaced enemy, a repair, a unit hidden, and
+an act that passed over it, moving the enemy on its board as it goes. A
+hidden unit's token fades with a dashed outline; with n = 1 that is seen in
+the round's playback. Copy is in all eight languages, machine-drafted like the
+rest.
+
+**Two harness fixes, needed to test this:**
+
+- `checkInvariants` counted a battle's cards against its encounter's deck
+  (`DECKS[deckId]`), so it would have failed every battle dealt a card
+  run's loadout. No test ran it on one before. It now counts the battle's
+  own card instances, granted cards included.
+- `playBattle` (`core/cards/bots.ts`) takes an optional loadout, so the
+  random bot can play a run's deck.
+
+**Held by** `test/cards-group-b.test.ts`:
+
+- Push moves the enemy it hit and re-aims it.
+- Push stops short of a held tile and never moves a boss.
+- Pull reaches any range and stops at column 3.
+- A boss is never a Pull choice.
+- Repair heals to the max and no further.
+- Stealth: a Strike stopping on the hidden unit does no damage, and the
+  stealth is gone by the next plan.
+- 140 random-bot battles (35 bench encounters, four seeds each) on a deck holding every
+  Group A and B card hold every invariant after every step. Every log
+  replays, and the bot reached each new effect.
+
+**The bench** (`balance.md`, the card run): **16 of 20 runs won, 12.15
+fights, 2.60 bosses**, flat against section 134. The run bot takes the first
+offer and buys the first affordable market item, so it rarely holds Group B
+and cannot rate it. **Recorded, not chased.**
+
