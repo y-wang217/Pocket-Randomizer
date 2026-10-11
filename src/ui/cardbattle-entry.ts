@@ -79,12 +79,13 @@ let opening: Promise<void> | null = null;
 
 /**
  * Load the sandbox and open it over the app. One at a time: a second call
- * while one is open does nothing.
+ * while one is open does nothing. A first visit opens on the tutorial; the
+ * seen flag is read inside the sandbox's chunk, so it adds nothing here.
  */
 export function openCardTest(host: HTMLElement = globalThis.document.body): Promise<void> {
   if (opening) return opening;
-  opening = import('./cardbattle/sandbox').then(({ openSandbox }) => {
-    openSandbox(host, { onExit: () => (opening = null) });
+  opening = import('./cardbattle/sandbox').then(({ openSandbox, tutorialSeen }) => {
+    openSandbox(host, { tutorial: !tutorialSeen(), onExit: () => (opening = null) });
   });
   opening.catch(() => (opening = null));
   return opening;

@@ -167,6 +167,10 @@ describe('no screen builds its own overlay', () => {
      */
     expect(dialogs.sort()).toEqual([
       'src/ui/band.ts',
+      // The card battle sandbox's tutorial panel, the coach marks of
+      // ui/tutorial.ts for the sandbox: it asks the run nothing and resolves
+      // no pending decision (docs/spec/gymrun-patch-card-battle-hearts-and-tutorial.md).
+      'src/ui/cardbattle/coach.ts',
       // The card battle sandbox: a full-frame layer with its own menu and
       // inspect sheets, outside the design bible by the author's ruling
       // (docs/spec/gymrun-card-battle-engine-rulings.md). It asks the run

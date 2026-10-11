@@ -165,5 +165,25 @@ export const RUN_ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
   'last-stand': quest('last-stand', 'Last Stand', 'Defend the keep: a Bulwark, a Pikeman and a Sniper.', [{ def: 'bulwark' }, { def: 'pikeman' }, { def: 'sniper' }]),
 };
 
-/** Every encounter the engine can lay out: the sandbox's scenarios and the card run's fights. */
-export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = { ...SCENARIOS, ...RUN_ENCOUNTERS };
+/**
+ * The tutorial's battle (`docs/spec/gymrun-patch-card-battle-hearts-and-tutorial.md`):
+ * one Target Dummy in the middle of the danger zone, in the Gunner's lane, so
+ * Shoot reaches it from where the Gunner starts. Not a scenario: the tutorial
+ * opens it, and the Menu's list, the bench and the trainer leave it out.
+ */
+export const TUTORIAL_ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
+  tutorial: {
+    id: 'tutorial',
+    name: 'Tutorial',
+    blurb: 'One Target Dummy. It never moves and never fights back.',
+    deckId: 'puppeteer',
+    units: PUPPETEER_FRONT,
+    enemies: [{ def: 'dummy', pos: at(2, 4) }],
+  },
+};
+
+/** Every encounter the engine can lay out: the sandbox's scenarios, the card run's fights and the tutorial's. */
+export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = { ...SCENARIOS, ...RUN_ENCOUNTERS, ...TUTORIAL_ENCOUNTERS };
+
+/** What the bench and the trainer play: every encounter but the tutorial's. */
+export const BENCH_IDS: readonly string[] = Object.keys(ENCOUNTERS).filter((id) => !Object.hasOwn(TUTORIAL_ENCOUNTERS, id));

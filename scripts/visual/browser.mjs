@@ -659,6 +659,9 @@ export async function skipTutorialIn(context) {
     (settings) => {
       try {
         if (!globalThis.localStorage.getItem('gymrun.settings')) globalThis.localStorage.setItem('gymrun.settings', settings);
+        // The card battle sandbox's own first open, its tutorial, is seen too
+        // (`docs/spec/gymrun-patch-card-battle-hearts-and-tutorial.md`).
+        if (!globalThis.localStorage.getItem('gymrun.cardbattle.tutorial')) globalThis.localStorage.setItem('gymrun.cardbattle.tutorial', 'seen');
       } catch {
         // Storage unavailable: the app falls back to defaults and both
         // first-run surfaces show.

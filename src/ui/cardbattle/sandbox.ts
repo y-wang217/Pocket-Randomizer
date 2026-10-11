@@ -17,6 +17,10 @@
  * lists every scenario, and Bot turn, which has the guard bot place the units
  * or play the round from wherever the plan stands (`core/cards/guard.ts`).
  *
+ * The tutorial (`coach.ts`, `tutorial.ts`) opens on a first visit and from
+ * the Menu: its own battle against a Target Dummy, one step at a time, the
+ * steps that ask for an act waiting for it on the real board.
+ *
  * Outside the design bible by the author's ruling
  * (`docs/spec/gymrun-card-battle-engine-rulings.md`). It writes nothing into
  * the run save.
@@ -43,8 +47,13 @@ import { enemyNumber, viewOf, type BattleView, type HandCardView, type TileThrea
 import { samePos } from '../../core/cards/zones';
 import { newSeed } from '../seed';
 import { CARD_ASSET_GROUPS, cardAsset, cardAssetUrl, type CardAssetId } from './assets';
+import { createCoach } from './coach';
+import { deckOf, manaBar, ultOf, vitals } from './meters';
 import { roundSteps, type RoundRecord, type Step } from './playback';
-import { CARD_PALETTES, loadCardPrefs, saveCardPrefs, type CardPalette, type CardPrefs } from './prefs';
+import { CARD_PALETTES, loadCardPrefs, saveCardPrefs, saveTutorialSeen, type CardPalette, type CardPrefs } from './prefs';
+import { TUTORIAL_ENCOUNTER, TUTORIAL_SEED, type TutorialStep } from './tutorial';
+
+export { tutorialSeen } from './prefs';
 
 export interface Sandbox {
   root: HTMLElement;
@@ -55,6 +64,14 @@ export interface SandboxOptions {
   seed?: string;
   /** The scenario to open on; the default scenario when absent or unknown. */
   encounter?: string;
+  /** Open on the tutorial instead: its battle, its seed and its coach. The entry asks for it on a first open. */
+  tutorial?: boolean;
+  /**
+   * Where Skip tutorial and a finished tutorial lead: into Skirmish (the
+   * sandbox's own entry), or out of the battle screen, back to whatever opened
+   * it (the card run's title).
+   */
+  afterTutorial?: 'skirmish' | 'exit';
   onExit?: () => void;
   /**
    * A card run's battle (`ui/cardrun/`): opened where it stands, its deck and
@@ -106,6 +123,7 @@ const ENEMY_MARKER: Record<EnemyDefId, CardAssetId> = {
   sniper: 'marker-enemy-sniper',
   pikeman: 'marker-enemy-pikeman',
   colossus: 'marker-enemy-colossus',
+  dummy: 'marker-enemy-dummy',
 };
 const INTENT_ICON: Record<string, CardAssetId> = {
   strike: 'icon-strike',
@@ -297,6 +315,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   let prefs: CardPrefs = loadCardPrefs();
   /** The round being played back: its loud steps, the one showing, and each planned card's place in the order. */
   let playback: { steps: Step[]; index: number; order: Map<CardIid, number> } | null = null;
+  /** The tutorial ran to its end in this battle: the result sheet says so. */
+  let tutorialDone = false;
 
   const root = el('div', 'cb');
   root.setAttribute('role', 'dialog');
@@ -322,10 +342,25 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   inspect.hidden = true;
   inspect.addEventListener('click', () => (inspect.hidden = true));
   frame.append(top, enemySide, mid, unitSide, hand, actions);
+  // What the tutorial's steps point at, besides the cards, panels and slots that carry their own.
+  unitSide.dataset['coach'] = 'units';
+  hand.dataset['coach'] = 'hand';
+  board.dataset['coach'] = 'board';
   // The meadow behind everything (the reskin's background), when its file is in.
   const meadow = cardAssetUrl('background-meadow');
   if (meadow) root.style.setProperty('--cb-meadow', `url("${meadow}")`);
-  root.append(sheet, inspect);
+  const coach = createCoach({
+    scope: frame,
+    words: stepWords,
+    onSkip: () => {
+      saveTutorialSeen();
+      if (options.afterTutorial === 'exit') return close();
+      encounterId = DEFAULT_ENCOUNTER;
+      start(newSeed());
+    },
+    onAdvance: () => render(),
+  });
+  root.append(sheet, inspect, coach.root);
 
   const previousOverflow = document.documentElement.style.overflow;
   document.documentElement.style.overflow = 'hidden';
@@ -360,8 +395,12 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     true,
   );
 
-  function start(nextSeed: string): void {
+  /** A battle from its first draw. The tutorial's coach runs only when `tutorial` says so. */
+  function start(nextSeed: string, tutorial = false): void {
     seed = nextSeed;
+    tutorialDone = false;
+    if (tutorial) coach.begin();
+    else coach.end();
     if (options.run) {
       state = options.run.state;
       log = JSON.parse(JSON.stringify(options.run.log)) as BattleLog;
@@ -382,6 +421,22 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     sheet.hidden = true;
     skipBeats();
     render();
+  }
+
+  /** The tutorial from its first step, on its own battle and seed. */
+  function startTutorial(): void {
+    encounterId = TUTORIAL_ENCOUNTER;
+    start(TUTORIAL_SEED, true);
+  }
+
+  /** A step's words, in the current language. The MP step names the Commander's ult and its cost. */
+  function stepWords(step: TutorialStep): { title: string; text: string } {
+    const words = CARD_COPY.tutorial.steps;
+    if (step.id === 'mana') {
+      const ult = ultOf('A', deckOf(state), RULES.mp.cap);
+      return { title: words.mana.title, text: words.mana.text(nameOf(ult?.name ?? ''), ult?.cost ?? RULES.mp.cap, RULES.mp.cap) };
+    }
+    return words[step.id];
   }
 
   function act(action: Action): boolean {
@@ -677,6 +732,11 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     fitLabels(frame);
     if (shown) decorate(shown);
     fitFrame();
+    // After the frame is fitted, so the coach measures the frame as drawn.
+    if (coach.sync(state, log.actions, !!playback)) {
+      tutorialDone = true;
+      saveTutorialSeen();
+    }
   }
 
   /**
@@ -900,10 +960,12 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       label = enemyLabel(occupant.id);
       if (enemy.size.lanes > 1 || enemy.size.cols > 1) node.dataset['size'] = `${enemy.size.lanes}x${enemy.size.cols}`;
       node.append(el('span', 'cb-token-hp', String(enemy.hp)));
+      shieldOn(node, enemy.shield, enemy.baseShield);
       if (enemy.fast) node.append(el('span', 'cb-fast cb-token-fast', CARD_COPY.fast));
     } else {
       const unit = view.units.find((u) => u.id === occupant.id)!;
       node.append(el('span', 'cb-token-hp', String(unit.hp)));
+      shieldOn(node, unit.shield, unit.baseShield);
       const warn = warned.get(unit.id);
       if (warn !== undefined) {
         node.dataset['warn'] = 'true';
@@ -921,6 +983,22 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     return node;
   }
 
+  /**
+   * A shield up, on the piece itself: a bubble over its marker and the
+   * shield's total in a bubble at its corner. Filled when any of it is card
+   * shield, which wears off; ringed when all of it is base shield.
+   */
+  function shieldOn(node: HTMLElement, shield: number, baseShield: number): void {
+    if (shield + baseShield <= 0) return;
+    const kind = shield > 0 ? 'card' : 'base';
+    const dome = el('span', 'cb-token-bubble');
+    dome.dataset['kind'] = kind;
+    const count = el('span', 'cb-token-shield', String(shield + baseShield));
+    count.dataset['kind'] = kind;
+    node.append(dome, count);
+    node.dataset['shielded'] = kind;
+  }
+
   function ring(id: CardAssetId): HTMLElement {
     const wrap = el('span', 'cb-ring');
     wrap.append(cardAsset(id));
@@ -929,6 +1007,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
 
   function renderPanels(view: BattleView): void {
     const warned = allyWarnings(view);
+    const deck = deckOf(state);
     enemySide.replaceChildren(
       ...view.enemies.map((enemy, index) => {
         const target = !!pending && pending.stage !== 'tile' && pending.units.includes(enemy.id);
@@ -940,8 +1019,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         const name = el('div', 'cb-panel-name', `${nameOf(enemy.name)} ${index + 1}`);
         if (enemy.fast) name.append(el('span', 'cb-fast', CARD_COPY.fast));
         panel.append(name);
-        // One line, as a unit's: HP, then card shield plus base shield.
-        panel.append(statLine(CARD_COPY.hp, `${enemy.hp}/${enemy.maxHp} · ${CARD_COPY.shieldShort} ${enemy.shield}+${enemy.baseShield}`), bar(enemy.hp, enemy.maxHp));
+        // One line, as a unit's: hearts for HP, then bubbles for card shield and base shield.
+        panel.append(vitals(enemy.hp, enemy.maxHp, enemy.shield, enemy.baseShield));
         // Part D: the pin's turns left, and the HP its one stalk comes at.
         if (enemy.pinned > 0) panel.append(el('div', 'cb-boss-line cb-boss-line--pinned', CARD_COPY.pinned(enemy.pinned)));
         else if (enemy.stalkAt !== null) panel.append(el('div', 'cb-boss-line', CARD_COPY.stalkAt(enemy.stalkAt)));
@@ -977,17 +1056,9 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         const portrait = el('span', 'cb-panel-portrait');
         portrait.append(cardAsset(UNIT_PORTRAIT[unit.id], 'fill'));
         panel.append(portrait, el('div', 'cb-panel-name', `${unit.id} ${nameOf(unit.name)}`));
-        panel.append(statLine(CARD_COPY.hp, `${unit.hp}/${unit.maxHp} · ${CARD_COPY.shieldShort} ${unit.shield}+${unit.baseShield}`), bar(unit.hp, unit.maxHp));
-        const mp = el('div', 'cb-mp');
-        mp.append(el('span', 'cb-mp-text', `${CARD_COPY.cost} ${unit.mp - unit.reserved}/${unit.mp}`));
-        for (let i = 0; i < unit.mpCap; i++) {
-          const pip = cardAsset(i < unit.mp - unit.reserved ? 'pip-filled' : 'pip-empty', { width: 6, height: 6 });
-          pip.dataset['on'] = String(i < unit.mp - unit.reserved);
-          if (i >= unit.mp) pip.dataset['off'] = 'true';
-          mp.append(pip);
-        }
-        panel.append(mp);
+        panel.append(vitals(unit.hp, unit.maxHp, unit.shield, unit.baseShield), manaBar(unit, ultOf(unit.id, deck, unit.mpCap)));
         const slots = el('div', 'cb-slots');
+        slots.dataset['coach'] = 'slots';
         for (let i = 0; i < unit.slots; i++) {
           const play = unit.planned[i];
           if (play) {
@@ -1012,22 +1083,6 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         return panel;
       }),
     );
-  }
-
-  function bar(value: number, max: number): HTMLElement {
-    const track = el('div', 'cb-bar');
-    track.append(cardAsset('bar-track', 'fill'));
-    const fill = el('span', 'cb-bar-fill');
-    fill.style.width = `${max > 0 ? Math.round((Math.max(0, value) / max) * 100) : 0}%`;
-    fill.append(cardAsset('bar-fill', 'fill'));
-    track.append(fill);
-    return track;
-  }
-
-  function statLine(label: string, value: string): HTMLElement {
-    const line = el('div', 'cb-stat');
-    line.append(el('span', 'cb-stat-label', label), el('span', 'cb-stat-value', value));
-    return line;
   }
 
   /** What the unit filter keeps: the cards it has planned, and its own and Neutral cards it can play now. */
@@ -1248,6 +1303,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       : button('cb-btn cb-btn--primary', CARD_COPY.endTurn, () => act({ type: 'commit' }));
     end.querySelector('.cb-btn-label')!.prepend(cardAsset('icon-end-turn', { width: 16, height: 16 }));
     end.disabled = !deploying && !view.canCommit;
+    end.dataset['coach'] = 'end';
     actions.replaceChildren(undo, inspectButton, end, button('cb-btn', CARD_COPY.menu, () => openSheet()));
   }
 
@@ -1256,6 +1312,17 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     const heading =
       state.phase === 'plan' || state.phase === 'deploy' ? CARD_COPY.title : `${state.phase === 'won' ? CARD_COPY.won : CARD_COPY.lost} · ${CARD_COPY.round} ${state.round}`;
     panel.append(el('div', 'cb-sheet-title', heading), el('div', 'cb-seed', `${CARD_COPY.seed} ${seed}`));
+    if (tutorialDone && state.phase === 'won') {
+      panel.append(
+        el('div', 'cb-sheet-tutorial', CARD_COPY.tutorial.complete),
+        options.afterTutorial === 'exit'
+          ? button('cb-btn cb-btn--primary', CARD_COPY.exit, () => close())
+          : button('cb-btn cb-btn--primary', CARD_COPY.tutorial.play(nameOf(ENCOUNTERS[DEFAULT_ENCOUNTER]!.name)), () => {
+              encounterId = DEFAULT_ENCOUNTER;
+              start(newSeed());
+            }),
+      );
+    }
     const copyArea = el('textarea', 'cb-log');
     copyArea.readOnly = true;
     copyArea.hidden = true;
@@ -1288,7 +1355,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       return;
     }
     panel.append(
-      button('cb-btn', CARD_COPY.restart, () => start(seed)),
+      button('cb-btn', CARD_COPY.restart, () => start(seed, coach.active())),
+      button('cb-btn', CARD_COPY.tutorial.button, () => startTutorial()),
       button('cb-btn', CARD_COPY.newSeed, () => start(newSeed())),
       button('cb-btn', CARD_COPY.copyLog, () => copyLog(status, copyArea)),
       button('cb-btn', CARD_COPY.roundLog, () => openRoundLog()),
@@ -1439,7 +1507,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   }
 
   applyPrefs();
-  start(seed);
+  if (options.tutorial) startTutorial();
+  else start(seed);
   root.tabIndex = -1;
   root.focus();
   return { root, close };

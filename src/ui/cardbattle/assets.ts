@@ -97,6 +97,8 @@ export const CARD_ASSET_GROUPS = {
       'marker-enemy-pikeman',
       'marker-enemy-colossus',
       'marker-enemy-colossus-pinned',
+      // The tutorial's Target Dummy: a straw post under a target face.
+      'marker-enemy-dummy',
       'portrait-commander',
       'portrait-gunner',
       'portrait-dasher',

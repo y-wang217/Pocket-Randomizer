@@ -28,7 +28,7 @@ export type UnitDefId = 'A' | 'B' | 'C';
 export type ClassId = 'special' | 'ranged' | 'melee';
 export type TypeId = 'fire' | 'plasma' | 'water';
 export type CardOwner = UnitDefId | 'neutral';
-export type EnemyDefId = 'drone' | 'lancer' | 'hound' | 'turret' | 'bulwark' | 'sniper' | 'pikeman' | 'colossus';
+export type EnemyDefId = 'drone' | 'lancer' | 'hound' | 'turret' | 'bulwark' | 'sniper' | 'pikeman' | 'colossus' | 'dummy';
 
 export type DamageKeyword = 'strike' | 'pierce' | 'slash' | 'blast';
 
@@ -80,6 +80,13 @@ export interface CardDef {
    * bring back.
    */
   equipment?: true;
+  /**
+   * An ult: its owner's MP bar marks its cost, the MP the unit is saving
+   * toward. Presentation only; the engine never reads it. An upgrade keeps it.
+   * A unit holds one only if its deck does: the Sword dasher has none until a
+   * card run hands it one.
+   */
+  ult?: true;
 }
 
 export type Ability =

@@ -207,6 +207,18 @@ is listed in 125r as provisional, for a playtest. Built and stopped for
 review. `CARD_ENGINE_VERSION` moves to `cards-0.5.0`, the run has its own
 `cardrun-0.1.0`; none of GYMRUN's four axes moves.
 
+**Card battle sandbox: hearts, bubbles, an MP bar, and an interactive
+tutorial.** Branch `claude/card-battle-hearts-tutorial`, prompt
+[`spec/gymrun-patch-card-battle-hearts-and-tutorial.md`](spec/gymrun-patch-card-battle-hearts-and-tutorial.md),
+record [`generation.md`](generation.md) section 130. HP as hearts, shields as
+bubbles (filled for card shield, ringed for base) and as a dome on the
+shielded piece, MP as five cells with each unit's ult starred at its cost;
+a tutorial against a new Target Dummy, ten steps, six of which wait for the
+player to act on the real board, first on the card run's title and on the
+sandbox's first open. An ult is a card marked `ult`, so the Sword dasher has
+none until the campaign hands him one. Built and stopped for review. No
+version axis moves.
+
 **Also in flight: Defender Mode v0, a fun test.** Branch
 `claude/eager-turing-0059br`, prompt
 [`spec/gymrun-defender-mode-v0-fun-test.md`](spec/gymrun-defender-mode-v0-fun-test.md),

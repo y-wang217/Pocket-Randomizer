@@ -27,7 +27,7 @@ const CONTRACT: Record<string, string[]> = {
     'marker-player-base', 'marker-enemy-base', 'marker-unit-commander', 'marker-unit-gunner', 'marker-unit-dasher', 'marker-enemy-drone',
     'marker-enemy-lancer', 'marker-ring-selected', 'marker-ring-destination', 'marker-reticle',
     'marker-enemy-hound', 'marker-enemy-turret', 'marker-enemy-bulwark', 'marker-enemy-sniper', 'marker-enemy-pikeman',
-    'marker-enemy-colossus', 'marker-enemy-colossus-pinned', 'portrait-commander', 'portrait-gunner', 'portrait-dasher',
+    'marker-enemy-colossus', 'marker-enemy-colossus-pinned', 'marker-enemy-dummy', 'portrait-commander', 'portrait-gunner', 'portrait-dasher',
   ],
   art: [
     'art-call-medic', 'art-command', 'art-focus', 'art-moon-strike', 'art-shoot', 'art-resupply', 'art-artillery', 'art-fire',

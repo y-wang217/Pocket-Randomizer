@@ -163,6 +163,34 @@ const EN = {
     wave: (n: number) => `Wave ${n} arrives`,
     step: (n: number, of: number) => `${n}/${of}`,
   },
+  /** The panels' meters, each one's accessible name (`ui/cardbattle/meters.ts`). */
+  meters: {
+    vitals: (hp: number, max: number, shield: number, base: number) => `HP ${hp}/${max} · Shield ${shield} · Base ${base}`,
+    mana: (free: number, held: number, cap: number) => `MP ${free} free, ${held} held, of ${cap}`,
+    ult: (card: string, cost: number) => `${card} at ${cost}`,
+  },
+  /** The tutorial (`ui/cardbattle/tutorial.ts`): its buttons, and each step's title and text. */
+  tutorial: {
+    button: 'Tutorial',
+    skip: 'Skip tutorial',
+    skipStep: 'Skip step',
+    next: 'Next',
+    progress: (n: number, of: number) => `${n}/${of}`,
+    complete: 'Tutorial complete: the dummy is down.',
+    play: (scenario: string) => `Play ${scenario}`,
+    steps: {
+      place: { title: 'Placement', text: 'Tap a unit, then a tile on your two home rows. A unit already there swaps with it.' },
+      start: { title: 'Start', text: 'Press Start when your units are set. The enemies then take their places.' },
+      hand: { title: 'Your hand', text: 'The band and letter say which unit plays a card; a grey card, any unit. Top left is its MP cost. Hold a card to read it.' },
+      vitals: { title: 'Hearts and bubbles', text: 'Hearts are HP. Bubbles are shields and pop before hearts: a filled one wears off, a ringed one is the base shield, used once. A shielded piece wears a bubble on the board.' },
+      mana: { title: 'MP', text: (card: string, cost: number, cap: number) => `Each unit gains 1 MP a round, up to ${cap}. The star marks its ult: ${card} at ${cost}. Dimmed cells are held by cards you planned.` },
+      move: { title: 'Move', text: 'Tap Move, pick who plays it, then a lit tile.' },
+      slots: { title: 'Card slots', text: "A planned card sits in its unit's slot, numbered in the order the plan plays. Tap a slot to take the card back." },
+      attack: { title: 'Attack', text: "Tap Shoot. It hits the first enemy down the Gunner's lane, at any range." },
+      end: { title: 'End Turn', text: 'Your cards play in order, then the enemies act. The dummy only waits.' },
+      finish: { title: 'Beat the dummy', text: 'Keep going until the Target Dummy falls. MP builds each round, so bigger cards open up.' },
+    },
+  },
   /**
    * The names the card data carries, keyed by their English text: cards,
    * units, enemies and scenarios. English leaves it empty and reads the data.

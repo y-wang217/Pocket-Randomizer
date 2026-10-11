@@ -11,7 +11,7 @@
  */
 import { writeFileSync } from 'node:fs';
 
-import { ENCOUNTERS } from '../src/cardData/encounters';
+import { BENCH_IDS } from '../src/cardData/encounters';
 import { GUARD_SEARCH, GUARD_WEIGHTS } from '../src/cardData/guardWeights';
 import { meanFitness, summarize } from '../src/core/cards/bench';
 import type { GuardWeights } from '../src/core/cards/defs';
@@ -29,7 +29,7 @@ const evalSeeds = num('eval', 60);
 const sigma = num('sigma', 0.35);
 const TRAIN = 'GT';
 const EVAL = 'GE';
-const scenarios = Object.keys(ENCOUNTERS);
+const scenarios = BENCH_IDS;
 
 console.log(`training on ${TRAIN}0..${TRAIN}${perScenario - 1} in ${scenarios.length} scenarios, ${generations} generations of ${children}`);
 const t = performance.now();

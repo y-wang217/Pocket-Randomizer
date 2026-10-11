@@ -149,4 +149,17 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
       ],
     },
   },
+  // The tutorial's target (`docs/spec/gymrun-patch-card-battle-hearts-and-tutorial.md`):
+  // it never moves and never attacks, and a base shield shows a bubble popping.
+  dummy: {
+    id: 'dummy',
+    name: 'Target Dummy',
+    hp: 3,
+    baseShield: 1,
+    grade: 0,
+    script: {
+      kind: 'cycle',
+      steps: [{ move: 'none', act: { k: 'none' } }],
+    },
+  },
 };
