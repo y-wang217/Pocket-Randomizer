@@ -23,6 +23,7 @@ import { ACTS, EVENTS } from '../../cardData/cardrunTables';
 import { nameOf, setCardLanguage } from '../../cardData/copy';
 import { ENCOUNTERS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
+import { TALENTS } from '../../cardData/talents';
 import { UNITS } from '../../cardData/units';
 import { CLASS_SLOTS } from '../../cardData/classes';
 import {
@@ -245,6 +246,7 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
       stat(RUN_COPY.base(def.baseShield + (boost.baseShield ?? 0)), !!boost.baseShield);
       stat(RUN_COPY.slots(CLASS_SLOTS[def.class] + (boost.slots ?? 0)), !!boost.slots);
       if (boost.mp) stat(RUN_COPY.mp(boost.mp), true);
+      for (const talent of boost.talents ?? []) stat(TALENTS[talent]!.name, true);
       unit.append(stats);
       team.append(unit);
     }
@@ -372,6 +374,20 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
         box.append(heading(RUN_COPY.upgrade.heading, screen.source === 'defense' ? RUN_COPY.upgrade.defense : RUN_COPY.upgrade.smith));
         box.append(upgradeList(s, (index) => act({ type: 'upgrade', index })));
         break;
+      case 'replace': {
+        box.append(heading(RUN_COPY.replace.heading, RUN_COPY.replace.what(nameOf(CARDS[screen.card]!.name))));
+        const list = el('div', 'cr-deck');
+        s.deck.forEach((card, index) => {
+          const node = cardTile(card);
+          node.classList.add('cr-card--tap');
+          node.tabIndex = 0;
+          node.setAttribute('role', 'button');
+          node.addEventListener('click', () => act({ type: 'replace', index }));
+          list.append(node);
+        });
+        box.append(cardTile(screen.card), list);
+        break;
+      }
       case 'remove': {
         box.append(heading(RUN_COPY.remove.heading, RUN_COPY.remove.what));
         const list = el('div', 'cr-deck');
@@ -420,7 +436,11 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
           const node = el('button', 'cr-choice');
           node.type = 'button';
           node.dataset['owner'] = offer.unit;
-          node.append(el('span', 'cr-choice-name', `${offer.unit} ${nameOf(UNITS[offer.unit].name)}`), el('span', 'cr-choice-what', RUN_COPY.boost.kind[offer.kind](offer.n)));
+          const what =
+            offer.kind === 'talent'
+              ? `${RUN_COPY.boost.talent}: ${TALENTS[offer.talent]!.name}. ${TALENTS[offer.talent]!.text}`
+              : RUN_COPY.boost.kind[offer.kind](offer.n);
+          node.append(el('span', 'cr-choice-name', `${offer.unit} ${nameOf(UNITS[offer.unit].name)}`), el('span', 'cr-choice-what', what));
           node.addEventListener('click', () => act({ type: 'pick', index }));
           choices.append(node);
         });

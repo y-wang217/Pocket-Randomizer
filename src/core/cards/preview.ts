@@ -11,9 +11,8 @@
  * change what a later attack hits; nothing here plays that out.
  */
 import { RULES } from '../../cardData/rules';
-import { UNITS } from '../../cardData/units';
 import type { DamageKeyword, Pos } from './defs';
-import { cardDefOf, damageOf, livingEnemies, project, projectAt, select, type Projection } from './plan';
+import { abilitiesOf, cardDefOf, damageOf, livingEnemies, project, projectAt, select, type Projection } from './plan';
 import { alliesOn } from './keywords';
 import { firstSlots } from './resolve';
 import type { BattleState, CardIid, EnemyId, EnemyState, PlannedPlay, TargetId, UnitId } from './state';
@@ -131,7 +130,7 @@ function footprint(state: BattleState, k: DamageKeyword, from: Pos, tile: Pos | 
  * yet in the plan is read as appended to it.
  */
 function convertsTo(state: BattleState, play: PlannedPlay, k: DamageKeyword, targeted: boolean): DamageKeyword {
-  const ability = UNITS[play.unit].abilities.find((a) => a.k === 'firstCardConverts');
+  const ability = abilitiesOf(state, play.unit).find((a) => a.k === 'firstCardConverts');
   if (!ability || ability.k !== 'firstCardConverts' || targeted || k !== ability.from) return k;
   const unit = state.units.find((u) => u.id === play.unit);
   if (!unit || unit.hp !== unit.maxHp) return k;

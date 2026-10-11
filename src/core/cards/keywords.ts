@@ -7,10 +7,9 @@
  * here.
  */
 import { RULES } from '../../cardData/rules';
-import { UNITS } from '../../cardData/units';
 import type { CardDef, DamageKeyword, Pos } from './defs';
 import type { BattleEvent } from './events';
-import { cardDefOf, damageOf, livingEnemies, livingUnits, unitOf } from './plan';
+import { abilitiesOf, cardDefOf, damageOf, livingEnemies, livingUnits, unitOf } from './plan';
 import type { BattleState, EnemyState, PileName, PlannedPlay, UnitId, UnitState } from './state';
 import { blastTiles, covers, enemyTiles, laneFromSide, moveDestinations, samePos, slashTiles, tile as tileAt } from './zones';
 
@@ -192,7 +191,7 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
 
   if (dmg) {
     let k = dmg.k;
-    const ability = UNITS[unit.id].abilities.find((a) => a.k === 'firstCardConverts');
+    const ability = abilitiesOf(s, unit.id).find((a) => a.k === 'firstCardConverts');
     if (converts && ability?.k === 'firstCardConverts' && k === ability.from && !targeted) {
       k = ability.to;
       ctx.events.push({ t: 'converted', unit: unit.id, card: play.card, from: ability.from, to: ability.to });

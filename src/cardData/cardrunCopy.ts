@@ -83,6 +83,10 @@ export const RUN_COPY = {
     smith: 'The smith sharpens one card, free.',
     becomes: 'becomes',
   },
+  replace: {
+    heading: 'Make room',
+    what: (card: string) => `${card} goes in place of the card you pick. Your deck stays the same size.`,
+  },
   remove: {
     heading: 'Leave a card',
     what: 'The card stays at the shrine for the rest of the run.',
@@ -103,6 +107,7 @@ export const RUN_COPY = {
       baseShield: (n: number) => `+${n} base shield`,
       mp: (n: number) => `+${n} MP at the start of each fight`,
     } satisfies Record<BoostKind, (n: number) => string>,
+    talent: 'Talent',
   },
   battle: {
     heading: (kind: string) => kind,

@@ -22,8 +22,9 @@ import { CARDS } from '../../cardData/cards';
 import { CLASS_SLOTS } from '../../cardData/classes';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
+import { TALENTS } from '../../cardData/talents';
 import { UNITS } from '../../cardData/units';
-import type { CardDef, DamageKeyword, Effect, Pos } from './defs';
+import type { Ability, CardDef, DamageKeyword, Effect, Pos, UnitDefId } from './defs';
 import type { BattleEvent } from './events';
 import type { Action, BattleState, Choice, IllegalReason, PlannedPlay, PlayBlock, UnitId, UnitState } from './state';
 import { blastCentres, blastTiles, covers, enemyTiles, inDanger, lanesOf, moveDestinations, onBoard, samePos, slashTiles } from './zones';
@@ -71,6 +72,12 @@ export function needsOf(def: CardDef): Needs {
 
 export function unitOf(state: BattleState, id: unknown): UnitState | undefined {
   return state.units.find((u) => u.id === id);
+}
+
+/** A unit's abilities in this battle: its own, then its talents' (`cardData/talents.ts`), in the order taken. */
+export function abilitiesOf(state: BattleState, id: UnitDefId): Ability[] {
+  const talents = state.boosts?.[id]?.talents ?? [];
+  return [...UNITS[id].abilities, ...talents.flatMap((t) => TALENTS[t]?.abilities ?? [])];
 }
 
 export function livingUnits(state: BattleState): UnitState[] {

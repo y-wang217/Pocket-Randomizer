@@ -18,11 +18,10 @@
 import { CARDS } from '../../cardData/cards';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
-import { UNITS } from '../../cardData/units';
 import { enemyActions, enemyMovesAndTelegraph } from './enemies';
 import type { Ctx } from './keywords';
 import { gainMp, payFor, resolveEffects, resolveMove, retire } from './keywords';
-import { cardDefOf, checkPlan, isMoveCard, livingEnemies, livingUnits, type StepResult, unitOf } from './plan';
+import { abilitiesOf, cardDefOf, checkPlan, isMoveCard, livingEnemies, livingUnits, type StepResult, unitOf } from './plan';
 import { shuffled, withStream } from './random';
 import type { BattleState, PlannedPlay, UnitId } from './state';
 
@@ -82,7 +81,7 @@ export function commit(state: BattleState): StepResult {
   const first = firstSlots(s, plan);
   const fullAtStart = Object.fromEntries(s.units.map((u) => [u.id, u.hp === u.maxHp])) as Record<UnitId, boolean>;
   const converts = (play: PlannedPlay, index: number): boolean =>
-    first[play.unit] === index && fullAtStart[play.unit] && UNITS[play.unit].abilities.some((a) => a.k === 'firstCardConverts');
+    first[play.unit] === index && fullAtStart[play.unit] && abilitiesOf(s, play.unit).some((a) => a.k === 'firstCardConverts');
 
   // 1 and 2. Every card, Moves included, in plan order.
   plan.forEach((play, index) => {
@@ -228,7 +227,7 @@ export function nextHand(ctx: Ctx): void {
   }
 
   for (const unit of livingUnits(s)) {
-    for (const ability of UNITS[unit.id].abilities) {
+    for (const ability of abilitiesOf(s, unit.id)) {
       if (ability.k === 'mpAtTurnStart') gainMp(ctx, unit, ability.n, 'ability');
     }
     const owed = unit.pendingMp.reduce((sum, grant) => sum + grant.n, 0);

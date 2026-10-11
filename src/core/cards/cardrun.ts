@@ -18,7 +18,7 @@
  *
  * Every number lives in `cardData/cardrunTables.ts`.
  */
-import { CARDS, DECKS, UPGRADE_OF } from '../../cardData/cards';
+import { CARDS, UPGRADE_OF } from '../../cardData/cards';
 import {
   ACTS,
   BOOST_AMOUNT,
@@ -27,10 +27,12 @@ import {
   EVENTS,
   MARKET,
   RUN_RULES,
+  STARTING_DECK,
   TOWN_POOL,
   type BoostKind,
   type EventOption,
 } from '../../cardData/cardrunTables';
+import { UNIT_TALENTS } from '../../cardData/talents';
 import { createRng, formatSeed, type RngStream } from '../rng';
 import { cardRunKey } from '../streamKeys';
 import { createBattle } from './create';
@@ -41,16 +43,17 @@ import type { Action, BattleState } from './state';
 import { step } from './step';
 
 /** Bumps when a run's draws, its tables' meaning or a logged decision changes what a run log replays to. */
-export const CARD_RUN_VERSION = 'cardrun-0.2.0';
+export const CARD_RUN_VERSION = 'cardrun-0.3.0';
 
 export type StopKind = 'city' | 'town' | 'wild';
 
-/** One boss upgrade on offer: this unit gets this much more of this, for the rest of the run. */
-export interface BoostOffer {
-  unit: UnitDefId;
-  kind: BoostKind;
-  n: number;
-}
+/**
+ * One boss upgrade on offer: this unit gets this much more of this stat, or
+ * this talent, for the rest of the run. A node holds the stat drawn for each
+ * unit; the boss screen offers the unit's next untaken talent in its place
+ * (`offersFor`).
+ */
+export type BoostOffer = { unit: UnitDefId; kind: BoostKind; n: number } | { unit: UnitDefId; kind: 'talent'; talent: string };
 
 /** A fight a stop can send the player on, with the battle seed drawn for it. */
 export interface QuestDraw {
@@ -102,6 +105,8 @@ export type RunScreen =
   | { k: 'market'; bought: number[] }
   /** One of three cards, no skip (`CLAUDE.md`, Rewards). */
   | { k: 'cards'; offer: string[]; source: 'town' | 'ambush' }
+  /** The card taken goes in place of a deck card the player picks: the deck never grows from a card reward. */
+  | { k: 'replace'; card: string; source: 'town' | 'ambush' | 'peddler' }
   /** A free upgrade: pick the card. */
   | { k: 'upgrade'; source: 'defense' | 'smith' }
   /** The shrine: pick the card to leave. */
@@ -152,6 +157,8 @@ export type RunAction =
   /** A deck index: free on an upgrade screen, paid at the camp. */
   | { type: 'upgrade'; index: number }
   | { type: 'remove'; index: number }
+  /** A deck index: the card a reward card goes in place of. */
+  | { type: 'replace'; index: number }
   | { type: 'event'; option: number }
   /** Done at the market, or done in a Wild with no event. */
   | { type: 'leave' };
@@ -290,9 +297,9 @@ export function createRun(seed: string, deck: readonly string[] = startingDeck()
   return s;
 }
 
-/** The Puppeteer's fifteen, as the sandbox deals them. */
+/** The basic ten (`STARTING_DECK`): the Puppeteer is built toward, not dealt. */
 export function startingDeck(): string[] {
-  return [...DECKS['puppeteer']!.cards];
+  return [...STARTING_DECK];
 }
 
 // ------------------------------------------------------------------ reading
@@ -339,6 +346,18 @@ export function progressOf(s: CardRunState): { act: number; acts: number; fight:
   const node = currentNode(s) ?? s.nodes.at(-1)!;
   const fights = s.nodes.slice(0, s.at + 1).filter((n) => n.kind === 'fight' && n.act === node.act).length;
   return { act: node.act + 1, acts: ACTS.length, fight: Math.max(1, fights) };
+}
+
+/**
+ * A fallen boss's three offers, one per unit: the unit's next talent it has
+ * not taken (`UNIT_TALENTS`), else the stat the node drew for it. The stat is
+ * drawn either way, so what the player took moves no draw.
+ */
+export function offersFor(s: CardRunState, node: FightNode): BoostOffer[] {
+  return node.boosts.map((offer) => {
+    const talent = UNIT_TALENTS[offer.unit].find((t) => !(s.boosts[offer.unit].talents ?? []).includes(t));
+    return talent ? { unit: offer.unit, kind: 'talent', talent } : offer;
+  });
 }
 
 /** The boosts a battle carries: only the units the run has boosted. */
@@ -402,7 +421,7 @@ function battleWon(s: CardRunState, battle: RunBattle): void {
       s.stats.bosses += 1;
       const node = currentNode(s) as FightNode;
       s.battle = null;
-      if (node.boosts.length > 0) s.screen = { k: 'boost', offers: node.boosts };
+      if (node.boosts.length > 0) s.screen = { k: 'boost', offers: offersFor(s, node) };
       else advance(s);
       return;
     }
@@ -500,15 +519,15 @@ export function stepRun(state: CardRunState, action: RunAction | unknown): RunRe
       if (screen.k === 'cards') {
         const card = screen.offer[a.index];
         if (!card) return refuse('badIndex');
-        s.deck.push(card);
-        advance(s);
+        s.screen = { k: 'replace', card, source: screen.source };
         return done();
       }
       if (screen.k === 'boost') {
         const offer = screen.offers[a.index];
         if (!offer) return refuse('badIndex');
         const boost = s.boosts[offer.unit];
-        boost[offer.kind] = (boost[offer.kind] ?? 0) + offer.n;
+        if (offer.kind === 'talent') boost.talents = [...(boost.talents ?? []), offer.talent];
+        else boost[offer.kind] = (boost[offer.kind] ?? 0) + offer.n;
         advance(s);
         return done();
       }
@@ -538,6 +557,14 @@ export function stepRun(state: CardRunState, action: RunAction | unknown): RunRe
       advance(s);
       return done();
     }
+    case 'replace': {
+      if (screen.k !== 'replace') return refuse('wrongScreen');
+      if (!isIndex(a.index)) return refuse('malformed');
+      if (a.index >= s.deck.length) return refuse('badIndex');
+      s.deck[a.index] = screen.card;
+      advance(s);
+      return done();
+    }
     case 'event': {
       if (screen.k !== 'wild' || !stop?.wild.event) return refuse('wrongScreen');
       if (!isIndex(a.option)) return refuse('malformed');
@@ -555,8 +582,8 @@ export function stepRun(state: CardRunState, action: RunAction | unknown): RunRe
             s.deck.push(stop.wild.equipment);
             break;
           case 'card':
-            s.deck.push(stop.wild.card);
-            break;
+            s.screen = { k: 'replace', card: stop.wild.card, source: 'peddler' };
+            return done();
           case 'upgrade':
             s.screen = { k: 'upgrade', source: 'smith' };
             return done();

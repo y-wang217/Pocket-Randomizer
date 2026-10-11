@@ -12,6 +12,19 @@ import type { CardDef } from '../core/cards/defs';
 
 const card = (def: CardDef): CardDef => def;
 
+/**
+ * The card run's starting deck's own cards (`cardrunTables.ts` `STARTING_DECK`):
+ * a basic hit for the Commander and a Brace for each unit, nothing fancy
+ * (`docs/spec/gymrun-card-run-shapes-prompt.md`). A Brace is one card per
+ * owner so each unit holds its own; all three read "Brace".
+ */
+const BASIC: Readonly<Record<string, CardDef>> = {
+  baton: card({ id: 'baton', name: 'Baton', owner: 'A', cost: 1, type: null, effects: [{ k: 'strike', n: 1 }], art: 'attack' }),
+  'brace-a': card({ id: 'brace-a', name: 'Brace', owner: 'A', cost: 0, type: null, effects: [{ k: 'shield', n: 1, to: 'self' }], art: 'prep' }),
+  'brace-b': card({ id: 'brace-b', name: 'Brace', owner: 'B', cost: 0, type: null, effects: [{ k: 'shield', n: 1, to: 'self' }], art: 'prep' }),
+  'brace-c': card({ id: 'brace-c', name: 'Brace', owner: 'C', cost: 0, type: null, effects: [{ k: 'shield', n: 1, to: 'self' }], art: 'prep' }),
+};
+
 /** New cards: a Town quest's reward offers three of these. */
 const TOWN: Readonly<Record<string, CardDef>> = {
   fortify: card({ id: 'fortify', name: 'Fortify', owner: 'A', cost: 2, type: null, effects: [{ k: 'shield', n: 2, to: 'friendly' }] }),
@@ -47,7 +60,7 @@ const up = (base: CardDef, change: Partial<Pick<CardDef, 'cost' | 'effects'>>): 
   art: base.art ?? base.id,
 });
 
-/** The upgrades of the Puppeteer's cards and the Town's, keyed by the card they upgrade. */
+/** The upgrades of the Puppeteer's cards, the basic deck's and the Town's, keyed by the card they upgrade. */
 export function upgradesOf(cards: Readonly<Record<string, CardDef>>): Record<string, CardDef> {
   const c = (id: string): CardDef => cards[id]!;
   const list: CardDef[] = [
@@ -66,6 +79,10 @@ export function upgradesOf(cards: Readonly<Record<string, CardDef>>): Record<str
     up(c('move'), { effects: [{ k: 'move', n: 2 }] }),
     up(c('dig-in'), { effects: [{ k: 'shield', n: 2, to: 'self' }] }),
     up(c('attack'), { effects: [{ k: 'strike', n: 2 }] }),
+    up(c('baton'), { effects: [{ k: 'strike', n: 2 }] }),
+    up(c('brace-a'), { effects: [{ k: 'shield', n: 2, to: 'self' }] }),
+    up(c('brace-b'), { effects: [{ k: 'shield', n: 2, to: 'self' }] }),
+    up(c('brace-c'), { effects: [{ k: 'shield', n: 2, to: 'self' }] }),
     up(c('fortify'), { cost: 1 }),
     up(c('orders'), { cost: 1 }),
     up(c('snipe'), { effects: [{ k: 'pierce', n: 3 }] }),
@@ -78,5 +95,6 @@ export function upgradesOf(cards: Readonly<Record<string, CardDef>>): Record<str
   return Object.fromEntries(list.map((def) => [def.id, def]));
 }
 
+export const BASIC_CARDS = BASIC;
 export const TOWN_CARDS = TOWN;
 export const EQUIPMENT_CARDS = EQUIPMENT;

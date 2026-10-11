@@ -21,8 +21,8 @@ export const RUN_RULES = {
   town: { supplies: { min: 2, max: 3 } },
   /** Every offer is three distinct options (`CLAUDE.md`, Rewards). */
   offer: 3,
-  /** A card can be removed only while the deck holds more than this. */
-  minDeck: 10,
+  /** A card can be removed only while the deck holds more than this: two under the starting ten. */
+  minDeck: 8,
 } as const;
 
 /** One act: two main fights, then its boss. A stop sits between every two fights. */
@@ -46,8 +46,24 @@ export const ACTS: readonly ActDef[] = [
   { fights: ['run-the-pack', 'run-wall-and-gun'], boss: 'siege', townQuests: ['run-raiders', 'run-warband'], defenseQuests: ['run-last-stand'] },
 ];
 
-/** What a Town quest's card offer draws from. */
-export const TOWN_POOL: readonly string[] = ['fortify', 'orders', 'snipe', 'volley', 'cleave', 'guard-up', 'sprint', 'jab'];
+/**
+ * The run's starting deck: ten cards that do nothing fancy
+ * (`docs/spec/gymrun-card-run-shapes-prompt.md`). Each unit's basic hit and
+ * its Brace, two Moves, an Attack and a Dig In.
+ */
+export const STARTING_DECK: readonly string[] = ['baton', 'brace-a', 'shoot', 'brace-b', 'slash', 'brace-c', 'move', 'move', 'attack', 'dig-in'];
+
+/**
+ * What a card offer draws from: a Town's, an ambush's, the Peddler's. The
+ * Puppeteer's cards that are not in the starting deck come back here, so the
+ * Puppeteer is a deck a run can build toward rather than one it starts with.
+ */
+export const TOWN_POOL: readonly string[] = [
+  'call-medic', 'command', 'focus', 'moon-strike',
+  'resupply', 'artillery', 'fire',
+  'dash', 'need-help', 'prep',
+  'fortify', 'orders', 'snipe', 'volley', 'cleave', 'guard-up', 'sprint', 'jab',
+];
 
 /** What a City's market sells, at what price in supplies. */
 export const MARKET: Readonly<Record<string, number>> = {
@@ -59,7 +75,8 @@ export const MARKET: Readonly<Record<string, number>> = {
   flare: 2,
 };
 
-export type BoostKind = keyof Required<UnitBoost>;
+/** A stat a boss upgrade adds to; a talent is offered in its place (`talents.ts`). */
+export type BoostKind = Exclude<keyof Required<UnitBoost>, 'talents'>;
 
 /** How much one boss upgrade adds, by kind. */
 export const BOOST_AMOUNT: Readonly<Record<BoostKind, number>> = { slots: 1, hp: 1, baseShield: 1, mp: 1 };

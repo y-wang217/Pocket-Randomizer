@@ -141,11 +141,13 @@ copied log with `npm run cards:replay -- <file>`. No version axis moves.
 **In flight: card run shapes.** Branch `claude/card-run-shapes`, prompt
 [`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md),
 runthrough [`reports/card-run-shapes-runthrough.md`](reports/card-run-shapes-runthrough.md),
-record [`generation.md`](generation.md) section 132. Checkpoint 1 of 7 is
-built and stopped for review: between waves only the cards reset, and every
-run fight is three waves. The bench does not move (20 of 20 won), because
-carried MP offsets carried HP. Next come the basic deck, Group A, Group B,
-shapes with cover and stun, enemy scaling, and the screens.
+records [`generation.md`](generation.md) sections 132 and 133. Checkpoints
+1 and 2 of 7 are built; 2 is stopped for review. Between waves only the cards
+reset, and every run fight is three waves (no bench change). The run starts
+from a basic ten-card deck, the Puppeteer's cards come back as rewards, the
+Gunner's Pierce is the Marksman boss talent, and a card reward replaces a
+card: 14 of 20 runs won, the first draft that moves the bench. Next come
+Group A, Group B, shapes with cover and stun, enemy scaling, and the screens.
 
 **Card battle sandbox: sides, telegraph kinds and card previews.** Branch
 `claude/card-battler-ui-layout-yejhur`, feedback

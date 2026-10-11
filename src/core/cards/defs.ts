@@ -92,8 +92,22 @@ export interface CardDef {
 export type Ability =
   /** A: MP at the start of each of its turns, turn 1 included. */
   | { k: 'mpAtTurnStart'; n: number }
-  /** B: the first card each turn resolves a Strike as a Pierce while at full HP. */
+  /** Marksman: the first card each turn resolves a Strike as a Pierce while at full HP. */
   | { k: 'firstCardConverts'; from: 'strike'; to: 'pierce'; while: 'fullHp' };
+
+/**
+ * A talent: an ability one unit gains for the rest of a run, offered by a
+ * boss in place of a stat (`docs/spec/gymrun-card-run-shapes-prompt.md`). A
+ * deck can field one from the start, as the sandbox's Puppeteer does.
+ */
+export interface TalentDef {
+  id: string;
+  name: string;
+  unit: UnitDefId;
+  /** What it does, in a line, for the boss screen. */
+  text: string;
+  abilities: readonly Ability[];
+}
 
 export interface UnitDef {
   id: UnitDefId;
@@ -158,6 +172,8 @@ export interface DeckDef {
   units: readonly UnitDefId[];
   /** One entry per card instance, in the order the unshuffled draw pile holds them. */
   cards: readonly string[];
+  /** Talents its units field from the start, by unit. */
+  talents?: Readonly<Partial<Record<UnitDefId, readonly string[]>>>;
 }
 
 /** One enemy of a scenario: a fixed tile, or none for a tile drawn from the seed. */
@@ -198,6 +214,8 @@ export interface UnitBoost {
   hp?: number;
   baseShield?: number;
   mp?: number;
+  /** Talent ids (`cardData/talents.ts`), in the order taken. */
+  talents?: string[];
 }
 
 /**

@@ -8,7 +8,8 @@
  * It is not a good player of the run, only a complete one. Nothing a person
  * plays reads it.
  */
-import { EVENTS } from '../../cardData/cardrunTables';
+import { CARDS } from '../../cardData/cards';
+import { EVENTS, STARTING_DECK } from '../../cardData/cardrunTables';
 import type { Action, BattleState } from './state';
 import { campPrice, currentStop, eventOptionOpen, stepRun, upgradable, type CardRunState, type RunAction, type StopKind } from './cardrun';
 import { guardBot } from './guard';
@@ -60,6 +61,13 @@ export function runBotAction(s: CardRunState, battle: (state: BattleState) => Ac
       return { type: 'upgrade', index: upgradable(s)[0]! };
     case 'remove':
       return { type: 'remove', index: 0 };
+    case 'replace': {
+      // A starting card of the new card's owner goes first, then any starting card, then the first card.
+      const owner = CARDS[screen.card]!.owner;
+      const basic = (id: string): boolean => STARTING_DECK.includes(id);
+      const index = [s.deck.findIndex((id) => basic(id) && CARDS[id]!.owner === owner), s.deck.findIndex(basic), 0].find((i) => i >= 0)!;
+      return { type: 'replace', index };
+    }
   }
 }
 

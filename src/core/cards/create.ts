@@ -17,6 +17,7 @@ import { CARDS, DECKS } from '../../cardData/cards';
 import { ENCOUNTERS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
+import { TALENTS } from '../../cardData/talents';
 import { UNITS } from '../../cardData/units';
 import { openingSteps } from './enemies';
 import type { EncounterDef, EnemySpawn, Loadout } from './defs';
@@ -44,20 +45,29 @@ export function wavesOf(encounter: EncounterDef): (readonly EnemySpawn[])[] {
 /** Whether a loadout names only known cards and units. */
 function validLoadout(loadout: Loadout): boolean {
   if (!Array.isArray(loadout.cards) || !loadout.cards.every((id) => typeof id === 'string' && Object.hasOwn(CARDS, id))) return false;
-  return Object.keys(loadout.units ?? {}).every((id) => Object.hasOwn(UNITS, id));
+  return Object.entries(loadout.units ?? {}).every(
+    ([id, boost]) => Object.hasOwn(UNITS, id) && (boost?.talents ?? []).every((t) => Object.hasOwn(TALENTS, t) && TALENTS[t]!.unit === id),
+  );
 }
 
 /**
  * The unshuffled battle for an encounter, or `null` for an unknown id or a
- * loadout naming an unknown card. A loadout deals its own deck and boosts the
- * units (the card run); without one the encounter's deck is dealt.
+ * loadout naming an unknown card or talent. A loadout deals its own deck and
+ * boosts the units (the card run); without one the encounter's deck is dealt,
+ * its units fielding the deck's talents (the Puppeteer's Marksman).
  */
 export function layoutBattle(encounterId: string, seed: string, loadout?: Loadout): BattleState | null {
   const encounter = Object.hasOwn(ENCOUNTERS, encounterId) ? ENCOUNTERS[encounterId] : undefined;
   const deck = encounter && Object.hasOwn(DECKS, encounter.deckId) ? DECKS[encounter.deckId] : undefined;
   if (!encounter || !deck) return null;
   if (loadout && !validLoadout(loadout)) return null;
-  const boosts = loadout?.units;
+  const deckTalents = Object.entries(deck.talents ?? {}).filter(([, talents]) => talents && talents.length > 0);
+  // A loadout's units are the run's alone: the deck's talents are fielded only without one.
+  const boosts: Loadout['units'] = loadout
+    ? loadout.units
+    : deckTalents.length > 0
+      ? Object.fromEntries(deckTalents.map(([id, talents]) => [id, { talents: [...talents!] }]))
+      : undefined;
 
   const cards: Record<string, CardInstance> = {};
   const draw: string[] = [];

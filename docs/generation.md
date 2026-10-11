@@ -16910,3 +16910,69 @@ None of GYMRUN's four axes moves; `contentHash` holds, since nothing under
   path. The sentence now names `gymrun.html` under the harness URL. Wording
   only.
 
+## 133. Card run shapes, checkpoint 2: a basic starting deck, Marksman as a talent, and rewards that replace
+
+**2026-10-11**, on `claude/card-run-shapes`, after section 132. From
+[`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md)
+and the author's go-ahead filed under it: "Everything we take away we give
+back in appropriate upgrades." `CARD_ENGINE_VERSION` moves to `cards-0.7.0`
+(a run battle's Gunner no longer has its Pierce unless the run earned it) and
+`CARD_RUN_VERSION` to `cardrun-0.3.0` (a new starting deck, a new logged
+action). None of GYMRUN's four axes moves; `contentHash` holds.
+
+- **The starting deck** (`STARTING_DECK`, `cardData/cardrunTables.ts`):
+  - Baton (Commander, 1, Strike 1), Shoot (Gunner), Slash (Dasher).
+  - A Brace for each unit (0, Shield 1 self; one card per owner, ids
+    `brace-a` to `brace-c`, all named Brace).
+  - Move twice, Attack and Dig In.
+
+  Ten cards, each one effect, none an ult, none costing more than 1. Each
+  has an upgrade (`baton+` Strike 2, `brace-*+` Shield 2). The new cards
+  wear existing art: Attack's for Baton and Prep's for Brace.
+  `RUN_RULES.minDeck` drops from 10 to 8, so the shrine can still thin it.
+- **What is taken away, and where it comes back:**
+  - The Puppeteer's other ten cards (Call Medic, Command, Focus, Moon Strike,
+    Resupply, Artillery, Fire!, Dash, Need Help, Prep) join `TOWN_POOL`.
+    Every card offer draws from it: a Town's, an ambush's and the Peddler's.
+    A test holds that every Puppeteer card the starting deck leaves out is in
+    the pool.
+  - The Gunner's first-card Pierce comes off `UNITS.B` and becomes the
+    **Marksman** talent (`cardData/talents.ts`). A boss's offer for the
+    Gunner is Marksman until it is taken, then the stat the node drew
+    (`offersFor`). The stat is drawn either way, so taking it moves no draw
+    (`CLAUDE.md`, Randomness: draw every outcome, select at resolution).
+- **Talents in the engine.** A `TalentDef` names its unit and its abilities.
+  `UnitBoost.talents` holds what a run has taken. `abilitiesOf(state, unit)`
+  (`core/cards/plan.ts`) is a unit's own abilities, then its talents'. The
+  four readers that read `UNITS[id].abilities` read it now: the round's
+  conversion, the resolver, the preview and the turn-start MP. A deck can
+  field talents from the start (`DeckDef.talents`), and the Puppeteer fields
+  Marksman, so **the sandbox plays exactly as before**. A battle with a
+  loadout fields only the loadout's talents, never the deck's. The session's
+  first build fell back to the deck's and handed every run battle Marksman;
+  the new test caught it before commit. A loadout naming an unknown talent,
+  or one for another unit, is refused like an unknown card.
+- **Rewards replace** (Q4). Taking a card from an offer opens `replace`: the
+  player picks the deck card it goes in place of. There is no skip at either
+  step, and the deck never grows from a card reward. The Peddler's card goes
+  through the same screen. Equipment still adds, since it leaves the deck
+  once used. The run bot replaces a starting card of the new card's owner
+  first.
+- **Screens.**
+  - The run's `replace` screen shows the card being taken, then the deck to
+    tap.
+  - A boss's talent offer reads "Talent: Marksman." and its line.
+  - The team panel lists a unit's talents beside its stats.
+- **Held by** `test/cards-run-shapes.test.ts` (seven cases),
+  `test/cards-run.test.ts` (the Town's replace step and its refusals, the
+  Peddler's, the Gunner's boss slot) and `test/cards-run-shell.test.ts` (a
+  reward taken on screen and a deck card tapped in jsdom, the saved log
+  replaying to it).
+- **The bench** (`balance.md`, the card run): **14 of 20 runs won, 12.20
+  fights, 2.60 bosses**, against 20 of 20, 13.30 and 3.00 on `cardrun-0.2.0`.
+  The first draft that moves it. Losses come in act 3 mostly (Siege twice,
+  The Pack, Wall and Gun, Raiders), and one at the first boss. Decks end at 8
+  to 11. The run bot still takes the first boss offer, the Commander's, so it
+  never takes Marksman; the number is a floor for a player who would.
+  **Recorded, not chased.**
+
