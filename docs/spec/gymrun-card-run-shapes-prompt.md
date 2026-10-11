@@ -96,3 +96,9 @@ for Whirlwind and Rally as first drafted.
 
 Read as yes to both: Group B is checkpoint 4, and a move carrying a second
 effect follows it as checkpoint 4b, each stopped for review.
+
+## The author's go-ahead for checkpoint 4b, verbatim
+
+Filed before any checkpoint 4b work.
+
+> Go for 4b
