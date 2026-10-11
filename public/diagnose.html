@@ -626,7 +626,8 @@
           // ---- 2. Which build is deployed, fingerprinted two ways
           section('2. The deployed build');
 
-          var appIndex = new URL('./index.html', location.href);
+          // GYMRUN's page since the card run took index.html (#112): the stylesheet this instrument checks is GYMRUN's.
+          var appIndex = new URL('./gymrun.html', location.href);
           var cssHref = null;
           var scriptSrc = null;
           var cssText = null;

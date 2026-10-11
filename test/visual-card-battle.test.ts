@@ -61,7 +61,7 @@ describe('the card battle sandbox at 390x844', () => {
     const page = await context.newPage();
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
-    await page.goto(`${harness.url}/#test`, { waitUntil: 'load' });
+    await page.goto(`${harness.url}/gymrun.html#test`, { waitUntil: 'load' });
     await page.waitForSelector('.cb .cb-tile', { timeout: 20_000 });
 
     for (let round = 0; round < 3; round++) {
@@ -100,7 +100,7 @@ describe('the card battle tutorial at 390x844', () => {
     const page = await context.newPage();
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
-    await page.goto(`${harness.url}/#test`, { waitUntil: 'load' });
+    await page.goto(`${harness.url}/gymrun.html#test`, { waitUntil: 'load' });
     await page.waitForSelector('.cb .cb-coach:not([hidden])', { timeout: 20_000 });
 
     const look = () =>
@@ -179,7 +179,7 @@ describe('the card battle sandbox inside Safari on an iPhone', () => {
     it(`at 390x${height} the whole frame is on screen`, async () => {
       const context = await phone({ width: 390, height });
       const page = await context.newPage();
-      await page.goto(`${harness.url}/#test`, { waitUntil: 'load' });
+      await page.goto(`${harness.url}/gymrun.html#test`, { waitUntil: 'load' });
       await page.waitForSelector('.cb .cb-tile', { timeout: 20_000 });
       const fit = await page.evaluate(() => {
         const frame = globalThis.document.querySelector<HTMLElement>('.cb-frame')!;
@@ -279,7 +279,7 @@ describe('the card battle sandbox in every language', () => {
         const page = await context.newPage();
         const errors: string[] = [];
         page.on('pageerror', (error) => errors.push(error.message));
-        await page.goto(`${harness.url}/#test`, { waitUntil: 'load' });
+        await page.goto(`${harness.url}/gymrun.html#test`, { waitUntil: 'load' });
         await page.waitForSelector('.cb .cb-tile', { timeout: 20_000 });
         expect(await page.locator('.cb').getAttribute('lang')).toBe(language);
         expect(await page.locator('.cb').getAttribute('data-palette')).toBe(palette);
@@ -324,7 +324,7 @@ describe('the card battle sandbox in every language', () => {
   it('switches language and palette from the menu, and remembers them', async () => {
     const context = await phone();
     const page = await context.newPage();
-    await page.goto(`${harness.url}/#test`, { waitUntil: 'load' });
+    await page.goto(`${harness.url}/gymrun.html#test`, { waitUntil: 'load' });
     await page.waitForSelector('.cb .cb-tile');
     await page.evaluate(() => globalThis.localStorage.removeItem('gymrun.cardbattle.prefs'));
     await page.locator('.cb-actions .cb-btn').last().click();
@@ -340,7 +340,7 @@ describe('the card battle sandbox in every language', () => {
       JSON.stringify({ language: 'ja', palette: 'tritan' }),
     );
     // `#test` is rewritten to the run's seed once read, so open it again rather than reload.
-    await page.goto(`${harness.url}/#test`, { waitUntil: 'load' });
+    await page.goto(`${harness.url}/gymrun.html#test`, { waitUntil: 'load' });
     await page.waitForSelector('.cb .cb-tile');
     expect(await page.locator('.cb').getAttribute('lang')).toBe('ja');
     await page.evaluate(() => globalThis.localStorage.removeItem('gymrun.cardbattle.prefs'));

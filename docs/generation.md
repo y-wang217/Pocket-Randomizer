@@ -16828,5 +16828,20 @@ map, which the card run never draws: `visual-v1` (the reload that resumes a
 saved run), `visual-v2` (copying the seed stamp), `visual-v3` (the parallax
 trace's reduced-motion page), `visual-motion` and `visual-release-c` (both
 reduced motion). Each now opens `${harness.url}/gymrun.html`, with its seed
-where it had one. Tests only; no version axis moves. The card battle tests
-keep `${harness.url}/#test`, which is the battler's own page.
+where it had one. No version axis moves.
+
+**2026-10-11, wider than filed.** The whole Chromium half, run after the five
+were fixed, found the same cause in two more places, both red on `main` at
+`e25036b` and both missed when #113 was reported:
+
+- `test/visual-card-battle.test.ts`, 14 tests: every one opens
+  `${harness.url}/#test`, and `#test` is the hidden entry in GYMRUN's app,
+  which no longer loads at `index.html`. They now open `gymrun.html#test`.
+  The card battle tests above are wrong on that point: the battler's own
+  page has no `#test`.
+- `public/diagnose.html`, the on-device animation instrument, fetched
+  `./index.html` to find the app's stylesheet and so checked the card run's,
+  reporting every GYMRUN battle keyframe missing (`test/visual-diagnose.test.ts`).
+  It now fetches `./gymrun.html`.
+
+With both, the Chromium half is 34 files, all passing.
