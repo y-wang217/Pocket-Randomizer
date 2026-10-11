@@ -433,7 +433,7 @@ describe(`reduced motion keeps the outcome on ${engine}`, () => {
       notFirstLaunch(),
     );
     const page = await context.newPage();
-    await page.goto(`${harness.url}/#seed=SMOKE24`, { waitUntil: 'load' });
+    await page.goto(`${harness.url}/gymrun.html#seed=SMOKE24`, { waitUntil: 'load' });
     await page.waitForSelector(`${visible('starter')} .starter`, { timeout: 20_000 });
 
     const held = await page.evaluate(() =>

@@ -73,7 +73,7 @@ describe('data-locale', () => {
     // for a fresh run and wins over a save (app.ts), so the resume path is the
     // bare address. The app must pick the saved log up and arrive in the same
     // region.
-    await page.goto(harness.url, { waitUntil: 'load' });
+    await page.goto(`${harness.url}/gymrun.html`, { waitUntil: 'load' });
     await page.waitForSelector(visible('map'), { timeout: 20_000 });
     expect(await attribute(), 'after reload').toBe(live);
 

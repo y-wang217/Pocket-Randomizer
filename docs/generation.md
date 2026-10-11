@@ -16814,3 +16814,19 @@ because nothing under `src/data/` changed.
   `test/visual-card-battle.test.ts` (Chromium at 390x844: every step's panel
   and anchor on screen, its buttons at least 44px, no scroll, and no waiting
   step covering the units, the hand or the actions).
+
+## 131. Five browser tests open GYMRUN at `gymrun.html`
+
+**2026-10-11**, on `claude/fix-gymrun-visual-urls`, from `main` at `e25036b`.
+Prompt [`spec/gymrun-patch-visual-tests-gymrun-html.md`](spec/gymrun-patch-visual-tests-gymrun-html.md).
+
+The card run (#112, section 125r) made `index.html` the card battler and
+moved GYMRUN to `gymrun.html`. `openApp` (`scripts/visual/browser.mjs`) moved
+with it, but five tests that open a page themselves still went to
+`${harness.url}/` and waited 20 to 30 seconds for GYMRUN's starter screen or
+map, which the card run never draws: `visual-v1` (the reload that resumes a
+saved run), `visual-v2` (copying the seed stamp), `visual-v3` (the parallax
+trace's reduced-motion page), `visual-motion` and `visual-release-c` (both
+reduced motion). Each now opens `${harness.url}/gymrun.html`, with its seed
+where it had one. Tests only; no version axis moves. The card battle tests
+keep `${harness.url}/#test`, which is the battler's own page.
