@@ -85,3 +85,14 @@ Filed before any checkpoint 2 work.
 Filed before any checkpoint 3 work.
 
 > Go ahead
+
+## The author's go-ahead for checkpoint 4, verbatim
+
+Filed before any checkpoint 4 work. The session's question it answers offered
+Group B's four effects and, optionally, a move that also strikes or shields,
+for Whirlwind and Rally as first drafted.
+
+> Go ahead yes
+
+Read as yes to both: Group B is checkpoint 4, and a move carrying a second
+effect follows it as checkpoint 4b, each stopped for review.
