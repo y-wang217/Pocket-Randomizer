@@ -79,3 +79,9 @@ a card the player chooses. Q5 cover and stun are built.
 Filed before any checkpoint 2 work.
 
 > Yes go for step 2. Everything we take away we give back in appropriate upgrades
+
+## The author's go-ahead for checkpoint 3, verbatim
+
+Filed before any checkpoint 3 work.
+
+> Go ahead
