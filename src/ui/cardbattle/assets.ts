@@ -205,6 +205,27 @@ export function cardAssetUrl(id: CardAssetId, files: Record<string, string> = FI
   return fileOf(id, files)?.url ?? null;
 }
 
+/**
+ * Every ID with a file, each drawn once out of sight and held for as long as
+ * the screen is open. A piece the board adds on a tap (a reticle, a selected
+ * card's overlay, a filled slot) then paints from a loaded image rather than
+ * empty for a frame. Each is drawn the way the screen draws it, through
+ * `cardAsset`, because a browser need not reuse an image fetched another way:
+ * Chromium refetched one preloaded as an image element for the CSS background
+ * (`docs/spec/gymrun-patch-card-sprite-flash.md`).
+ */
+export function assetStash(files: Record<string, string> = FILES): HTMLElement {
+  const stash = document.createElement('div');
+  stash.className = 'cb-stash';
+  stash.setAttribute('aria-hidden', 'true');
+  for (const group of Object.keys(CARD_ASSET_GROUPS) as CardAssetGroup[]) {
+    for (const id of CARD_ASSET_GROUPS[group].ids) {
+      if (fileOf(id, files)) stash.append(cardAsset(id, 'fill', files));
+    }
+  }
+  return stash;
+}
+
 /** What a placeholder shows: the ID's initials after its group prefix. */
 function letterOf(id: CardAssetId): string {
   const words = id.split('-').slice(1);

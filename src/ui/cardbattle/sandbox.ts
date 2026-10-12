@@ -46,7 +46,7 @@ import { step } from '../../core/cards/step';
 import { enemyNumber, viewOf, type BattleView, type HandCardView, type TileThreat, type TileView } from '../../core/cards/view';
 import { samePos } from '../../core/cards/zones';
 import { newSeed } from '../seed';
-import { CARD_ASSET_GROUPS, cardAsset, cardAssetUrl, type CardAssetId } from './assets';
+import { CARD_ASSET_GROUPS, assetStash, cardAsset, cardAssetUrl, type CardAssetId } from './assets';
 import { createCoach } from './coach';
 import { deckOf, manaBar, ultOf, vitals } from './meters';
 import { roundSteps, type RoundRecord, type Step } from './playback';
@@ -393,6 +393,11 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   // The meadow behind everything (the reskin's background), when its file is in.
   const meadow = cardAssetUrl('background-meadow');
   if (meadow) root.style.setProperty('--cb-meadow', `url("${meadow}")`);
+  // Every image loaded before it is first needed, so a tap never paints a piece empty for a frame.
+  const stash = assetStash();
+  // The owner bands are masks drawn by the stylesheet, not `cardAsset`, so they join the stash as the screen draws them.
+  stash.append(ownerBand('card-band-compact'), ownerBand('card-band-full'));
+  root.append(stash);
   const coach = createCoach({
     scope: frame,
     words: stepWords,
