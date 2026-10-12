@@ -15854,7 +15854,7 @@ carries a script, an external reference or text; every icon draws in
 - **Sliced pieces.** The pack's manifest marks the panel frame and the three
   button states nine-slice and the pill and both bar pieces three-slice, with
   their insets. They draw through CSS `border-image` with those insets, so
-  corners and caps keep their drawn size; `SLICES` in `assets.ts` holds them.
+  corners and caps keep their drawn size; `SLICES` in `ui/cardbattle/assets.ts` holds them.
 - **The palette** is the pack's: warm paper, navy ink, teal for the player and
   a legal choice, red for the enemy and a telegraph. The sandbox stylesheet
   takes its tokens from it; the earlier dark placeholder theme is gone.
@@ -17596,3 +17596,71 @@ the system font stack, which differs from machine to machine
 a translation in every language, an upgrade reads as its card's name and a
 plus, every language has the six glossary lines, and Inspect explains each
 keyword a card carries, once, and nothing on a card that has none.
+
+## 142. The card run's menus take the mock's art; the functionality does not change
+
+**2026-10-12**, on `claude/card-run-shapes-step7`, after section 141. From
+[`spec/gymrun-card-run-menus-art.md`](spec/gymrun-card-run-menus-art.md),
+filed before any work with the author's mock. **No version axis moves**: no
+rule, draw, logged decision or table changed. Outside the design bible, like
+the run (125c).
+
+**The slots** (`ui/cardrun/assets.ts`). Seventeen named SVG slots, one per
+picture the mock puts on a run screen, in `src/ui/assets/cardrun/`, each named for its ID:
+four backdrops, the wooden sign, three characters and nine icons. A screen
+asks for a slot by its ID and nothing else names a file. **Each slot draws a
+fallback until its file arrives**: a backdrop a soft meadow gradient, the
+sign a plain wood plank in CSS, a character nothing, an icon its glyph on a
+disc, drawn from `data-fallback` so it is never part of a label's text. The
+sign is cut nine ways (insets 44, 48, 28, 48), so it stretches to any heading
+and keeps its posts. A file in the folder that is no slot's fails the test.
+The ChatGPT prompt that generates them, with every slot's viewBox, drawn
+size, contents and nine-way-cut rules, is
+[`reports/card-run-menus-asset-prompt.md`](reports/card-run-menus-asset-prompt.md);
+the test holds it to the manifest.
+
+**Reused, not redrawn:** the battle's unit portraits and its sixteen card
+pictures (`ui/cardbattle/assets.ts`), and its hearts and shield bubbles
+(`ui/cardbattle/meters.ts`), whose colour tokens now apply to `.cr` as well
+as `.cb`.
+
+**The screens**, each re-laid in the mock's presentation:
+
+- Every screen stands on a backdrop: the route map; the market for the offer
+  and the market; the village for the City; the trail clearing for the rest.
+- Every heading hangs on the sign.
+- The team is three unit cards: the letter on a disc of its colour, the
+  name, the portrait, hearts for HP and bubbles for base shield, then the
+  slots, MP boosts and talents, each talent with a star.
+- The route's three stops are speech-bubble cards, each with its map pin.
+  Every line they carried stays.
+- The act warning sits on a red ribbon with its icon.
+- The City is two rows, Market and Defense quest, each with its icon, its
+  lines and a chevron. The market's stock is now on its row as well as on the
+  route.
+- Every card wears its picture: under the name on an offer and in the market,
+  beside the words on the card coming in, small at the end of a deck row. A
+  card with no picture shows an empty hatched window (the art list's
+  eighteen).
+- A boss offer carries the unit's portrait, and a star on a talent.
+- Primary buttons are the mock's green.
+- A character stands at the foot of a screen, and on the offer, the market,
+  the City and the replace screen says the mock's line (`RUN_COPY.says`):
+  flavour, the same every time.
+
+**What the mock shows that is not built**, since the functionality is the
+session's and does not change: a Rest at the City, a Back on the City, a
+Cancel on the replace screen (a card reward has no skip), MP pips on the
+team cards (MP does not carry between fights; the cards show what does), the
+map's pins standing in for the stop cards, and labels on offered cards that
+are not the card's shape. The prompt's last section says the same, so no
+asset is drawn for them.
+
+**Held by** `test/cards-run-art.test.ts`: no stray file in the folder; a
+fallback for every icon and the sign's slice; a missing file draws its
+fallback and adds no text; a file that has arrived is drawn, the sign cut
+nine ways; every slot named in the prompt with its viewBox. It also checks
+that the route, the City, the offer and the boss screen each ask for their
+slots. Checked in Chromium at 390 by 844, with no file and with a stand-in
+for every slot, removed before the commit: no sideways scroll on the route,
+offer, replace, boss, City or end screens.

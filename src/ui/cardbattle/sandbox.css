@@ -1785,7 +1785,8 @@
    cost. A shield up wears a bubble on the piece itself. Shape tells each
    apart; colour only repeats it.
    =================================================================== */
-.cb {
+.cb,
+.cr {
   --cb-heart: #d64a4a;
   --cb-bubble: #2b86c8;
   --cb-bubble-rgb: 43, 134, 200;

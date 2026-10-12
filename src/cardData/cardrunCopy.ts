@@ -155,6 +155,13 @@ export const RUN_COPY = {
     equipment: 'Equipment: once used, gone for the run',
   },
   owner: { neutral: 'Neutral', equipment: 'Equipment' },
+  /** What the character at a screen's foot says (the mock's speech bubbles): flavour, the same every time. */
+  says: {
+    cards: 'Take something useful for the road ahead!',
+    market: 'Take a look! Good gear makes the road easier.',
+    city: 'Take a look! Good gear makes the road easier.',
+    replace: 'Choose a card to replace.',
+  },
   copied: 'Run log copied',
   copyLog: 'Copy run log',
   abandon: 'Abandon run',

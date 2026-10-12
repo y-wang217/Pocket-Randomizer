@@ -164,7 +164,11 @@ replace, boss and end screens say what the build is. No version axis moves.
 in Inspect, the run's 59 new names in all eight languages, the art list
 ([`reports/card-run-art-list.md`](reports/card-run-art-list.md)), and browser
 tests of the run's screens at phone size. Step 7 is complete. Not in it, by
-the plan: smarter bot choices, and act 2's difficulty.
+the plan: smarter bot choices, and act 2's difficulty. **The run's menus take
+the author's mock** (section 142): seventeen SVG slots with CSS fallbacks, and
+the ChatGPT prompt that generates them,
+[`reports/card-run-menus-asset-prompt.md`](reports/card-run-menus-asset-prompt.md).
+No file has arrived yet.
 
 **Card battle sandbox: sides, telegraph kinds and card previews.** Branch
 `claude/card-battler-ui-layout-yejhur`, feedback
