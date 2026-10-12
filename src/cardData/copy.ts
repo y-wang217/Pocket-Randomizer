@@ -16,6 +16,7 @@
  */
 import type { DamageKeyword } from '../core/cards/defs';
 import type { PlayBlock } from '../core/cards/state';
+import { setRunLanguage } from './cardrunCopy';
 import { DE } from './translations/de';
 import { ES } from './translations/es';
 import { FR } from './translations/fr';
@@ -273,6 +274,7 @@ export function cardLanguage(): CardLanguage {
 export function setCardLanguage(language: CardLanguage): void {
   current = language;
   CARD_COPY = CARD_COPY_BY_LANGUAGE[language];
+  setRunLanguage(language);
 }
 
 export function isCardLanguage(value: unknown): value is CardLanguage {

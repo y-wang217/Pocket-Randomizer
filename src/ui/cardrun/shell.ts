@@ -18,9 +18,9 @@
 import './cardrun.css';
 
 import { CARDS, UPGRADE_OF } from '../../cardData/cards';
-import { RUN_COPY } from '../../cardData/cardrunCopy';
+import { RUN_COPY, textOf } from '../../cardData/cardrunCopy';
 import { ACTS, DECK_GROUPS, EVENTS, SHAPES, TALENT_SHAPE, deckGroupOf, isBasic, shapeOf, shapesLeanedInto, type DeckGroupId, type ShapeId } from '../../cardData/cardrunTables';
-import { nameOf, setCardLanguage } from '../../cardData/copy';
+import { cardLanguage, nameOf, setCardLanguage } from '../../cardData/copy';
 import { ACT_SCALING, ENCOUNTERS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { TALENTS } from '../../cardData/talents';
@@ -171,7 +171,7 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
     } catch {
       // A save from another build does not replay: it is dropped, loudly, never reinterpreted.
       writeSave(null);
-      message = 'The saved run is from another version and cannot be resumed.';
+      message = RUN_COPY.staleSave;
       run = null;
       log = null;
       render();
@@ -201,6 +201,8 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
 
   function render(): void {
     root.replaceChildren();
+    // The language the battle's Menu set, so a screen reader reads the run in it.
+    root.lang = cardLanguage();
     if (!run) return renderTitle();
     const scene = sceneOf(run.screen.k);
     root.dataset['scene'] = scene.backdrop;
@@ -382,7 +384,7 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
         const encounter = ENCOUNTERS[s.battle!.encounter]!;
         box.append(heading(RUN_COPY.battle.kind[screen.kind], nameOf(encounter.name)), enemyLine(encounter.id));
         if (node && actLine(node.act)) box.append(actWarning(actLine(node.act)));
-        if (node?.kind === 'fight' && node.boss) box.append(el('p', 'cr-note', nameOf(encounter.blurb)));
+        if (node?.kind === 'fight' && node.boss) box.append(el('p', 'cr-note', textOf(encounter.blurb)));
         box.append(btn('cr-btn--primary', RUN_COPY.battle.resume, () => openBattle()));
         // Straight into the battle, unless the player has just stepped out of it.
         if (!battleOpen && !steppedOut) queueMicrotask(() => openBattle());
@@ -515,7 +517,7 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
           break;
         }
         const card = el('div', 'cr-event');
-        card.append(el('h3', 'cr-event-name', `? ${event.name}`), el('p', 'cr-event-text', event.text));
+        card.append(el('h3', 'cr-event-name', `? ${textOf(event.name)}`), el('p', 'cr-event-text', textOf(event.text)));
         // What an option hands over is shown on it: the drawn card or equipment, the fight and its loot.
         event.options.forEach((option, index) => {
           const gate = eventOptionOpen(s, option);
@@ -525,7 +527,7 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
             if (e.k === 'card') extra.push(nameOf(CARDS[stop!.wild.card]!.name));
             if (e.k === 'fight') extra.push(`${enemyNames(stop!.wild.ambush.encounter)} · ${RUN_COPY.route.pickOne} ${stop!.wild.offer.map((c) => nameOf(CARDS[c]!.name)).join(' / ')}`);
           }
-          const label = `${option.label}${option.price !== undefined ? ` · ${option.price} ${RUN_COPY.supplies.toLowerCase()}` : ''}${extra.length ? `: ${extra.join(', ')}` : ''}`;
+          const label = `${textOf(option.label)}${option.price !== undefined ? ` · ${RUN_COPY.suppliesN(option.price)}` : ''}${extra.length ? `: ${extra.join(', ')}` : ''}`;
           const node = btn('cr-btn--option', label, () => act({ type: 'event', option: index }));
           node.disabled = !gate.open;
           card.append(node);
@@ -543,7 +545,7 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
           node.dataset['owner'] = offer.unit;
           const what =
             offer.kind === 'talent'
-              ? `${RUN_COPY.boost.talent}: ${nameOf(TALENTS[offer.talent]!.name)}. ${TALENTS[offer.talent]!.text}`
+              ? `${RUN_COPY.boost.talent}: ${nameOf(TALENTS[offer.talent]!.name)}. ${textOf(TALENTS[offer.talent]!.text)}`
               : RUN_COPY.boost.kind[offer.kind](offer.n);
           // The mock's boss card: the unit's portrait beside its offer, a star on a talent.
           node.classList.add('cr-choice--unit');
@@ -576,7 +578,7 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
         // Step 7a: the shape the deck leaned into and the talents the run took.
         const lean = shapesLeanedInto(s.deck);
         box.append(
-          el('p', 'cr-note', lean.shapes.length > 0 ? RUN_COPY.over.leaned(lean.shapes.map((id) => SHAPES[id].name).join(', '), lean.n) : RUN_COPY.over.leanedNone),
+          el('p', 'cr-note', lean.shapes.length > 0 ? RUN_COPY.over.leaned(lean.shapes.map((id) => textOf(SHAPES[id].name)).join(', '), lean.n) : RUN_COPY.over.leanedNone),
         );
         const taken = (['A', 'B', 'C'] as UnitDefId[]).flatMap((id) => (s.boosts[id].talents ?? []).map((t) => `${id} ${nameOf(TALENTS[t]!.name)}`));
         box.append(el('p', 'cr-note', taken.length > 0 ? RUN_COPY.over.talents(taken.join(', ')) : RUN_COPY.over.talentsNone));
@@ -645,13 +647,13 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
   function shapeTag(id: ShapeId): HTMLElement {
     const tag = el('span', 'cr-shape');
     tag.dataset['shape'] = id;
-    tag.append(el('span', 'cr-shape-name', SHAPES[id].name), el('span', 'cr-shape-plan', SHAPES[id].plan));
+    tag.append(el('span', 'cr-shape-name', textOf(SHAPES[id].name)), el('span', 'cr-shape-plan', textOf(SHAPES[id].plan)));
     return tag;
   }
 
   /** A group's name in the deck view: a shape's own, or the group's. */
   function groupName(group: DeckGroupId): string {
-    return group === 'basic' || group === 'equipment' || group === 'other' ? RUN_COPY.group[group] : SHAPES[group].name;
+    return group === 'basic' || group === 'equipment' || group === 'other' ? RUN_COPY.group[group] : textOf(SHAPES[group].name);
   }
 
   /**
@@ -711,7 +713,7 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
         const section = el('section', 'cr-group');
         section.dataset['group'] = group;
         section.append(el('h3', 'cr-group-name', RUN_COPY.groupCount(groupName(group), cards.length)));
-        if (group !== 'basic' && group !== 'equipment' && group !== 'other') section.append(el('p', 'cr-group-plan', SHAPES[group].plan));
+        if (group !== 'basic' && group !== 'equipment' && group !== 'other') section.append(el('p', 'cr-group-plan', textOf(SHAPES[group].plan)));
         const list = el('div', 'cr-deck');
         for (const id of cards) list.append(cardTile(id));
         section.append(list);

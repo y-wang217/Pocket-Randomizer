@@ -170,6 +170,11 @@ the ChatGPT prompt that generates them,
 [`reports/card-run-menus-asset-prompt.md`](reports/card-run-menus-asset-prompt.md).
 All seventeen files arrived from the author on 2026-10-12 and are in
 `src/ui/assets/cardrun/`.
+**The run's screens are in all eight languages** (section 143, branch
+`claude/brave-bardeen-54slbx`, prompt
+[`spec/gymrun-patch-card-run-translations.md`](spec/gymrun-patch-card-run-translations.md)):
+they follow the battle's language setting, machine-drafted and not yet read
+by a native speaker. No version axis moves.
 
 **Card battle sandbox: sides, telegraph kinds and card previews.** Branch
 `claude/card-battler-ui-layout-yejhur`, feedback
