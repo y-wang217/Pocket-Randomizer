@@ -124,6 +124,15 @@ const ENEMY_MARKER: Record<EnemyDefId, CardAssetId> = {
   pikeman: 'marker-enemy-pikeman',
   colossus: 'marker-enemy-colossus',
   dummy: 'marker-enemy-dummy',
+  // Checkpoint 6: a veteran wears its plain kind's marker until its own art arrives; the Warlord the base.
+  'drone-mk2': 'marker-enemy-drone',
+  'lancer-captain': 'marker-enemy-lancer',
+  'dire-hound': 'marker-enemy-hound',
+  'heavy-turret': 'marker-enemy-turret',
+  juggernaut: 'marker-enemy-bulwark',
+  deadeye: 'marker-enemy-sniper',
+  halberdier: 'marker-enemy-pikeman',
+  warlord: 'marker-enemy-base',
 };
 const INTENT_ICON: Record<string, CardAssetId> = {
   strike: 'icon-strike',
@@ -183,7 +192,9 @@ export function faceOf(effects: readonly Effect[], face?: 'shovel' | 'harpoon'):
 
 function effectFace(effects: readonly Effect[]): { icon: CardAssetId; n: number | null; targeted: boolean } {
   const targeted = effects.some((e) => e.k === 'target');
-  for (const effect of effects) {
+  // A card that moves and attacks (4b) shows its attack: the damage keyword first, then the rest in order.
+  const damage = effects.filter((e) => e.k === 'strike' || e.k === 'pierce' || e.k === 'slash' || e.k === 'blast');
+  for (const effect of [...damage, ...effects]) {
     switch (effect.k) {
       case 'strike':
       case 'pierce':
@@ -202,6 +213,17 @@ function effectFace(effects: readonly Effect[]): { icon: CardAssetId; n: number 
         return { icon: 'icon-draw', n: effect.n, targeted };
       case 'harpoon':
         return { icon: 'icon-harpoon', n: null, targeted };
+      case 'push':
+      case 'pull':
+        return { icon: 'icon-move', n: effect.n, targeted };
+      case 'repair':
+        return { icon: 'icon-repair', n: effect.n, targeted };
+      case 'stealth':
+        return { icon: 'icon-stealth', n: effect.n, targeted };
+      case 'cover':
+        return { icon: 'icon-shield', n: effect.n, targeted };
+      case 'stun':
+        return { icon: 'icon-pinned', n: effect.n, targeted };
       default:
         break;
     }
@@ -285,6 +307,24 @@ export function effectLines(effects: readonly Effect[]): string[] {
         break;
       case 'harpoon':
         lines.push(CARD_COPY.effect.harpoon(effect.range, effect.pin));
+        break;
+      case 'push':
+        lines.push(CARD_COPY.effect.push(effect.n));
+        break;
+      case 'pull':
+        lines.push(CARD_COPY.effect.pull(effect.n));
+        break;
+      case 'repair':
+        lines.push(CARD_COPY.effect.repair(effect.n));
+        break;
+      case 'stealth':
+        lines.push(CARD_COPY.effect.stealth(effect.n));
+        break;
+      case 'cover':
+        lines.push(CARD_COPY.effect.cover(effect.n));
+        break;
+      case 'stun':
+        lines.push(CARD_COPY.effect.stun(effect.n));
         break;
       default:
         break;
@@ -964,6 +1004,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       if (enemy.fast) node.append(el('span', 'cb-fast cb-token-fast', CARD_COPY.fast));
     } else {
       const unit = view.units.find((u) => u.id === occupant.id)!;
+      // Stealth (Group B): seen during the round's playback, while the enemies act.
+      if (unit.stealth > 0) node.dataset['hidden'] = 'true';
       node.append(el('span', 'cb-token-hp', String(unit.hp)));
       shieldOn(node, unit.shield, unit.baseShield);
       const warn = warned.get(unit.id);

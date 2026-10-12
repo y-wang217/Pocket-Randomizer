@@ -6,7 +6,7 @@
  * unnamed on both; it ships as "Focus", the prompt's placeholder.
  */
 import type { CardDef, DeckDef } from '../core/cards/defs';
-import { EQUIPMENT_CARDS, TOWN_CARDS, upgradesOf } from './runCards';
+import { BASIC_CARDS, EQUIPMENT_CARDS, TOWN_CARDS, upgradesOf } from './runCards';
 
 const card = (def: CardDef): CardDef => def;
 
@@ -32,11 +32,11 @@ export const PUPPETEER_CARDS: Readonly<Record<string, CardDef>> = {
 };
 
 /**
- * Every card the engine knows: the Puppeteer's, then the card run's new
- * cards, its equipment, and every upgrade (`runCards.ts`).
+ * Every card the engine knows: the Puppeteer's, then the card run's basic
+ * deck, its new cards, its equipment, and every upgrade (`runCards.ts`).
  */
 export const CARDS: Readonly<Record<string, CardDef>> = (() => {
-  const base = { ...PUPPETEER_CARDS, ...TOWN_CARDS, ...EQUIPMENT_CARDS };
+  const base = { ...PUPPETEER_CARDS, ...BASIC_CARDS, ...TOWN_CARDS, ...EQUIPMENT_CARDS };
   return { ...base, ...upgradesOf(base) };
 })();
 
@@ -56,5 +56,7 @@ export const DECKS: Readonly<Record<string, DeckDef>> = {
       'dash', 'slash', 'need-help', 'prep',
       'move', 'dig-in', 'attack',
     ],
+    // The Puppeteer is an end state: its Gunner fields the talent a card run earns.
+    talents: { B: ['marksman'] },
   },
 };

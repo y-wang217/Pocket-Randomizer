@@ -59,10 +59,12 @@ describe('each unit marks its ult', () => {
   const puppeteer = deck([...DECKS.puppeteer!.cards]);
 
   it('as the card marked ult in its deck: Moon Strike and Artillery, and none for the Sword dasher', () => {
-    expect(Object.values(CARDS).filter((c) => c.ult && !c.id.endsWith('+')).map((c) => c.id).sort()).toEqual(['artillery', 'moon-strike']);
+    // Whirlwind is the card run's reward that hands the dasher his (checkpoint 3); Barrage the Gunner's second (5b).
+    expect(Object.values(CARDS).filter((c) => c.ult && !c.id.endsWith('+')).map((c) => c.id).sort()).toEqual(['artillery', 'barrage', 'moon-strike', 'whirlwind']);
     expect(ultOf('A', puppeteer, 5)).toEqual({ name: 'Moon Strike', cost: 4 });
     expect(ultOf('B', puppeteer, 5)).toEqual({ name: 'Artillery', cost: 4 });
     expect(ultOf('C', puppeteer, 5)).toBeNull();
+    expect(ultOf('C', [...puppeteer, CARDS['whirlwind']!], 5)).toEqual({ name: 'Whirlwind', cost: 4 });
   });
 
   it('follows the deck a card run builds: an upgrade keeps the mark and moves it, a new card for the dasher is no ult', () => {

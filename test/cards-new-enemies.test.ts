@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import { VETERAN } from '../src/cardData/encounters';
 import { ENEMIES } from '../src/cardData/enemies';
 import type { EnemyDefId } from '../src/core/cards/defs';
 import { enemyMovesAndTelegraph } from '../src/core/cards/enemies';
@@ -43,8 +44,10 @@ describe('the A3 enemies', () => {
       ['sniper', 2, 0, false, 3, 3],
       ['pikeman', 3, 1, false, 3, 4],
     ];
-    // The Colossus is Part D's (test/cards-boss.test.ts).
-    expect(Object.keys(ENEMIES).filter((id) => id !== 'colossus' && id !== 'dummy').sort()).toEqual(table.map(([id]) => id).sort());
+    // The Colossus is Part D's (test/cards-boss.test.ts); the veterans and the Warlord are
+    // checkpoint 6's (test/cards-act-scaling.test.ts).
+    const later = ['colossus', 'dummy', 'warlord', ...Object.values(VETERAN)];
+    expect(Object.keys(ENEMIES).filter((id) => !later.includes(id as EnemyDefId)).sort()).toEqual(table.map(([id]) => id).sort());
     for (const [id, hp, base, fast, grade, steps] of table) {
       const def = ENEMIES[id];
       expect([def.hp, def.baseShield, def.fast === true, def.grade, def.script.steps.length], id).toEqual([hp, base, fast, grade, steps]);

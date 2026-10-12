@@ -59,6 +59,7 @@ export const RULES: Rules = {
   // D2 and D3 (`docs/spec/gymrun-card-battle-rulings-waves-boss-reskin.md`).
   scream: { n: 1 },
   stalk: { steps: 3, damage: 1, atHpShare: 0.5 },
-  // C1 to C5 (`docs/spec/gymrun-card-battle-rulings-waves-boss-reskin.md`).
-  betweenWaves: { mp: 'reset', deck: 'reshuffleAll', owed: 'clear', units: 'placeAgain' },
+  // The author's ruling of 2026-10-11 (`docs/spec/gymrun-card-run-shapes-prompt.md`),
+  // superseding C1 to C5: only the cards reset between waves.
+  betweenWaves: { units: 'keepAll', deck: 'reshuffleAll', extraDraws: 'clear', placement: 'none' },
 };

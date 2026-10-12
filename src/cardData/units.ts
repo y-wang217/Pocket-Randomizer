@@ -18,10 +18,9 @@ export const UNITS: Readonly<Record<UnitDefId, UnitDef>> = {
     class: 'ranged',
     hp: 2,
     baseShield: 1,
-    // The card sheet reads "first card played each turn gains pierce if HP
-    // full". Only a Strike has a Pierce to become, so `from` names it; a card
-    // with no Strike is unaffected.
-    abilities: [{ k: 'firstCardConverts', from: 'strike', to: 'pierce', while: 'fullHp' }],
+    // Its first-card Pierce is the Marksman talent now (`talents.ts`): the
+    // card run's Gunner earns it from a boss, the sandbox's Puppeteer fields it.
+    abilities: [],
   },
   C: {
     id: 'C',

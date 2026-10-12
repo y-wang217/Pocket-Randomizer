@@ -138,6 +138,24 @@ screen, is built and stopped for review. Open it with `#test` on load, or
 ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Enter on starter select; replay a
 copied log with `npm run cards:replay -- <file>`. No version axis moves.
 
+**In flight: card run shapes.** Branch `claude/card-run-shapes`, prompt
+[`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md),
+runthrough [`reports/card-run-shapes-runthrough.md`](reports/card-run-shapes-runthrough.md),
+records [`generation.md`](generation.md) sections 132 to 139. Checkpoints
+1 to 6 are built; 6 is stopped for review. Between waves only the cards
+reset, and every run fight is three waves (no bench change). The run starts
+from a basic ten-card deck, the Puppeteer's cards come back as rewards, the
+Gunner's Pierce is the Marksman boss talent, and a card reward replaces a
+card: 14 of 20 runs won, the first draft that moves the bench. Group A's six
+cards are rewards (16 of 20, within noise). Group B's Push, Pull, Repair and
+Stealth have resolvers and four cards (bench flat). A move card carries
+follow-ups, so Whirlwind moves and slashes and Rally shields the ally it
+moves. Cover, Stun and seven talents are built, and a boss offers two talents
+and a stat. The four shapes divide the reward pool, an offer is one card from
+each of three, and each shape has its cards (16 of 20). Enemies scale by
+act, veterans join from act 2, and the Warlord is act 2's boss: 7 of 20 runs
+won, act 2 the wall. Next come the screens.
+
 **Card battle sandbox: sides, telegraph kinds and card previews.** Branch
 `claude/card-battler-ui-layout-yejhur`, feedback
 [`spec/gymrun-patch-card-battle-sides-and-telegraphs.md`](spec/gymrun-patch-card-battle-sides-and-telegraphs.md),

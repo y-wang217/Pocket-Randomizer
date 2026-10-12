@@ -21,8 +21,8 @@ export const RUN_RULES = {
   town: { supplies: { min: 2, max: 3 } },
   /** Every offer is three distinct options (`CLAUDE.md`, Rewards). */
   offer: 3,
-  /** A card can be removed only while the deck holds more than this. */
-  minDeck: 10,
+  /** A card can be removed only while the deck holds more than this: two under the starting ten. */
+  minDeck: 8,
 } as const;
 
 /** One act: two main fights, then its boss. A stop sits between every two fights. */
@@ -37,17 +37,74 @@ export interface ActDef {
 
 /**
  * The scenarios stitched into a row, each act harder than the last, every
- * third fight a boss. The last boss is Siege: three waves ending in the
- * Colossus.
+ * third fight a boss. Every fight is three waves (`RUN_FIGHTS`), HP carried
+ * between them; the last boss is Siege, three waves ending in the Colossus.
  */
 export const ACTS: readonly ActDef[] = [
-  { fights: ['test', 'staggered'], boss: 'colossus-lair', townQuests: ['bandit-camp', 'stray-drones'], defenseQuests: ['gatehouse'] },
-  { fights: ['skirmish', 'turret-alley'], boss: 'colossus-escort', townQuests: ['outriders', 'gun-nest'], defenseQuests: ['the-walls'] },
-  { fights: ['the-pack', 'wall-and-gun'], boss: 'siege', townQuests: ['raiders', 'warband'], defenseQuests: ['last-stand'] },
+  { fights: ['run-test', 'run-staggered'], boss: 'run-colossus-lair', townQuests: ['run-bandit-camp', 'run-stray-drones'], defenseQuests: ['run-gatehouse'] },
+  { fights: ['run-skirmish', 'run-turret-alley'], boss: 'run-warlord-guard', townQuests: ['run-outriders', 'run-gun-nest'], defenseQuests: ['run-the-walls'] },
+  { fights: ['run-the-pack', 'run-wall-and-gun'], boss: 'run-siege', townQuests: ['run-raiders', 'run-warband'], defenseQuests: ['run-last-stand'] },
 ];
 
-/** What a Town quest's card offer draws from. */
-export const TOWN_POOL: readonly string[] = ['fortify', 'orders', 'snipe', 'volley', 'cleave', 'guard-up', 'sprint', 'jab'];
+/**
+ * The run's starting deck: ten cards that do nothing fancy
+ * (`docs/spec/gymrun-card-run-shapes-prompt.md`). Each unit's basic hit and
+ * its Brace, two Moves, an Attack and a Dig In.
+ */
+export const STARTING_DECK: readonly string[] = ['baton', 'brace-a', 'shoot', 'brace-b', 'slash', 'brace-c', 'move', 'move', 'attack', 'dig-in'];
+
+/**
+ * The four shapes a deck can grow into (`docs/spec/gymrun-card-run-shapes-prompt.md`,
+ * the author's three examples and the Puppeteer). Every reward card belongs to
+ * exactly one. A Town's and an ambush's three cards come from three different
+ * shapes, so a run chasing one usually sees a card for it.
+ */
+export type ShapeId = 'puppeteer' | 'bodyguard' | 'escort' | 'control';
+
+export interface ShapeDef {
+  id: ShapeId;
+  name: string;
+  /** The plan, in a line, as the author put it. */
+  plan: string;
+  cards: readonly string[];
+}
+
+export const SHAPES: Readonly<Record<ShapeId, ShapeDef>> = {
+  puppeteer: {
+    id: 'puppeteer',
+    name: 'Puppeteer',
+    plan: 'The Commander moves and shields the others',
+    // The Puppeteer's cards the starting deck leaves out come back here (133).
+    cards: ['call-medic', 'command', 'focus', 'need-help', 'resupply', 'orders', 'fortify', 'rally', 'patch-up'],
+  },
+  bodyguard: {
+    id: 'bodyguard',
+    name: 'Bodyguard and Battery',
+    plan: 'The Dasher builds tanky and blocks; the Commander only nukes and banks mana',
+    cards: ['moon-strike', 'mark-target', 'overcharge', 'second-wind', 'prep', 'guard-up', 'guard-duty'],
+  },
+  escort: {
+    id: 'escort',
+    name: 'Escort Artillery',
+    plan: 'The Commander walks the Gunner into the danger zone, the Dasher defends, the Gunner lays artillery',
+    cards: ['artillery', 'fire', 'volley', 'snipe', 'suppress', 'barrage', 'dash', 'sprint', 'interpose'],
+  },
+  control: {
+    id: 'control',
+    name: 'Control and Sweep',
+    plan: 'The Gunner runs equipment and holds enemies; the Dasher sweeps them down',
+    cards: ['concuss', 'shove', 'cleave', 'whirlwind', 'jab'],
+  },
+};
+
+/** Every reward card, shape by shape: the Peddler's pool, and what the shapes divide. */
+export const TOWN_POOL: readonly string[] = Object.values(SHAPES).flatMap((shape) => shape.cards);
+
+/** The shape a reward card belongs to; `null` for a card no offer draws. */
+export function shapeOf(card: string): ShapeDef | null {
+  const base = card.endsWith('+') ? card.slice(0, -1) : card;
+  return Object.values(SHAPES).find((shape) => shape.cards.includes(base)) ?? null;
+}
 
 /** What a City's market sells, at what price in supplies. */
 export const MARKET: Readonly<Record<string, number>> = {
@@ -57,9 +114,14 @@ export const MARKET: Readonly<Record<string, number>> = {
   'tower-shield': 3,
   grenade: 3,
   flare: 2,
+  flashbang: 3,
+  grapple: 3,
+  smoke: 3,
+  'riot-net': 4,
 };
 
-export type BoostKind = keyof Required<UnitBoost>;
+/** A stat a boss upgrade adds to; a talent is offered in its place (`talents.ts`). */
+export type BoostKind = Exclude<keyof Required<UnitBoost>, 'talents'>;
 
 /** How much one boss upgrade adds, by kind. */
 export const BOOST_AMOUNT: Readonly<Record<BoostKind, number>> = { slots: 1, hp: 1, baseShield: 1, mp: 1 };

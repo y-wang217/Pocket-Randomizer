@@ -70,6 +70,47 @@ describe('the card run screens', () => {
     expect(Number(root.querySelector('.cr-supplies-n')!.textContent)).toBeGreaterThan(before);
   });
 
+  it('takes a reward card in place of a deck card the player taps', async () => {
+    // A run at its first card offer, played there by the bot.
+    const { runBotAction } = await import('../src/core/cards/cardrunBot');
+    const { stepRun } = await import('../src/core/cards/cardrun');
+    const { guardBot } = await import('../src/core/cards/guard');
+    const bot = guardBot();
+    const seed = 'SHELL2';
+    let run = createRun(seed);
+    const actions = [];
+    // Town every stop, so a card offer comes after the first quest.
+    while (run.screen.k !== 'cards') {
+      const action = run.screen.k === 'route' ? ({ type: 'go', to: 'town' } as const) : runBotAction(run, bot)!;
+      const result = stepRun(run, action);
+      if (!result.ok) throw new Error(result.reason);
+      actions.push(action);
+      run = result.state;
+    }
+    localStorage.setItem(SAVE, JSON.stringify({ version: run.version, seed, actions }));
+    const offer = run.screen.offer;
+
+    const host = document.createElement('div');
+    document.body.append(host);
+    const { root } = mountCardRun(host);
+    byText(root, '.cr-btn', 'Continue run')!.click();
+    await tick();
+    expect(root.querySelector('.cr-screen')!.getAttribute('data-screen')).toBe('cards');
+    // Each offered card wears its shape, three shapes for three cards (5b).
+    const shapes = all(root, '.cr-cards .cr-shape').map((t) => t.dataset['shape']);
+    expect(shapes).toHaveLength(3);
+    expect(new Set(shapes).size).toBe(3);
+    all(root, '.cr-cards .cr-btn')[1]!.click();
+    expect(root.querySelector('.cr-screen')!.getAttribute('data-screen')).toBe('replace');
+    const tiles = all(root, '.cr-deck .cr-card--tap');
+    expect(tiles).toHaveLength(run.deck.length);
+    tiles[0]!.click();
+    const saved = JSON.parse(localStorage.getItem(SAVE)!) as RunLog;
+    const after = replayRun(saved);
+    expect(after.deck).toHaveLength(run.deck.length);
+    expect(after.deck[0]).toBe(offer[1]);
+  });
+
   it('drops a save from another version loudly and offers a new run', () => {
     localStorage.setItem(SAVE, JSON.stringify({ version: 'cardrun-0.0.0', seed: 'OLD', actions: [] }));
     const host = document.createElement('div');

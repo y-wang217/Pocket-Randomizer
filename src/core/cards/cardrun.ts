@@ -18,7 +18,7 @@
  *
  * Every number lives in `cardData/cardrunTables.ts`.
  */
-import { CARDS, DECKS, UPGRADE_OF } from '../../cardData/cards';
+import { CARDS, UPGRADE_OF } from '../../cardData/cards';
 import {
   ACTS,
   BOOST_AMOUNT,
@@ -27,10 +27,14 @@ import {
   EVENTS,
   MARKET,
   RUN_RULES,
+  SHAPES,
+  STARTING_DECK,
   TOWN_POOL,
+  type ShapeId,
   type BoostKind,
   type EventOption,
 } from '../../cardData/cardrunTables';
+import { GIVEN_BACK, TALENT_OFFERS, TALENTS } from '../../cardData/talents';
 import { createRng, formatSeed, type RngStream } from '../rng';
 import { cardRunKey } from '../streamKeys';
 import { createBattle } from './create';
@@ -41,16 +45,23 @@ import type { Action, BattleState } from './state';
 import { step } from './step';
 
 /** Bumps when a run's draws, its tables' meaning or a logged decision changes what a run log replays to. */
-export const CARD_RUN_VERSION = 'cardrun-0.1.0';
+export const CARD_RUN_VERSION = 'cardrun-0.9.0';
 
 export type StopKind = 'city' | 'town' | 'wild';
 
-/** One boss upgrade on offer: this unit gets this much more of this, for the rest of the run. */
-export interface BoostOffer {
+/** A stat a boss offers: this unit gets this much more of it for the rest of the run. */
+export interface StatOffer {
   unit: UnitDefId;
   kind: BoostKind;
   n: number;
 }
+
+/**
+ * One boss upgrade on offer: a stat, or a talent for its unit. A node holds
+ * the stats and the talent order it drew; the boss screen picks among them by
+ * what the run has already taken (`offersFor`).
+ */
+export type BoostOffer = StatOffer | { unit: UnitDefId; kind: 'talent'; talent: string };
 
 /** A fight a stop can send the player on, with the battle seed drawn for it. */
 export interface QuestDraw {
@@ -67,8 +78,10 @@ export interface FightNode {
   encounter: string;
   seed: string;
   boss: boolean;
-  /** A boss's three upgrade offers, one per unit; none on the last boss, whose fall ends the run. */
-  boosts: BoostOffer[];
+  /** A boss's stat offers, one drawn per unit; none on the last boss, whose fall ends the run. */
+  boosts: StatOffer[];
+  /** Every talent, in the order this boss offers them (5a); empty on the last boss. */
+  talentOrder: string[];
 }
 
 export interface StopNode {
@@ -102,6 +115,8 @@ export type RunScreen =
   | { k: 'market'; bought: number[] }
   /** One of three cards, no skip (`CLAUDE.md`, Rewards). */
   | { k: 'cards'; offer: string[]; source: 'town' | 'ambush' }
+  /** The card taken goes in place of a deck card the player picks: the deck never grows from a card reward. */
+  | { k: 'replace'; card: string; source: 'town' | 'ambush' | 'peddler' }
   /** A free upgrade: pick the card. */
   | { k: 'upgrade'; source: 'defense' | 'smith' }
   /** The shrine: pick the card to leave. */
@@ -152,6 +167,8 @@ export type RunAction =
   /** A deck index: free on an upgrade screen, paid at the camp. */
   | { type: 'upgrade'; index: number }
   | { type: 'remove'; index: number }
+  /** A deck index: the card a reward card goes in place of. */
+  | { type: 'replace'; index: number }
   | { type: 'event'; option: number }
   /** Done at the market, or done in a Wild with no event. */
   | { type: 'leave' };
@@ -205,6 +222,14 @@ function weighted<K extends string>(stream: RngStream, weights: Readonly<Record<
   return entries.at(-1)![0];
 }
 
+/**
+ * A card offer (5b): three of the four shapes, drawn, then one card from each.
+ * The shapes share no card, so the three are distinct.
+ */
+function shapedOffer(stream: RngStream): string[] {
+  return shuffled(stream, Object.keys(SHAPES)).slice(0, RUN_RULES.offer).map((id) => pickOne(stream, SHAPES[id as ShapeId].cards));
+}
+
 function quest(seed: string, node: string, what: string, pool: readonly string[]): QuestDraw {
   return { encounter: pickOne(streamFor(seed, node, what), pool), seed: battleSeed(seed, node, `${what}/battle`) };
 }
@@ -225,7 +250,7 @@ function stopNode(seed: string, act: number, index: number): StopNode {
     town: {
       quest: quest(seed, key, 'town', def.townQuests),
       supplies: between(streamFor(seed, key, 'town/supplies'), RUN_RULES.town.supplies),
-      offer: distinct(streamFor(seed, key, 'town/offer'), TOWN_POOL, RUN_RULES.offer),
+      offer: shapedOffer(streamFor(seed, key, 'town/offer')),
     },
     wild: {
       supplies,
@@ -233,7 +258,7 @@ function stopNode(seed: string, act: number, index: number): StopNode {
       equipment: pickOne(streamFor(seed, key, 'wild/equipment'), Object.keys(MARKET)),
       card: pickOne(streamFor(seed, key, 'wild/card'), TOWN_POOL),
       ambush: quest(seed, key, 'ambush', def.townQuests),
-      offer: distinct(streamFor(seed, key, 'ambush/offer'), TOWN_POOL, RUN_RULES.offer),
+      offer: shapedOffer(streamFor(seed, key, 'ambush/offer')),
     },
   };
 }
@@ -249,6 +274,8 @@ function fightNode(seed: string, act: number, index: 0 | 1 | 'boss'): FightNode 
     const kind = weighted(stream, BOOST_WEIGHTS);
     return { unit, kind, n: BOOST_AMOUNT[kind] };
   });
+  // Its own stream, so the stats above draw as they did before talents had an order.
+  const talentOrder = shuffled(streamFor(seed, key, 'talents'), Object.keys(TALENTS));
   return {
     kind: 'fight',
     key,
@@ -257,6 +284,7 @@ function fightNode(seed: string, act: number, index: 0 | 1 | 'boss'): FightNode 
     seed: battleSeed(seed, key, 'battle'),
     boss,
     boosts: boss && !last ? boosts : [],
+    talentOrder: boss && !last ? talentOrder : [],
   };
 }
 
@@ -290,9 +318,9 @@ export function createRun(seed: string, deck: readonly string[] = startingDeck()
   return s;
 }
 
-/** The Puppeteer's fifteen, as the sandbox deals them. */
+/** The basic ten (`STARTING_DECK`): the Puppeteer is built toward, not dealt. */
 export function startingDeck(): string[] {
-  return [...DECKS['puppeteer']!.cards];
+  return [...STARTING_DECK];
 }
 
 // ------------------------------------------------------------------ reading
@@ -339,6 +367,24 @@ export function progressOf(s: CardRunState): { act: number; acts: number; fight:
   const node = currentNode(s) ?? s.nodes.at(-1)!;
   const fights = s.nodes.slice(0, s.at + 1).filter((n) => n.kind === 'fight' && n.act === node.act).length;
   return { act: node.act + 1, acts: ACTS.length, fight: Math.max(1, fights) };
+}
+
+/**
+ * A fallen boss's three offers (5a): two talents, then a stat. Marksman comes
+ * first while it is untaken (the Gunner's ability, given back), then the
+ * untaken talents in the order the boss drew; the stat is the one the node
+ * drew for a unit neither talent is for. Talents run out before they could
+ * fill both slots only on a run that took nearly all of them, and stats fill
+ * in. Everything is drawn at generation, so what the player took moves no
+ * draw; it only selects among what was drawn.
+ */
+export function offersFor(s: CardRunState, node: FightNode): BoostOffer[] {
+  const taken = (t: string): boolean => (s.boosts[TALENTS[t]!.unit].talents ?? []).includes(t);
+  const order = [GIVEN_BACK, ...node.talentOrder.filter((t) => t !== GIVEN_BACK)].filter((t) => !taken(t));
+  const talents: BoostOffer[] = order.slice(0, TALENT_OFFERS).map((t) => ({ unit: TALENTS[t]!.unit, kind: 'talent', talent: t }));
+  const covered = new Set(talents.map((o) => o.unit));
+  const stats = [...node.boosts.filter((o) => !covered.has(o.unit)), ...node.boosts.filter((o) => covered.has(o.unit))];
+  return [...talents, ...stats].slice(0, RUN_RULES.offer);
 }
 
 /** The boosts a battle carries: only the units the run has boosted. */
@@ -402,7 +448,7 @@ function battleWon(s: CardRunState, battle: RunBattle): void {
       s.stats.bosses += 1;
       const node = currentNode(s) as FightNode;
       s.battle = null;
-      if (node.boosts.length > 0) s.screen = { k: 'boost', offers: node.boosts };
+      if (node.boosts.length > 0) s.screen = { k: 'boost', offers: offersFor(s, node) };
       else advance(s);
       return;
     }
@@ -500,15 +546,15 @@ export function stepRun(state: CardRunState, action: RunAction | unknown): RunRe
       if (screen.k === 'cards') {
         const card = screen.offer[a.index];
         if (!card) return refuse('badIndex');
-        s.deck.push(card);
-        advance(s);
+        s.screen = { k: 'replace', card, source: screen.source };
         return done();
       }
       if (screen.k === 'boost') {
         const offer = screen.offers[a.index];
         if (!offer) return refuse('badIndex');
         const boost = s.boosts[offer.unit];
-        boost[offer.kind] = (boost[offer.kind] ?? 0) + offer.n;
+        if (offer.kind === 'talent') boost.talents = [...(boost.talents ?? []), offer.talent];
+        else boost[offer.kind] = (boost[offer.kind] ?? 0) + offer.n;
         advance(s);
         return done();
       }
@@ -538,6 +584,14 @@ export function stepRun(state: CardRunState, action: RunAction | unknown): RunRe
       advance(s);
       return done();
     }
+    case 'replace': {
+      if (screen.k !== 'replace') return refuse('wrongScreen');
+      if (!isIndex(a.index)) return refuse('malformed');
+      if (a.index >= s.deck.length) return refuse('badIndex');
+      s.deck[a.index] = screen.card;
+      advance(s);
+      return done();
+    }
     case 'event': {
       if (screen.k !== 'wild' || !stop?.wild.event) return refuse('wrongScreen');
       if (!isIndex(a.option)) return refuse('malformed');
@@ -555,8 +609,8 @@ export function stepRun(state: CardRunState, action: RunAction | unknown): RunRe
             s.deck.push(stop.wild.equipment);
             break;
           case 'card':
-            s.deck.push(stop.wild.card);
-            break;
+            s.screen = { k: 'replace', card: stop.wild.card, source: 'peddler' };
+            return done();
           case 'upgrade':
             s.screen = { k: 'upgrade', source: 'smith' };
             return done();

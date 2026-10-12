@@ -22,8 +22,9 @@ import { CARDS } from '../../cardData/cards';
 import { CLASS_SLOTS } from '../../cardData/classes';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
+import { TALENTS } from '../../cardData/talents';
 import { UNITS } from '../../cardData/units';
-import type { CardDef, DamageKeyword, Effect, Pos } from './defs';
+import type { Ability, BonusEffect, CardDef, DamageKeyword, Effect, Pos, UnitDefId } from './defs';
 import type { BattleEvent } from './events';
 import type { Action, BattleState, Choice, IllegalReason, PlannedPlay, PlayBlock, UnitId, UnitState } from './state';
 import { blastCentres, blastTiles, covers, enemyTiles, inDanger, lanesOf, moveDestinations, onBoard, samePos, slashTiles } from './zones';
@@ -60,17 +61,45 @@ export function isMoveCard(def: CardDef): boolean {
   return def.effects.some((e) => e.k === 'move' || e.k === 'grantMove');
 }
 
+/**
+ * The effects a move card carries beyond its move (checkpoint 4b): checked
+ * against the board the move leaves and resolved after it, from where the
+ * unit then stands. A move card's follow-ups ask for no choice of their own
+ * (`FOLLOW_UPS`); a friendly Shield on a granted move lands on the ally that
+ * moved, the one the card's choice already names.
+ */
+export function followUps(def: CardDef): Effect[] {
+  return def.effects.filter((e) => e.k !== 'move' && e.k !== 'grantMove');
+}
+
+/** What a move card may carry: nothing that asks for a tile or an enemy of its own. */
+export const FOLLOW_UPS: readonly Effect['k'][] = ['strike', 'pierce', 'slash', 'shield', 'gainMp', 'drawNext', 'push', 'stealth', 'cover', 'stun'];
+
 export function needsOf(def: CardDef): Needs {
   if (effect(def, 'grantMove')) return 'unitThenTile';
   if (effect(def, 'move')) return 'tile';
-  if (effect(def, 'target') || effect(def, 'harpoon')) return 'unit';
+  if (effect(def, 'target') || effect(def, 'harpoon') || effect(def, 'pull')) return 'unit';
   if (effect(def, 'blast')) return 'tile';
-  if (effect(def, 'shield')?.to === 'friendly') return 'unit';
+  if (effect(def, 'shield')?.to === 'friendly' || effect(def, 'repair')) return 'unit';
   return 'none';
 }
 
 export function unitOf(state: BattleState, id: unknown): UnitState | undefined {
   return state.units.find((u) => u.id === id);
+}
+
+/** A unit's abilities in this battle: its own, then its talents' (`cardData/talents.ts`), in the order taken. */
+export function abilitiesOf(state: BattleState, id: UnitDefId): Ability[] {
+  const talents = state.boosts?.[id]?.talents ?? [];
+  return [...UNITS[id].abilities, ...talents.flatMap((t) => TALENTS[t]?.abilities ?? [])];
+}
+
+/** What a unit's talents add to one effect of its own cards, played from `pos` (checkpoint 5a). */
+export function bonusOf(state: BattleState, id: UnitDefId, effect: BonusEffect, pos: Pos | null | undefined): number {
+  return abilitiesOf(state, id).reduce(
+    (sum, a) => (a.k === 'bonus' && a.effect === effect && (!a.inDanger || (pos && inDanger(pos))) ? sum + a.n : sum),
+    0,
+  );
 }
 
 export function livingUnits(state: BattleState): UnitState[] {
@@ -176,9 +205,15 @@ function checkEffects(state: BattleState, play: PlannedPlay, def: CardDef, posit
     if (reach.length === 0) return 'outOfRange';
     if (!reach.some((e) => e.id === play.choice?.unit)) return 'badChoice';
   }
-  if (effect(def, 'shield')?.to === 'friendly') {
+  if (effect(def, 'shield')?.to === 'friendly' || effect(def, 'repair')) {
     // R6: Target on a friendly keyword picks a friendly unit, the player included.
     if (!livingUnits(state).some((u) => u.id === play.choice?.unit)) return 'badChoice';
+  }
+  if (effect(def, 'pull')) {
+    // Group B: any enemy on the board but a boss, at any range.
+    const pullable = enemies.filter((e) => !ENEMIES[e.def].boss);
+    if (pullable.length === 0) return 'noTarget';
+    if (!pullable.some((e) => e.id === play.choice?.unit)) return 'badChoice';
   }
   return null;
 }
@@ -225,7 +260,9 @@ function walk(state: BattleState, plan: readonly PlannedPlay[]): { check: PlanCh
     const def = cardDefOf(state, play.card);
     const reason =
       checkCommon(state, play, def, spent) ??
-      (isMoveCard(def!) ? checkMove(state, play, def!, positions) : checkEffects(state, play, def!, positions));
+      (isMoveCard(def!)
+        ? (checkMove(state, play, def!, positions) ?? (followUps(def!).length > 0 ? checkEffects(state, play, def!, positions) : null))
+        : checkEffects(state, play, def!, positions));
     if (reason) return { check: { ok: false, index, reason }, spent };
   }
   return { check: { ok: true, positions }, spent };
@@ -265,7 +302,7 @@ export function checkAppend(state: BattleState, play: PlannedPlay): PlanCheck {
     return reason ? fail(reason) : base.check;
   }
   const positions = { ...base.check.positions };
-  const moved = checkMove(state, play, def!, positions, base.moves);
+  const moved = checkMove(state, play, def!, positions, base.moves) ?? (followUps(def!).length > 0 ? checkEffects(state, play, def!, positions) : null);
   return moved ? fail(moved) : { ok: true, positions };
 }
 

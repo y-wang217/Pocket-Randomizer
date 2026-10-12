@@ -28,13 +28,27 @@ export type UnitDefId = 'A' | 'B' | 'C';
 export type ClassId = 'special' | 'ranged' | 'melee';
 export type TypeId = 'fire' | 'plasma' | 'water';
 export type CardOwner = UnitDefId | 'neutral';
-export type EnemyDefId = 'drone' | 'lancer' | 'hound' | 'turret' | 'bulwark' | 'sniper' | 'pikeman' | 'colossus' | 'dummy';
+export type EnemyDefId =
+  | 'drone'
+  | 'lancer'
+  | 'hound'
+  | 'turret'
+  | 'bulwark'
+  | 'sniper'
+  | 'pikeman'
+  | 'colossus'
+  | 'dummy'
+  // Checkpoint 6: the veterans, a harder pattern on each, and the second boss.
+  | 'drone-mk2'
+  | 'lancer-captain'
+  | 'dire-hound'
+  | 'heavy-turret'
+  | 'juggernaut'
+  | 'deadeye'
+  | 'halberdier'
+  | 'warlord';
 
 export type DamageKeyword = 'strike' | 'pierce' | 'slash' | 'blast';
-
-/** The effects reserved for later slices. A shipped card may not use one. */
-export const RESERVED_EFFECTS = ['stealth', 'repair', 'push', 'pull'] as const;
-export type ReservedEffect = (typeof RESERVED_EFFECTS)[number];
 
 export type Effect =
   | { k: DamageKeyword; n: number }
@@ -53,7 +67,26 @@ export type Effect =
    * shield (they return on its second turn) and Screams instead of acting.
    */
   | { k: 'harpoon'; pin: number; range: number }
-  | { k: ReservedEffect; n: number };
+  /**
+   * Group B (`docs/spec/gymrun-card-run-shapes-prompt.md`, checkpoint 4).
+   * Push: every enemy the card's damage hit is pushed up to `n` tiles away
+   * from the player, stopping short of anything in the way. A boss stands.
+   */
+  | { k: 'push'; n: number }
+  /** Pull: a chosen enemy, not a boss, is pulled up to `n` tiles toward the player, never past the enemy reach. */
+  | { k: 'pull'; n: number }
+  /** Repair: a chosen friendly unit, the player included, heals `n` HP, never past its max. */
+  | { k: 'repair'; n: number }
+  /** Stealth: the playing unit is unseen by the enemies' acts for the next `n` enemy phases. */
+  | { k: 'stealth'; n: number }
+  /**
+   * Cover (checkpoint 5a): for the next `n` enemy phases, an enemy act that
+   * would hit a unit orthogonally next to the playing unit hits the playing
+   * unit instead.
+   */
+  | { k: 'cover'; n: number }
+  /** Stun (checkpoint 5a): every enemy the card's damage landed on, not a boss, skips its next `n` turns. */
+  | { k: 'stun'; n: number };
 
 export interface CardDef {
   id: string;
@@ -92,8 +125,31 @@ export interface CardDef {
 export type Ability =
   /** A: MP at the start of each of its turns, turn 1 included. */
   | { k: 'mpAtTurnStart'; n: number }
-  /** B: the first card each turn resolves a Strike as a Pierce while at full HP. */
-  | { k: 'firstCardConverts'; from: 'strike'; to: 'pierce'; while: 'fullHp' };
+  /** Marksman: the first card each turn resolves a Strike as a Pierce while at full HP. */
+  | { k: 'firstCardConverts'; from: 'strike'; to: 'pierce'; while: 'fullHp' }
+  /** A talent's +n to one effect of the unit's own cards, while in the danger zone when `inDanger`. */
+  | { k: 'bonus'; effect: BonusEffect; n: number; inDanger?: true }
+  /** Bodyguard: a Shield the unit gives itself also has it Cover its neighbours until its next turn. */
+  | { k: 'coverOnShield' }
+  /** Quartermaster: each piece of equipment the unit plays also queues `n` extra cards for the next hand. */
+  | { k: 'equipmentDraws'; n: number };
+
+/** What a talent's bonus can add to. */
+export type BonusEffect = 'strike' | 'pierce' | 'slash' | 'blast' | 'shield' | 'repair';
+
+/**
+ * A talent: an ability one unit gains for the rest of a run, offered by a
+ * boss in place of a stat (`docs/spec/gymrun-card-run-shapes-prompt.md`). A
+ * deck can field one from the start, as the sandbox's Puppeteer does.
+ */
+export interface TalentDef {
+  id: string;
+  name: string;
+  unit: UnitDefId;
+  /** What it does, in a line, for the boss screen. */
+  text: string;
+  abilities: readonly Ability[];
+}
 
 export interface UnitDef {
   id: UnitDefId;
@@ -158,6 +214,8 @@ export interface DeckDef {
   units: readonly UnitDefId[];
   /** One entry per card instance, in the order the unshuffled draw pile holds them. */
   cards: readonly string[];
+  /** Talents its units field from the start, by unit. */
+  talents?: Readonly<Partial<Record<UnitDefId, readonly string[]>>>;
 }
 
 /** One enemy of a scenario: a fixed tile, or none for a tile drawn from the seed. */
@@ -186,6 +244,8 @@ export interface EncounterDef {
    * falls. Ids continue across waves (`e0`, `e1`, ... in the order listed).
    */
   waves?: readonly (readonly EnemySpawn[])[];
+  /** HP every enemy of the battle gains over its definition's (checkpoint 6: the card run's acts). */
+  hpBonus?: number;
 }
 
 /**
@@ -198,6 +258,8 @@ export interface UnitBoost {
   hp?: number;
   baseShield?: number;
   mp?: number;
+  /** Talent ids (`cardData/talents.ts`), in the order taken. */
+  talents?: string[];
 }
 
 /**
@@ -285,12 +347,13 @@ export interface Rules {
   /** A battle still running after this many rounds of one wave ends as a loss: the count restarts each wave (C6). */
   roundCap: number;
   /**
-   * Between waves (the author's rulings, C1 to C5): each living unit keeps its
-   * HP, loses its card shield, has its base shield restored and its MP reset;
-   * every card not removed by a faint is shuffled back, Once cards included;
-   * owed MP and extra draws are cleared; the units are placed again.
+   * Between waves (the author's ruling of 2026-10-11, superseding C1 to C5):
+   * the cards reset and nothing else does. Each living unit keeps its HP, its
+   * base shield as spent, its MP and any MP owed, and stays on its tile; every
+   * card not removed by a faint is shuffled back, Once cards included; extra
+   * draws clear; the next wave spawns at once, with no placement.
    */
-  betweenWaves: { mp: 'reset'; deck: 'reshuffleAll'; owed: 'clear'; units: 'placeAgain' };
+  betweenWaves: { units: 'keepAll'; deck: 'reshuffleAll'; extraDraws: 'clear'; placement: 'none' };
 }
 
 /**

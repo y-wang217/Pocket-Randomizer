@@ -6,10 +6,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { CARDS, DECKS, UPGRADE_OF } from '../src/cardData/cards';
-import { ACTS, EVENTS, MARKET, RUN_RULES, TOWN_POOL } from '../src/cardData/cardrunTables';
-import { ENCOUNTERS } from '../src/cardData/encounters';
+import { ACTS, EVENTS, MARKET, RUN_RULES, STARTING_DECK, TOWN_POOL } from '../src/cardData/cardrunTables';
+import { ENCOUNTERS, VETERAN } from '../src/cardData/encounters';
 import { UNITS } from '../src/cardData/units';
-import { createBattle, layoutBattle } from '../src/core/cards/create';
+import { createBattle, layoutBattle, wavesOf } from '../src/core/cards/create';
+import type { EnemyDefId } from '../src/core/cards/defs';
 import { guardBot } from '../src/core/cards/guard';
 import { replay } from '../src/core/cards/log';
 import { newLog } from '../src/core/cards/log';
@@ -73,13 +74,27 @@ describe('card run: shape and draws', () => {
     expect(fights.map((n) => n.kind === 'fight' && n.encounter)).toEqual(ACTS.flatMap((a) => [...a.fights, a.boss]));
     // The last boss is Siege, and its fall ends the run: no upgrade offered after it.
     const last = nodes.at(-1)!;
-    expect(last.kind === 'fight' && [last.encounter, last.boosts.length]).toEqual(['siege', 0]);
+    expect(last.kind === 'fight' && [last.encounter, last.boosts.length]).toEqual(['run-siege', 0]);
   });
 
-  it('uses every scenario the sandbox has, and every encounter it names exists', () => {
+  it('uses every scenario the sandbox has, every fight is three waves, and every encounter it names exists', () => {
     const named = ACTS.flatMap((a) => [...a.fights, a.boss, ...a.townQuests, ...a.defenseQuests]);
     for (const id of named) expect(Object.hasOwn(ENCOUNTERS, id), id).toBe(true);
-    for (const id of ['skirmish', 'test', 'staggered', 'turret-alley', 'wall-and-gun', 'the-pack', 'siege']) expect(named, id).toContain(id);
+    // Q1 (a): three waves back to back, the scenario itself the last of them (Siege is three waves already).
+    for (const id of named) expect(wavesOf(ENCOUNTERS[id]!), id).toHaveLength(3);
+    const reached = named.flatMap((id) => [id, id.replace(/^run-/, '')]);
+    for (const id of ['skirmish', 'test', 'staggered', 'turret-alley', 'wall-and-gun', 'the-pack', 'siege']) expect(reached, id).toContain(id);
+    // The scenario is the last wave, on its own tiles; act 3 fields its veterans (checkpoint 6).
+    const asVeteran = (def: EnemyDefId): EnemyDefId => VETERAN[def] ?? def;
+    ACTS.forEach((act, index) => {
+      for (const id of [...act.fights, act.boss, ...act.townQuests, ...act.defenseQuests]) {
+        const base = ENCOUNTERS[id.replace(/^run-/, '')]!;
+        const last = wavesOf(ENCOUNTERS[id]!).at(-1)!;
+        const baseLast = wavesOf(base).at(-1)!;
+        expect(last.map((s) => s.pos), id).toEqual(baseLast.map((s) => s.pos));
+        expect(last.map((s) => s.def), id).toEqual(baseLast.map((s) => (index === 2 ? asVeteran(s.def) : s.def)));
+      }
+    });
   });
 
   it('is a function of the seed: the same seed draws the same run, another seed another', () => {
@@ -171,7 +186,7 @@ describe('card run: stops and rewards', () => {
     expect(run.stats.fights).toBe(1);
   });
 
-  it('Town: a quest battle, then its supplies and one of three new cards', () => {
+  it('Town: a quest battle, then its supplies and one of three new cards, in place of a card the player picks', () => {
     let run = go(atFirstStop('TOWN'), { type: 'go', to: 'town' });
     const stop = currentStop(run)!;
     expect([run.screen.k, run.battle?.encounter]).toEqual(['battle', stop.town.quest.encounter]);
@@ -179,10 +194,15 @@ describe('card run: stops and rewards', () => {
     run = winBattle(run).run;
     expect(run.screen).toEqual({ k: 'cards', offer: stop.town.offer, source: 'town' });
     expect(run.supplies).toBe(before + stop.town.supplies);
-    const deck = run.deck.length;
+    const deck = [...run.deck];
     run = go(run, { type: 'pick', index: 2 });
-    expect(run.deck.at(-1)).toBe(stop.town.offer[2]);
-    expect(run.deck).toHaveLength(deck + 1);
+    expect(run.screen).toEqual({ k: 'replace', card: stop.town.offer[2], source: 'town' });
+    expect(run.deck).toEqual(deck);
+    // The card goes in place of the one picked; the deck stays its size and there is no skip.
+    expect(stepRun(run, { type: 'pick', index: 0 })).toMatchObject({ ok: false, reason: 'wrongScreen' });
+    expect(stepRun(run, { type: 'replace', index: deck.length })).toMatchObject({ ok: false, reason: 'badIndex' });
+    run = go(run, { type: 'replace', index: 3 });
+    expect(run.deck).toEqual(deck.map((id, i) => (i === 3 ? stop.town.offer[2] : id)));
     // On to the next fight.
     expect([run.screen.k, run.battle?.encounter]).toEqual(['battle', ACTS[0]!.fights[1]]);
   });
@@ -221,7 +241,7 @@ describe('card run: stops and rewards', () => {
     expect(run.supplies).toBe(currentStop(run)!.wild.supplies);
     const index = upgradable(run)[0]!;
     run = go(run, { type: 'upgrade', index });
-    expect(run.deck[index]).toBe(UPGRADE_OF[DECKS['puppeteer']!.cards[index]!]);
+    expect(run.deck[index]).toBe(UPGRADE_OF[STARTING_DECK[index]!]);
     expect(run.supplies).toBe(currentStop(run)!.wild.supplies - RUN_RULES.upgradePrice);
   });
 
@@ -253,7 +273,7 @@ describe('card run: stops and rewards', () => {
         if (option.price) expect(after.supplies).toBeLessThanOrEqual(10 - option.price);
         const kinds = option.effects.map((e) => e.k);
         if (kinds.includes('equipment')) expect(after.deck.at(-1)).toBe(stop.wild.equipment);
-        if (kinds.includes('card')) expect(after.deck.at(-1)).toBe(stop.wild.card);
+        if (kinds.includes('card')) expect(after.screen).toEqual({ k: 'replace', card: stop.wild.card, source: 'peddler' });
         if (kinds.includes('upgrade')) expect(after.screen).toEqual({ k: 'upgrade', source: 'smith' });
         if (kinds.includes('remove')) expect(after.screen).toEqual({ k: 'remove' });
         if (kinds.includes('fight')) expect([after.screen.k, after.battle?.encounter]).toEqual(['battle', stop.wild.ambush.encounter]);
@@ -283,7 +303,7 @@ describe('card run: stops and rewards', () => {
     expect(kept.run.deck.includes('ration')).toBe(!kept.last.piles.spent.includes(iid));
   });
 
-  it('a fallen boss offers one upgrade per unit; the pick lasts the rest of the run', () => {
+  it('a fallen boss offers two talents and a stat; the pick lasts the rest of the run', () => {
     let run = createRun('BOSS');
     let guard = 0;
     while (!(run.screen.k === 'boost') && guard++ < 50) {
@@ -293,18 +313,22 @@ describe('card run: stops and rewards', () => {
       else if (run.screen.k === 'upgrade') run = go(run, { type: 'upgrade', index: upgradable(run)[0]! });
       else if (run.screen.k === 'remove') run = go(run, { type: 'remove', index: 0 });
       else if (run.screen.k === 'cards') run = go(run, { type: 'pick', index: 0 });
+      else if (run.screen.k === 'replace') run = go(run, { type: 'replace', index: 0 });
       else throw new Error(`unexpected screen ${run.screen.k}`);
     }
     expect(run.screen.k).toBe('boost');
     if (run.screen.k !== 'boost') return;
-    expect(run.screen.offers.map((o) => o.unit)).toEqual(['A', 'B', 'C']);
-    const offer = run.screen.offers[0]!;
-    run = go(run, { type: 'pick', index: 0 });
-    expect(run.boosts.A[offer.kind]).toBe(offer.n);
+    expect(run.screen.offers.map((o) => o.kind === 'talent')).toEqual([true, true, false]);
+    // Marksman, the Gunner's old ability, comes first until it is taken.
+    expect(run.screen.offers[0]).toEqual({ unit: 'B', kind: 'talent', talent: 'marksman' });
+    const offer = run.screen.offers[2]!;
+    if (offer.kind === 'talent') throw new Error('the third offer is a stat');
+    run = go(run, { type: 'pick', index: 2 });
+    expect(run.boosts[offer.unit][offer.kind]).toBe(offer.n);
     // The next battle carries it.
     run = go(run, { type: 'go', to: 'wild' });
     while (run.screen.k !== 'battle') run = run.screen.k === 'wild' && !currentStop(run)!.wild.event ? go(run, { type: 'leave' }) : go(run, { type: 'event', option: EVENTS[currentStop(run)!.wild.event!]!.options.length - 1 });
-    expect(run.battle!.loadout.units?.A?.[offer.kind]).toBe(offer.n);
+    expect(run.battle!.loadout.units?.[offer.unit]?.[offer.kind]).toBe(offer.n);
   });
 });
 
@@ -316,7 +340,7 @@ describe('card run: the whole run, headless', () => {
   });
 
   it('refuses a run log from another version, naming both values', () => {
-    expect(() => replayRun({ version: 'cardrun-0.0.1', seed: 'X', actions: [] })).toThrow(/cardrun-0\.0\.1.*cardrun-0\.1\.0/);
+    expect(() => replayRun({ version: 'cardrun-0.0.1', seed: 'X', actions: [] })).toThrow(/cardrun-0\.0\.1.*cardrun-0\.9\.0/);
   });
 
   it('refuses anything malformed without throwing, and nothing once the run is over', () => {

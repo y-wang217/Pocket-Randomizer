@@ -7,7 +7,7 @@
  *
  * Units' tiles are where each starts before the player places it.
  */
-import type { EncounterDef, Pos } from '../core/cards/defs';
+import type { EncounterDef, EnemyDefId, EnemySpawn, Pos } from '../core/cards/defs';
 
 const at = (lane: Pos['lane'], col: Pos['col']): Pos => ({ lane, col });
 
@@ -96,7 +96,7 @@ export const SCENARIOS: Readonly<Record<string, EncounterDef>> = {
   siege: {
     id: 'siege',
     name: 'Siege',
-    blurb: 'Three waves, each harder, the Colossus last. HP carries over; shields and MP do not.',
+    blurb: 'Three waves, each harder, the Colossus last. Only the cards reset between waves.',
     deckId: 'puppeteer',
     units: PUPPETEER_FRONT,
     enemies: [
@@ -154,6 +154,19 @@ export const RUN_ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
       { def: 'hound', pos: at(3, 7) },
     ],
   },
+  // Checkpoint 6: act 2's boss, the Warlord, with a Hound on either side of it.
+  'warlord-guard': {
+    id: 'warlord-guard',
+    name: "Warlord's Guard",
+    blurb: 'The Warlord holds the middle lane, a Hound on either side.',
+    deckId: 'puppeteer',
+    units: PUPPETEER_FRONT,
+    enemies: [
+      { def: 'hound', pos: at(1, 6) },
+      { def: 'warlord', pos: at(2, 6) },
+      { def: 'hound', pos: at(3, 6) },
+    ],
+  },
   'bandit-camp': quest('bandit-camp', 'Bandit Camp', 'Two Hounds and a Lancer.', [{ def: 'hound' }, { def: 'lancer' }, { def: 'hound' }]),
   'stray-drones': quest('stray-drones', 'Stray Drones', 'Two Drones.', [{ def: 'drone' }, { def: 'drone' }]),
   outriders: quest('outriders', 'Outriders', 'Two Hounds, a Drone and a Lancer.', [{ def: 'hound' }, { def: 'drone' }, { def: 'hound' }, { def: 'lancer' }]),
@@ -164,6 +177,107 @@ export const RUN_ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
   'the-walls': quest('the-walls', 'The Walls', 'Defend the walls: a Bulwark, a Turret and a Hound.', [{ def: 'bulwark' }, { def: 'turret' }, { def: 'hound' }]),
   'last-stand': quest('last-stand', 'Last Stand', 'Defend the keep: a Bulwark, a Pikeman and a Sniper.', [{ def: 'bulwark' }, { def: 'pikeman' }, { def: 'sniper' }]),
 };
+
+/**
+ * Two light waves that open a run fight, each on tiles drawn from the battle's
+ * seed. Grades in the comments; each act's are heavier than the last.
+ */
+const LEAD: Readonly<Record<string, readonly EnemySpawn[]>> = {
+  lancers: [{ def: 'lancer' }, { def: 'lancer' }], // 2
+  houndLancer: [{ def: 'hound' }, { def: 'lancer' }], // 2
+  hounds: [{ def: 'hound' }, { def: 'hound' }], // 2
+  lancerDrone: [{ def: 'lancer' }, { def: 'drone' }], // 3
+  turretHound: [{ def: 'turret' }, { def: 'hound' }], // 3
+  drones: [{ def: 'drone' }, { def: 'drone' }], // 4
+  bulwarkLancer: [{ def: 'bulwark' }, { def: 'lancer' }], // 3
+  sniperHound: [{ def: 'sniper' }, { def: 'hound' }], // 4
+  pikemanHound: [{ def: 'pikeman' }, { def: 'hound' }], // 4
+};
+
+/**
+ * The veteran of each enemy (checkpoint 6): the same body, a harder pattern
+ * (`enemies.ts`). Act 2's lead waves field them, and every wave of act 3.
+ */
+export const VETERAN: Readonly<Partial<Record<EnemyDefId, EnemyDefId>>> = {
+  drone: 'drone-mk2',
+  lancer: 'lancer-captain',
+  hound: 'dire-hound',
+  turret: 'heavy-turret',
+  bulwark: 'juggernaut',
+  sniper: 'deadeye',
+  pikeman: 'halberdier',
+};
+
+/**
+ * How each act scales its fights (checkpoint 6), by act index: the HP every
+ * enemy gains, bosses included, and which waves field veterans.
+ */
+export const ACT_SCALING: readonly { hpBonus: number; veterans: 'none' | 'leads' | 'all' }[] = [
+  { hpBonus: 0, veterans: 'none' },
+  { hpBonus: 1, veterans: 'leads' },
+  { hpBonus: 2, veterans: 'all' },
+];
+
+const veteran = (wave: readonly EnemySpawn[]): EnemySpawn[] => wave.map((spawn) => ({ ...spawn, def: VETERAN[spawn.def] ?? spawn.def }));
+
+/**
+ * A run fight: three waves back to back, HP carried between them
+ * (`docs/spec/gymrun-card-run-shapes-prompt.md`, Q1 (a)). Two lead waves, then
+ * the scenario itself as the third, on its own tiles; a scenario of three
+ * waves already (Siege) is played as it is. Scaled for its act (checkpoint 6).
+ */
+const runFight = (base: EncounterDef, leads: readonly [keyof typeof LEAD, keyof typeof LEAD] | null, act: number): EncounterDef => {
+  const scale = ACT_SCALING[act]!;
+  const lead = (wave: readonly EnemySpawn[]): readonly EnemySpawn[] => (scale.veterans === 'none' ? wave : veteran(wave));
+  const own = (wave: readonly EnemySpawn[]): readonly EnemySpawn[] => (scale.veterans === 'all' ? veteran(wave) : wave);
+  const waves = leads ? [lead(LEAD[leads[0]]!), lead(LEAD[leads[1]]!), own(base.enemies)] : [own(base.enemies), ...(base.waves ?? []).map(own)];
+  return {
+    ...base,
+    id: `run-${base.id}`,
+    blurb: leads ? `Three waves. Last: ${base.blurb}` : base.blurb,
+    enemies: waves[0]!,
+    waves: waves.slice(1),
+    ...(scale.hpBonus > 0 ? { hpBonus: scale.hpBonus } : {}),
+  };
+};
+
+const BASES: Readonly<Record<string, EncounterDef>> = { ...SCENARIOS, ...RUN_ENCOUNTERS };
+
+/**
+ * Every fight the card run sends the player into, as three waves. Siege is
+ * three waves already and is played as it is. Provisional: the first draft
+ * of the chains, for the author to playtest.
+ */
+export const RUN_FIGHTS: Readonly<Record<string, EncounterDef>> = Object.fromEntries(
+  (
+    [
+      // Act 1.
+      ['test', ['lancers', 'houndLancer'], 0],
+      ['staggered', ['houndLancer', 'lancers'], 0],
+      ['colossus-lair', ['lancers', 'hounds'], 0],
+      ['bandit-camp', ['lancers', 'houndLancer'], 0],
+      ['stray-drones', ['houndLancer', 'lancers'], 0],
+      ['gatehouse', ['hounds', 'lancers'], 0],
+      // Act 2: its boss is the Warlord now (checkpoint 6); Colossus Escort stays a sandbox scenario.
+      ['skirmish', ['hounds', 'lancerDrone'], 1],
+      ['turret-alley', ['lancerDrone', 'turretHound'], 1],
+      ['warlord-guard', ['drones', 'turretHound'], 1],
+      ['outriders', ['lancerDrone', 'hounds'], 1],
+      ['gun-nest', ['hounds', 'lancerDrone'], 1],
+      ['the-walls', ['lancerDrone', 'turretHound'], 1],
+      // Act 3.
+      ['the-pack', ['bulwarkLancer', 'sniperHound'], 2],
+      ['wall-and-gun', ['pikemanHound', 'sniperHound'], 2],
+      ['siege', null, 2],
+      ['raiders', ['bulwarkLancer', 'pikemanHound'], 2],
+      ['warband', ['pikemanHound', 'bulwarkLancer'], 2],
+      ['last-stand', ['sniperHound', 'bulwarkLancer'], 2],
+    ] as const
+  ).map(([base, leads, act]) => {
+    const fight = runFight(BASES[base]!, leads, act);
+    return [fight.id, fight];
+  }),
+);
 
 /**
  * The tutorial's battle (`docs/spec/gymrun-patch-card-battle-hearts-and-tutorial.md`):
@@ -182,8 +296,8 @@ export const TUTORIAL_ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
   },
 };
 
-/** Every encounter the engine can lay out: the sandbox's scenarios, the card run's fights and the tutorial's. */
-export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = { ...SCENARIOS, ...RUN_ENCOUNTERS, ...TUTORIAL_ENCOUNTERS };
+/** Every encounter the engine can lay out: the sandbox's scenarios, the card run's fights, their three-wave chains and the tutorial's. */
+export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = { ...SCENARIOS, ...RUN_ENCOUNTERS, ...RUN_FIGHTS, ...TUTORIAL_ENCOUNTERS };
 
 /** What the bench and the trainer play: every encounter but the tutorial's. */
 export const BENCH_IDS: readonly string[] = Object.keys(ENCOUNTERS).filter((id) => !Object.hasOwn(TUTORIAL_ENCOUNTERS, id));

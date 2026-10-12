@@ -118,7 +118,8 @@ function stalk(ctx: Ctx, enemy: EnemyState): void {
     ctx.events.push({ t: 'stomped', enemy: enemy.id, tiles: ahead.map((t) => ({ ...t })), from: { ...from }, to: free ? { ...to } : null });
     for (const unit of unitsOn(s, ahead)) {
       if (s.phase !== 'plan') return;
-      damage(ctx, unit, RULES.stalk.damage);
+      if (unseen(ctx, unit, enemy)) continue;
+      damage(ctx, coveredBy(ctx, unit, enemy), RULES.stalk.damage);
     }
     if (!free) return;
     enemy.pos = { ...to };
@@ -194,7 +195,7 @@ function enemyMove(ctx: Ctx, enemy: EnemyState, advance: boolean): void {
   // Each condition is evaluated once, here, before the move; the act reads the stored result.
   enemy.conds = { slashInRange: holds(s, enemy, 'slashInRange') };
   // D3: the stalk replaces the step's move, once.
-  if (advance && def.stalks && !enemy.stalked && enemy.hp <= def.hp * RULES.stalk.atHpShare) {
+  if (advance && def.stalks && !enemy.stalked && enemy.hp <= enemy.maxHp * RULES.stalk.atHpShare) {
     stalk(ctx, enemy);
     if (enemy.pos) enemy.conds = { slashInRange: holds(s, enemy, 'slashInRange') };
     return;
@@ -232,6 +233,12 @@ function telegraph(ctx: Ctx, enemy: EnemyState): void {
   const act = pickAct(step.act, enemy);
   const own = enemyTiles(enemy);
   let intent: Intent;
+  // Stunned (5a): an enemy that is not a boss does nothing while it is held.
+  if (enemy.pinned > 0 && !ENEMIES[enemy.def].boss) {
+    enemy.intent = { act: 'none', n: 0, tiles: [] };
+    ctx.events.push({ t: 'telegraphed', enemy: enemy.id, step: enemy.step, intent: { ...enemy.intent, tiles: [] } });
+    return;
+  }
   // D2: pinned, it Screams instead.
   if (enemy.pinned > 0) {
     enemy.intent = { act: 'scream', n: RULES.scream.n, tiles: screamTiles(enemy) };
@@ -282,7 +289,9 @@ function enemyAct(ctx: Ctx, enemy: EnemyState): void {
     if (units.length + others.length === 0) ctx.events.push({ t: 'enemyMissed', enemy: enemy.id, act: 'scream' });
     for (const target of [...units, ...others]) {
       if (s.phase !== 'plan') return;
-      if (target.pos) damage(ctx, target, intent.n);
+      if ('mp' in target && unseen(ctx, target, enemy)) continue;
+      const hit = 'mp' in target ? coveredBy(ctx, target, enemy) : target;
+      if (hit.pos) damage(ctx, hit, intent.n);
     }
     return;
   }
@@ -300,7 +309,69 @@ function enemyAct(ctx: Ctx, enemy: EnemyState): void {
   }
   for (const unit of hits) {
     if (s.phase !== 'plan') return;
-    damage(ctx, unit, intent.n);
+    if (unseen(ctx, unit, enemy)) continue;
+    damage(ctx, coveredBy(ctx, unit, enemy), intent.n);
+  }
+}
+
+/**
+ * Cover (5a): a hit meant for `unit` goes to a living neighbour, orthogonally
+ * next to it, that is covering, the first in unit order. The unit itself when
+ * none is.
+ */
+function coveredBy(ctx: Ctx, unit: UnitState, enemy: EnemyState): UnitState {
+  const guard = livingUnits(ctx.s).find(
+    (u) => u !== unit && (u.cover ?? 0) > 0 && u.pos && unit.pos && Math.abs(u.pos.lane - unit.pos.lane) + Math.abs(u.pos.col - unit.pos.col) === 1,
+  );
+  if (!guard) return unit;
+  ctx.events.push({ t: 'covered', unit: guard.id, ally: unit.id, enemy: enemy.id });
+  return guard;
+}
+
+/**
+ * Stun (5a): an enemy that is not a boss is held for `turns` of its turns: it
+ * neither acts nor moves, and its telegraph is cleared at once so the board
+ * shows it. It wears off as a pin does, a turn at a time.
+ */
+export function stun(ctx: Ctx, enemy: EnemyState, turns: number, card: string): void {
+  if (ENEMIES[enemy.def].boss) return;
+  enemy.pinned = Math.max(enemy.pinned, turns);
+  ctx.events.push({ t: 'stunned', enemy: enemy.id, card, turns });
+  telegraph(ctx, enemy);
+}
+
+/**
+ * Stealth (Group B): an enemy's act passes over a unit under it. The act
+ * still lands where it was aimed, so a Strike stopping on a hidden unit hits
+ * nobody rather than the unit behind it.
+ */
+function unseen(ctx: Ctx, unit: UnitState, enemy: EnemyState): boolean {
+  if (!unit.stealth) return false;
+  ctx.events.push({ t: 'unseen', unit: unit.id, enemy: enemy.id });
+  return true;
+}
+
+/**
+ * Push or Pull (Group B): `enemy` moves up to `n` tiles in `dir` (+1 away from
+ * the player, -1 toward), a tile at a time, stopping where the next tile is
+ * off the board, outside its reach or held by anyone. A boss stands. A moved
+ * enemy aims again from where it now stands: its conditions are read anew and
+ * its telegraph replaced, its script step unchanged.
+ */
+export function displace(ctx: Ctx, enemy: EnemyState, dir: 1 | -1, n: number, card: string, how: 'push' | 'pull'): void {
+  const { s } = ctx;
+  if (!enemy.pos || ENEMIES[enemy.def].boss) return;
+  const from = { ...enemy.pos };
+  for (let i = 0; i < n; i++) {
+    const to = tile(enemy.pos.lane, enemy.pos.col + dir);
+    if (!to || !canStand(s, enemy, to)) break;
+    enemy.pos = to;
+  }
+  if (samePos(from, enemy.pos)) return;
+  ctx.events.push({ t: 'displaced', enemy: enemy.id, card, how, from, to: { ...enemy.pos } });
+  if (enemy.intent) {
+    enemy.conds = { slashInRange: holds(s, enemy, 'slashInRange') };
+    telegraph(ctx, enemy);
   }
 }
 

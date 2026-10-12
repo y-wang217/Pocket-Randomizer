@@ -31,9 +31,8 @@ describe('the guard bot', () => {
         });
         expect(problems, `${id} GUARD${i}`).toEqual([]);
         expect(['won', 'lost'], `${id} GUARD${i}`).toContain(played.state.phase);
-        // One Start per wave reached (Part C).
-        const waves = played.events.filter((e) => e.t === 'waveStarted').length + 1;
-        expect(played.log.actions.filter((a) => a.type === 'start')).toHaveLength(waves);
+        // One Start, for the first wave: a later wave spawns with no placement (2026-10-11).
+        expect(played.log.actions.filter((a) => a.type === 'start')).toHaveLength(1);
       }
     }
   });

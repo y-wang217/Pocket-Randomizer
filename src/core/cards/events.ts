@@ -59,9 +59,21 @@ export type BattleEvent =
   | { t: 'stomped'; enemy: EnemyId; tiles: Pos[]; from: Pos; to: Pos | null }
   /** A card an enemy grants enters the hand. */
   | { t: 'granted'; card: CardIid }
+  // Group B (card run shapes, checkpoint 4).
+  /** Push or Pull moved an enemy; its telegraph is aimed again from where it now stands. */
+  | { t: 'displaced'; enemy: EnemyId; card: CardIid; how: 'push' | 'pull'; from: Pos; to: Pos }
+  | { t: 'repaired'; unit: UnitId; card: CardIid; amount: number }
+  | { t: 'stealthed'; unit: UnitId; card: CardIid; turns: number }
+  /** An enemy's act passed over a unit under Stealth. */
+  | { t: 'unseen'; unit: UnitId; enemy: EnemyId }
+  // Checkpoint 5a.
+  | { t: 'covering'; unit: UnitId; turns: number }
+  /** A hit meant for `ally` went to `unit`, which covers it. Its `damaged` follows. */
+  | { t: 'covered'; unit: UnitId; ally: UnitId; enemy: EnemyId }
+  | { t: 'stunned'; enemy: EnemyId; card: CardIid; turns: number }
   /** A card with Uses has none left: spent until the next wave. */
   | { t: 'usedUp'; card: CardIid }
-  /** Part C: the last enemy of a wave fell and the next arrives; the battle is back in deploy. */
+  /** The last enemy of a wave fell and the next arrives at once, the units where they stand (2026-10-11). */
   | { t: 'waveStarted'; wave: number }
   // The end.
   | { t: 'won' }

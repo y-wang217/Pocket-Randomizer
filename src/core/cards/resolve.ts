@@ -16,14 +16,12 @@
  * UI never waits on an intermediate state.
  */
 import { CARDS } from '../../cardData/cards';
-import { ENCOUNTERS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
-import { UNITS } from '../../cardData/units';
 import { enemyActions, enemyMovesAndTelegraph } from './enemies';
 import type { Ctx } from './keywords';
 import { gainMp, payFor, resolveEffects, resolveMove, retire } from './keywords';
-import { cardDefOf, checkPlan, isMoveCard, livingEnemies, livingUnits, type StepResult, unitOf } from './plan';
+import { abilitiesOf, cardDefOf, checkPlan, followUps, isMoveCard, livingEnemies, livingUnits, type StepResult, unitOf } from './plan';
 import { shuffled, withStream } from './random';
 import type { BattleState, PlannedPlay, UnitId } from './state';
 
@@ -83,7 +81,7 @@ export function commit(state: BattleState): StepResult {
   const first = firstSlots(s, plan);
   const fullAtStart = Object.fromEntries(s.units.map((u) => [u.id, u.hp === u.maxHp])) as Record<UnitId, boolean>;
   const converts = (play: PlannedPlay, index: number): boolean =>
-    first[play.unit] === index && fullAtStart[play.unit] && UNITS[play.unit].abilities.some((a) => a.k === 'firstCardConverts');
+    first[play.unit] === index && fullAtStart[play.unit] && abilitiesOf(s, play.unit).some((a) => a.k === 'firstCardConverts');
 
   // 1 and 2. Every card, Moves included, in plan order.
   plan.forEach((play, index) => {
@@ -95,8 +93,13 @@ export function commit(state: BattleState): StepResult {
       return;
     }
     const def = cardDefOf(s, play.card)!;
-    if (isMoveCard(def)) playCard(ctx, play, () => resolveMove(ctx, play, def));
-    else playCard(ctx, play, () => resolveEffects(ctx, play, def, converts(play, index)));
+    if (isMoveCard(def)) {
+      // A move card's follow-ups land after the move, from where the unit then stands (4b).
+      playCard(ctx, play, () => {
+        resolveMove(ctx, play, def);
+        if (followUps(def).length > 0 && s.phase === 'plan') resolveEffects(ctx, play, def, converts(play, index));
+      });
+    } else playCard(ctx, play, () => resolveEffects(ctx, play, def, converts(play, index)));
   });
 
   // 3. Win check: the last enemy of a wave brings the next wave, of the last wave wins.
@@ -124,28 +127,21 @@ export function commit(state: BattleState): StepResult {
 }
 
 /**
- * The next wave arrives (Part C; `RULES.betweenWaves`). Each living unit keeps
- * its HP, loses its card shield, gets its base shield back, goes to 0 MP and
- * back to its scenario tile; owed MP and extra draws clear; every card a faint
- * did not remove, Once cards included, is shuffled into a fresh draw pile, in
- * deck order first so the shuffle reads no history. Then the round count
- * starts again with round 1's hand, and the battle is back in `deploy`: the
- * player places again and Start brings the wave's opening moves, under grace.
+ * The next wave arrives (`RULES.betweenWaves`, the author's ruling of
+ * 2026-10-11, `docs/spec/gymrun-card-run-shapes-prompt.md`). The cards reset
+ * and nothing else does: each living unit keeps its HP, its base shield as
+ * spent, its MP and any MP a card still owes it, and stays on its tile. Every
+ * card a faint did not remove, Once cards included, is shuffled into a fresh
+ * draw pile, in deck order first so the shuffle reads no history; extra draws
+ * owed clear. The new wave spawns at once with no placement: the round count
+ * starts again with round 1's hand, a card shield clears with it as at any
+ * turn start (R3), and the wave makes its opening moves under grace.
  */
 export function startWave(ctx: Ctx, wave: number): void {
   const { s } = ctx;
   s.wave = wave;
   s.plan = [];
   s.pendingDraws = [];
-  const encounter = ENCOUNTERS[s.encounterId]!;
-  for (const unit of livingUnits(s)) {
-    const boost = s.boosts?.[unit.id];
-    unit.shield = 0;
-    unit.baseShield = UNITS[unit.id].baseShield + (boost?.baseShield ?? 0);
-    unit.mp = Math.min(RULES.mp.cap, RULES.mp.start + (boost?.mp ?? 0));
-    unit.pendingMp = [];
-    unit.pos = { ...encounter.units.find((u) => u.def === unit.id)!.pos };
-  }
   for (const enemy of s.enemies) {
     if (enemy.wave === wave) enemy.pos = { ...enemy.spawn! };
   }
@@ -161,7 +157,8 @@ export function startWave(ctx: Ctx, wave: number): void {
   grantWave(ctx);
   s.round = 0;
   nextHand(ctx);
-  s.phase = 'deploy';
+  if (s.phase !== 'plan') return;
+  enemyMovesAndTelegraph(ctx, false);
 }
 
 /** The cards the arriving wave's enemies grant leave the reserve for the hand. */
@@ -233,9 +230,18 @@ export function nextHand(ctx: Ctx): void {
     ctx.events.push({ t: 'shieldCleared', unit: unit.id, amount: unit.shield });
     unit.shield = 0;
   }
+  // Stealth (Group B) and Cover (5a) wear off a turn at a time, with the card shield.
+  for (const unit of s.units) {
+    for (const key of ['stealth', 'cover'] as const) {
+      const left = unit[key];
+      if (left === undefined) continue;
+      if (left > 1) unit[key] = left - 1;
+      else delete unit[key];
+    }
+  }
 
   for (const unit of livingUnits(s)) {
-    for (const ability of UNITS[unit.id].abilities) {
+    for (const ability of abilitiesOf(s, unit.id)) {
       if (ability.k === 'mpAtTurnStart') gainMp(ctx, unit, ability.n, 'ability');
     }
     const owed = unit.pendingMp.reduce((sum, grant) => sum + grant.n, 0);

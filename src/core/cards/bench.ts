@@ -50,7 +50,7 @@ function enemyLeft(s: BattleState): number {
 
 /** What the enemies start with: HP and base shield. */
 function enemyStart(s: BattleState): number {
-  return s.enemies.reduce((sum, e) => sum + ENEMIES[e.def].hp + ENEMIES[e.def].baseShield, 0);
+  return s.enemies.reduce((sum, e) => sum + e.maxHp + ENEMIES[e.def].baseShield, 0);
 }
 
 export function runBattle(encounterId: string, seed: string, policy: (state: BattleState) => Action | null): BattleResult {

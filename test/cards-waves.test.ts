@@ -1,9 +1,10 @@
 /**
- * Waves (Part C, `docs/spec/gymrun-card-battle-rulings-waves-boss-reskin.md`):
- * the next wave arrives when the last enemy of the current one falls; HP
- * carries over; card shields clear, base shields come back, MP resets; every
- * card a faint did not remove is shuffled back, Once cards included; owed MP
- * and extra draws clear; the units are placed again; grace opens the wave;
+ * Waves: the next wave arrives when the last enemy of the current one falls.
+ * Since the author's ruling of 2026-10-11 (`docs/spec/gymrun-card-run-shapes-prompt.md`,
+ * superseding Part C's C1 to C5) only the cards reset: HP, base shield as
+ * spent, MP and owed MP carry, and the units stay on their tiles; every card a
+ * faint did not remove is shuffled back, Once cards included; extra draws
+ * clear; the wave spawns at once, with no placement, and opens under grace;
  * the round count starts again.
  */
 import { describe, expect, it } from 'vitest';
@@ -70,33 +71,34 @@ describe('waves', () => {
     expect(checkInvariants(s)).toEqual([]);
   });
 
-  it("brings the next wave when the last enemy falls: HP stays, the rest starts again, and it is back in deploy", () => {
+  it('brings the next wave when the last enemy falls: only the cards reset, and it spawns at once under grace', () => {
     let s = lastOfWaveOne();
     s = ok(s, { type: 'select', card: iidOf(s, 'shoot'), unit: 'B' }).state;
     const { state: next, events } = ok(s, { type: 'commit' });
     expect(events).toContainEqual({ t: 'waveStarted', wave: 1 });
     expect(events.some((e) => e.t === 'won' || e.t === 'enemyActed')).toBe(false);
-    expect([next.phase, next.wave, next.round]).toEqual(['deploy', 1, 1]);
-    // Units: HP kept, card shield gone, base shield back, MP from 0 (A gets its turn-start 1), on their scenario tiles.
+    expect([next.phase, next.wave, next.round]).toEqual(['plan', 1, 1]);
+    // Units: HP, spent base shield and tiles kept; card shield cleared at the turn start (R3);
+    // A's MP kept, plus its turn-start 1 and the 1 Focus still owed it.
     expect(next.units.map((u) => [u.id, u.hp, u.shield, u.baseShield, u.mp, u.pos])).toEqual([
-      ['A', 1, 0, 1, 1, at(1, 2)],
-      ['B', 1, 0, 1, 0, at(2, 2)],
-      ['C', 3, 0, 2, 0, at(3, 2)],
+      ['A', 1, 0, 1, 5, at(1, 2)],
+      ['B', 1, 0, 0, s.units[1]!.mp, at(2, 3)],
+      ['C', 3, 0, 0, s.units[2]!.mp, at(3, 4)],
     ]);
-    expect(next.units.every((u) => u.pendingMp.length === 0)).toBe(true);
+    expect(next.units[0]!.pendingMp).toEqual([{ n: 1, turns: 1 }]);
     expect(next.pendingDraws).toEqual([]);
     // Every card back, Prep included; a fresh hand of five.
     expect(next.piles.spent).toEqual([]);
     expect(next.piles.hand).toHaveLength(5);
     expect(next.piles.draw.length + next.piles.hand.length).toBe(DECKS['puppeteer']!.cards.length);
-    // Wave 2 on its tiles, not telegraphing until Start; then grace.
+    // Wave 2 on its tiles, already telegraphing its opening, under grace.
     const wave2 = next.enemies.filter((e) => e.wave === 1);
-    expect(wave2.every((e) => e.pos !== null && e.intent === null)).toBe(true);
-    expect(checkInvariants(next)).toEqual([]);
-    const started = ok(next, { type: 'start' }).state;
-    for (const e of started.enemies.filter((x) => x.wave === 1)) {
+    expect(wave2.every((e) => e.pos !== null && e.intent !== null)).toBe(true);
+    for (const e of wave2) {
       if (!ENEMIES[e.def].fast) expect(['none', 'shield'], `${e.id} ${e.def}`).toContain(e.intent!.act);
     }
+    expect(checkInvariants(next)).toEqual([]);
+    expect(step(next, { type: 'start' })).toMatchObject({ ok: false, reason: 'notDeploying' });
   });
 
   it("keeps a fainted unit fainted, its cards out of the reshuffle", () => {

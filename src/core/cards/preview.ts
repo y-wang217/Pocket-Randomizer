@@ -11,9 +11,8 @@
  * change what a later attack hits; nothing here plays that out.
  */
 import { RULES } from '../../cardData/rules';
-import { UNITS } from '../../cardData/units';
 import type { DamageKeyword, Pos } from './defs';
-import { cardDefOf, damageOf, livingEnemies, project, projectAt, select, type Projection } from './plan';
+import { abilitiesOf, bonusOf, cardDefOf, damageOf, livingEnemies, project, projectAt, select, type Projection } from './plan';
 import { alliesOn } from './keywords';
 import { firstSlots } from './resolve';
 import type { BattleState, CardIid, EnemyId, EnemyState, PlannedPlay, TargetId, UnitId } from './state';
@@ -131,7 +130,7 @@ function footprint(state: BattleState, k: DamageKeyword, from: Pos, tile: Pos | 
  * yet in the plan is read as appended to it.
  */
 function convertsTo(state: BattleState, play: PlannedPlay, k: DamageKeyword, targeted: boolean): DamageKeyword {
-  const ability = UNITS[play.unit].abilities.find((a) => a.k === 'firstCardConverts');
+  const ability = abilitiesOf(state, play.unit).find((a) => a.k === 'firstCardConverts');
   if (!ability || ability.k !== 'firstCardConverts' || targeted || k !== ability.from) return k;
   const unit = state.units.find((u) => u.id === play.unit);
   if (!unit || unit.hp !== unit.maxHp) return k;
@@ -161,19 +160,21 @@ export function previewPlay(state: BattleState, play: PlannedPlay, at: number = 
   const targeted = def.effects.some((e) => e.k === 'target');
   let allies: AllyHit[] = [];
   const positions = projectAt(state, at);
-  const from = positions[play.unit];
+  // A move card's follow-up attack fires from the tile its own move lands on (4b).
+  const ownMove = def.effects.some((e) => e.k === 'move') && play.choice?.tile ? play.choice.tile : null;
+  const from = ownMove ?? positions[play.unit];
   if (dmg && from) {
     const k = convertsTo(state, play, dmg.k, targeted);
     if (targeted) {
       const chosen = livingEnemies(state).find((e) => e.id === play.choice?.unit);
       add(chosen?.id);
       const tiles = !chosen ? [] : k === 'blast' ? blastTiles(chosen.pos!).map((pos) => lit(pos)) : [lit(chosen.pos!, true)];
-      attack = { act: k, n: dmg.n, tiles };
+      attack = { act: k, n: dmg.n + bonusOf(state, play.unit, k, from), tiles };
     } else {
-      attack = { act: k, n: dmg.n, tiles: footprint(state, k, from, play.choice?.tile) };
+      attack = { act: k, n: dmg.n + bonusOf(state, play.unit, k, from), tiles: footprint(state, k, from, play.choice?.tile) };
     }
     if (k === 'blast') {
-      allies = alliesOn(state, play.unit, attack.tiles.map((t) => t.pos), positions).map((unit) => ({ unit, n: dmg.n }));
+      allies = alliesOn(state, play.unit, attack.tiles.map((t) => t.pos), positions).map((unit) => ({ unit, n: attack!.n }));
     }
   }
 
@@ -187,7 +188,13 @@ export function previewPlay(state: BattleState, play: PlannedPlay, at: number = 
         add(play.unit);
         break;
       case 'grantMove':
+      case 'repair':
+      case 'pull':
         add(play.choice?.unit);
+        break;
+      case 'stealth':
+      case 'cover':
+        add(play.unit);
         break;
       default:
         break;

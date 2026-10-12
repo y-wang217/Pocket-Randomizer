@@ -25,6 +25,13 @@ export interface UnitState {
   baseShield: number;
   mp: number;
   fainted: boolean;
+  /**
+   * Stealth: enemy phases left in which the enemies' acts pass over this unit.
+   * Absent when none, so a battle that never plays Stealth holds no field.
+   */
+  stealth?: number;
+  /** Cover: enemy phases left in which this unit takes the hits meant for its neighbours. Absent when none. */
+  cover?: number;
   /** Start-of-turn MP still owed by a card (Focus): one entry per grant. */
   pendingMp: { n: number; turns: number }[];
 }
@@ -55,6 +62,8 @@ export interface EnemyState {
   step: number;
   /** Turns of a Harpoon's pin still to come (D); 0 when free. */
   pinned: number;
+  /** Its HP at full: its definition's plus the encounter's bonus (checkpoint 6). */
+  maxHp: number;
   /** The base shield a Harpoon took, returned on its second pinned turn. */
   stripped: number;
   /** Its one stalk is spent (D3). */

@@ -16281,6 +16281,12 @@ wave under grace. Siege's grade total is the sum of its waves (C8). The guard
 bot counts a cleared wave as a win, or its search would leave a wave's last
 enemy standing rather than face the next.
 
+*2026-10-11, superseded:* C1, C3 and C5 as built above are replaced by the
+author's ruling in [`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md):
+between waves only the cards reset. MP, owed MP and spent base shield now
+carry, the units stay on their tiles, and the battle does not return to
+`deploy`. C2, C4 and C6 stand. Section 132.
+
 **Siege** (C7, the session's draft): Drone, Lancer, Hound (grade 4); Bulwark,
 Sniper, a seeded Lancer, Hound (7); the Colossus (10). Guard bot, seeds
 `SG0..SG199`: won 196/200; per battle reaching the wave, unit HP lost 0.16,
@@ -16486,6 +16492,13 @@ draft for the author to play and overrule:
 
 **The bench**: `balance.md` section 0's card run row. The guard bot clears
 all 20 runs, so the first lever a playtest will reach for is difficulty.
+
+*2026-10-11 and 2026-10-12, superseded in part:* the shape above has moved
+under the card run shapes prompt (sections 132 to 139). Every fight is three
+waves, and the run starts from a basic ten-card deck. A boss offers two
+talents and a stat. Act 2's boss is the Warlord, not Colossus Escort, and
+fights scale by act. Provisional readings 6 (HP full at every battle: now at
+every fight of three waves) and 7 (one upgrade per unit) are replaced there.
 
 ## 126. The Node leg's reporter timeout was one test, not load
 
@@ -16827,7 +16840,7 @@ with it, but five tests that open a page themselves still went to
 map, which the card run never draws: `visual-v1` (the reload that resumes a
 saved run), `visual-v2` (copying the seed stamp), `visual-v3` (the parallax
 trace's reduced-motion page), `visual-motion` and `visual-release-c` (both
-reduced motion). Each now opens `${harness.url}/gymrun.html`, with its seed
+reduced motion). Each now opens `gymrun.html` under the harness URL, with its seed
 where it had one. No version axis moves.
 
 **2026-10-11, wider than filed.** The whole Chromium half, run after the five
@@ -16845,3 +16858,566 @@ were fixed, found the same cause in two more places, both red on `main` at
   It now fetches `./gymrun.html`.
 
 With both, the Chromium half is 34 files, all passing.
+
+## 132. Card run shapes, checkpoint 1: only the cards reset between waves, and every run fight is three waves
+
+**2026-10-11**, on `claude/card-run-shapes`, from `main` at `cf496bd`.
+Prompt [`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md),
+runthrough [`reports/card-run-shapes-runthrough.md`](reports/card-run-shapes-runthrough.md),
+the author's answers filed under the prompt. `CARD_ENGINE_VERSION` moves to
+`cards-0.6.0` (a log with a second wave replays differently) and
+`CARD_RUN_VERSION` to `cardrun-0.2.0` (every fight's encounter changed). A
+saved run from `cardrun-0.1.0` is dropped loudly, as section 125r built.
+None of GYMRUN's four axes moves; `contentHash` holds, since nothing under
+`src/data/` changed.
+
+- **The rule** (`RULES.betweenWaves`, `startWave` in `core/cards/resolve.ts`).
+  When the last enemy of a wave falls, only the cards reset: every card a
+  faint did not remove, Once cards included, is shuffled back in deck order
+  first, a fresh hand is dealt, and extra draws owed clear. Each living unit
+  keeps its HP, its MP and any MP a card still owes it. Its base shield stays
+  as spent, and it stays on its tile. A card shield clears with the new
+  round's start, as at any turn start (R3), which is what "shields don't
+  reset" leaves for it. The new wave spawns at once with no `deploy` phase:
+  its enemies make their opening move and telegraph straight away, under
+  grace, as `start` makes wave 1's. The round count restarts (C6 stands).
+  Superseded: C1, C3 and C5 (section 125p, dated note there). The old
+  literal is deleted from `Rules`, not kept behind a flag.
+- **The run's fights** (`RUN_FIGHTS` in `cardData/encounters.ts`, `ACTS` in
+  `cardData/cardrunTables.ts`). Every battle the run starts (main fights,
+  bosses, Town and City quests, the Wild's ambush) is three waves: two light
+  lead waves from `LEAD`, then the scenario itself as the third, on its own
+  tiles. Siege is three waves already and is played as it is. Units start
+  each fight at full HP (Q3). The lead waves are seeded tiles, grades 2 to 4,
+  heavier each act; every chain is the session's first draft. The sandbox's
+  scenarios are untouched, and its menu does not list the chains.
+- **Copy.** Siege's blurb now reads "Only the cards reset between waves." in
+  all eight languages; the chains' blurbs are English only, like the rest of
+  the run's copy (125r).
+- **Tests.** `test/cards-waves.test.ts` holds the new rule (MP 3 plus the
+  Commander's turn-start 1 plus the 1 Focus owes him is 5; tiles and spent
+  base shields kept; the wave telegraphing under grace in `plan`; a Start
+  refused). `test/cards-guard.test.ts` expects one Start per battle.
+  `test/cards-run.test.ts` holds that every fight the acts name is three
+  waves with its scenario last. The friendly-fire fixture log (Skirmish, one
+  wave, unchanged under the new rule) is restamped `cards-0.6.0`.
+- **The bench, recorded and not chased** (`balance.md`, the card run). Still
+  20 of 20 runs won and 13.30 fights, the same as `cardrun-0.1.0`. Runs are
+  about 44% longer (a mean of 675 actions against 469). A probe over the same
+  20 seeds, not committed, measured **0.71 HP lost per three-wave fight**,
+  against 0.80 per one-wave battle on `cardrun-0.1.0`. 60 faints in 266
+  fights (Commander 40, Gunner 17, Dasher 3), and 5 fights ended with 2 HP or
+  less left. Carrying MP is the reason, as the runthrough's section 2
+  warned: waves 2 and 3 open with the ults charged and the units already
+  forward. On its own the rule does not make the run harder for this bot.
+  Checkpoints 2 (the basic deck) and 6 (enemy scaling) are the levers left.
+- **Red on `main`, fixed here.** `test/boundaries.test.ts`'s documentation
+  path check failed on `main` at `cf496bd`, because section 131 backticked
+  `${harness.url}` followed by `/gymrun.html`, which the check reads as a repo
+  path. The sentence now names `gymrun.html` under the harness URL. Wording
+  only.
+
+## 133. Card run shapes, checkpoint 2: a basic starting deck, Marksman as a talent, and rewards that replace
+
+**2026-10-11**, on `claude/card-run-shapes`, after section 132. From
+[`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md)
+and the author's go-ahead filed under it: "Everything we take away we give
+back in appropriate upgrades." `CARD_ENGINE_VERSION` moves to `cards-0.7.0`
+(a run battle's Gunner no longer has its Pierce unless the run earned it) and
+`CARD_RUN_VERSION` to `cardrun-0.3.0` (a new starting deck, a new logged
+action). None of GYMRUN's four axes moves; `contentHash` holds.
+
+- **The starting deck** (`STARTING_DECK`, `cardData/cardrunTables.ts`):
+  - Baton (Commander, 1, Strike 1), Shoot (Gunner), Slash (Dasher).
+  - A Brace for each unit (0, Shield 1 self; one card per owner, ids
+    `brace-a` to `brace-c`, all named Brace).
+  - Move twice, Attack and Dig In.
+
+  Ten cards, each one effect, none an ult, none costing more than 1. Each
+  has an upgrade (`baton+` Strike 2, `brace-*+` Shield 2). The new cards
+  wear existing art: Attack's for Baton and Prep's for Brace.
+  `RUN_RULES.minDeck` drops from 10 to 8, so the shrine can still thin it.
+- **What is taken away, and where it comes back:**
+  - The Puppeteer's other ten cards (Call Medic, Command, Focus, Moon Strike,
+    Resupply, Artillery, Fire!, Dash, Need Help, Prep) join `TOWN_POOL`.
+    Every card offer draws from it: a Town's, an ambush's and the Peddler's.
+    A test holds that every Puppeteer card the starting deck leaves out is in
+    the pool.
+  - The Gunner's first-card Pierce comes off `UNITS.B` and becomes the
+    **Marksman** talent (`cardData/talents.ts`). A boss's offer for the
+    Gunner is Marksman until it is taken, then the stat the node drew
+    (`offersFor`). The stat is drawn either way, so taking it moves no draw
+    (`CLAUDE.md`, Randomness: draw every outcome, select at resolution).
+- **Talents in the engine.** A `TalentDef` names its unit and its abilities.
+  `UnitBoost.talents` holds what a run has taken. `abilitiesOf(state, unit)`
+  (`core/cards/plan.ts`) is a unit's own abilities, then its talents'. The
+  four readers that read `UNITS[id].abilities` read it now: the round's
+  conversion, the resolver, the preview and the turn-start MP. A deck can
+  field talents from the start (`DeckDef.talents`), and the Puppeteer fields
+  Marksman, so **the sandbox plays exactly as before**. A battle with a
+  loadout fields only the loadout's talents, never the deck's. The session's
+  first build fell back to the deck's and handed every run battle Marksman;
+  the new test caught it before commit. A loadout naming an unknown talent,
+  or one for another unit, is refused like an unknown card.
+- **Rewards replace** (Q4). Taking a card from an offer opens `replace`: the
+  player picks the deck card it goes in place of. There is no skip at either
+  step, and the deck never grows from a card reward. The Peddler's card goes
+  through the same screen. Equipment still adds, since it leaves the deck
+  once used. The run bot replaces a starting card of the new card's owner
+  first.
+- **Screens.**
+  - The run's `replace` screen shows the card being taken, then the deck to
+    tap.
+  - A boss's talent offer reads "Talent: Marksman." and its line.
+  - The team panel lists a unit's talents beside its stats.
+- **Held by** `test/cards-run-shapes.test.ts` (seven cases),
+  `test/cards-run.test.ts` (the Town's replace step and its refusals, the
+  Peddler's, the Gunner's boss slot) and `test/cards-run-shell.test.ts` (a
+  reward taken on screen and a deck card tapped in jsdom, the saved log
+  replaying to it).
+- **The bench** (`balance.md`, the card run): **14 of 20 runs won, 12.20
+  fights, 2.60 bosses**, against 20 of 20, 13.30 and 3.00 on `cardrun-0.2.0`.
+  The first draft that moves it. Losses come in act 3 mostly (Siege twice,
+  The Pack, Wall and Gun, Raiders), and one at the first boss. Decks end at 8
+  to 11. The run bot still takes the first boss offer, the Commander's, so it
+  never takes Marksman; the number is a floor for a player who would.
+  **Recorded, not chased.**
+
+## 134. Card run shapes, checkpoint 3: Group A as rewards
+
+**2026-10-11**, on `claude/card-run-shapes`, after section 133. From
+[`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md)
+(Group A is the session's table, filed there as the referent) and the
+author's go-ahead filed under it. `CARD_RUN_VERSION` moves to
+`cardrun-0.4.0` (the card pool and the market draw from more cards).
+`CARD_ENGINE_VERSION` holds at `cards-0.7.0`: no rule or resolver changed,
+and every existing log replays as it did. `contentHash` holds.
+
+| Card | Owner | Cost | Effects | Upgrade |
+|---|---|---|---|---|
+| Whirlwind (ult) | Dasher | 4 | Blast 2, Shield 2 self | cost 3 |
+| Rally | Commander | 2 | Shield 2 ally, next hand +1 | cost 1 |
+| Mark Target | Commander | 1 | Strike 1, Target | Strike 2 |
+| Suppress | Gunner | 3 | Blast 1, Target, Shield 1 self | Shield 2 |
+| Second Wind | Neutral | 1 | +1 MP, next hand +1 | cost 0 |
+| Flashbang (equipment, Once) | Neutral | 0 | Blast 1, next hand +1 | none, like all equipment |
+
+The five cards join `TOWN_POOL`. Flashbang joins the City's `MARKET` at 3
+supplies.
+
+**2026-10-11, deviates from the table filed with the prompt.** Two of the
+session's drafts used combinations the engine does not resolve. A card with
+any Move is a move card: `isMoveCard` sends it to `resolveMove` alone, and
+`needsOf` asks only for a tile, so its other effects would be dropped
+silently. A damage card with a target cannot also shield an ally, because
+both read the one `choice.unit`. So:
+
+- **Whirlwind** was Move 1, Slash 3. It is **Blast 2 and Shield 2 self**:
+  still the Dasher's ult, and the area hit the Control shape asks of him
+  ("slasher aoes them down").
+- **Rally** was Grant Move 1, Shield 1 ally. It is **Shield 2 ally, next hand
+  +1**: Puppeteer support without the move.
+
+A move that also strikes or shields is engine work: a resolver after the move,
+a preview from the moved tile, a legality check on the result. It belongs
+with Group B's resolvers in checkpoint 4 if the author wants it back.
+
+*2026-10-11, superseded by section 136:* checkpoint 4b built that engine
+work. Whirlwind is Move 1, Slash 3 and Rally is Grant Move 1, Shield 1 to
+the ally, as the filed table drafted them. The two substitutes above are
+gone.
+
+- **Whirlwind is the Dasher's first ult.** Section 130's ruling ("the Sword
+  dasher has none until the campaign hands him one") is met, not changed:
+  the run's reward is that hand-off. `test/cards-tutorial.test.ts` now lists
+  three ult cards and reads the dasher's ult from a deck holding Whirlwind.
+- **Held by** `test/cards-run-shapes.test.ts`: each card is in its pool,
+  each has an upgrade, and each one, played on a board and committed, emits
+  every effect it names. That covers damage, the shield on its unit, the
+  queued draw, the MP, and the equipment used up.
+- **The bench** (`balance.md`, the card run): **16 of 20 runs won, 12.10
+  fights, 2.60 bosses**, against 14 of 20, 12.20 and 2.60. Fights and bosses
+  are flat. Two more wins in twenty seeds is within what one seed's battles
+  move, not a finding. The pool grew from 18 cards to 23, so any one card
+  shows up less. The bot takes the first card of every offer, so the bench
+  cannot tell a good card from a bad one. **Recorded, not chased.**
+
+## 135. Card run shapes, checkpoint 4: Group B, the four reserved effects built
+
+**2026-10-11**, on `claude/card-run-shapes`, after section 134. From
+[`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md)
+and the author's go-ahead filed under it, read as Group B now and a move
+carrying a second effect as checkpoint 4b. `CARD_ENGINE_VERSION` moves to
+`cards-0.8.0` (four new effects, new events, a new unit field) and
+`CARD_RUN_VERSION` to `cardrun-0.5.0` (the pool and the market grew). Every
+existing log replays as it did; the wave-free fixture is restamped.
+`contentHash` holds.
+
+**The rules** (`Effect` in `core/cards/defs.ts`; `RESERVED_EFFECTS` is deleted
+now that each effect has a resolver, and the data test that guarded it now
+holds that the Puppeteer's deck uses none of them):
+
+- **Push n.** Every enemy the card's damage landed on moves up to n tiles
+  away from the player, one tile at a time. It stops where the next tile is
+  off the board, outside the enemy reach, or held by anyone. A boss stands.
+- **Pull n.** A chosen enemy, at any range, moves up to n tiles toward the
+  player under the same stops, so never past column 3, the enemies' nearest.
+  A boss is never a choice: with only a boss on the board the card has no
+  target (`checkEffects`, `noTarget`).
+- **Displaced enemies aim again.** `displace` (`core/cards/enemies.ts`)
+  re-reads the enemy's conditions and replaces its telegraph from its new
+  tile, its script step unchanged, before the enemies act. Pushing a Bulwark
+  out of the danger zone takes its Slash off the board. A push that moves
+  nothing emits nothing. Plan legality still projects only the units' Moves,
+  so a later card whose target a push moved fizzles at resolution, as one
+  whose target died always has.
+- **Repair n.** A chosen friendly unit, the player included, heals up to n
+  HP, never past its max. A unit at full HP takes the card for 0, and says
+  so (`repaired`, amount 0).
+- **Stealth n.** The playing unit's `stealth` holds n. While it does, an
+  enemy's act passes over that unit: a Strike, Pierce, Slash, Scream or stalk
+  stomp that would hit it emits `unseen` and does nothing to it. The act
+  still lands where it was aimed, so a Strike stopping on a hidden unit hits
+  nobody rather than the unit behind. It wears off a turn at a time with the
+  card shield, so n = 1 covers exactly the enemy phase after the card. A
+  fainting unit loses it. The field is absent when 0, so a battle that never
+  plays Stealth carries no new key.
+
+**The cards:**
+
+| Card | Owner | Cost | Effects | Upgrade | Where |
+|---|---|---|---|---|---|
+| Shove | Dasher | 1 | Slash 1, Push 1 | Push 2 | card pool |
+| Patch Up | Commander | 2 | Repair 1, ally | Repair 2 | card pool |
+| Grapple (equipment, Once) | Neutral | 0 | Pull 2 | none | market, 3 |
+| Smoke (equipment, Once) | Neutral | 0 | Stealth 1, self | none | market, 3 |
+
+**Screens** (the sandbox, outside the bible). A card's face shows the move
+icon for Push and Pull and the pack's existing repair and stealth icons. Its
+lines read "Push n", "Pull an enemy n", "Repair n, ally" and "Hidden n turn".
+The round playback narrates a displaced enemy, a repair, a unit hidden, and
+an act that passed over it, moving the enemy on its board as it goes. A
+hidden unit's token fades with a dashed outline; with n = 1 that is seen in
+the round's playback. Copy is in all eight languages, machine-drafted like the
+rest.
+
+**Two harness fixes, needed to test this:**
+
+- `checkInvariants` counted a battle's cards against its encounter's deck
+  (`DECKS[deckId]`), so it would have failed every battle dealt a card
+  run's loadout. No test ran it on one before. It now counts the battle's
+  own card instances, granted cards included.
+- `playBattle` (`core/cards/bots.ts`) takes an optional loadout, so the
+  random bot can play a run's deck.
+
+**Held by** `test/cards-group-b.test.ts`:
+
+- Push moves the enemy it hit and re-aims it.
+- Push stops short of a held tile and never moves a boss.
+- Pull reaches any range and stops at column 3.
+- A boss is never a Pull choice.
+- Repair heals to the max and no further.
+- Stealth: a Strike stopping on the hidden unit does no damage, and the
+  stealth is gone by the next plan.
+- 140 random-bot battles (35 bench encounters, four seeds each) on a deck holding every
+  Group A and B card hold every invariant after every step. Every log
+  replays, and the bot reached each new effect.
+
+**The bench** (`balance.md`, the card run): **16 of 20 runs won, 12.15
+fights, 2.60 bosses**, flat against section 134. The run bot takes the first
+offer and buys the first affordable market item, so it rarely holds Group B
+and cannot rate it. **Recorded, not chased.**
+
+## 136. Card run shapes, checkpoint 4b: a move that carries a second effect
+
+**2026-10-11**, on `claude/card-run-shapes`, after section 135. From the
+author's go-ahead filed under
+[`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md).
+`CARD_ENGINE_VERSION` moves to `cards-0.9.0` (a move card's other effects
+now resolve) and `CARD_RUN_VERSION` to `cardrun-0.6.0` (Whirlwind and Rally
+changed). `contentHash` holds.
+
+**The rule.** A move card (Move or Grant Move) may carry follow-up effects
+(`followUps` in `core/cards/plan.ts`). They resolve after the move, from
+where the unit then stands. That is the same order the engine already used
+for the plan's projection, so a card's move and attack read as one play.
+
+- **Allowed follow-ups** (`FOLLOW_UPS`): Strike, Pierce, Slash, Shield, +MP,
+  extra draw, Push and Stealth. These are the effects that ask for no choice
+  of their own; the move card's one choice is already its tile, or its ally
+  and tile. Blast, Target, Pull, Repair and Harpoon would each need a second
+  choice, so a move card cannot carry them.
+- **A granted move carries no damage**, since the damage would come from the
+  Commander rather than the ally that moved. A friendly Shield on it lands on
+  that ally, the unit its choice already names.
+- **Legality** (`walk` and `checkAppend`) runs the move's check, then the
+  follow-ups' check against the board the move leaves. So Whirlwind offers
+  only the tiles its Slash can hit from: in the danger zone, with an enemy in
+  the next column. A tile its Slash could not use is not offered rather than
+  allowed to fizzle.
+- **The preview** (`previewPlay`) lights a moving attack from its
+  destination, so the board shows what Whirlwind will hit from the tile
+  being chosen.
+- **A card's face** shows its attack before its move (`effectFace`), so
+  Whirlwind wears Slash 3. Its lines read Move 1, Slash 3, in the card's
+  order. Existing move cards carry no attack, so no face changed.
+
+**The cards, back to the drafts filed with the prompt:**
+
+| Card | Owner | Cost | Effects | Upgrade |
+|---|---|---|---|---|
+| Whirlwind (ult) | Dasher | 4 | Move 1, then Slash 3 | cost 3 |
+| Rally | Commander | 2 | Grant Move 1, then Shield 1 to that ally | cost 1 |
+
+Rally wears Command's art now, since it is Command with a shield.
+
+**Held by** `test/cards-move-follow-ups.test.ts`:
+
+- Every move card keeps to the allowed follow-ups, and a granted move
+  carries no damage.
+- Whirlwind offers exactly one tile on a board built for it (the one its
+  Slash can reach from) and previews its hits from there. It then moves and
+  hits both enemies in the next column for 3, every hit after the move.
+- Rally moves the Gunner where the Commander sends it, and the Shield lands
+  on the Gunner.
+
+The Group B random-bot sweep (section 135) holds the invariants with both
+cards in its deck. Group A's behaviour test leaves these two to this file.
+
+**The bench** (`balance.md`, the card run): **14 of 20 runs won, 12.00
+fights, 2.50 bosses**, against 16 of 20, 12.15 and 2.60. Within the noise
+of twenty seeds; only two cards changed. **Recorded, not chased.**
+
+## 137. Card run shapes, checkpoint 5a: Cover, Stun, and talents for every unit
+
+**2026-10-12**, on `claude/card-run-shapes`, after section 136. From the
+author's go-ahead for 5a and 5b, filed under
+[`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md).
+`CARD_ENGINE_VERSION` moves to `cards-0.10.0` (two effects, three ability
+kinds, a stunned enemy's telegraph) and `CARD_RUN_VERSION` to `cardrun-0.7.0`
+(a boss's offers changed). `contentHash` holds.
+
+**Cover n** (Q5). For the next n enemy phases, an enemy act that would hit a
+unit orthogonally next to the covering unit hits the covering unit instead
+(`coveredBy`, `core/cards/enemies.ts`). That covers a Strike, Pierce, Slash,
+Scream or stalk stomp; the first covering neighbour in unit order takes it.
+`covered` says who took what for whom. A hidden unit is passed over before
+cover is asked, so Stealth and Cover do not stack on one hit. Cover wears off
+with Stealth and the card shield, and a fainting unit loses it. Cover is
+allowed as a move follow-up (`FOLLOW_UPS`).
+
+**Stun n** (Q5). Every enemy the card's damage landed on and left standing,
+not a boss, is held for n of its turns (`stun`). It neither acts nor moves.
+Its telegraph is cleared at once, so the board shows the stun. It reuses the
+Harpoon's `pinned` count and wears off the same way, a turn at a time in the
+move phase. A held enemy that is not a boss telegraphs nothing; a held boss
+still Screams, as Part D built. The Harpoon pins bosses and Stun holds
+everyone else. The playback says "shakes off the stun" for one and "tears the
+harpoon out" for the other.
+
+**Talents** (`cardData/talents.ts`). Two or three per unit, one for each
+shape the author named. Three new ability kinds: `bonus`, which adds to one
+effect of the unit's own cards, optionally only from the danger zone;
+`coverOnShield`; and `equipmentDraws`.
+
+| Talent | Unit | Does | Shape |
+|---|---|---|---|
+| Battery | Commander | +1 MP at each turn start | Bodyguard and battery |
+| Field Medic | Commander | Shields and Repairs +1 | Puppeteer |
+| Marksman | Gunner | first Strike a turn becomes Pierce at full HP | given back (133) |
+| Siege Mode | Gunner | Blast +1 from the danger zone | Escort artillery |
+| Quartermaster | Gunner | equipment it plays: next hand +1 | Control |
+| Bodyguard | Dasher | a Shield on itself also Covers its neighbours | Bodyguard and battery |
+| Sweep | Dasher | Slash +1 | Control and sweep |
+
+A bonus is added where the card resolves (`bonusOf`, `core/cards/plan.ts`):
+to the damage of the keyword the card resolves as, after Marksman's
+conversion, and to friendly fire too. It is also added to the preview's
+number, so the board shows what the round will do. Every Blast is played
+from the danger zone (`RULES.keywordZone`), so Siege Mode's condition always
+holds today; it is written as the talent says, for a rule that may change.
+
+**The boss screen.** **Supersedes section 125r's provisional reading 7**
+("one boss upgrade per unit") and section 133's one-talent slot. A boss now
+offers two talents and a stat:
+
+- Marksman first while untaken, so everything taken away stays on offer.
+- Then the next untaken talent in an order the boss draws at generation
+  (`FightNode.talentOrder`, its own `talents` stream).
+- Then a stat, for a unit neither talent is for when there is one.
+
+The stats draw exactly as before, on their own stream. What the player took
+only selects among what was drawn (`offersFor`). The run's two boss screens
+hand out two talents at most, so which two is the run's shape choice.
+
+**The cards:**
+
+| Card | Owner | Cost | Effects | Upgrade |
+|---|---|---|---|---|
+| Guard Duty | Dasher | 1 | Shield 1 self, Cover 1 | Shield 2 |
+| Concuss | Gunner | 2 | Strike 1, Stun 1 | Strike 2 |
+
+Both join the card pool.
+
+**Screens.**
+
+- Cover wears the shield icon on a card's face and Stun the pinned icon.
+- The lines read "Cover neighbours n turn" and "Stun what it hits n turn".
+- The playback narrates covering, a covered hit, a stun and its end, in all
+  eight languages.
+- A stunned enemy's panel shows its turns held, as a pinned boss's does.
+- The run's team panel already lists talents by name (133).
+
+**Held by** `test/cards-shapes-talents.test.ts`:
+
+- Cover sends a lane Strike meant for the Gunner to the Dasher beside it,
+  only for an orthogonal neighbour, and wears off.
+- Stun clears the Lancer's telegraph, it does not act, and it aims again next
+  round; a boss is never stunned.
+- Each talent changes what it says. Siege Mode shows in the preview too.
+- 105 random-bot battles (35 encounters, three seeds) with every talent taken
+  and Cover and Stun in the deck hold the invariants after every step, every
+  log replays, and the bot reached each new event.
+
+`test/cards-run.test.ts` and `test/cards-run-shapes.test.ts` hold the new
+boss screen.
+
+**The bench** (`balance.md`, the card run): **13 of 20 runs won, 11.45
+fights, 2.40 bosses**, against 14 of 20, 12.00 and 2.50. The run bot takes
+the first boss offer. That was the Commander's stat, nearly always +1 card
+slot; now it is Marksman at the first boss and a drawn talent at the second.
+Losing a card slot each run is the likeliest reason for the drop, and four
+more cards in the pool thin each offer. **Recorded, not chased.**
+
+## 138. Card run shapes, checkpoint 5b: the shape cards, and offers drawn by shape
+
+**2026-10-12**, on `claude/card-run-shapes`, after section 137. Same
+go-ahead. `CARD_RUN_VERSION` moves to `cardrun-0.8.0` (offers are drawn
+differently, the pool and the market grew). `CARD_ENGINE_VERSION` holds at
+`cards-0.10.0`: no rule or resolver changed. `contentHash` holds.
+
+**The shapes** (`SHAPES`, `cardData/cardrunTables.ts`). The author's three
+examples and the Puppeteer, each with its plan in a line. Every reward card
+belongs to exactly one, and `TOWN_POOL` is now their union, shape by shape.
+
+| Shape | Plan | Cards |
+|---|---|---|
+| Puppeteer | the Commander moves and shields the others | Call Medic, Command, Focus, Need Help, Resupply, Orders, Fortify, Rally, Patch Up |
+| Bodyguard and Battery | the Dasher tanks and blocks; the Commander only nukes and banks mana | Moon Strike, Mark Target, **Overcharge**, Second Wind, Prep, Guard Up, Guard Duty |
+| Escort Artillery | the Commander walks the Gunner into the danger zone, the Dasher defends, the Gunner lays artillery | Artillery, Fire!, Volley, Snipe, Suppress, **Barrage**, Dash, Sprint, **Interpose** |
+| Control and Sweep | the Gunner runs equipment and holds enemies; the Dasher sweeps them down | Concuss, Shove, Cleave, Whirlwind, Jab |
+
+The talents of section 137 are matched to the same four. **Riot Net**, Control's
+equipment, sells at the market.
+
+**The new cards:**
+
+| Card | Owner | Cost | Effects | Upgrade | Where |
+|---|---|---|---|---|---|
+| Overcharge | Commander | 3 | Strike 3 | cost 2 | Bodyguard and Battery |
+| Barrage (ult) | Gunner | 5, the cap | Blast 3 | cost 4 | Escort Artillery |
+| Interpose | Dasher | 1 | Move 1, then Cover 1 | cost 0 | Escort Artillery |
+| Riot Net (equipment, Once) | Neutral | 0 | Blast 1, Stun 1 | none | market, 4 |
+
+Barrage is the Gunner's second ult. The bar marks the cheaper one it holds
+(section 130), so a deck with Artillery still marks 4. Interpose is the first
+reward built on section 136's follow-ups and section 137's Cover: step beside
+the Gunner and take its hits.
+
+**Offers by shape** (`shapedOffer`, `core/cards/cardrun.ts`). A Town's offer
+and an ambush's draw three of the four shapes, then one card from each, on
+the streams they always used. The shapes share no card, so the three are
+always distinct, and there is still no skip (`CLAUDE.md`, Rewards). The
+Peddler's single card still draws from the whole pool. The offer screen
+shows each card's shape under it, with its plan as the tooltip
+(`.cr-shape`).
+
+**Held by** `test/cards-shapes-offers.test.ts`:
+
+- The shapes divide the pool exactly: no card in two, none from the starting
+  deck, none equipment, each with an upgrade, at least five per shape.
+- Every Town and ambush offer over four seeds spans three shapes.
+- Overcharge strikes for 3, and Barrage blasts for 3 at cost 5 as an ult.
+- Interpose offers the step beside the Gunner, moves, then Covers, and takes
+  the lane Strike meant for the Gunner.
+- Riot Net stuns both enemies its Blast covers.
+
+`test/cards-run-shell.test.ts` reads three shape tags from three different
+shapes on the offer screen. `test/cards-tutorial.test.ts` lists Barrage among
+the ult cards.
+
+**The bench** (`balance.md`, the card run): **16 of 20 runs won, 12.35
+fights, 2.70 bosses**, against 13 of 20, 11.45 and 2.40. The run bot takes
+the first card of every offer, which is now one card of a drawn shape rather
+than a draw from the whole pool, so its decks change. That is what moved the
+bench, not a measure of the shapes. **Recorded, not chased.**
+
+## 139. Card run shapes, checkpoint 6: enemies scale by act, veterans, and a second boss
+
+**2026-10-12**, on `claude/card-run-shapes`, after section 138. From the
+runthrough's section 3.4 and the author's go-ahead filed under
+[`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md).
+`CARD_ENGINE_VERSION` moves to `cards-0.11.0` (an enemy's max HP is its own,
+an encounter may add HP, eight new enemies) and `CARD_RUN_VERSION` to
+`cardrun-0.9.0` (every act 2 and act 3 fight changed). `contentHash` holds.
+
+**HP by act** (`ACT_SCALING`, `cardData/encounters.ts`). An encounter may
+carry `hpBonus`, and every enemy of the battle is laid out with that much
+more HP (`layoutBattle`). Act 1 adds nothing, act 2 adds 1 and act 3 adds 2,
+bosses included: the last Colossus has 14. Each enemy now holds its own
+`maxHp`. The board's hearts, the Colossus's stalk threshold, its panel's
+"stalks at" and the bench's starting total read it in place of the
+definition's HP. The sandbox's scenarios carry no bonus and play as before.
+
+**Veterans** (`VETERAN`). Each of the seven plain enemies has a harder
+version: the same kind of body, a pattern with fewer idle steps or a bigger
+hit. Act 2's two lead waves and every wave of act 3 field them; act 1 fields
+none.
+
+| Plain | Veteran | What changed |
+|---|---|---|
+| Drone | Drone Mk II | its shield step is a Strike 2 |
+| Lancer | Lancer Captain | 3 HP, Pierce 2 |
+| Hound | Dire Hound | its advance step strikes too |
+| Turret | Heavy Turret | base shield 2, Strike 2 twice in three steps |
+| Bulwark | Juggernaut | 5 HP, Slash 2 |
+| Sniper | Deadeye | base shield 1, Strike 3 every other step |
+| Pikeman | Halberdier | its cycle a step shorter |
+
+**The Warlord**, act 2's boss in Warlord's Guard (a Hound either side of it):
+
+- 10 HP, base shield 2, one tile, so it hunts lanes as the Colossus cannot.
+- It cycles Shield 2, Lance (hunt, Pierce 2), and Cleave (Slash 2 from the
+  danger zone, else advance and Strike 2).
+- A boss: Push, Pull and Stun do not move or hold it, and a Harpoon pins it
+  if one is in hand. It grants no Harpoon; that is the Colossus's answer.
+- Colossus Escort leaves the run and stays a sandbox scenario. The bosses are
+  now Colossus Lair, Warlord's Guard and Siege; the run plays Siege as
+  `run-siege`, scaled.
+
+Markers: a veteran wears its plain kind's until its own art arrives, and the
+Warlord the base marker. Names are English only, like the run's other copy.
+
+**Held by** `test/cards-act-scaling.test.ts`:
+
+- Each veteran keeps its plain enemy's speed and boss status, with at least
+  its HP and shield and grade. Each hits more often or harder.
+- Every fight of every act carries its act's HP and its act's veterans.
+- A run battle lays its enemies out at the act's HP, `maxHp` included, and
+  the view reads it; the sandbox's Siege does not scale.
+- The Warlord is act 2's boss, one tile, damaged by Concuss but never
+  stunned.
+
+`test/cards-run.test.ts` holds that each fight's last wave is its scenario,
+on its own tiles, as veterans in act 3. `test/cards-new-enemies.test.ts`
+leaves the new eight to this file. The guard bot's whole-battle test plays
+every new encounter.
+
+**The bench** (`balance.md`, the card run): **7 of 20 runs won, 9.40
+fights, 1.80 bosses**, against 16 of 20, 12.35 and 2.70. The first draft
+that makes the run lose more than it wins. Act 2 is the wall: Turret Alley
+stopped five runs, Warlord's Guard three and Skirmish one. Act 3 stopped
+three, and the first Colossus one. **Recorded, not chased**, per
+`balance.md` section 0. The lever, if a playtest asks for one, is
+`ACT_SCALING` and the veterans' numbers, all in `cardData/`.
+

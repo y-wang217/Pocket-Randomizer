@@ -2,7 +2,6 @@
  * `checkInvariants`: what must hold after every step, as a list of breaches.
  * Empty is healthy. The fuzz gate runs it after every step of 2,000 battles.
  */
-import { DECKS } from '../../cardData/cards';
 import { RULES } from '../../cardData/rules';
 import { cardDefOf, checkPlan, slotsOf } from './plan';
 import type { BattleState, PileName, UnitId } from './state';
@@ -23,6 +22,9 @@ export function checkInvariants(s: BattleState): string[] {
   for (const u of s.units) {
     if (u.pos) place(u.id, 'player', u.pos);
     if (u.hp < 0) out.push(`${u.id} has negative HP`);
+    if (u.hp > u.maxHp) out.push(`${u.id} HP ${u.hp} over its max ${u.maxHp}`);
+    if (u.stealth !== undefined && (u.stealth < 1 || u.fainted)) out.push(`${u.id} holds stealth ${u.stealth}`);
+    if (u.cover !== undefined && (u.cover < 1 || u.fainted)) out.push(`${u.id} holds cover ${u.cover}`);
     if (u.fainted !== (u.pos === null)) out.push(`${u.id} fainted ${u.fainted} but pos ${JSON.stringify(u.pos)}`);
     if (u.mp < 0 || u.mp > RULES.mp.cap) out.push(`${u.id} MP ${u.mp} outside 0..${RULES.mp.cap}`);
     if (u.shield < 0 || u.baseShield < 0) out.push(`${u.id} has a negative shield`);
@@ -37,8 +39,10 @@ export function checkInvariants(s: BattleState): string[] {
   }
 
   const all = PILES.flatMap((pile) => s.piles[pile]);
-  // The deck, and any card an enemy grants (held in `reserve` until its wave arrives).
-  const deckSize = (DECKS[s.deckId]?.cards.length ?? -1) + Object.values(s.cards).filter((c) => c.granted).length;
+  // Every card the battle dealt, from its deck or a card run's loadout, and any card an enemy
+  // grants (held in `reserve` until its wave arrives). Counted off the battle's own instances, so a
+  // run battle's deck is held as the sandbox's is (card run shapes, checkpoint 4).
+  const deckSize = Object.keys(s.cards).length;
   if (all.length !== deckSize) out.push(`${all.length} cards across the piles, the battle holds ${deckSize}`);
   if (new Set(all).size !== all.length) out.push('a card is in two piles');
 
