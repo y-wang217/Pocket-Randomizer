@@ -17730,3 +17730,62 @@ that is a second cause this patch does not address.
 a file in the bundle, each drawn exactly as `cardAsset` draws it, and nothing
 for a missing file. `test/cards-sandbox.test.ts`: the open screen holds it
 outside the frame, the two bands as masks among it, and closing drops it.
+
+## 144. Card battle: one shared MP pool, refilled each turn to the units' max
+
+**2026-10-12**, a feature request, on `claude/shared-mana`, from `main` at
+`0482454`. Prompt
+[`spec/gymrun-patch-card-battle-shared-mana.md`](spec/gymrun-patch-card-battle-shared-mana.md):
+*"Mana doesnt gate properly we give it too generously"*, with the author's
+answers to three questions filed beside it. `cards-0.11.0` to `cards-0.12.0`,
+`cardrun-0.9.0` to `cardrun-0.10.0`; the run's four axes do not move.
+
+### What changed
+
+- **R2 superseded.** MP was per unit: from 0, +1 after each turn, capped at
+  5. It is now one pool on `BattleState.mp` that every unit's cards pay from.
+  At each turn start (`nextHand`, round 1 included) it refills to
+  `maxMpOf(state)`, and leftovers are lost. `RULES.mp` is `{ perUnit: 1 }`.
+- **Max MP.** Each unit adds `RULES.mp.perUnit`, plus its `maxMp` abilities
+  and its boost's `mp`. A fainted unit still counts (the author's answer). The
+  Commander's `mpAtTurnStart` and the Battery talent are both `maxMp 1`.
+  The usual pool is 4.
+- **Cards that gave MP give bonus MP.** `gainMp` and `mpNextTurns` queue onto
+  `BattleState.pendingMp`, and the refill adds it above the max. The events
+  are `mpQueued` and `mpRefilled`; `mpGained` is gone.
+- **Ults at 3.** Moon Strike, Artillery and Whirlwind go from 4 to 3,
+  Barrage from 5 to 3, and each upgrade to 2, so an ult fits the pool of
+  three units.
+- **The boss upgrade's +1 MP** is +1 max MP for the rest of the run. Its
+  weight goes from 1 in 6 to 1 in 11 (`BOOST_WEIGHTS` 6/2/2/1), because the
+  author calls permanent max MP "crazy powerful".
+- **The screen.** One MP bar in the status replaces the bar on each unit's
+  panel. A cell past the max is bonus MP, ringed gold. The tutorial's MP
+  step points at it and says the pool refills.
+
+### Deviations
+
+- **The ult star is gone.** The hearts-and-tutorial patch asked for an MP
+  bar that marks each unit's ult. With one pool and every ult at 3 or less,
+  the star marked nothing a player plans around; the ult's cost is still on
+  its card. The `meters.ult` string is deleted in all eight languages.
+- **The Neutral picker test** (`test/cards-sandbox.test.ts`) asserted that
+  only one unit had the MP for Attack. A shared pool never tells units apart,
+  so the test now blocks the Commander with a full slot instead.
+- **The narrate fixture** was re-searched: FF646 no longer replays. FF3786 is
+  the first seed from FF646 up whose Artillery hits the dasher and leaves its
+  Attack unplayed. The step 7 end-of-run test moves from LOST4 to LOST7.
+
+### Measured
+
+`npm run cards:run -- 20 CRUN`: 10/20 runs won, 10.40 mean fights won,
+2.10 mean bosses, against 7/20, 9.40 and 1.80 at `cardrun-0.9.0`. The losses
+moved later. Six fell in act 2, three at Turret Alley; one at the first boss.
+`docs/balance.md`. **Recorded, not chased.**
+
+**Held by** `test/cards-step.test.ts` (the refill, Focus and Resupply's bonus,
+a fainted unit's max kept, one pool gating two units),
+`test/cards-shapes-talents.test.ts` (Battery), `test/cards-run.test.ts` (the
+boost), `test/cards-waves.test.ts` (bonus owed across a wave),
+`test/cards-tutorial.test.ts` (every ult 3 at most) and
+`test/cards-sandbox-tutorial.test.ts` (the one bar in the status).
