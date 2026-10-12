@@ -19,6 +19,17 @@ const skip = (root: HTMLElement) => root.dispatchEvent(new Event('pointerdown'))
 const begin = (root: HTMLElement) => (all(root, '.cb-btn--primary')[0] as HTMLButtonElement).click();
 
 describe('the sandbox screen', () => {
+  it('holds every image out of sight while open, the owner bands as masks among them, and drops them on close', () => {
+    // `docs/spec/gymrun-patch-card-sprite-flash.md`: no piece paints empty when a tap first shows it.
+    const sandbox = openSandbox(document.body, { seed: 'JSDOM1' });
+    const stash = sandbox.root.querySelector<HTMLElement>('.cb-stash');
+    expect(stash).not.toBeNull();
+    expect(stash!.closest('.cb-frame'), 'outside the frame the screen fits and the coach measures').toBeNull();
+    expect(all(stash!, '.cb-card-edge[data-mask="true"]')).toHaveLength(2);
+    sandbox.close();
+    expect(document.querySelector('.cb-stash')).toBeNull();
+  });
+
   it('plays rounds by taps alone, and Copy log hands over a log that replays to the same state', async () => {
     let copied = '';
     Object.defineProperty(globalThis.navigator, 'clipboard', {
