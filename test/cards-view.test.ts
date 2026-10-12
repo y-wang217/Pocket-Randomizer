@@ -81,10 +81,10 @@ describe('viewOf', () => {
 
     let view = viewOf(state);
     // The Strike runs down lane 3 to C and stops there.
-    expect(threats(view, 3, 4)).toEqual([{ enemy: strike!.id, act: 'strike', n: 1, stop: false }]);
-    expect(threats(view, 3, 1)).toEqual([{ enemy: strike!.id, act: 'strike', n: 1, stop: true }]);
+    expect(threats(view, 3, 4)).toEqual([{ enemy: strike!.id, act: 'strike', n: 1, stop: false, dodged: false }]);
+    expect(threats(view, 3, 1)).toEqual([{ enemy: strike!.id, act: 'strike', n: 1, stop: true, dodged: false }]);
     // The Pierce lights its whole lane, through B.
-    for (const col of [4, 2, 1] as const) expect(threats(view, 2, col)).toEqual([{ enemy: pierce!.id, act: 'pierce', n: 2, stop: false }]);
+    for (const col of [4, 2, 1] as const) expect(threats(view, 2, col)).toEqual([{ enemy: pierce!.id, act: 'pierce', n: 2, stop: false, dodged: false }]);
     // A tile two attacks reach carries both, in spawn order.
     expect(threats(view, 2, 3).concat(threats(view, 1, 3)).map((t) => t.act)).toEqual(['pierce', 'slash', 'slash']);
     expect(threats(view, 1, 2)).toEqual([]);
@@ -94,7 +94,7 @@ describe('viewOf', () => {
     if (!result.ok) throw new Error(result.reason);
     state = result.state;
     view = viewOf(state);
-    expect(threats(view, 3, 3)).toEqual([{ enemy: strike!.id, act: 'strike', n: 1, stop: true }]);
+    expect(threats(view, 3, 3)).toEqual([{ enemy: strike!.id, act: 'strike', n: 1, stop: true, dodged: false }]);
     expect(threats(view, 3, 2)).toEqual([]);
     expect(threats(view, 3, 1)).toEqual([]);
     // `telegraphedBy` still names every tile the intent names.

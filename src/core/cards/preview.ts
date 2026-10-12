@@ -8,13 +8,16 @@
  * on the board after every planned Move.
  *
  * These are forecasts. A unit or enemy removed earlier in the same round can
- * change what a later attack hits; nothing here plays that out.
+ * change what a later attack hits; nothing here plays that out. The one
+ * exception is what the plan's cards do to the board before any enemy acts,
+ * a Push, a Pull, a Stun, Stealth or Cover: `playedOut` plays the plan's
+ * cards on a draft, as the round does, and the view reads those off it.
  */
 import { RULES } from '../../cardData/rules';
 import type { DamageKeyword, Pos } from './defs';
 import { abilitiesOf, bonusOf, cardDefOf, damageOf, livingEnemies, project, projectAt, select, type Projection } from './plan';
-import { alliesOn } from './keywords';
-import { firstSlots } from './resolve';
+import { alliesOn, type Ctx } from './keywords';
+import { draftOf, firstSlots, playPlan } from './resolve';
 import type { BattleState, CardIid, EnemyId, EnemyState, PlannedPlay, TargetId, UnitId } from './state';
 import { blastTiles, covers, enemyTiles, laneFromSide, lanesOf, samePos, slashTiles } from './zones';
 
@@ -241,6 +244,46 @@ export function interceptsFor(state: BattleState, card: CardIid, unit: UnitId, t
     const after = strikeVictims(result.state);
     const blocks = [...after].filter(([enemy, hit]) => hit === mover && before.has(enemy) && before.get(enemy) !== mover).map(([enemy]) => enemy);
     if (blocks.length > 0) out.push({ pos: tile, blocks });
+  }
+  return out;
+}
+
+/**
+ * The board once the plan's cards have played and before any enemy acts:
+ * phases 1 and 2 of the round, on a draft, through the round's own code
+ * (`playPlan`). Nothing in them draws, so this is what the round will do to
+ * the board, not a second reading of it. The state passed in is untouched.
+ */
+export function playedOut(state: BattleState): BattleState {
+  const s = draftOf(state);
+  if (s.phase !== 'plan' || s.plan.length === 0) return s;
+  const ctx: Ctx = { s, events: [] };
+  playPlan(ctx);
+  return s;
+}
+
+/** Where an enemy a Push or a Pull moves would land, and what it aims at from there. */
+export interface Displacement {
+  enemy: EnemyId;
+  to: Pos;
+}
+
+/**
+ * For a Push or Pull being aimed, where each enemy it could take would land:
+ * each candidate is selected on a copy of the plan and the plan played out,
+ * so it is the round's own reading. An enemy that would not move (a boss, a
+ * blocked tile) has no entry.
+ */
+export function displacementsFor(state: BattleState, card: CardIid, unit: UnitId, targets: readonly TargetId[]): Displacement[] {
+  const def = cardDefOf(state, card);
+  if (!def?.effects.some((e) => e.k === 'push' || e.k === 'pull')) return [];
+  const out: Displacement[] = [];
+  for (const target of targets) {
+    const result = select(state, { type: 'select', card, unit, choice: { unit: target } });
+    if (!result.ok) continue;
+    const before = state.enemies.find((e) => e.id === target);
+    const after = playedOut(result.state).enemies.find((e) => e.id === target);
+    if (before?.pos && after?.pos && !samePos(before.pos, after.pos)) out.push({ enemy: before.id, to: after.pos });
   }
   return out;
 }

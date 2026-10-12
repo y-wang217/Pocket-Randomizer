@@ -78,6 +78,7 @@ export const ZH_HANS: CardCopy = {
   grade: (n: number) => `难度 ${n}`,
   pickTileAllies: '选择格子 · 标记的格子也会打到友军',
   pickTargetAllies: '选择目标 · 标记的目标也会打到友军',
+  pickTargetLands: '选择目标 · 圆圈标出它的落点',
   graceBoard: '第 1 回合：敌人正在就位',
   rule: {
     grace: '第 1 回合：大多数敌人先布置而不攻击。',
@@ -98,6 +99,8 @@ export const ZH_HANS: CardCopy = {
     pin: '鱼叉将其钉住 2 回合：不能移动，第二回合前没有护盾，并对相邻的每个格子发出尖啸。',
   },
   fast: '快速',
+  veteran: '老兵',
+  veteranOf: (plain: string) => `老兵：更强的${plain}`,
   roundLog: '回合记录',
   replayRound: '重放本回合',
   back: '返回',

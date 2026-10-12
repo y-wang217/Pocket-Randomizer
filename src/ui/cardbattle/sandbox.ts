@@ -39,7 +39,7 @@ import type { Effect, EnemyDefId, Pos } from '../../core/cards/defs';
 import { planDeploy, planRound } from '../../core/cards/guard';
 import { choicesFor } from '../../core/cards/legal';
 import { newLog, type BattleLog } from '../../core/cards/log';
-import { friendlyFireFor, interceptsFor, previewPlay, type AttackPreview, type FriendlyFire, type Intercept } from '../../core/cards/preview';
+import { displacementsFor, friendlyFireFor, interceptsFor, previewPlay, type AttackPreview, type Displacement, type FriendlyFire, type Intercept } from '../../core/cards/preview';
 import type { Action, BattleState, CardIid, TargetId, UnitId } from '../../core/cards/state';
 import type { BattleEvent } from '../../core/cards/events';
 import { step } from '../../core/cards/step';
@@ -100,6 +100,8 @@ interface Pending {
   blocked?: HandCardView['blocked'];
   /** For a Blast: the tiles or enemies it could take that would also hit an ally (R14). */
   friendly?: FriendlyFire[];
+  /** For a Push or Pull: where each enemy it could take would land (step 7a). */
+  lands?: Displacement[];
 }
 
 /** The scenario the sandbox opens on: enemies drawn anywhere on their backline. */
@@ -561,8 +563,16 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         act({ type: 'select', card, unit });
         return;
       case 'unit':
-        pending = { card, unit, stage: 'unit', units: choices.units, tiles: [], friendly: friendlyFireFor(state, card, unit, choices) };
-        message = pending.friendly!.length > 0 ? CARD_COPY.pickTargetAllies : CARD_COPY.pickTarget;
+        pending = {
+          card,
+          unit,
+          stage: 'unit',
+          units: choices.units,
+          tiles: [],
+          friendly: friendlyFireFor(state, card, unit, choices),
+          lands: displacementsFor(state, card, unit, choices.units),
+        };
+        message = pending.friendly!.length > 0 ? CARD_COPY.pickTargetAllies : pending.lands!.length > 0 ? CARD_COPY.pickTargetLands : CARD_COPY.pickTarget;
         break;
       case 'tile':
         pending = {
@@ -763,7 +773,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
 
   function render(): void {
     const shown = playback?.steps[playback.index];
-    const view = viewOf(shown?.state ?? state);
+    // A playback step is a picture of the round resolving: no forecast on it.
+    const view = viewOf(shown?.state ?? state, { forecast: !shown });
     renderTop(view);
     renderBoard(view);
     renderPanels(view);
@@ -863,6 +874,9 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
           ghost.prepend(cardAsset('marker-ring-destination', { width: 48, height: 48 }));
           node.append(ghost);
         }
+        // Where a planned Push or Pull leaves an enemy, and while one is aimed, where each it could take would land.
+        if (tile.enemyGhost) node.append(enemyGhost(tile.enemyGhost, false));
+        for (const land of pending?.lands ?? []) if (samePos(land.to, tile.pos)) node.append(enemyGhost(land.enemy, true));
         const block = pending?.intercepts?.find((i) => samePos(i.pos, tile.pos));
         if (selectable && block) node.append(interceptMark());
         const risky = selectable ? pending?.friendly?.find((f) => samePos(f.tile, tile.pos)) : undefined;
@@ -880,6 +894,13 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     board.replaceChildren(...nodes);
   }
 
+  /** An enemy's landing tile after a Push or Pull: its label in a dashed ring, in the enemy's colour. */
+  function enemyGhost(id: string, aiming: boolean): HTMLElement {
+    const ghost = el('span', 'cb-ghost cb-ghost--enemy', enemyLabel(id));
+    if (aiming) ghost.dataset['pending'] = 'true';
+    return ghost;
+  }
+
   /** The kinds of attack lighting a tile, each once, in a fixed order. */
   function threatActs(tile: TileView): TileThreat['act'][] {
     return THREAT_ORDER.filter((act) => tile.threats.some((t) => t.act === act));
@@ -895,6 +916,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     // Scream: hatched in the deeper red with a dotted edge, on every tile touching the pinned boss.
     node.dataset['act'] = act;
     if (act === 'strike' && tile.threats.some((t) => t.act === 'strike' && t.stop)) node.dataset['stop'] = 'true';
+    // Every attack of this kind here passes over a unit the plan hides.
+    if (tile.threats.filter((t) => t.act === act).every((t) => t.dodged)) node.dataset['dodged'] = 'true';
     return node;
   }
 
@@ -966,6 +989,11 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         el('span', '', String(threat.n)),
         el('span', 'cb-threat-from', enemyLabel(threat.enemy)),
       );
+      // Stealth in the plan: the unit here is hidden, so this attack passes over it.
+      if (threat.dodged) {
+        chip.dataset['dodged'] = 'true';
+        chip.append(cardAsset('icon-stealth', { width: 11, height: 11 }));
+      }
       chips.append(chip);
     }
     return chips;
@@ -1002,10 +1030,24 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       node.append(el('span', 'cb-token-hp', String(enemy.hp)));
       shieldOn(node, enemy.shield, enemy.baseShield);
       if (enemy.fast) node.append(el('span', 'cb-fast cb-token-fast', CARD_COPY.fast));
+      if (enemy.veteranOf) node.append(el('span', 'cb-vet cb-token-vet', CARD_COPY.veteran));
+      // Held now (a Stun, or a Harpoon on any boss but the Colossus, whose marker shows it), or by a planned card.
+      if (enemy.pinned > 0 && !pinnedBoss) node.append(pinBadge(enemy.pinned, false));
+      else if (enemy.planned && enemy.planned.stun > 0) node.append(pinBadge(enemy.planned.stun, true));
+      // A planned Push or Pull: this one stands where it is now; its ghost is where it lands.
+      if (enemy.planned?.to) node.dataset['leaving'] = 'true';
     } else {
       const unit = view.units.find((u) => u.id === occupant.id)!;
-      // Stealth (Group B): seen during the round's playback, while the enemies act.
-      if (unit.stealth > 0) node.dataset['hidden'] = 'true';
+      // Stealth (Group B): hidden by a planned Smoke at once, and still during the playback.
+      if (unit.stealth > 0 || unit.hiddenByPlan) node.dataset['hidden'] = 'true';
+      // Cover (5a): the covering unit is ringed, and each neighbour it protects names it.
+      if (unit.coveringByPlan) node.dataset['covering'] = 'true';
+      if (unit.coveredBy.length > 0) {
+        const badge = el('span', 'cb-token-cover', unit.coveredBy[0]);
+        badge.prepend(cardAsset('icon-shield', { width: 10, height: 10 }));
+        badge.dataset['owner'] = unit.coveredBy[0]!;
+        node.append(badge);
+      }
       node.append(el('span', 'cb-token-hp', String(unit.hp)));
       shieldOn(node, unit.shield, unit.baseShield);
       const warn = warned.get(unit.id);
@@ -1023,6 +1065,14 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     const risky = picking ? pending?.friendly?.find((f) => f.unit === occupant.id) : undefined;
     if (risky) node.append(friendlyMark(risky));
     return node;
+  }
+
+  /** Turns held, on the piece: the pinned icon and the count. Dashed while it is only planned. */
+  function pinBadge(turns: number, planned: boolean): HTMLElement {
+    const badge = el('span', 'cb-token-pin', String(turns));
+    badge.prepend(cardAsset('icon-pinned', { width: 10, height: 10 }));
+    if (planned) badge.dataset['planned'] = 'true';
+    return badge;
   }
 
   /**
@@ -1060,21 +1110,26 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         if (target) panel.dataset['target'] = 'true';
         const name = el('div', 'cb-panel-name', `${nameOf(enemy.name)} ${index + 1}`);
         if (enemy.fast) name.append(el('span', 'cb-fast', CARD_COPY.fast));
+        if (enemy.veteranOf) name.append(el('span', 'cb-vet', CARD_COPY.veteran));
         panel.append(name);
         // One line, as a unit's: hearts for HP, then bubbles for card shield and base shield.
         panel.append(vitals(enemy.hp, enemy.maxHp, enemy.shield, enemy.baseShield));
         // Part D: the pin's turns left, and the HP its one stalk comes at.
         if (enemy.pinned > 0) panel.append(el('div', 'cb-boss-line cb-boss-line--pinned', CARD_COPY.pinned(enemy.pinned)));
-        else if (enemy.stalkAt !== null) panel.append(el('div', 'cb-boss-line', CARD_COPY.stalkAt(enemy.stalkAt)));
-        if (enemy.intent) {
+        else if (enemy.planned && enemy.planned.stun > 0) {
+          const line = el('div', 'cb-boss-line cb-boss-line--pinned', CARD_COPY.pinned(enemy.planned.stun));
+          line.dataset['planned'] = 'true';
+          panel.append(line);
+        } else if (enemy.stalkAt !== null) panel.append(el('div', 'cb-boss-line', CARD_COPY.stalkAt(enemy.stalkAt)));
+        // The intent it will act on: once the plan's cards have moved or held it, that one, dashed.
+        const intent = enemy.planned ? enemy.planned.intent : enemy.intent;
+        if (intent) {
           const pill = el('div', 'cb-pill');
-          pill.dataset['act'] = enemy.intent.icon;
+          pill.dataset['act'] = intent.icon;
+          if (enemy.planned) pill.dataset['planned'] = 'true';
           pill.append(cardAsset('pill-badge', 'fill'));
-          pill.append(cardAsset(INTENT_ICON[enemy.intent.icon] ?? 'icon-wait', { width: 16, height: 16 }));
-          const word =
-            enemy.intent.icon === 'none'
-              ? CARD_COPY.intentNone
-              : `${enemy.intent.label ?? CARD_COPY.keyword[enemy.intent.icon as 'strike']} ${enemy.intent.n}`;
+          pill.append(cardAsset(INTENT_ICON[intent.icon] ?? 'icon-wait', { width: 16, height: 16 }));
+          const word = intent.icon === 'none' ? CARD_COPY.intentNone : `${intent.label ?? CARD_COPY.keyword[intent.icon as 'strike']} ${intent.n}`;
           pill.append(el('span', 'cb-pill-text', word));
           panel.append(pill);
         }
@@ -1307,7 +1362,9 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     const card = el('div', 'cb-enemy-card');
     card.append(el('div', 'cb-enemy-card-name', `${nameOf(enemy.name)} ${enemyNumber(state, enemy.id)}`));
     const def = ENEMIES[enemy.def];
-    card.append(el('div', 'cb-enemy-card-line', `${CARD_COPY.enemyStats(def.hp, def.baseShield)} · ${CARD_COPY.grade(def.grade)}`));
+    // Its own max HP: a run's act adds to the kind's (checkpoint 6).
+    card.append(el('div', 'cb-enemy-card-line', `${CARD_COPY.enemyStats(enemy.maxHp, def.baseShield)} · ${CARD_COPY.grade(def.grade)}`));
+    if (enemy.veteranOf) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.veteranOf(nameOf(ENEMIES[enemy.veteranOf].name))));
     if (enemy.fast) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.rule.fast));
     else if (RULES.openingGrace) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.rule.grace));
     if (def.stalks) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.bossRules.stalk));

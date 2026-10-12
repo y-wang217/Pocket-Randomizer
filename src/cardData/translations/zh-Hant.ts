@@ -78,6 +78,7 @@ export const ZH_HANT: CardCopy = {
   grade: (n: number) => `難度 ${n}`,
   pickTileAllies: '選擇格子 · 標記的格子也會打到隊友',
   pickTargetAllies: '選擇目標 · 標記的目標也會打到隊友',
+  pickTargetLands: '選擇目標 · 圓圈標出它的落點',
   graceBoard: '第 1 回合：敵人正在就位',
   rule: {
     grace: '第 1 回合：大多數敵人先布置而不攻擊。',
@@ -98,6 +99,8 @@ export const ZH_HANT: CardCopy = {
     pin: '魚叉將其釘住 2 回合：無法移動，第二回合前沒有護盾，並對相鄰的每個格子發出尖嘯。',
   },
   fast: '快速',
+  veteran: '老兵',
+  veteranOf: (plain: string) => `老兵：更強的${plain}`,
   roundLog: '回合紀錄',
   replayRound: '重播本回合',
   back: '返回',

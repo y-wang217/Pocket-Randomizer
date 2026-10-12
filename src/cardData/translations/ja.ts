@@ -78,6 +78,7 @@ export const JA: CardCopy = {
   grade: (n: number) => `グレード ${n}`,
   pickTileAllies: 'マスを選択 · 印のマスは味方にも当たる',
   pickTargetAllies: '対象を選択 · 印の対象は味方にも当たる',
+  pickTargetLands: '対象を選択 · 輪が着地点を示す',
   graceBoard: 'ラウンド1：敵は配置についている',
   rule: {
     grace: 'ラウンド1：ほとんどの敵は攻撃せずに準備する。',
@@ -98,6 +99,8 @@ export const JA: CardCopy = {
     pin: 'ハープーンで2ターン拘束：移動不可、2ターン目までシールドなし、隣接する全マスに咆哮する。',
   },
   fast: '高速',
+  veteran: '精鋭',
+  veteranOf: (plain: string) => `精鋭：強化された${plain}`,
   roundLog: 'ラウンドログ',
   replayRound: 'ラウンドを再生',
   back: '戻る',

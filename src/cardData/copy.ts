@@ -61,6 +61,8 @@ const EN = {
   pickTileBlock: 'Pick a tile · a shield blocks a Strike',
   pickTileAllies: 'Pick a tile · a marked tile hits an ally too',
   pickTargetAllies: 'Pick a target · a marked one hits an ally too',
+  /** A Push or Pull being aimed (step 7a): each enemy it could take has a ring where it would land. */
+  pickTargetLands: 'Pick a target · a ring marks where it lands',
   inspectHint: 'Tap a card or an enemy to inspect it',
   /** Round 1 under opening grace (A1, A7): the note line, while nothing else is said. */
   graceBoard: 'Round 1: enemies are getting into position',
@@ -96,6 +98,9 @@ const EN = {
   intentNone: 'Wait',
   /** The Fast badge on an enemy's token and panel. */
   fast: 'Fast',
+  /** A veteran's badge on its token and panel (checkpoint 6, step 7a), and its Inspect line naming the plain enemy. */
+  veteran: 'Vet',
+  veteranOf: (plain: string) => `Veteran: a harder ${plain}`,
   reasons: {
     noMp: 'Not enough MP',
     noSlot: 'No free slot',

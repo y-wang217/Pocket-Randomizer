@@ -2094,3 +2094,137 @@
   outline: 2px dashed currentColor;
   outline-offset: -2px;
 }
+
+/* ----------------------------------------------------------- step 7a
+   What the plan's cards do to the board before any enemy acts, drawn while
+   planning (card run shapes, step 7a): a Push or Pull's landing tile, a Stun's
+   hold, who a Cover protects, and the attacks a hidden unit dodges. A veteran
+   wears its badge. A forecast is dashed; a fact on the board now is solid. */
+
+/* A Push or Pull: the enemy's label in a dashed red ring on the tile it lands on.
+   While one is aimed, every candidate's landing tile shows, fainter. */
+.cb-ghost--enemy {
+  font-size: 11px;
+  color: var(--cb-red-text);
+  border-radius: 8px;
+  border: 2.5px dashed var(--cb-red);
+  background: rgba(var(--cb-red-rgb), 0.12);
+}
+.cb-ghost--enemy[data-pending='true'] {
+  opacity: 0.7;
+  border-width: 2px;
+}
+/* The enemy a planned Push or Pull will move, where it stands now. */
+.cb-token[data-leaving='true'] {
+  opacity: 0.6;
+}
+
+/* Held: the pinned icon and the turns, on the piece's right edge, clear of its label, shield and HP. */
+.cb-token-pin {
+  position: absolute;
+  right: -8px;
+  top: 16px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  background: var(--cb-ink);
+  color: var(--cb-surface);
+  box-shadow: 0 0 0 1.5px var(--cb-surface);
+}
+.cb-token-pin[data-planned='true'] {
+  background: var(--cb-surface);
+  color: var(--cb-ink);
+  box-shadow: 0 0 0 1.5px var(--cb-ink);
+  outline: 1.5px dashed var(--cb-ink);
+}
+.cb-token-pin > .cb-asset--placeholder {
+  font-size: 0;
+  box-shadow: none;
+}
+.cb-boss-line[data-planned='true'],
+.cb-pill[data-planned='true'] {
+  font-style: italic;
+}
+.cb-pill[data-planned='true'] > .cb-asset--placeholder:first-child {
+  box-shadow: inset 0 0 0 2px var(--cb-red);
+  outline: 1.5px dashed var(--cb-red);
+  outline-offset: -4px;
+}
+
+/* A veteran: a gold badge on its token, left of the piece, and beside its name. */
+.cb-vet {
+  display: inline-block;
+  height: 13px;
+  padding: 0 4px;
+  border-radius: 7px;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 13px;
+  text-transform: uppercase;
+  background: var(--cb-amber);
+  color: var(--cb-ink);
+}
+.cb-panel-name > .cb-vet {
+  margin-left: 4px;
+  vertical-align: 1px;
+}
+.cb-token-vet {
+  position: absolute;
+  left: -8px;
+  top: 16px;
+  z-index: 2;
+  box-shadow: 0 0 0 1.5px var(--cb-surface);
+}
+
+/* Cover: the covering unit is ringed solid in its colour; a neighbour it
+   protects wears a shield and the covering unit's letter. */
+.cb-token[data-covering='true']::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2.5px solid var(--cb-own);
+  pointer-events: none;
+}
+.cb-token-cover {
+  position: absolute;
+  left: -8px;
+  top: 16px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  background: var(--cb-surface);
+  color: var(--cb-own-text, var(--cb-ink));
+  box-shadow: 0 0 0 1.5px var(--cb-own);
+}
+.cb-token-cover > .cb-asset--placeholder {
+  font-size: 0;
+  box-shadow: none;
+}
+
+/* Stealth in the plan: an attack that passes over a hidden unit is drawn faint and its chip struck. */
+.cb-threat[data-dodged='true'] {
+  opacity: 0.35;
+}
+.cb-threat-chip[data-dodged='true'] {
+  opacity: 0.7;
+  text-decoration: line-through;
+}
+.cb-threat-chip[data-dodged='true'] > .cb-asset--placeholder {
+  font-size: 0;
+  box-shadow: none;
+}

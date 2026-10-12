@@ -78,6 +78,7 @@ export const DE: CardCopy = {
   grade: (n: number) => `Stufe ${n}`,
   pickTileAllies: 'Feld wählen · ein markiertes Feld trifft auch Verbündete',
   pickTargetAllies: 'Ziel wählen · ein markiertes trifft auch Verbündete',
+  pickTargetLands: 'Ziel wählen · ein Ring zeigt, wo es landet',
   graceBoard: 'Runde 1: Gegner gehen in Stellung',
   rule: {
     grace: 'Runde 1: Die meisten Gegner stellen sich auf, statt anzugreifen.',
@@ -98,6 +99,8 @@ export const DE: CardCopy = {
     pin: 'Eine Harpune fixiert ihn 2 Züge: keine Bewegung, keine Schilde bis zum zweiten Zug, und er schreit jedes angrenzende Feld an.',
   },
   fast: 'Schnell',
+  veteran: 'Vet',
+  veteranOf: (plain: string) => `Veteran: härtere Form von ${plain}`,
   roundLog: 'Rundenlog',
   replayRound: 'Runde abspielen',
   back: 'Zurück',

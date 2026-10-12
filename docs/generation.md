@@ -17421,3 +17421,119 @@ three, and the first Colossus one. **Recorded, not chased**, per
 `balance.md` section 0. The lever, if a playtest asks for one, is
 `ACT_SCALING` and the veterans' numbers, all in `cardData/`.
 
+
+## 140. Card run shapes, step 7a: what changes a decision, shown before it is made
+
+**2026-10-12**, on `claude/card-run-shapes-step7`, from `main` at `e29376b`.
+From the author's go-ahead for step 7, filed under
+[`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md)
+before any work: *"All of step 7"*, read as 7a (the plan's sections A and B)
+then 7b (section C), each stopped for review. **No version axis moves**: no
+rule, resolver, draw, logged decision or data table changed.
+`CARD_ENGINE_VERSION` holds at `cards-0.11.0`, `CARD_RUN_VERSION` at
+`cardrun-0.9.0`, `contentHash` holds. The battle and the run's screens are
+outside the design bible (125c), so no bible rule is touched and none needed
+an amendment.
+
+**One reading for the forecast** (`playedOut`, `core/cards/preview.ts`). Phases
+1 and 2 of `commit`, every planned card in plan order, move into one function,
+`playPlan` (`core/cards/resolve.ts`), which `commit` now calls. `playedOut`
+runs it on a draft of the state. Nothing in those phases draws, so what it
+returns is what the round will do to the board before any enemy acts, read by
+the round's own code and not by a second opinion beside it. The view reads
+Push, Pull, Stun, Cover and Stealth off it. Everything else the board
+forecasts is as before: an enemy the plan kills still shows its attack, as
+`preview.ts` has always said.
+
+**A. Facts the player could not see.**
+
+1. **Push and Pull.** A planned Shove or Grapple draws the enemy's label in a
+   dashed red ring on the tile it will land on, and the enemy where it stands
+   now fades. Its attack on the board, and its panel's intent, are the ones it
+   aims from the landing tile, dashed and in italics while they are only
+   planned. While a Grapple is being aimed, every enemy it could take shows
+   its landing ring at once (`displacementsFor`), so a phone needs no hover.
+   The note line says so: *"Pick a target · a ring marks where it lands"*.
+2. **Veterans.** A *Vet* badge in gold on the token, left of the piece, and
+   beside the name on the panel. Inspect names the plain enemy: *"Veteran: a
+   harder Hound"*. The view carries `veteranOf`, read off `VETERAN`.
+3. **The act warning.** Read off `ACT_SCALING`, never written beside it. The
+   route screen says what the next fight's act adds (*"Act 2: enemies +1 HP,
+   veterans in the first two waves"*), the run's battle screen says the same
+   for the act it is in, and the progress strip carries a chip (*"+1 HP ·
+   veterans"*) before the first node of each act that scales. Act 1 adds
+   nothing and carries none.
+4. **Cover and Stun on the board.** A unit covering once the plan has played
+   is ringed in its colour, and each neighbour it will protect wears a shield
+   with the covering unit's letter. Neighbours are read where the plan's moves
+   leave everyone, so Interpose covers from the tile it steps to. A held enemy
+   wears the pinned icon and its turns on the right edge of its token, solid;
+   a planned Stun draws the same badge dashed, its attack goes dark, and its
+   panel reads *Pinned 1* and *Wait* in italics.
+5. **Stealth in the plan.** A planned Smoke fades its unit at once. Every
+   attack that would land on it is drawn faint, and its chip is struck through
+   and carries the stealth icon.
+6. **Shape plans on a phone.** The offer screen shows each shape's plan in a
+   line under its name, at rest. The tooltip is gone.
+
+**B. Making the build readable.**
+
+7. **The deck view** groups the deck by `DECK_GROUPS` (`cardData/cardrunTables.ts`):
+   Basic, the four shapes, Equipment, each with its count and a shape's plan
+   under its name. A fixed order, never a ranking. An upgrade sits with its
+   card.
+8. **The replace screen** lists the starting deck's basic cards first, each
+   marked *Basic*, then the rest in deck order. A tap still replaces the card
+   tapped, by its index in the deck. The card coming in is outlined and wears
+   its shape. At 390 wide the page does not scroll sideways (checked in
+   Chromium at 390 by 844, `scrollWidth` 390, on the route, offer, replace,
+   boss and end screens).
+9. **The boss screen.** Each talent wears its shape, from a new table,
+   `TALENT_SHAPE`, that writes down section 137's shape column. Marksman is
+   *Given back*: it is the Gunner's own ability returned (133), not a shape's.
+   Every offer, stat or talent, names what its unit already has (*"Has:
+   Marksman"*, or *"No talent yet"*).
+10. **The end of a run.** A lost run reads *"Fell in act 2/3: Turret Alley"*,
+    where it read *"Reached: Turret Alley · Act 2/3"*. Every run's end names
+    the shape the final deck leaned into, the shapes tied at the most cards
+    with their count (`shapesLeanedInto`), and the talents it took, unit by
+    unit.
+
+**One fix that came with it.** The enemy Inspect line read the kind's HP
+(`ENEMIES[def].hp`). Since checkpoint 6 an act adds to it, so a Dire Hound in
+act 2 has 3 HP and Inspect said 2. It reads the enemy's own `maxHp` now.
+
+**Deviations from the plan's wording**, each a reading it left open:
+
+- *"A stunned enemy's token gets the pinned badge; today only its panel says
+  so."* A Stun 1 wears off in the same round's move phase (section 137), so no
+  stunned enemy stands on the board at the next plan. The badge shows on the
+  playback's pictures, while the hold is real, and in the forecast, where it
+  matters to a decision.
+- *"The fight strip"* is read as the run's progress strip. The battle's own top
+  line is unchanged; the run's battle screen carries the warning line instead.
+- *"Machine-drafted translations"* is 7b's item 12. The three battle-screen
+  strings 7a adds (*pickTargetLands*, *veteran*, *veteranOf*) are drafted in
+  all eight languages now, because the copy table's type requires every
+  language to carry every key. The run's screens are English only, as before.
+
+**Held by** `test/cards-step7-forecast.test.ts`:
+
+- `playedOut` leaves the state it was given alone.
+- A Grapple's landing tile is the one the round moves the enemy to.
+- A planned Shove's ghost, and the intent it leaves, are the round's.
+- A planned Concuss clears the held enemy's attack and marks the hold.
+- A planned Guard Duty and an Interpose mark the covering unit and the
+  neighbours it protects.
+- A planned Smoke hides its unit and marks the Strike it dodges.
+- A playback picture draws no forecast.
+- A veteran names its plain enemy.
+
+`test/cards-run-step7.test.ts` drives the shell in jsdom: the act warning and
+the strip's chips, the plans at rest, the deck groups and their counts, the
+basic cards first on the replace screen with a tap still replacing the card
+tapped, the boss screen's shapes and *Has* lines, and a lost run's end.
+`test/cards-view.test.ts` reads the new `dodged` field on each threat.
+
+**The bench** does not move: no bot reads the view, and `commit` resolves
+exactly as before through `playPlan`.

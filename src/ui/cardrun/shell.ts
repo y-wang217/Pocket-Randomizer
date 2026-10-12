@@ -19,9 +19,9 @@ import './cardrun.css';
 
 import { CARDS, UPGRADE_OF } from '../../cardData/cards';
 import { RUN_COPY } from '../../cardData/cardrunCopy';
-import { ACTS, EVENTS, shapeOf } from '../../cardData/cardrunTables';
+import { ACTS, DECK_GROUPS, EVENTS, SHAPES, TALENT_SHAPE, deckGroupOf, isBasic, shapeOf, shapesLeanedInto, type DeckGroupId, type ShapeId } from '../../cardData/cardrunTables';
 import { nameOf, setCardLanguage } from '../../cardData/copy';
-import { ENCOUNTERS } from '../../cardData/encounters';
+import { ACT_SCALING, ENCOUNTERS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { TALENTS } from '../../cardData/talents';
 import { UNITS } from '../../cardData/units';
@@ -209,10 +209,24 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
     return header;
   }
 
+  /** What an act does to its fights, in a line; empty for an act that changes nothing (step 7a). */
+  function actLine(act: number): string {
+    const scale = ACT_SCALING[act];
+    return scale ? RUN_COPY.actScaling(act + 1, scale.hpBonus, scale.veterans) : '';
+  }
+
   /** Every node of the run in a row, by act: a fight, a stop, a boss; done, here, or ahead. */
   function renderStrip(s: CardRunState): HTMLElement {
     const strip = el('ol', 'cr-strip');
     s.nodes.forEach((node, index) => {
+      // Where an act that scales its fights begins, what it adds, before its first node (step 7a).
+      const scale = ACT_SCALING[node.act];
+      if (node.kind === 'fight' && (index === 0 || s.nodes[index - 1]!.act !== node.act) && scale && actLine(node.act)) {
+        const chip = el('li', 'cr-act-chip', RUN_COPY.actChip(scale.hpBonus, scale.veterans));
+        chip.setAttribute('aria-label', actLine(node.act));
+        if (index > s.at) chip.dataset['state'] = 'ahead';
+        strip.append(chip);
+      }
       const item = el('li', 'cr-node');
       const kind = node.kind === 'stop' ? 'stop' : node.boss ? 'boss' : 'fight';
       item.dataset['kind'] = kind;
@@ -298,6 +312,7 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
         const node = currentNode(s);
         const encounter = ENCOUNTERS[s.battle!.encounter]!;
         box.append(heading(RUN_COPY.battle.kind[screen.kind], nameOf(encounter.name)), enemyLine(encounter.id));
+        if (node && actLine(node.act)) box.append(el('p', 'cr-act-warning', actLine(node.act)));
         if (node?.kind === 'fight' && node.boss) box.append(el('p', 'cr-note', nameOf(encounter.blurb)));
         box.append(btn('cr-btn--primary', RUN_COPY.battle.resume, () => openBattle()));
         // Straight into the battle, unless the player has just stepped out of it.
@@ -306,6 +321,9 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
       }
       case 'route': {
         box.append(heading(RUN_COPY.route.heading, nextFightLine(s)));
+        // The next fight's act, so a jump in difficulty is read before it is met (step 7a).
+        const next = s.nodes.slice(s.at + 1).find((n) => n.kind === 'fight');
+        if (next && actLine(next.act)) box.append(el('p', 'cr-act-warning', actLine(next.act)));
         const choices = el('div', 'cr-choices');
         choices.append(
           choice('city', RUN_COPY.route.city, RUN_COPY.route.cityWhat, [
@@ -366,12 +384,7 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
           const node = cardTile(card);
           // The shape it belongs to (5b): each offer is three cards from three shapes.
           const shape = shapeOf(card);
-          if (shape) {
-            const tag = el('span', 'cr-shape', shape.name);
-            tag.dataset['shape'] = shape.id;
-            tag.title = shape.plan;
-            node.append(tag);
-          }
+          if (shape) node.append(shapeTag(shape.id));
           node.append(btn('cr-btn--small cr-btn--primary', RUN_COPY.cards.take, () => act({ type: 'pick', index })));
           row.append(node);
         });
@@ -385,15 +398,25 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
       case 'replace': {
         box.append(heading(RUN_COPY.replace.heading, RUN_COPY.replace.what(nameOf(CARDS[screen.card]!.name))));
         const list = el('div', 'cr-deck');
-        s.deck.forEach((card, index) => {
+        // The starting deck's basic cards first, each marked: they are what a reward usually replaces (step 7a).
+        const order = s.deck.map((card, index) => ({ card, index })).sort((a, b) => Number(isBasic(b.card)) - Number(isBasic(a.card)));
+        for (const { card, index } of order) {
           const node = cardTile(card);
           node.classList.add('cr-card--tap');
           node.tabIndex = 0;
           node.setAttribute('role', 'button');
+          if (isBasic(card)) {
+            node.dataset['basic'] = 'true';
+            node.append(el('span', 'cr-basic', RUN_COPY.replace.basic));
+          }
           node.addEventListener('click', () => act({ type: 'replace', index }));
           list.append(node);
-        });
-        box.append(cardTile(screen.card), list);
+        }
+        const incoming = cardTile(screen.card);
+        incoming.classList.add('cr-card--incoming');
+        const shape = shapeOf(screen.card);
+        if (shape) incoming.append(shapeTag(shape.id));
+        box.append(incoming, list);
         break;
       }
       case 'remove': {
@@ -449,6 +472,13 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
               ? `${RUN_COPY.boost.talent}: ${TALENTS[offer.talent]!.name}. ${TALENTS[offer.talent]!.text}`
               : RUN_COPY.boost.kind[offer.kind](offer.n);
           node.append(el('span', 'cr-choice-name', `${offer.unit} ${nameOf(UNITS[offer.unit].name)}`), el('span', 'cr-choice-what', what));
+          // Step 7a: the shape a talent belongs to, and what the unit already has beside the offer.
+          if (offer.kind === 'talent') {
+            const shape = TALENT_SHAPE[offer.talent];
+            node.append(shape ? shapeTag(shape) : el('span', 'cr-shape', RUN_COPY.boost.givenBack));
+          }
+          const has = s.boosts[offer.unit].talents ?? [];
+          node.append(el('span', 'cr-choice-line', has.length > 0 ? RUN_COPY.boost.has(has.map((t) => TALENTS[t]!.name).join(', ')) : RUN_COPY.boost.hasNone));
           node.addEventListener('click', () => act({ type: 'pick', index }));
           choices.append(node);
         });
@@ -458,7 +488,17 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
       case 'over': {
         const node = currentNode(s);
         box.append(heading(screen.won ? RUN_COPY.over.won : RUN_COPY.over.lost, RUN_COPY.over.stats(s.stats.fights, s.stats.bosses, s.stats.quests, s.stats.upgrades)));
-        if (!screen.won && s.battle) box.append(el('p', 'cr-note', RUN_COPY.over.reached(`${nameOf(ENCOUNTERS[s.battle.encounter]!.name)}${node ? ` · ${RUN_COPY.act(node.act + 1, ACTS.length)}` : ''}`)));
+        if (!screen.won && s.battle) {
+          const where = nameOf(ENCOUNTERS[s.battle.encounter]!.name);
+          box.append(el('p', 'cr-note', node ? RUN_COPY.over.fellIn(node.act + 1, ACTS.length, where) : RUN_COPY.over.reached(where)));
+        }
+        // Step 7a: the shape the deck leaned into and the talents the run took.
+        const lean = shapesLeanedInto(s.deck);
+        box.append(
+          el('p', 'cr-note', lean.shapes.length > 0 ? RUN_COPY.over.leaned(lean.shapes.map((id) => SHAPES[id].name).join(', '), lean.n) : RUN_COPY.over.leanedNone),
+        );
+        const taken = (['A', 'B', 'C'] as UnitDefId[]).flatMap((id) => (s.boosts[id].talents ?? []).map((t) => `${id} ${TALENTS[t]!.name}`));
+        box.append(el('p', 'cr-note', taken.length > 0 ? RUN_COPY.over.talents(taken.join(', ')) : RUN_COPY.over.talentsNone));
         box.append(btn('', RUN_COPY.copyLog, () => {
           globalThis.navigator?.clipboard?.writeText(JSON.stringify(log)).then(() => {
             message = RUN_COPY.copied;
@@ -498,6 +538,19 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
     return next?.kind === 'fight' ? RUN_COPY.route.next(`${nameOf(ENCOUNTERS[next.encounter]!.name)} · ${enemyNames(next.encounter)}`) : '';
   }
 
+  /** A shape's tag and its plan in a line, both at rest: a phone has no hover for a tooltip (step 7a). */
+  function shapeTag(id: ShapeId): HTMLElement {
+    const tag = el('span', 'cr-shape');
+    tag.dataset['shape'] = id;
+    tag.append(el('span', 'cr-shape-name', SHAPES[id].name), el('span', 'cr-shape-plan', SHAPES[id].plan));
+    return tag;
+  }
+
+  /** A group's name in the deck view: a shape's own, or the group's. */
+  function groupName(group: DeckGroupId): string {
+    return group === 'basic' || group === 'equipment' || group === 'other' ? RUN_COPY.group[group] : SHAPES[group].name;
+  }
+
   /** A card as the run's screens show it: owner, name, cost and what it does. */
   function cardTile(id: string): HTMLElement {
     const def = CARDS[id]!;
@@ -532,9 +585,19 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
     const panel = el('div', 'cr-overlay-panel');
     if (kind === 'deck') {
       panel.append(heading(RUN_COPY.deck(s.deck.length)));
-      const list = el('div', 'cr-deck');
-      for (const id of s.deck) list.append(cardTile(id));
-      panel.append(list);
+      // By shape, each with its count, so where the build is heading reads at a glance (step 7a).
+      for (const group of DECK_GROUPS) {
+        const cards = s.deck.filter((id) => deckGroupOf(id) === group);
+        if (cards.length === 0) continue;
+        const section = el('section', 'cr-group');
+        section.dataset['group'] = group;
+        section.append(el('h3', 'cr-group-name', RUN_COPY.groupCount(groupName(group), cards.length)));
+        if (group !== 'basic' && group !== 'equipment' && group !== 'other') section.append(el('p', 'cr-group-plan', SHAPES[group].plan));
+        const list = el('div', 'cr-deck');
+        for (const id of cards) list.append(cardTile(id));
+        section.append(list);
+        panel.append(section);
+      }
     } else {
       panel.append(heading(RUN_COPY.camp.heading, `${RUN_COPY.camp.pick} · ${RUN_COPY.suppliesN(campPrice(s).price)}`));
       panel.append(upgradeList(s, (index) => act({ type: 'upgrade', index })));

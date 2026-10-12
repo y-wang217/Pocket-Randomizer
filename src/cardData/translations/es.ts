@@ -78,6 +78,7 @@ export const ES: CardCopy = {
   grade: (n: number) => `Nivel ${n}`,
   pickTileAllies: 'Elige una casilla · una marcada golpea también a un aliado',
   pickTargetAllies: 'Elige un objetivo · uno marcado golpea también a un aliado',
+  pickTargetLands: 'Elige un objetivo · un anillo marca dónde acaba',
   graceBoard: 'Ronda 1: los enemigos toman posiciones',
   rule: {
     grace: 'Ronda 1: la mayoría de los enemigos se prepara en vez de atacar.',
@@ -98,6 +99,8 @@ export const ES: CardCopy = {
     pin: 'Un Arpón lo clava 2 turnos: no se mueve, sin escudos hasta el segundo turno, y Chilla a cada casilla que lo toca.',
   },
   fast: 'Rápido',
+  veteran: 'Vet',
+  veteranOf: (plain: string) => `Veterano: versión más dura de ${plain}`,
   roundLog: 'Registro de ronda',
   replayRound: 'Repetir ronda',
   back: 'Volver',

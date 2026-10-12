@@ -78,6 +78,7 @@ export const FR: CardCopy = {
   grade: (n: number) => `Niveau ${n}`,
   pickTileAllies: 'Choisissez une case · une case marquée touche aussi un allié',
   pickTargetAllies: 'Choisissez une cible · une cible marquée touche aussi un allié',
+  pickTargetLands: 'Choisissez une cible · un anneau montre où elle atterrit',
   graceBoard: 'Manche 1 : les ennemis se mettent en place',
   rule: {
     grace: 'Manche 1 : la plupart des ennemis se préparent au lieu d’attaquer.',
@@ -98,6 +99,8 @@ export const FR: CardCopy = {
     pin: 'Un Harpon le cloue 2 tours : aucun déplacement, aucun bouclier avant le second tour, et il Hurle sur chaque case qui le touche.',
   },
   fast: 'Rapide',
+  veteran: 'Vét',
+  veteranOf: (plain: string) => `Vétéran : version plus coriace de ${plain}`,
   roundLog: 'Journal de manche',
   replayRound: 'Rejouer la manche',
   back: 'Retour',
