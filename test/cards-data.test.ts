@@ -31,7 +31,7 @@ describe('card data', () => {
       ['focus', 'A', 1, false],
       // The ults at 3, from 4, by the shared mana ruling of 2026-10-12.
       ['moon-strike', 'A', 3, false],
-      // Shoot and Dig In at 1, from 0, by the no-free-cards ruling of 2026-10-12; Move stays free.
+      // Shoot, Move and Dig In at 1, from 0, by the no-free-cards ruling of 2026-10-12 and its second follow-up.
       ['shoot', 'B', 1, false],
       ['resupply', 'B', 1, false],
       ['artillery', 'B', 3, false],
@@ -40,7 +40,7 @@ describe('card data', () => {
       ['slash', 'C', 1, false],
       ['need-help', 'C', 1, false],
       ['prep', 'C', 1, true],
-      ['move', 'neutral', 0, false],
+      ['move', 'neutral', 1, false],
       ['dig-in', 'neutral', 1, true],
       ['attack', 'neutral', 1, false],
     ];
@@ -131,12 +131,11 @@ describe('card data', () => {
     expect([...rows].sort()).toEqual([6, 7]);
   });
 
-  it('makes no card free but Move and one-use equipment, and never a shield (the no-free-cards ruling)', () => {
+  it('makes no card free but one-use equipment, and never a shield (the no-free-cards ruling)', () => {
     for (const card of Object.values(CARDS)) {
       if (card.effects.some((e) => e.k === 'shield')) expect(card.cost, card.id).toBeGreaterThanOrEqual(1);
-      if (!card.equipment && card.id !== 'move' && card.id !== 'move+') expect(card.cost, card.id).toBeGreaterThanOrEqual(1);
+      if (!card.equipment) expect(card.cost, card.id).toBeGreaterThanOrEqual(1);
     }
-    expect(CARDS['move']!.cost).toBe(0);
   });
 
   it('carries the rule defaults it is asked to', () => {

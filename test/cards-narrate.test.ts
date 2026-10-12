@@ -5,8 +5,8 @@
  * play the faint left unplayed, and the scenario's grade total.
  *
  * The friendly fire log is a random-bot battle (seed FF9160, bot seed
- * FFBOT9160) saved at `cards-0.13.0`, re-stamped at `cards-0.14.0` (a free
- * Move replays it unchanged): each MP ruling replays the one before
+ * FFBOT9160) saved at `cards-0.13.0`, re-stamped at `cards-0.15.0`, whose
+ * costs are `0.13.0`'s again: each MP ruling replays the one before
  * differently, so it is searched for again each time, the first seed from
  * FF646 up whose Artillery hits the dasher and leaves its Attack unplayed.
  */

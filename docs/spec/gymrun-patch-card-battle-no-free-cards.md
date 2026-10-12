@@ -26,3 +26,12 @@ move further. *Melee units: Move -1*. *Commander gets Command* in the starting
 deck in place of a Move. *Melee -1 and Command*. The author's answer:
 
 > Move free again (Recommended)
+
+## The second follow-up, verbatim
+
+Filed before any change to `src/` for it, at `432ff83` (`cards-0.14.0`,
+`cardrun-0.12.0`), after the session reported that the shared pool had not
+made battles harder for the run bot, which leaves 1.86 of 4 MP unspent a
+round.
+
+> no just make the moves cost 1 again
