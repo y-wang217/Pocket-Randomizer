@@ -17789,3 +17789,47 @@ a fainted unit's max kept, one pool gating two units),
 boost), `test/cards-waves.test.ts` (bonus owed across a wave),
 `test/cards-tutorial.test.ts` (every ult 3 at most) and
 `test/cards-sandbox-tutorial.test.ts` (the one bar in the status).
+
+## 145. Card battle: no card is free but Move and one-use equipment, and no shield is
+
+**2026-10-12**, a feature request and its follow-up, on `claude/shared-mana`
+after section 144. Prompt
+[`spec/gymrun-patch-card-battle-no-free-cards.md`](spec/gymrun-patch-card-battle-no-free-cards.md):
+*"make the basic cards each cost mana … and shields aren't free"*, then
+*"move should be free but shield should cost mana"*, with the author's
+answer filed beside them. `cards-0.12.0` to `cards-0.14.0` (`0.13.0` was
+Move at 1, superseded the same day before a benchmark); `cardrun-0.10.0` to
+`cardrun-0.12.0`.
+
+### What changed
+
+- Shoot, Dig In, the three Braces, Guard Up and Jab cost 1, from 0. So do
+  Sandbags and Tower Shield, equipment that shields.
+- Move stays at 0, the one free card that is not equipment: positioning
+  never competes with a hit (the follow-up).
+- Equipment that does not shield stays free; supplies already paid for it.
+- The upgrades that made a card free go further instead: Dash+ and Sprint+
+  Move 3, Interpose+ Move 2 and Cover 1, Second Wind+ 2 bonus MP and a draw.
+
+### A deviation
+
+The request reads *"that means 1 card per mon per turn, max"*. That is
+built as a consequence of the costs, not a rule of its own: the pool is
+shared, so a unit may play two cards while another sits out, and the
+Commander's second MP is the pool's, not a second card of its own.
+
+### Measured
+
+`npm run cards:run -- 20 CRUN`: 10/20 runs won, 10.40 mean fights won, 2.10
+mean bosses, **identical** to section 144 seed by seed; only the action
+counts moved. A probe of the guard bot over 80 sandbox battles (`PROBE0` to
+`PROBE39`, `skirmish` and `test`) says why: it plays 2.18 cards a round and
+leaves **1.86 MP of the pool's 4 unspent** each round. Its hand of five and
+its targets bind before the pool does. Against `cards-0.11.0`, before section
+144, the same probe played 1.74 cards a round over 685 rounds, against 507
+now, and lost 0.41 HP a battle against 0.17. For this bot, the shared pool
+made battles easier, not harder: a full 4 every turn outpaces the old +1 a
+round from 0. **Recorded, not chased.**
+
+**Held by** `test/cards-data.test.ts`: no card free but Move and one-use
+equipment, no shield free.
