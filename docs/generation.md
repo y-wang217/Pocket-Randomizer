@@ -17842,3 +17842,16 @@ never fit a 390px phone: 134px for 136. Until section 144, round 1 held no MP
 for the dasher's cards, so the test never filled one. The unit panel's left
 padding goes from 8px to 7px and the gap between slots from 2px to 1px, which
 leaves about 137px.
+
+### Move costs 1 again (the second follow-up, the same day)
+
+*"no just make the moves cost 1 again"*, filed under the prompt.
+**Superseded:** this section's free Move. Move is 1 MP, and no card is free
+but one-use equipment that does not shield. `cards-0.14.0` to `cards-0.15.0`,
+`cardrun-0.12.0` to `cardrun-0.13.0`; the costs are `cards-0.13.0`'s again,
+so the narrate fixture replays unchanged.
+
+`npm run cards:run -- 20 CRUN`: **8/20 runs won, 9.95 mean fights won, 1.90
+mean bosses**, against 10/20, 10.40 and 2.10 with Move free. Three runs lost
+that had won: CRUN7 and CRUN17 at the Warlord's Guard, CRUN18 at the act 3
+boss. No seed did better. **Recorded, not chased.**
