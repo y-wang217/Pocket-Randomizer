@@ -145,6 +145,8 @@ const INTENT_ICON: Record<string, CardAssetId> = {
   scream: 'icon-scream',
   none: 'icon-wait',
 };
+/** The keywords the Inspect glossary explains (step 7b), in its order. */
+const GLOSSARY_KINDS = ['push', 'pull', 'repair', 'stealth', 'cover', 'stun'] as const;
 const THREAT_ORDER: readonly TileThreat['act'][] = ['pierce', 'slash', 'scream', 'strike'];
 const THREAT_ORDER_ALL: readonly AttackPreview['act'][] = ['pierce', 'slash', 'blast', 'strike'];
 
@@ -1312,6 +1314,8 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     if (CARDS[card.def]?.equipment) body.append(el('div', 'cb-full-rule', RUN_COPY.inBattle.equipment));
     const allies = blastAlliesLine(card.effects);
     if (allies) body.append(el('div', 'cb-full-rule', allies));
+    // Step 7b: a line for each keyword the card carries that its face cannot explain.
+    for (const line of glossaryLines(card.effects)) body.append(el('div', 'cb-full-rule cb-glossary', line));
     if (card.reason) body.append(el('div', 'cb-full-reason', CARD_COPY.reasons[card.reason]));
     if (card.owner !== 'neutral' && !card.granted) {
       const badge = el('span', 'cb-full-badge');
@@ -1344,6 +1348,12 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     return band;
   }
 
+  /** The glossary's line for each keyword in `effects`, once each, in the glossary's order. */
+  function glossaryLines(effects: readonly Effect[]): string[] {
+    const kinds = new Set(effects.map((e) => e.k));
+    return GLOSSARY_KINDS.filter((k) => kinds.has(k)).map((k) => CARD_COPY.glossary[k]);
+  }
+
   /** A Blast's friendly fire, as the rule table has it (R14). */
   function blastAlliesLine(effects: readonly Effect[]): string | null {
     if (!effects.some((e) => e.k === 'blast')) return null;
@@ -1367,6 +1377,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     if (enemy.veteranOf) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.veteranOf(nameOf(ENEMIES[enemy.veteranOf].name))));
     if (enemy.fast) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.rule.fast));
     else if (RULES.openingGrace) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.rule.grace));
+    if (enemy.pinned > 0 && !enemy.boss) card.append(el('div', 'cb-enemy-card-rule cb-glossary', CARD_COPY.glossary.stun));
     if (def.stalks) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.bossRules.stalk));
     if (def.boss) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.bossRules.pin));
     inspect.replaceChildren(card);

@@ -260,7 +260,7 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
       stat(RUN_COPY.base(def.baseShield + (boost.baseShield ?? 0)), !!boost.baseShield);
       stat(RUN_COPY.slots(CLASS_SLOTS[def.class] + (boost.slots ?? 0)), !!boost.slots);
       if (boost.mp) stat(RUN_COPY.mp(boost.mp), true);
-      for (const talent of boost.talents ?? []) stat(TALENTS[talent]!.name, true);
+      for (const talent of boost.talents ?? []) stat(nameOf(TALENTS[talent]!.name), true);
       unit.append(stats);
       team.append(unit);
     }
@@ -469,7 +469,7 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
           node.dataset['owner'] = offer.unit;
           const what =
             offer.kind === 'talent'
-              ? `${RUN_COPY.boost.talent}: ${TALENTS[offer.talent]!.name}. ${TALENTS[offer.talent]!.text}`
+              ? `${RUN_COPY.boost.talent}: ${nameOf(TALENTS[offer.talent]!.name)}. ${TALENTS[offer.talent]!.text}`
               : RUN_COPY.boost.kind[offer.kind](offer.n);
           node.append(el('span', 'cr-choice-name', `${offer.unit} ${nameOf(UNITS[offer.unit].name)}`), el('span', 'cr-choice-what', what));
           // Step 7a: the shape a talent belongs to, and what the unit already has beside the offer.
@@ -478,7 +478,7 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
             node.append(shape ? shapeTag(shape) : el('span', 'cr-shape', RUN_COPY.boost.givenBack));
           }
           const has = s.boosts[offer.unit].talents ?? [];
-          node.append(el('span', 'cr-choice-line', has.length > 0 ? RUN_COPY.boost.has(has.map((t) => TALENTS[t]!.name).join(', ')) : RUN_COPY.boost.hasNone));
+          node.append(el('span', 'cr-choice-line', has.length > 0 ? RUN_COPY.boost.has(has.map((t) => nameOf(TALENTS[t]!.name)).join(', ')) : RUN_COPY.boost.hasNone));
           node.addEventListener('click', () => act({ type: 'pick', index }));
           choices.append(node);
         });
@@ -497,7 +497,7 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
         box.append(
           el('p', 'cr-note', lean.shapes.length > 0 ? RUN_COPY.over.leaned(lean.shapes.map((id) => SHAPES[id].name).join(', '), lean.n) : RUN_COPY.over.leanedNone),
         );
-        const taken = (['A', 'B', 'C'] as UnitDefId[]).flatMap((id) => (s.boosts[id].talents ?? []).map((t) => `${id} ${TALENTS[t]!.name}`));
+        const taken = (['A', 'B', 'C'] as UnitDefId[]).flatMap((id) => (s.boosts[id].talents ?? []).map((t) => `${id} ${nameOf(TALENTS[t]!.name)}`));
         box.append(el('p', 'cr-note', taken.length > 0 ? RUN_COPY.over.talents(taken.join(', ')) : RUN_COPY.over.talentsNone));
         box.append(btn('', RUN_COPY.copyLog, () => {
           globalThis.navigator?.clipboard?.writeText(JSON.stringify(log)).then(() => {

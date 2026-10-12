@@ -17537,3 +17537,62 @@ tapped, the boss screen's shapes and *Has* lines, and a lost run's end.
 
 **The bench** does not move: no bot reads the view, and `commit` resolves
 exactly as before through `playPlan`.
+
+## 141. Card run shapes, step 7b: the glossary, the names in eight languages, the art list, the browser tests
+
+**2026-10-12**, on `claude/card-run-shapes-step7`, after section 140. From
+the author's *"Go 7b"*, filed under
+[`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md)
+before any work. The plan's section C. **No version axis moves**: copy, a
+document and tests only. `cards-0.11.0`, `cardrun-0.9.0`, `contentHash`
+holds.
+
+**11. The keyword glossary.** A card's Inspect panel carries one line for each
+of Push, Pull, Repair, Hidden, Cover and Stun it holds, once each, under its
+effect lines (`CARD_COPY.glossary`, all eight languages). Each line is worded
+from its resolver: a Push stops at a held tile or the edge, a Pull never brings
+an enemy nearer than enemies may stand, a boss stands still for both and a
+moved enemy aims again; Repair never passes max HP; a Strike stopping on a
+hidden unit hits nobody; Cover is orthogonal only; Stun holds an enemy that is
+hit and left standing, never a boss. A held enemy's own Inspect entry carries
+the Stun line. A card's face already shows its numbers, so a line says what
+the keyword does, not how much.
+
+**12. The names, in every language.** The 59 names the card run added (its 34
+cards, the eight new enemies, its fights and the seven talents) are drafted in
+the seven languages, in the same tables and under the same header as the rest:
+machine-drafted, not yet read by a native speaker. A veteran is named from its
+plain enemy's word in that language (*Jagdhund*, *Schreckenshund*). Where a
+first draft took a word a language already used for another name, it was
+changed (Ukrainian's Marksman, whose first draft was the Gunner's name).
+`nameOf` now reads an upgrade as its card's name and a plus, so *Baton+* is
+*Schlagstock+*; before, every upgraded card read in English. The run's own
+screens stay English, but they draw talent names through `nameOf` now, as
+they already did card names.
+
+**13. The art list**, [`reports/card-run-art-list.md`](reports/card-run-art-list.md).
+Generated from the card data and the asset manifest, not typed: 34 cards, of
+which 16 borrow another card's picture and 18 show an empty art window, and 8
+enemies that wear another enemy's marker. It also lists the placeholder icons
+and markers that are not new but are on the same shopping list.
+
+**14. The browser tests**, `test/visual-card-run.test.ts`, in the browser leg
+of the gate. On the built app at 390 by 844 it resumes run logs played by a
+fixture bot (`test/fixtures/card-run-screens.ts`: the run bot, a Town at every
+stop, Concuss whenever offered) and checks the offer, replace and boss screens
+and an act 2 battle. It checks for no sideways scroll, every touch target at
+least 44px, and step 7a's marks: the plans at rest, the basic cards first, a
+talent's shape and the *Has* line, a veteran's badge, and a planned Concuss's
+dashed hold on a veteran.
+
+**A deviation from the plan's wording.** *"Screenshot tests"* is read as the
+battle's own browser tests read it (`test/visual-card-battle.test.ts`): an
+assertion of what a screenshot is taken to check, with the screenshots saved
+on request (`GYMRUN_CB_SHOTS=<dir>`), and no pixel baseline. The run is set in
+the system font stack, which differs from machine to machine
+(`test/visual/harness.ts`).
+
+**Held by** `test/cards-step7b.test.ts`: every name the card data carries has
+a translation in every language, an upgrade reads as its card's name and a
+plus, every language has the six glossary lines, and Inspect explains each
+keyword a card carries, once, and nothing on a card that has none.

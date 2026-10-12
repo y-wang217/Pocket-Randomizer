@@ -160,7 +160,11 @@ review: the plan's Push, Pull, Stun, Cover and Stealth are drawn while
 planning, read off the round's own first phases; veterans wear a badge; an
 act that scales says so before it is met; the deck reads by shape; the
 replace, boss and end screens say what the build is. No version axis moves.
-Step 7b (keyword glossary, translations, the art list, browser tests) is next.
+**Step 7b is built** (section 141) and stopped for review: a keyword glossary
+in Inspect, the run's 59 new names in all eight languages, the art list
+([`reports/card-run-art-list.md`](reports/card-run-art-list.md)), and browser
+tests of the run's screens at phone size. Step 7 is complete. Not in it, by
+the plan: smarter bot choices, and act 2's difficulty.
 
 **Card battle sandbox: sides, telegraph kinds and card previews.** Branch
 `claude/card-battler-ui-layout-yejhur`, feedback
