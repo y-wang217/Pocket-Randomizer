@@ -176,3 +176,15 @@ section C: the keyword glossary, translations, the art list and browser
 tests.
 
 > Go 7b
+
+## The author's instruction during step 7b, verbatim
+
+Received while the gate ran on step 7b, with 7a and 7b both built.
+
+> Gates dont have to run until end of step 7
+> Go and run without me all throughout step 7
+
+Read as: within step 7 the gate runs once, at its end, and the session does
+not stop between its parts for review. Step 7 was already built when it
+arrived, so the gate then running was that end-of-step gate; its findings are
+fixed without a stop.
