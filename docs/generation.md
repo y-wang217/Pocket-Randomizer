@@ -17833,3 +17833,12 @@ round from 0. **Recorded, not chased.**
 
 **Held by** `test/cards-data.test.ts`: no card free but Move and one-use
 equipment, no shield free.
+
+### A layout fix it surfaced
+
+`test/visual-card-battle.test.ts` failed, by seed, with a Sword dasher slot
+43.36px wide against the 44px touch-target floor. The dasher's three slots
+never fit a 390px phone: 134px for 136. Until section 144, round 1 held no MP
+for the dasher's cards, so the test never filled one. The unit panel's left
+padding goes from 8px to 7px and the gap between slots from 2px to 1px, which
+leaves about 137px.
