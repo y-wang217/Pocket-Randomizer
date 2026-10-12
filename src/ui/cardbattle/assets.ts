@@ -211,7 +211,7 @@ export function cardAssetUrl(id: CardAssetId, files: Record<string, string> = FI
  * card's overlay, a filled slot) then paints from a loaded image rather than
  * empty for a frame. Each is drawn the way the screen draws it, through
  * `cardAsset`, because a browser need not reuse an image fetched another way:
- * Chromium refetched one preloaded by `new Image()` for the CSS background
+ * Chromium refetched one preloaded as an image element for the CSS background
  * (`docs/spec/gymrun-patch-card-sprite-flash.md`).
  */
 export function assetStash(files: Record<string, string> = FILES): HTMLElement {
