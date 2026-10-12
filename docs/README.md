@@ -154,7 +154,22 @@ moves. Cover, Stun and seven talents are built, and a boss offers two talents
 and a stat. The four shapes divide the reward pool, an offer is one card from
 each of three, and each shape has its cards (16 of 20). Enemies scale by
 act, veterans join from act 2, and the Warlord is act 2's boss: 7 of 20 runs
-won, act 2 the wall. Next come the screens.
+won, act 2 the wall. Merged as #115. **Step 7a is built** on
+`claude/card-run-shapes-step7` (`generation.md` section 140) and stopped for
+review: the plan's Push, Pull, Stun, Cover and Stealth are drawn while
+planning, read off the round's own first phases; veterans wear a badge; an
+act that scales says so before it is met; the deck reads by shape; the
+replace, boss and end screens say what the build is. No version axis moves.
+**Step 7b is built** (section 141) and stopped for review: a keyword glossary
+in Inspect, the run's 59 new names in all eight languages, the art list
+([`reports/card-run-art-list.md`](reports/card-run-art-list.md)), and browser
+tests of the run's screens at phone size. Step 7 is complete. Not in it, by
+the plan: smarter bot choices, and act 2's difficulty. **The run's menus take
+the author's mock** (section 142): seventeen SVG slots with CSS fallbacks, and
+the ChatGPT prompt that generates them,
+[`reports/card-run-menus-asset-prompt.md`](reports/card-run-menus-asset-prompt.md).
+All seventeen files arrived from the author on 2026-10-12 and are in
+`src/ui/assets/cardrun/`.
 
 **Card battle sandbox: sides, telegraph kinds and card previews.** Branch
 `claude/card-battler-ui-layout-yejhur`, feedback

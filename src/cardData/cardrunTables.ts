@@ -6,6 +6,7 @@
  * (`docs/generation.md` 125r).
  */
 import type { UnitBoost, UnitDefId } from '../core/cards/defs';
+import { CARDS } from './cards';
 
 export const RUN_RULES = {
   /** Supplies, the run's currency: at the start, for each main fight won, for each boss. */
@@ -104,6 +105,52 @@ export const TOWN_POOL: readonly string[] = Object.values(SHAPES).flatMap((shape
 export function shapeOf(card: string): ShapeDef | null {
   const base = card.endsWith('+') ? card.slice(0, -1) : card;
   return Object.values(SHAPES).find((shape) => shape.cards.includes(base)) ?? null;
+}
+
+/** The talent each shape's plan leans on (checkpoint 5a); `null` for Marksman, the Gunner's own, given back (133). */
+export const TALENT_SHAPE: Readonly<Record<string, ShapeId | null>> = {
+  marksman: null,
+  battery: 'bodyguard',
+  'field-medic': 'puppeteer',
+  'siege-mode': 'escort',
+  quartermaster: 'control',
+  bodyguard: 'bodyguard',
+  sweep: 'control',
+};
+
+/**
+ * How the deck view and the end of a run group a deck (step 7a): the starting
+ * deck's basic cards, each shape, then equipment. A fixed order, never a
+ * ranking; an upgrade sits with the card it upgrades.
+ */
+export type DeckGroupId = 'basic' | ShapeId | 'equipment' | 'other';
+
+export const DECK_GROUPS: readonly DeckGroupId[] = ['basic', 'puppeteer', 'bodyguard', 'escort', 'control', 'equipment', 'other'];
+
+/** Whether a card is one of the starting deck's own, or its upgrade. */
+export function isBasic(card: string): boolean {
+  return STARTING_DECK.includes(card.endsWith('+') ? card.slice(0, -1) : card);
+}
+
+export function deckGroupOf(card: string): DeckGroupId {
+  if (isBasic(card)) return 'basic';
+  const shape = shapeOf(card);
+  if (shape) return shape.id;
+  return CARDS[card]?.equipment ? 'equipment' : 'other';
+}
+
+/**
+ * The shapes a deck leans into: those holding the most of its cards, every
+ * one tied at that count, in `SHAPES` order. Empty when no shape card is in it.
+ */
+export function shapesLeanedInto(deck: readonly string[]): { shapes: ShapeId[]; n: number } {
+  const counts = new Map<ShapeId, number>();
+  for (const card of deck) {
+    const shape = shapeOf(card);
+    if (shape) counts.set(shape.id, (counts.get(shape.id) ?? 0) + 1);
+  }
+  const n = Math.max(0, ...counts.values());
+  return { shapes: n === 0 ? [] : (Object.keys(SHAPES) as ShapeId[]).filter((id) => counts.get(id) === n), n };
 }
 
 /** What a City's market sells, at what price in supplies. */

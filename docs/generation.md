@@ -15854,7 +15854,7 @@ carries a script, an external reference or text; every icon draws in
 - **Sliced pieces.** The pack's manifest marks the panel frame and the three
   button states nine-slice and the pill and both bar pieces three-slice, with
   their insets. They draw through CSS `border-image` with those insets, so
-  corners and caps keep their drawn size; `SLICES` in `assets.ts` holds them.
+  corners and caps keep their drawn size; `SLICES` in `ui/cardbattle/assets.ts` holds them.
 - **The palette** is the pack's: warm paper, navy ink, teal for the player and
   a legal choice, red for the enemy and a telegraph. The sandbox stylesheet
   takes its tokens from it; the earlier dark placeholder theme is gone.
@@ -17421,3 +17421,258 @@ three, and the first Colossus one. **Recorded, not chased**, per
 `balance.md` section 0. The lever, if a playtest asks for one, is
 `ACT_SCALING` and the veterans' numbers, all in `cardData/`.
 
+
+## 140. Card run shapes, step 7a: what changes a decision, shown before it is made
+
+**2026-10-12**, on `claude/card-run-shapes-step7`, from `main` at `e29376b`.
+From the author's go-ahead for step 7, filed under
+[`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md)
+before any work: *"All of step 7"*, read as 7a (the plan's sections A and B)
+then 7b (section C), each stopped for review. **No version axis moves**: no
+rule, resolver, draw, logged decision or data table changed.
+`CARD_ENGINE_VERSION` holds at `cards-0.11.0`, `CARD_RUN_VERSION` at
+`cardrun-0.9.0`, `contentHash` holds. The battle and the run's screens are
+outside the design bible (125c), so no bible rule is touched and none needed
+an amendment.
+
+**One reading for the forecast** (`playedOut`, `core/cards/preview.ts`). Phases
+1 and 2 of `commit`, every planned card in plan order, move into one function,
+`playPlan` (`core/cards/resolve.ts`), which `commit` now calls. `playedOut`
+runs it on a draft of the state. Nothing in those phases draws, so what it
+returns is what the round will do to the board before any enemy acts, read by
+the round's own code and not by a second opinion beside it. The view reads
+Push, Pull, Stun, Cover and Stealth off it. Everything else the board
+forecasts is as before: an enemy the plan kills still shows its attack, as
+`core/cards/preview.ts` has always said.
+
+**A. Facts the player could not see.**
+
+1. **Push and Pull.** A planned Shove or Grapple draws the enemy's label in a
+   dashed red ring on the tile it will land on, and the enemy where it stands
+   now fades. Its attack on the board, and its panel's intent, are the ones it
+   aims from the landing tile, dashed and in italics while they are only
+   planned. While a Grapple is being aimed, every enemy it could take shows
+   its landing ring at once (`displacementsFor`), so a phone needs no hover.
+   The note line says so: *"Pick a target · a ring marks where it lands"*.
+2. **Veterans.** A *Vet* badge in gold on the token, left of the piece, and
+   beside the name on the panel. Inspect names the plain enemy: *"Veteran: a
+   harder Hound"*. The view carries `veteranOf`, read off `VETERAN`.
+3. **The act warning.** Read off `ACT_SCALING`, never written beside it. The
+   route screen says what the next fight's act adds (*"Act 2: enemies +1 HP,
+   veterans in the first two waves"*), the run's battle screen says the same
+   for the act it is in, and the progress strip carries a chip (*"+1 HP ·
+   veterans"*) before the first node of each act that scales. Act 1 adds
+   nothing and carries none.
+4. **Cover and Stun on the board.** A unit covering once the plan has played
+   is ringed in its colour, and each neighbour it will protect wears a shield
+   with the covering unit's letter. Neighbours are read where the plan's moves
+   leave everyone, so Interpose covers from the tile it steps to. A held enemy
+   wears the pinned icon and its turns on the right edge of its token, solid;
+   a planned Stun draws the same badge dashed, its attack goes dark, and its
+   panel reads *Pinned 1* and *Wait* in italics.
+5. **Stealth in the plan.** A planned Smoke fades its unit at once. Every
+   attack that would land on it is drawn faint, and its chip is struck through
+   and carries the stealth icon.
+6. **Shape plans on a phone.** The offer screen shows each shape's plan in a
+   line under its name, at rest. The tooltip is gone.
+
+**B. Making the build readable.**
+
+7. **The deck view** groups the deck by `DECK_GROUPS` (`cardData/cardrunTables.ts`):
+   Basic, the four shapes, Equipment, each with its count and a shape's plan
+   under its name. A fixed order, never a ranking. An upgrade sits with its
+   card.
+8. **The replace screen** lists the starting deck's basic cards first, each
+   marked *Basic*, then the rest in deck order. A tap still replaces the card
+   tapped, by its index in the deck. The card coming in is outlined and wears
+   its shape. At 390 wide the page does not scroll sideways (checked in
+   Chromium at 390 by 844, `scrollWidth` 390, on the route, offer, replace,
+   boss and end screens).
+9. **The boss screen.** Each talent wears its shape, from a new table,
+   `TALENT_SHAPE`, that writes down section 137's shape column. Marksman is
+   *Given back*: it is the Gunner's own ability returned (133), not a shape's.
+   Every offer, stat or talent, names what its unit already has (*"Has:
+   Marksman"*, or *"No talent yet"*).
+10. **The end of a run.** A lost run reads *"Fell in act 2/3: Turret Alley"*,
+    where it read *"Reached: Turret Alley · Act 2/3"*. Every run's end names
+    the shape the final deck leaned into, the shapes tied at the most cards
+    with their count (`shapesLeanedInto`), and the talents it took, unit by
+    unit.
+
+**One fix that came with it.** The enemy Inspect line read the kind's HP
+(`ENEMIES[def].hp`). Since checkpoint 6 an act adds to it, so a Dire Hound in
+act 2 has 3 HP and Inspect said 2. It reads the enemy's own `maxHp` now.
+
+**Deviations from the plan's wording**, each a reading it left open:
+
+- *"A stunned enemy's token gets the pinned badge; today only its panel says
+  so."* A Stun 1 wears off in the same round's move phase (section 137), so no
+  stunned enemy stands on the board at the next plan. The badge shows on the
+  playback's pictures, while the hold is real, and in the forecast, where it
+  matters to a decision.
+- *"The fight strip"* is read as the run's progress strip. The battle's own top
+  line is unchanged; the run's battle screen carries the warning line instead.
+- *"Machine-drafted translations"* is 7b's item 12. The three battle-screen
+  strings 7a adds (*pickTargetLands*, *veteran*, *veteranOf*) are drafted in
+  all eight languages now, because the copy table's type requires every
+  language to carry every key. The run's screens are English only, as before.
+
+**Held by** `test/cards-step7-forecast.test.ts`:
+
+- `playedOut` leaves the state it was given alone.
+- A Grapple's landing tile is the one the round moves the enemy to.
+- A planned Shove's ghost, and the intent it leaves, are the round's.
+- A planned Concuss clears the held enemy's attack and marks the hold.
+- A planned Guard Duty and an Interpose mark the covering unit and the
+  neighbours it protects.
+- A planned Smoke hides its unit and marks the Strike it dodges.
+- A playback picture draws no forecast.
+- A veteran names its plain enemy.
+
+`test/cards-run-step7.test.ts` drives the shell in jsdom: the act warning and
+the strip's chips, the plans at rest, the deck groups and their counts, the
+basic cards first on the replace screen with a tap still replacing the card
+tapped, the boss screen's shapes and *Has* lines, and a lost run's end.
+`test/cards-view.test.ts` reads the new `dodged` field on each threat.
+
+**The bench** does not move: no bot reads the view, and `commit` resolves
+exactly as before through `playPlan`.
+
+## 141. Card run shapes, step 7b: the glossary, the names in eight languages, the art list, the browser tests
+
+**2026-10-12**, on `claude/card-run-shapes-step7`, after section 140. From
+the author's *"Go 7b"*, filed under
+[`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md)
+before any work. The plan's section C. **No version axis moves**: copy, a
+document and tests only. `cards-0.11.0`, `cardrun-0.9.0`, `contentHash`
+holds.
+
+**11. The keyword glossary.** A card's Inspect panel carries one line for each
+of Push, Pull, Repair, Hidden, Cover and Stun it holds, once each, under its
+effect lines (`CARD_COPY.glossary`, all eight languages). Each line is worded
+from its resolver: a Push stops at a held tile or the edge, a Pull never brings
+an enemy nearer than enemies may stand, a boss stands still for both and a
+moved enemy aims again; Repair never passes max HP; a Strike stopping on a
+hidden unit hits nobody; Cover is orthogonal only; Stun holds an enemy that is
+hit and left standing, never a boss. A held enemy's own Inspect entry carries
+the Stun line. A card's face already shows its numbers, so a line says what
+the keyword does, not how much.
+
+**12. The names, in every language.** The 59 names the card run added (its 34
+cards, the eight new enemies, its fights and the seven talents) are drafted in
+the seven languages, in the same tables and under the same header as the rest:
+machine-drafted, not yet read by a native speaker. A veteran is named from its
+plain enemy's word in that language (*Jagdhund*, *Schreckenshund*). Where a
+first draft took a word a language already used for another name, it was
+changed (Ukrainian's Marksman, whose first draft was the Gunner's name).
+`nameOf` now reads an upgrade as its card's name and a plus, so *Baton+* is
+*Schlagstock+*; before, every upgraded card read in English. The run's own
+screens stay English, but they draw talent names through `nameOf` now, as
+they already did card names.
+
+**13. The art list**, [`reports/card-run-art-list.md`](reports/card-run-art-list.md).
+Generated from the card data and the asset manifest, not typed: 34 cards, of
+which 16 borrow another card's picture and 18 show an empty art window, and 8
+enemies that wear another enemy's marker. It also lists the placeholder icons
+and markers that are not new but are on the same shopping list.
+
+**14. The browser tests**, `test/visual-card-run.test.ts`, in the browser leg
+of the gate. On the built app at 390 by 844 it resumes run logs played by a
+fixture bot (`test/fixtures/card-run-screens.ts`: the run bot, a Town at every
+stop, Concuss whenever offered) and checks the offer, replace and boss screens
+and an act 2 battle. It checks for no sideways scroll, every touch target at
+least 44px, and step 7a's marks: the plans at rest, the basic cards first, a
+talent's shape and the *Has* line, a veteran's badge, and a planned Concuss's
+dashed hold on a veteran.
+
+**A deviation from the plan's wording.** *"Screenshot tests"* is read as the
+battle's own browser tests read it (`test/visual-card-battle.test.ts`): an
+assertion of what a screenshot is taken to check, with the screenshots saved
+on request (`GYMRUN_CB_SHOTS=<dir>`), and no pixel baseline. The run is set in
+the system font stack, which differs from machine to machine
+(`test/visual/harness.ts`).
+
+**Held by** `test/cards-step7b.test.ts`: every name the card data carries has
+a translation in every language, an upgrade reads as its card's name and a
+plus, every language has the six glossary lines, and Inspect explains each
+keyword a card carries, once, and nothing on a card that has none.
+
+## 142. The card run's menus take the mock's art; the functionality does not change
+
+**2026-10-12**, on `claude/card-run-shapes-step7`, after section 141. From
+[`spec/gymrun-card-run-menus-art.md`](spec/gymrun-card-run-menus-art.md),
+filed before any work with the author's mock. **No version axis moves**: no
+rule, draw, logged decision or table changed. Outside the design bible, like
+the run (125c).
+
+**The slots** (`ui/cardrun/assets.ts`). Seventeen named SVG slots, one per
+picture the mock puts on a run screen, in `src/ui/assets/cardrun/`, each named for its ID:
+four backdrops, the wooden sign, three characters and nine icons. A screen
+asks for a slot by its ID and nothing else names a file. **Each slot draws a
+fallback until its file arrives**: a backdrop a soft meadow gradient, the
+sign a plain wood plank in CSS, a character nothing, an icon its glyph on a
+disc, drawn from `data-fallback` so it is never part of a label's text. The
+sign is cut nine ways (insets 44, 48, 28, 48), so it stretches to any heading
+and keeps its posts. A file in the folder that is no slot's fails the test.
+The ChatGPT prompt that generates them, with every slot's viewBox, drawn
+size, contents and nine-way-cut rules, is
+[`reports/card-run-menus-asset-prompt.md`](reports/card-run-menus-asset-prompt.md);
+the test holds it to the manifest.
+
+**Reused, not redrawn:** the battle's unit portraits and its sixteen card
+pictures (`ui/cardbattle/assets.ts`), and its hearts and shield bubbles
+(`ui/cardbattle/meters.ts`), whose colour tokens now apply to `.cr` as well
+as `.cb`.
+
+**The screens**, each re-laid in the mock's presentation:
+
+- Every screen stands on a backdrop: the route map; the market for the offer
+  and the market; the village for the City; the trail clearing for the rest.
+- Every heading hangs on the sign.
+- The team is three unit cards: the letter on a disc of its colour, the
+  name, the portrait, hearts for HP and bubbles for base shield, then the
+  slots, MP boosts and talents, each talent with a star.
+- The route's three stops are speech-bubble cards, each with its map pin.
+  Every line they carried stays.
+- The act warning sits on a red ribbon with its icon.
+- The City is two rows, Market and Defense quest, each with its icon, its
+  lines and a chevron. The market's stock is now on its row as well as on the
+  route.
+- Every card wears its picture: under the name on an offer and in the market,
+  beside the words on the card coming in, small at the end of a deck row. A
+  card with no picture shows an empty hatched window (the art list's
+  eighteen).
+- A boss offer carries the unit's portrait, and a star on a talent.
+- Primary buttons are the mock's green.
+- A character stands at the foot of a screen, and on the offer, the market,
+  the City and the replace screen says the mock's line (`RUN_COPY.says`):
+  flavour, the same every time.
+
+**What the mock shows that is not built**, since the functionality is the
+session's and does not change: a Rest at the City, a Back on the City, a
+Cancel on the replace screen (a card reward has no skip), MP pips on the
+team cards (MP does not carry between fights; the cards show what does), the
+map's pins standing in for the stop cards, and labels on offered cards that
+are not the card's shape. The prompt's last section says the same, so no
+asset is drawn for them.
+
+**Held by** `test/cards-run-art.test.ts`: no stray file in the folder; a
+fallback for every icon and the sign's slice; a missing file draws its
+fallback and adds no text; a file that has arrived is drawn, the sign cut
+nine ways; every slot named in the prompt with its viewBox. It also checks
+that the route, the City, the offer and the boss screen each ask for their
+slots. Checked in Chromium at 390 by 844, with no file and with a stand-in
+for every slot, removed before the commit: no sideways scroll on the route,
+offer, replace, boss, City or end screens.
+
+**The files arrived** the same day, from the author, as a zip of all
+seventeen at the paths the prompt names. Each was checked before it entered
+the tree: the right name, the exact viewBox, well-formed, and only plain
+shapes (`path`, `rect`, `circle`, `ellipse`, `g`), with no script, link,
+embedded image or text. The sign keeps the slice rules: its posts sit in the
+top corners, its nails in the four corners, and only horizontal grain crosses
+its middle. Together they come to 117 KB, the four backdrops 95 KB of it.
+Seen in Chromium at 390 by 844 on the route, offer, replace, boss, City and
+end screens, with no sideways scroll. One change came with them: a note
+standing straight on a screen gets a light cream backing, so it reads over
+the backdrop.

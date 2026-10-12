@@ -66,12 +66,13 @@ export function draftOf(state: BattleState): BattleState {
   };
 }
 
-export function commit(state: BattleState): StepResult {
-  if (state.phase !== 'plan') return { ok: false, state, reason: 'battleOver' };
-  if (!checkPlan(state, state.plan).ok) return { ok: false, state, reason: 'breaksPlan' };
-
-  const s = draftOf(state);
-  const ctx: Ctx = { s, events: [{ t: 'committed', round: s.round }] };
+/**
+ * Phases 1 and 2 on `s`, in place: every planned card in plan order, and the
+ * plan cleared. Nothing here draws. `commit` plays the round through it, and
+ * the preview (`playedOut`) reads the board it leaves before any enemy acts.
+ */
+export function playPlan(ctx: Ctx): void {
+  const { s } = ctx;
   const plan = s.plan;
   s.plan = [];
 
@@ -101,6 +102,15 @@ export function commit(state: BattleState): StepResult {
       });
     } else playCard(ctx, play, () => resolveEffects(ctx, play, def, converts(play, index)));
   });
+}
+
+export function commit(state: BattleState): StepResult {
+  if (state.phase !== 'plan') return { ok: false, state, reason: 'battleOver' };
+  if (!checkPlan(state, state.plan).ok) return { ok: false, state, reason: 'breaksPlan' };
+
+  const s = draftOf(state);
+  const ctx: Ctx = { s, events: [{ t: 'committed', round: s.round }] };
+  playPlan(ctx);
 
   // 3. Win check: the last enemy of a wave brings the next wave, of the last wave wins.
   if (livingEnemies(s).length === 0 && s.phase === 'plan') {

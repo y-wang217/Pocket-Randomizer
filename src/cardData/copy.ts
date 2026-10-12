@@ -61,6 +61,8 @@ const EN = {
   pickTileBlock: 'Pick a tile · a shield blocks a Strike',
   pickTileAllies: 'Pick a tile · a marked tile hits an ally too',
   pickTargetAllies: 'Pick a target · a marked one hits an ally too',
+  /** A Push or Pull being aimed (step 7a): each enemy it could take has a ring where it would land. */
+  pickTargetLands: 'Pick a target · a ring marks where it lands',
   inspectHint: 'Tap a card or an enemy to inspect it',
   /** Round 1 under opening grace (A1, A7): the note line, while nothing else is said. */
   graceBoard: 'Round 1: enemies are getting into position',
@@ -70,6 +72,15 @@ const EN = {
     fast: 'Fast: attacks from round 1, for 1.',
     blastAllies: 'Blast hits allies on its tiles too. Not the unit that plays it.',
     blastAlliesCaster: 'Blast hits allies on its tiles too, the unit that plays it included.',
+  },
+  /** Step 7b: one line per keyword a card carries, in its Inspect panel. */
+  glossary: {
+    push: 'Push: each enemy it hits slides away from you, up to that many tiles, stopping at a held tile or the edge. A boss stands still. A moved enemy aims again.',
+    pull: 'Pull: the enemy slides toward you, up to that many tiles, never nearer than enemies may stand. A boss stands still. A moved enemy aims again.',
+    repair: 'Repair: the ally gets back that much HP, never past its max.',
+    stealth: 'Hidden: while it lasts, enemy attacks pass over this unit. A Strike that stops on it hits nobody.',
+    cover: 'Cover: while it lasts, a hit meant for a unit next to this one, not diagonally, lands on this one instead.',
+    stun: 'Stun: each enemy it hits and leaves standing neither moves nor acts for that many of its turns. Never a boss.',
   },
   enemyStats: (hp: number, base: number) => `HP ${hp} · Base ${base}`,
   /** The unit filter (A6): tap a unit to see only what it can play. */
@@ -96,6 +107,9 @@ const EN = {
   intentNone: 'Wait',
   /** The Fast badge on an enemy's token and panel. */
   fast: 'Fast',
+  /** A veteran's badge on its token and panel (checkpoint 6, step 7a), and its Inspect line naming the plain enemy. */
+  veteran: 'Vet',
+  veteranOf: (plain: string) => `Veteran: a harder ${plain}`,
   reasons: {
     noMp: 'Not enough MP',
     noSlot: 'No free slot',
@@ -265,7 +279,17 @@ export function isCardLanguage(value: unknown): value is CardLanguage {
   return typeof value === 'string' && (CARD_LANGUAGES as readonly string[]).includes(value);
 }
 
-/** A name from the card data in the current language, or as the data has it. */
+/**
+ * A name from the card data in the current language, or as the data has it.
+ * An upgrade is its card's name and a plus (`runCards.ts`), so it reads the
+ * card's name and keeps the plus.
+ */
 export function nameOf(english: string): string {
-  return CARD_COPY.names[english] ?? english;
+  const own = CARD_COPY.names[english];
+  if (own !== undefined) return own;
+  if (english.endsWith('+')) {
+    const base = CARD_COPY.names[english.slice(0, -1)];
+    if (base !== undefined) return `${base}+`;
+  }
+  return english;
 }

@@ -4,6 +4,7 @@
  * planned ghost comes from here, built on the same checks `step` applies.
  */
 import { CARDS, DECKS } from '../../cardData/cards';
+import { VETERAN } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
@@ -11,8 +12,8 @@ import type { CardOwner, ClassId, EnemyDefId, Effect, Pos, Zone } from './defs';
 import { deployTiles } from './deploy';
 import { playBlock, playersOf } from './legal';
 import { cardDefOf, needsOf, project, slotsOf, type Needs } from './plan';
-import { enemyThreat, previewPlay, type PlayPreview } from './preview';
-import type { BattleState, CardIid, EnemyId, Intent, PlayBlock, UnitId } from './state';
+import { enemyThreat, playedOut, previewPlay, type PlayPreview } from './preview';
+import type { BattleState, CardIid, EnemyId, EnemyState, Intent, PlayBlock, UnitId } from './state';
 import { allTiles, covers, samePos, zoneOf } from './zones';
 
 /**
@@ -28,6 +29,8 @@ export interface TileThreat {
   n: number;
   /** The tile where a Strike stops, on the unit it will hit. */
   stop: boolean;
+  /** A unit the plan hides stands here: the act passes over it (Stealth). */
+  dodged: boolean;
 }
 
 /** An enemy covers each tile of its footprint; `anchor` is the tile its token is drawn from (its position). */
@@ -44,6 +47,8 @@ export interface TileView {
   threats: TileThreat[];
   /** A unit whose planned moves end here. */
   planGhost?: UnitId;
+  /** An enemy the plan's Push or Pull leaves here. */
+  enemyGhost?: EnemyId;
 }
 
 export interface PlannedView {
@@ -72,6 +77,12 @@ export interface UnitView {
   fainted: boolean;
   /** Enemy phases left under Stealth: 0 when none. */
   stealth: number;
+  /** Hidden once the plan's cards have played: a Smoke planned, or Stealth still on. */
+  hiddenByPlan: boolean;
+  /** Covering once the plan's cards have played (Guard Duty, Interpose, Bodyguard). */
+  coveringByPlan: boolean;
+  /** The covering units next to it once the plan's moves land: an enemy's hit on it goes to the first. */
+  coveredBy: UnitId[];
   pos: Pos | null;
   /** Where its planned moves leave it. */
   projected: Pos | null;
@@ -91,8 +102,17 @@ export interface EnemyView {
   fast: boolean;
   /** Its footprint, lanes by columns: 1 by 1 for most, 2 by 2 for the Colossus. */
   size: { lanes: number; cols: number };
-  /** Turns of a Harpoon's pin left (D). */
+  /** Turns of a Harpoon's pin, or a Stun's hold, left (D, 5a). */
   pinned: number;
+  boss: boolean;
+  /** The plain enemy this is the veteran of (checkpoint 6), or `null`. */
+  veteranOf: EnemyDefId | null;
+  /**
+   * What the plan's cards do to it before it acts, or `null` when they leave
+   * it be: where a Push or Pull leaves it, the turns a Stun holds it, and the
+   * intent it then acts on.
+   */
+  planned: { to: Pos | null; stun: number; intent: EnemyView['intent'] } | null;
   /** The HP at which its one stalk comes, while it has not come (D3); `null` for an enemy that never stalks. */
   stalkAt: number | null;
   intent: { icon: Intent['act']; n: number; tiles: Pos[]; label?: string } | null;
@@ -156,10 +176,34 @@ export function enemyNumber(state: BattleState, id: EnemyId): number {
   return enemy ? state.enemies.filter((e) => e.wave === enemy.wave).indexOf(enemy) + 1 : 0;
 }
 
-export function viewOf(state: BattleState): BattleView {
+/** The plain enemy each veteran is the veteran of. */
+const PLAIN_OF: Partial<Record<EnemyDefId, EnemyDefId>> = Object.fromEntries(Object.entries(VETERAN).map(([plain, vet]) => [vet, plain]));
+
+function intentView(e: EnemyState): EnemyView['intent'] {
+  return e.pos && e.intent ? { icon: e.intent.act, n: e.intent.n, tiles: e.intent.tiles, ...(e.intent.label ? { label: e.intent.label } : {}) } : null;
+}
+
+/**
+ * `forecast` reads what the plan's cards do to the board before the enemies
+ * act (`playedOut`). A playback step's state is a picture of a round already
+ * resolving, so the screen draws those without it.
+ */
+export function viewOf(state: BattleState, { forecast = true }: { forecast?: boolean } = {}): BattleView {
   const projection = project(state);
   const live = state.phase === 'plan';
-  const threatened = state.enemies.map((enemy) => ({ enemy, tiles: enemyThreat(state, enemy, projection) }));
+  const out = forecast && live && state.plan.length > 0 ? playedOut(state) : null;
+  // An enemy the plan moves or holds acts from where it is left, on the intent it is left with.
+  const moved = (e: EnemyState): EnemyState | null => {
+    const after = out?.enemies.find((o) => o.id === e.id);
+    if (!after?.pos || !e.pos) return null;
+    return !samePos(after.pos, e.pos) || after.pinned > e.pinned ? after : null;
+  };
+  const threatened = state.enemies.map((enemy) => {
+    const after = moved(enemy);
+    return { enemy: after ?? enemy, tiles: after ? enemyThreat(out!, after, projection) : enemyThreat(state, enemy, projection) };
+  });
+  // Where the plan leaves each hidden unit: an act on its tile passes over it.
+  const hidden = (out ?? state).units.filter((u) => !u.fainted && (u.stealth ?? 0) > 0).map((u) => projection[u.id] ?? u.pos);
   const previews: PlanPreview[] = state.plan.map((play, planIndex) => ({ planIndex, unit: play.unit, ...previewPlay(state, play, planIndex) }));
 
   const tiles: TileView[] = allTiles().map((pos) => {
@@ -179,11 +223,13 @@ export function viewOf(state: BattleState): BattleView {
         const hit = tiles.find((t) => samePos(t.pos, pos));
         const act = enemy.intent?.act;
         if (!hit || (act !== 'strike' && act !== 'pierce' && act !== 'slash' && act !== 'scream')) return [];
-        return [{ enemy: enemy.id, act, n: enemy.intent!.n, stop: hit.stop }];
+        return [{ enemy: enemy.id, act, n: enemy.intent!.n, stop: hit.stop, dodged: hidden.some((p) => samePos(p, pos)) }];
       }),
     };
     const ghost = state.units.find((u) => u.pos && !samePos(u.pos, projection[u.id]) && samePos(projection[u.id], pos));
     if (ghost) view.planGhost = ghost.id;
+    const pushed = state.enemies.find((e) => e.pos && samePos(moved(e)?.pos, pos) && !samePos(e.pos, pos));
+    if (pushed) view.enemyGhost = pushed.id;
     return view;
   });
 
@@ -200,6 +246,15 @@ export function viewOf(state: BattleState): BattleView {
       }
     });
     const def = UNITS[u.id];
+    const after = (out ?? state).units.find((o) => o.id === u.id)!;
+    const at = projection[u.id] ?? null;
+    const coveredBy = (out ?? state).units
+      .filter((o) => o.id !== u.id && !o.fainted && (o.cover ?? 0) > 0)
+      .filter((o) => {
+        const p = projection[o.id];
+        return !!p && !!at && Math.abs(p.lane - at.lane) + Math.abs(p.col - at.col) === 1;
+      })
+      .map((o) => o.id);
     return {
       id: u.id,
       name: def.name,
@@ -216,13 +271,18 @@ export function viewOf(state: BattleState): BattleView {
       planned,
       fainted: u.fainted,
       stealth: u.stealth ?? 0,
+      hiddenByPlan: !after.fainted && (after.stealth ?? 0) > 0,
+      coveringByPlan: !after.fainted && (after.cover ?? 0) > 0,
+      coveredBy: u.fainted ? [] : coveredBy,
       pos: u.pos,
       projected: projection[u.id] ?? null,
     };
   });
 
   // The current wave's enemies: an earlier wave's are gone, a later one's not here yet.
-  const enemies: EnemyView[] = state.enemies.filter((e) => e.wave === state.wave).map((e) => ({
+  const enemies: EnemyView[] = state.enemies.filter((e) => e.wave === state.wave).map((e) => {
+    const after = moved(e);
+    return {
     id: e.id,
     def: e.def,
     name: ENEMIES[e.def].name,
@@ -235,9 +295,13 @@ export function viewOf(state: BattleState): BattleView {
     fast: ENEMIES[e.def].fast === true,
     size: ENEMIES[e.def].size ?? { lanes: 1, cols: 1 },
     pinned: e.pinned,
+    boss: ENEMIES[e.def].boss === true,
+    veteranOf: PLAIN_OF[e.def] ?? null,
+    planned: after ? { to: samePos(after.pos, e.pos) ? null : after.pos, stun: after.pinned > e.pinned ? after.pinned : 0, intent: intentView(after) } : null,
     stalkAt: ENEMIES[e.def].stalks && !e.stalked ? Math.floor(e.maxHp * RULES.stalk.atHpShare) : null,
-    intent: e.pos && e.intent ? { icon: e.intent.act, n: e.intent.n, tiles: e.intent.tiles, ...(e.intent.label ? { label: e.intent.label } : {}) } : null,
-  }));
+    intent: intentView(e),
+    };
+  });
 
   // Grouped by owner in the deck's unit order, Neutrals last.
   const owners: CardOwner[] = [...(DECKS[state.deckId]?.units ?? []), 'neutral'];

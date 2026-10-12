@@ -437,3 +437,430 @@ body:has(.cr) {
   text-align: center;
 }
 
+.cr-shape-name {
+  display: block;
+  font-weight: 800;
+}
+/* The plan in a line, at rest: a phone has no hover (step 7a). */
+.cr-shape-plan {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+}
+.cr-choice > .cr-shape {
+  text-align: left;
+}
+
+/* ------------------------------------------------------- step 7a
+   An act that scales its fights says so on the route screen, the run's
+   battle screen and the strip; the deck reads by shape; the replace screen
+   lists the basic cards first, marked. */
+.cr-act-warning {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--cr-surface);
+  box-shadow: inset 4px 0 0 var(--cr-red-text), inset 0 0 0 1px var(--cr-line);
+  color: var(--cr-red-text);
+  font-weight: 700;
+}
+.cr-act-chip {
+  height: 22px;
+  margin-left: 8px;
+  padding: 0 6px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+  color: var(--cr-red-text);
+  box-shadow: inset 0 0 0 1px var(--cr-red-text);
+}
+.cr-act-chip + .cr-node[data-act='start'] {
+  margin-left: 0;
+}
+.cr-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cr-group-name {
+  margin: 4px 0 0;
+  font-size: 14px;
+}
+.cr-group-plan {
+  margin: 0;
+  color: var(--cr-dim);
+  font-size: 11px;
+}
+.cr-basic {
+  align-self: flex-start;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: var(--cr-ink);
+  color: #fff;
+}
+.cr-card--incoming {
+  box-shadow: inset 0 0 0 3px var(--cr-own), 0 0 0 2px var(--cr-teal);
+}
+
+/* =====================================================================
+   The menus in the author's mock (`docs/spec/gymrun-card-run-menus-art.md`):
+   a painted scene behind each screen, its heading on a wooden sign, cream
+   panels with an ink edge, green Take buttons, unit cards with portraits, a
+   picture on every card, and a character at the foot of the screen. Every
+   picture is a slot (`ui/cardrun/assets.ts`); a slot whose file has not
+   arrived draws the CSS fallback here, so nothing reads as broken.
+   ===================================================================== */
+.cr {
+  --cr-ink: #1f3550;
+  --cr-panel: #fffaf0;
+  --cr-edge: #1f3550;
+  --cr-lift: 0 3px 0 rgba(31, 53, 80, 0.28);
+  --cr-green: #3fa64b;
+  --cr-green-deep: #2b7a35;
+  --cr-wood: #d9a066;
+  --cr-wood-deep: #7a4a22;
+  --cr-ribbon: #fde4df;
+  --cr-ribbon-edge: #c0463b;
+
+  position: relative;
+  isolation: isolate;
+  font-weight: 500;
+}
+
+/* The scene: fixed behind the page, covering a portrait phone. */
+.cr-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.cr-asset--backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--cr-asset-image) center top / cover no-repeat;
+}
+.cr-asset--backdrop[data-missing='true'] {
+  background: linear-gradient(180deg, #dff0d8 0%, #f3efe6 38%);
+}
+
+/* A character at the foot of a screen, and what it says. A character not yet drawn takes no room. */
+.cr-foot {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+  min-height: 0;
+}
+.cr-asset--character {
+  flex: none;
+  background: var(--cr-asset-image) center bottom / contain no-repeat;
+}
+.cr-asset--character[data-missing='true'] {
+  display: none;
+}
+.cr-says {
+  position: relative;
+  margin: 0 0 18px;
+  padding: 8px 12px;
+  max-width: 220px;
+  border-radius: 14px;
+  background: var(--cr-panel);
+  box-shadow: inset 0 0 0 2px var(--cr-edge), var(--cr-lift);
+  font-size: 13px;
+  font-weight: 600;
+}
+.cr-says::before {
+  content: '';
+  position: absolute;
+  left: -7px;
+  bottom: 12px;
+  width: 12px;
+  height: 12px;
+  background: var(--cr-panel);
+  border-left: 2px solid var(--cr-edge);
+  border-bottom: 2px solid var(--cr-edge);
+  transform: rotate(45deg);
+}
+
+/* An icon: the file at its size, or its fallback glyph on a disc while the file has not arrived. */
+.cr-asset--icon {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  background: var(--cr-asset-image) center / contain no-repeat;
+}
+.cr-asset--icon[data-missing='true'] {
+  border-radius: 50%;
+  background: var(--cr-panel);
+  box-shadow: inset 0 0 0 2px var(--cr-edge);
+  font-weight: 800;
+  font-size: 0.55em;
+  color: var(--cr-ink);
+  line-height: 1;
+}
+.cr-asset--icon[data-missing='true']::before {
+  content: attr(data-fallback);
+}
+.cr-asset--icon[data-missing='true'][style*='48px'],
+.cr-asset--icon[data-missing='true'][style*='44px'] {
+  font-size: 22px;
+}
+.cr-asset--icon[data-missing='true'][style*='18px'],
+.cr-asset--icon[data-missing='true'][style*='20px'] {
+  font-size: 11px;
+  box-shadow: none;
+  background: none;
+  color: #d29b16;
+}
+
+/* The heading on the wooden sign: the file cut nine ways, or a plain plank in CSS. */
+.cr-heading {
+  position: relative;
+  min-height: 84px;
+  padding: 22px 18px 14px;
+  text-align: center;
+}
+.cr-asset--sign {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  box-sizing: border-box;
+}
+.cr-asset--sign[data-missing='true'] {
+  inset: 8px 0 0;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #e9b77e, var(--cr-wood) 60%, #c58a4f);
+  box-shadow: inset 0 0 0 3px var(--cr-wood-deep), 0 3px 0 rgba(122, 74, 34, 0.45);
+}
+.cr-heading-text {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  color: var(--cr-ink);
+}
+.cr-heading-sub {
+  color: var(--cr-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.cr-heading--title {
+  padding: 30px 20px 20px;
+}
+
+/* Panels: cream with an ink edge and a lift. */
+.cr-choice,
+.cr-card,
+.cr-event,
+.cr-unit,
+.cr-message,
+.cr-overlay-panel {
+  background: var(--cr-panel);
+}
+.cr-choice {
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 2.5px var(--cr-edge), var(--cr-lift);
+}
+.cr-choice--stop,
+.cr-choice--row,
+.cr-choice--unit {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+.cr-choice-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.cr-choice-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--cr-ink);
+  font-weight: 900;
+}
+.cr-choice[data-owner] .cr-choice-name {
+  color: var(--cr-own);
+}
+.cr-chevron {
+  flex: none;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+}
+.cr-choice[data-kind='defense'] {
+  background: #e8f1fd;
+}
+
+/* The act warning on a red ribbon. */
+.cr-act-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--cr-ribbon);
+  box-shadow: inset 0 0 0 2px var(--cr-ribbon-edge), var(--cr-lift);
+  border-radius: 12px;
+}
+
+/* Unit cards: the letter on a disc of its colour, the name, the portrait, hearts and bubbles. */
+.cr-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 6px 8px;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 2.5px var(--cr-own), var(--cr-lift);
+}
+.cr-unit-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+.cr-unit-letter {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--cr-own);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+}
+.cr-unit-word {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+.cr-portrait {
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--cr-own);
+}
+.cr-choice--unit > .cr-portrait {
+  width: 72px;
+  height: 72px;
+}
+.cr-unit .cb-vitals {
+  justify-content: center;
+}
+.cr-unit-stats {
+  justify-content: center;
+}
+.cr-unit-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Cards: cost on a disc, the name, the owner, a picture, the lines. */
+.cr-card {
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 3px var(--cr-own), var(--cr-lift);
+}
+.cr-card-art {
+  position: relative;
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #eef6fb;
+  box-shadow: inset 0 0 0 1.5px rgba(31, 53, 80, 0.2);
+}
+.cr-card-art[data-empty='true'] {
+  background: repeating-linear-gradient(45deg, #f3f0e6 0 6px, #ebe6d8 6px 12px);
+}
+.cr-card[data-layout='tall'] .cr-card-art {
+  width: 100%;
+  aspect-ratio: 6 / 5;
+}
+.cr-card[data-layout='wide'] {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  grid-auto-rows: min-content;
+  column-gap: 10px;
+}
+.cr-card[data-layout='wide'] > .cr-card-art {
+  grid-column: 1;
+  grid-row: 1 / span 6;
+  width: 112px;
+  aspect-ratio: 6 / 5;
+}
+.cr-card[data-layout='wide'] > :not(.cr-card-art) {
+  grid-column: 2;
+}
+.cr-card[data-layout='row'] {
+  position: relative;
+  padding-right: 62px;
+}
+.cr-card[data-layout='row'] > .cr-card-art {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 48px;
+  height: 40px;
+}
+.cr-basic {
+  margin-top: auto;
+}
+
+/* Buttons: the primary is the mock's green with a deeper edge under it. */
+.cr-btn {
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 2.5px var(--cr-edge), var(--cr-lift);
+  background: var(--cr-panel);
+}
+.cr-btn--primary {
+  background: var(--cr-green);
+  color: #fff;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 0 0 2.5px var(--cr-green-deep), 0 3px 0 var(--cr-green-deep);
+}
+.cr-btn--quiet {
+  background: rgba(255, 250, 240, 0.85);
+  box-shadow: none;
+}
+.cr-btn--take {
+  font-size: 15px;
+}
+.cr-deck-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cr-supplies {
+  background: var(--cr-panel);
+}
+.cr-supplies-icon {
+  color: inherit;
+}
+.cr-header,
+.cr-strip {
+  padding: 4px 6px;
+  border-radius: 12px;
+  background: rgba(255, 250, 240, 0.82);
+}
+/* A line straight on the screen, not in a panel: a light cream backing keeps it readable over the backdrop. */
+.cr-screen > .cr-note {
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255, 250, 240, 0.88);
+}

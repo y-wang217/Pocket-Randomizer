@@ -21,11 +21,25 @@ export const RUN_COPY = {
   tutorial: 'Tutorial',
   seed: (seed: string) => `Seed ${seed}`,
   act: (n: number, of: number) => `Act ${n}/${of}`,
+  /**
+   * What an act does to its fights (`ACT_SCALING`, checkpoint 6), read off the
+   * table: on the route screen, the run's battle screen and the progress strip
+   * (step 7a). Empty for an act that changes nothing.
+   */
+  actScaling: (n: number, hp: number, veterans: 'none' | 'leads' | 'all') => {
+    const parts = [hp > 0 ? `enemies +${hp} HP` : '', { none: '', leads: 'veterans in the first two waves', all: 'veterans in every wave' }[veterans]].filter(Boolean);
+    return parts.length > 0 ? `Act ${n}: ${parts.join(', ')}` : '';
+  },
+  /** The same, short, on the progress strip where the act begins. */
+  actChip: (hp: number, veterans: 'none' | 'leads' | 'all') => [hp > 0 ? `+${hp} HP` : '', veterans === 'none' ? '' : 'veterans'].filter(Boolean).join(' · '),
   fight: (n: number) => `Fight ${n}`,
   supplies: 'Supplies',
   suppliesN: (n: number) => `${n} supplies`,
   plusSupplies: (n: number) => `+${n} supplies`,
   deck: (n: number) => `Deck ${n}`,
+  /** The deck view's groups (step 7a), each with its count. The shapes' names are `SHAPES`'s. */
+  group: { basic: 'Basic', equipment: 'Equipment', other: 'Other' },
+  groupCount: (name: string, n: number) => `${name} · ${n}`,
   team: 'Team',
   slots: (n: number) => `${n} slot${n === 1 ? '' : 's'}`,
   hp: (n: number) => `${n} HP`,
@@ -85,6 +99,8 @@ export const RUN_COPY = {
   },
   replace: {
     heading: 'Make room',
+    /** A starting deck card's mark: they are listed first. */
+    basic: 'Basic',
     what: (card: string) => `${card} goes in place of the card you pick. Your deck stays the same size.`,
   },
   remove: {
@@ -108,6 +124,10 @@ export const RUN_COPY = {
       mp: (n: number) => `+${n} MP at the start of each fight`,
     } satisfies Record<BoostKind, (n: number) => string>,
     talent: 'Talent',
+    /** A talent's shape (step 7a); Marksman is the Gunner's own, given back. */
+    givenBack: 'Given back',
+    has: (talents: string) => `Has: ${talents}`,
+    hasNone: 'No talent yet',
   },
   battle: {
     heading: (kind: string) => kind,
@@ -120,6 +140,12 @@ export const RUN_COPY = {
     stats: (fights: number, bosses: number, quests: number, upgrades: number) =>
       `${fights} fights won · ${bosses} bosses · ${quests} quests · ${upgrades} upgrades`,
     reached: (where: string) => `Reached: ${where}`,
+    /** Step 7a: the act the run fell in, the shape it leaned into and the talents it took. */
+    fellIn: (act: number, of: number, where: string) => `Fell in act ${act}/${of}: ${where}`,
+    leaned: (shapes: string, n: number) => `Leaned into: ${shapes}, ${n} card${n === 1 ? '' : 's'}`,
+    leanedNone: 'Leaned into no shape',
+    talents: (list: string) => `Talents: ${list}`,
+    talentsNone: 'No talents taken',
   },
   /** On the battle screen, in a run. */
   inBattle: {
@@ -129,6 +155,13 @@ export const RUN_COPY = {
     equipment: 'Equipment: once used, gone for the run',
   },
   owner: { neutral: 'Neutral', equipment: 'Equipment' },
+  /** What the character at a screen's foot says (the mock's speech bubbles): flavour, the same every time. */
+  says: {
+    cards: 'Take something useful for the road ahead!',
+    market: 'Take a look! Good gear makes the road easier.',
+    city: 'Take a look! Good gear makes the road easier.',
+    replace: 'Choose a card to replace.',
+  },
   copied: 'Run log copied',
   copyLog: 'Copy run log',
   abandon: 'Abandon run',

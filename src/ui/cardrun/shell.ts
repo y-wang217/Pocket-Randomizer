@@ -19,9 +19,9 @@ import './cardrun.css';
 
 import { CARDS, UPGRADE_OF } from '../../cardData/cards';
 import { RUN_COPY } from '../../cardData/cardrunCopy';
-import { ACTS, EVENTS, shapeOf } from '../../cardData/cardrunTables';
+import { ACTS, DECK_GROUPS, EVENTS, SHAPES, TALENT_SHAPE, deckGroupOf, isBasic, shapeOf, shapesLeanedInto, type DeckGroupId, type ShapeId } from '../../cardData/cardrunTables';
 import { nameOf, setCardLanguage } from '../../cardData/copy';
-import { ENCOUNTERS } from '../../cardData/encounters';
+import { ACT_SCALING, ENCOUNTERS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { TALENTS } from '../../cardData/talents';
 import { UNITS } from '../../cardData/units';
@@ -46,7 +46,10 @@ import type { UnitDefId } from '../../core/cards/defs';
 import { newLog } from '../../core/cards/log';
 import { newSeed } from '../seed';
 import { effectLines, openSandbox, tutorialSeen } from '../cardbattle/sandbox';
+import { CARD_ASSET_GROUPS, cardAsset, type CardAssetId } from '../cardbattle/assets';
+import { vitals } from '../cardbattle/meters';
 import { loadCardPrefs } from '../cardbattle/prefs';
+import { runAsset, type RunAssetId } from './assets';
 
 const SAVE_KEY = 'gymrun.cardrun.v1';
 
@@ -81,6 +84,37 @@ function writeSave(log: RunLog | null): void {
     else globalThis.localStorage.removeItem(SAVE_KEY);
   } catch {
     // A convenience only: the run plays on without it.
+  }
+}
+
+/** The battle's portrait for each unit. */
+const PORTRAIT: Record<UnitDefId, CardAssetId> = { A: 'portrait-commander', B: 'portrait-gunner', C: 'portrait-dasher' };
+
+/** The art a screen stands in front of, and who stands at its foot (the author's mock). */
+interface Scene {
+  backdrop: RunAssetId;
+  character: RunAssetId;
+  says?: string;
+}
+
+function sceneOf(screen: CardRunState['screen']['k']): Scene {
+  switch (screen) {
+    case 'route':
+      return { backdrop: 'bg-route', character: 'char-scout' };
+    case 'city':
+      return { backdrop: 'bg-city', character: 'char-trader', says: RUN_COPY.says.city };
+    case 'market':
+      return { backdrop: 'bg-market', character: 'char-trader', says: RUN_COPY.says.market };
+    case 'cards':
+      return { backdrop: 'bg-market', character: 'char-trader', says: RUN_COPY.says.cards };
+    case 'replace':
+      return { backdrop: 'bg-trail', character: 'char-party', says: RUN_COPY.says.replace };
+    case 'wild':
+      return { backdrop: 'bg-trail', character: 'char-scout' };
+    case 'battle':
+      return { backdrop: 'bg-route', character: 'char-scout' };
+    default:
+      return { backdrop: 'bg-trail', character: 'char-party' };
   }
 }
 
@@ -168,17 +202,39 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
   function render(): void {
     root.replaceChildren();
     if (!run) return renderTitle();
-    root.append(renderHeader(run), renderStrip(run), renderTeam(run));
+    const scene = sceneOf(run.screen.k);
+    root.dataset['scene'] = scene.backdrop;
+    root.append(backdrop(scene.backdrop), renderHeader(run), renderStrip(run), renderTeam(run));
     const main = el('main', 'cr-main');
     if (message) main.append(el('div', 'cr-message', message));
-    main.append(renderScreen(run));
+    main.append(renderScreen(run), sceneFoot(scene));
     root.append(main, renderFooter(run));
     if (overlay) root.append(renderOverlay(run, overlay));
   }
 
+  /** The scene behind a screen: fixed, covering the page, under everything (`docs/spec/gymrun-card-run-menus-art.md`). */
+  function backdrop(id: RunAssetId): HTMLElement {
+    const layer = el('div', 'cr-backdrop');
+    layer.append(runAsset(id));
+    return layer;
+  }
+
+  /** Who stands at the foot of a screen, and what they say: flavour only, the same words every time. */
+  function sceneFoot(scene: Scene): HTMLElement {
+    const foot = el('div', 'cr-foot');
+    foot.dataset['character'] = scene.character;
+    foot.append(runAsset(scene.character));
+    if (scene.says) foot.append(el('p', 'cr-says', scene.says));
+    return foot;
+  }
+
   function renderTitle(): void {
+    root.dataset['scene'] = 'bg-route';
+    root.append(backdrop('bg-route'));
     const panel = el('div', 'cr-title');
-    panel.append(el('h1', 'cr-title-name', RUN_COPY.title), el('p', 'cr-title-tag', RUN_COPY.tagline));
+    const sign = el('div', 'cr-heading cr-heading--title');
+    sign.append(runAsset('sign-plank'), el('h1', 'cr-title-name', RUN_COPY.title), el('p', 'cr-title-tag', RUN_COPY.tagline));
+    panel.append(sign);
     const saved = loadSave();
     if (saved) panel.append(btn('cr-btn--primary', RUN_COPY.continueRun, () => resume(saved)));
     // The tutorial leads on a first visit, before any run, and steps back once seen or skipped.
@@ -191,7 +247,7 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
     if (!first) panel.append(tutorial);
     panel.append(btn('cr-btn--quiet', RUN_COPY.sandbox, () => openSandbox(globalThis.document.body, {})));
     if (message) panel.append(el('div', 'cr-message', message));
-    root.append(panel);
+    root.append(panel, sceneFoot({ backdrop: 'bg-route', character: 'char-scout' }));
   }
 
   function renderHeader(s: CardRunState): HTMLElement {
@@ -200,19 +256,37 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
     const where = el('div', 'cr-where');
     where.append(el('span', 'cr-act', RUN_COPY.act(p.act, p.acts)), el('span', 'cr-seed', RUN_COPY.seed(s.seed)));
     const supplies = el('div', 'cr-supplies');
-    supplies.append(el('span', 'cr-supplies-icon', '◆'), el('span', 'cr-supplies-n', String(s.supplies)));
+    const icon = runAsset('icon-supplies');
+    icon.classList.add('cr-supplies-icon');
+    supplies.append(icon, el('span', 'cr-supplies-n', String(s.supplies)));
     supplies.setAttribute('aria-label', RUN_COPY.suppliesN(s.supplies));
-    header.append(where, supplies, btn('cr-btn--small', RUN_COPY.deck(s.deck.length), () => {
+    const deck = btn('cr-btn--small cr-deck-btn', RUN_COPY.deck(s.deck.length), () => {
       overlay = 'deck';
       render();
-    }));
+    });
+    deck.prepend(runAsset('icon-deck'));
+    header.append(where, supplies, deck);
     return header;
+  }
+
+  /** What an act does to its fights, in a line; empty for an act that changes nothing (step 7a). */
+  function actLine(act: number): string {
+    const scale = ACT_SCALING[act];
+    return scale ? RUN_COPY.actScaling(act + 1, scale.hpBonus, scale.veterans) : '';
   }
 
   /** Every node of the run in a row, by act: a fight, a stop, a boss; done, here, or ahead. */
   function renderStrip(s: CardRunState): HTMLElement {
     const strip = el('ol', 'cr-strip');
     s.nodes.forEach((node, index) => {
+      // Where an act that scales its fights begins, what it adds, before its first node (step 7a).
+      const scale = ACT_SCALING[node.act];
+      if (node.kind === 'fight' && (index === 0 || s.nodes[index - 1]!.act !== node.act) && scale && actLine(node.act)) {
+        const chip = el('li', 'cr-act-chip', RUN_COPY.actChip(scale.hpBonus, scale.veterans));
+        chip.setAttribute('aria-label', actLine(node.act));
+        if (index > s.at) chip.dataset['state'] = 'ahead';
+        strip.append(chip);
+      }
       const item = el('li', 'cr-node');
       const kind = node.kind === 'stop' ? 'stop' : node.boss ? 'boss' : 'fight';
       item.dataset['kind'] = kind;
@@ -235,18 +309,26 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
       const boost = s.boosts[id];
       const unit = el('div', 'cr-unit');
       unit.dataset['owner'] = id;
-      unit.append(el('div', 'cr-unit-name', `${id} ${nameOf(def.name)}`));
+      // The mock's unit card: the letter in its colour, the name, the portrait. Its HP
+      // and base shield are the battle's hearts and bubbles; the mock's MP pips are not
+      // drawn, because MP does not carry between fights (`docs/generation.md` 142).
+      const name = el('div', 'cr-unit-name');
+      name.append(el('span', 'cr-unit-letter', id), el('span', 'cr-unit-word', nameOf(def.name)));
+      unit.append(name, portrait(id));
+      const hp = def.hp + (boost.hp ?? 0);
+      unit.append(vitals(hp, hp, 0, def.baseShield + (boost.baseShield ?? 0)));
       const stats = el('div', 'cr-unit-stats');
-      const stat = (text: string, boosted: boolean): void => {
+      const stat = (text: string, boosted: boolean, talent = false): void => {
         const node = el('span', 'cr-unit-stat', text);
         if (boosted) node.dataset['boosted'] = 'true';
+        if (talent) node.prepend(runAsset('icon-star'));
         stats.append(node);
       };
-      stat(RUN_COPY.hp(def.hp + (boost.hp ?? 0)), !!boost.hp);
+      stat(RUN_COPY.hp(hp), !!boost.hp);
       stat(RUN_COPY.base(def.baseShield + (boost.baseShield ?? 0)), !!boost.baseShield);
       stat(RUN_COPY.slots(CLASS_SLOTS[def.class] + (boost.slots ?? 0)), !!boost.slots);
       if (boost.mp) stat(RUN_COPY.mp(boost.mp), true);
-      for (const talent of boost.talents ?? []) stat(TALENTS[talent]!.name, true);
+      for (const talent of boost.talents ?? []) stat(nameOf(TALENTS[talent]!.name), true, true);
       unit.append(stats);
       team.append(unit);
     }
@@ -281,9 +363,10 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
 
   // ------------------------------------------------------------------ screens
 
+  /** A screen's heading on the wooden sign (the mock's), its line under the title. */
   function heading(text: string, sub?: string): HTMLElement {
     const box = el('div', 'cr-heading');
-    box.append(el('h2', 'cr-heading-text', text));
+    box.append(runAsset('sign-plank'), el('h2', 'cr-heading-text', text));
     if (sub) box.append(el('p', 'cr-heading-sub', sub));
     return box;
   }
@@ -298,6 +381,7 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
         const node = currentNode(s);
         const encounter = ENCOUNTERS[s.battle!.encounter]!;
         box.append(heading(RUN_COPY.battle.kind[screen.kind], nameOf(encounter.name)), enemyLine(encounter.id));
+        if (node && actLine(node.act)) box.append(actWarning(actLine(node.act)));
         if (node?.kind === 'fight' && node.boss) box.append(el('p', 'cr-note', nameOf(encounter.blurb)));
         box.append(btn('cr-btn--primary', RUN_COPY.battle.resume, () => openBattle()));
         // Straight into the battle, unless the player has just stepped out of it.
@@ -306,6 +390,9 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
       }
       case 'route': {
         box.append(heading(RUN_COPY.route.heading, nextFightLine(s)));
+        // The next fight's act, so a jump in difficulty is read before it is met (step 7a).
+        const next = s.nodes.slice(s.at + 1).find((n) => n.kind === 'fight');
+        if (next && actLine(next.act)) box.append(actWarning(actLine(next.act)));
         const choices = el('div', 'cr-choices');
         choices.append(
           choice('city', RUN_COPY.route.city, RUN_COPY.route.cityWhat, [
@@ -323,20 +410,25 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
       }
       case 'city': {
         box.append(heading(RUN_COPY.city.heading));
+        // The mock's two rows, each its icon, name, line and a chevron: the City's two choices, as before.
         const choices = el('div', 'cr-choices');
-        const market = el('button', 'cr-choice');
+        const market = el('button', 'cr-choice cr-choice--row');
         market.type = 'button';
-        market.dataset['kind'] = 'city';
-        market.append(el('span', 'cr-choice-name', RUN_COPY.city.market), el('span', 'cr-choice-what', RUN_COPY.city.marketWhat));
+        market.dataset['kind'] = 'market';
+        market.append(
+          runAsset('city-market'),
+          choiceText(RUN_COPY.city.market, RUN_COPY.city.marketWhat, [stop!.city.market.map((m) => `${nameOf(CARDS[m.card]!.name)} ${m.price}`).join(', ')]),
+          el('span', 'cr-chevron', '›'),
+        );
         market.addEventListener('click', () => act({ type: 'market' }));
-        const defend = el('button', 'cr-choice');
+        const defend = el('button', 'cr-choice cr-choice--row');
         defend.type = 'button';
-        defend.dataset['kind'] = 'city';
+        defend.dataset['kind'] = 'defense';
         const quest = stop!.city.defense.encounter;
         defend.append(
-          el('span', 'cr-choice-name', RUN_COPY.city.defend),
-          el('span', 'cr-choice-what', RUN_COPY.city.defendWhat(nameOf(ENCOUNTERS[quest]!.name))),
-          el('span', 'cr-choice-line', enemyNames(quest)),
+          runAsset('city-defense'),
+          choiceText(RUN_COPY.city.defend, RUN_COPY.city.defendWhat(nameOf(ENCOUNTERS[quest]!.name)), [enemyNames(quest)]),
+          el('span', 'cr-chevron', '›'),
         );
         defend.addEventListener('click', () => act({ type: 'defend' }));
         choices.append(market, defend);
@@ -348,7 +440,7 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
         const row = el('div', 'cr-cards');
         stop!.city.market.forEach((item, index) => {
           const bought = screen.bought.includes(index);
-          const cardNode = cardTile(item.card);
+          const cardNode = cardTile(item.card, 'tall');
           const buy = btn('cr-btn--small', bought ? RUN_COPY.market.bought : RUN_COPY.market.buy(item.price), () => act({ type: 'buy', index }));
           buy.disabled = bought || s.supplies < item.price;
           if (!bought && s.supplies < item.price) buy.title = RUN_COPY.market.cannotPay;
@@ -363,16 +455,11 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
         box.append(heading(RUN_COPY.cards.heading, screen.source === 'town' ? RUN_COPY.cards.town : RUN_COPY.cards.ambush));
         const row = el('div', 'cr-cards');
         screen.offer.forEach((card, index) => {
-          const node = cardTile(card);
+          const node = cardTile(card, 'tall');
           // The shape it belongs to (5b): each offer is three cards from three shapes.
           const shape = shapeOf(card);
-          if (shape) {
-            const tag = el('span', 'cr-shape', shape.name);
-            tag.dataset['shape'] = shape.id;
-            tag.title = shape.plan;
-            node.append(tag);
-          }
-          node.append(btn('cr-btn--small cr-btn--primary', RUN_COPY.cards.take, () => act({ type: 'pick', index })));
+          if (shape) node.append(shapeTag(shape.id));
+          node.append(btn('cr-btn--small cr-btn--primary cr-btn--take', RUN_COPY.cards.take, () => act({ type: 'pick', index })));
           row.append(node);
         });
         box.append(row);
@@ -385,22 +472,32 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
       case 'replace': {
         box.append(heading(RUN_COPY.replace.heading, RUN_COPY.replace.what(nameOf(CARDS[screen.card]!.name))));
         const list = el('div', 'cr-deck');
-        s.deck.forEach((card, index) => {
-          const node = cardTile(card);
+        // The starting deck's basic cards first, each marked: they are what a reward usually replaces (step 7a).
+        const order = s.deck.map((card, index) => ({ card, index })).sort((a, b) => Number(isBasic(b.card)) - Number(isBasic(a.card)));
+        for (const { card, index } of order) {
+          const node = cardTile(card, 'row');
           node.classList.add('cr-card--tap');
           node.tabIndex = 0;
           node.setAttribute('role', 'button');
+          if (isBasic(card)) {
+            node.dataset['basic'] = 'true';
+            node.append(el('span', 'cr-basic', RUN_COPY.replace.basic));
+          }
           node.addEventListener('click', () => act({ type: 'replace', index }));
           list.append(node);
-        });
-        box.append(cardTile(screen.card), list);
+        }
+        const incoming = cardTile(screen.card, 'wide');
+        incoming.classList.add('cr-card--incoming');
+        const shape = shapeOf(screen.card);
+        if (shape) incoming.append(shapeTag(shape.id));
+        box.append(incoming, list);
         break;
       }
       case 'remove': {
         box.append(heading(RUN_COPY.remove.heading, RUN_COPY.remove.what));
         const list = el('div', 'cr-deck');
         s.deck.forEach((card, index) => {
-          const node = cardTile(card);
+          const node = cardTile(card, 'row');
           node.classList.add('cr-card--tap');
           node.tabIndex = 0;
           node.setAttribute('role', 'button');
@@ -446,9 +543,23 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
           node.dataset['owner'] = offer.unit;
           const what =
             offer.kind === 'talent'
-              ? `${RUN_COPY.boost.talent}: ${TALENTS[offer.talent]!.name}. ${TALENTS[offer.talent]!.text}`
+              ? `${RUN_COPY.boost.talent}: ${nameOf(TALENTS[offer.talent]!.name)}. ${TALENTS[offer.talent]!.text}`
               : RUN_COPY.boost.kind[offer.kind](offer.n);
-          node.append(el('span', 'cr-choice-name', `${offer.unit} ${nameOf(UNITS[offer.unit].name)}`), el('span', 'cr-choice-what', what));
+          // The mock's boss card: the unit's portrait beside its offer, a star on a talent.
+          node.classList.add('cr-choice--unit');
+          node.append(portrait(offer.unit));
+          const text = el('span', 'cr-choice-text');
+          const name = el('span', 'cr-choice-name', `${offer.unit} ${nameOf(UNITS[offer.unit].name)}`);
+          if (offer.kind === 'talent') name.append(runAsset('icon-star'));
+          text.append(name, el('span', 'cr-choice-what', what));
+          node.append(text);
+          // Step 7a: the shape a talent belongs to, and what the unit already has beside the offer.
+          if (offer.kind === 'talent') {
+            const shape = TALENT_SHAPE[offer.talent];
+            text.append(shape ? shapeTag(shape) : el('span', 'cr-shape', RUN_COPY.boost.givenBack));
+          }
+          const has = s.boosts[offer.unit].talents ?? [];
+          text.append(el('span', 'cr-choice-line', has.length > 0 ? RUN_COPY.boost.has(has.map((t) => nameOf(TALENTS[t]!.name)).join(', ')) : RUN_COPY.boost.hasNone));
           node.addEventListener('click', () => act({ type: 'pick', index }));
           choices.append(node);
         });
@@ -458,7 +569,17 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
       case 'over': {
         const node = currentNode(s);
         box.append(heading(screen.won ? RUN_COPY.over.won : RUN_COPY.over.lost, RUN_COPY.over.stats(s.stats.fights, s.stats.bosses, s.stats.quests, s.stats.upgrades)));
-        if (!screen.won && s.battle) box.append(el('p', 'cr-note', RUN_COPY.over.reached(`${nameOf(ENCOUNTERS[s.battle.encounter]!.name)}${node ? ` · ${RUN_COPY.act(node.act + 1, ACTS.length)}` : ''}`)));
+        if (!screen.won && s.battle) {
+          const where = nameOf(ENCOUNTERS[s.battle.encounter]!.name);
+          box.append(el('p', 'cr-note', node ? RUN_COPY.over.fellIn(node.act + 1, ACTS.length, where) : RUN_COPY.over.reached(where)));
+        }
+        // Step 7a: the shape the deck leaned into and the talents the run took.
+        const lean = shapesLeanedInto(s.deck);
+        box.append(
+          el('p', 'cr-note', lean.shapes.length > 0 ? RUN_COPY.over.leaned(lean.shapes.map((id) => SHAPES[id].name).join(', '), lean.n) : RUN_COPY.over.leanedNone),
+        );
+        const taken = (['A', 'B', 'C'] as UnitDefId[]).flatMap((id) => (s.boosts[id].talents ?? []).map((t) => `${id} ${nameOf(TALENTS[t]!.name)}`));
+        box.append(el('p', 'cr-note', taken.length > 0 ? RUN_COPY.over.talents(taken.join(', ')) : RUN_COPY.over.talentsNone));
         box.append(btn('', RUN_COPY.copyLog, () => {
           globalThis.navigator?.clipboard?.writeText(JSON.stringify(log)).then(() => {
             message = RUN_COPY.copied;
@@ -471,14 +592,36 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
     return box;
   }
 
+  /** A stop on the route: its map pin, then its name, what it is and what it holds (the mock's speech-bubble card). */
   function choice(kind: 'city' | 'town' | 'wild', name: string, what: string, lines: string[]): HTMLElement {
-    const node = el('button', 'cr-choice');
+    const node = el('button', 'cr-choice cr-choice--stop');
     node.type = 'button';
     node.dataset['kind'] = kind;
-    node.append(el('span', 'cr-choice-name', name), el('span', 'cr-choice-what', what));
-    for (const line of lines) node.append(el('span', 'cr-choice-line', line));
+    node.append(runAsset(`stop-${kind}`), choiceText(name, what, lines));
     node.addEventListener('click', () => act({ type: 'go', to: kind }));
     return node;
+  }
+
+  function choiceText(name: string, what: string, lines: string[]): HTMLElement {
+    const text = el('span', 'cr-choice-text');
+    text.append(el('span', 'cr-choice-name', name), el('span', 'cr-choice-what', what));
+    for (const line of lines) text.append(el('span', 'cr-choice-line', line));
+    return text;
+  }
+
+  /** The act warning (step 7a) on the mock's red ribbon, its icon first. */
+  function actWarning(line: string): HTMLElement {
+    const node = el('p', 'cr-act-warning');
+    node.append(runAsset('icon-warning'), el('span', '', line));
+    return node;
+  }
+
+  /** A unit's portrait, the battle's (`portrait-*`), in a round frame of its colour. */
+  function portrait(id: UnitDefId): HTMLElement {
+    const frame = el('span', 'cr-portrait');
+    frame.dataset['owner'] = id;
+    frame.append(cardAsset(PORTRAIT[id], 'fill'));
+    return frame;
   }
 
   function enemyNames(encounterId: string): string {
@@ -498,18 +641,47 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
     return next?.kind === 'fight' ? RUN_COPY.route.next(`${nameOf(ENCOUNTERS[next.encounter]!.name)} · ${enemyNames(next.encounter)}`) : '';
   }
 
-  /** A card as the run's screens show it: owner, name, cost and what it does. */
-  function cardTile(id: string): HTMLElement {
+  /** A shape's tag and its plan in a line, both at rest: a phone has no hover for a tooltip (step 7a). */
+  function shapeTag(id: ShapeId): HTMLElement {
+    const tag = el('span', 'cr-shape');
+    tag.dataset['shape'] = id;
+    tag.append(el('span', 'cr-shape-name', SHAPES[id].name), el('span', 'cr-shape-plan', SHAPES[id].plan));
+    return tag;
+  }
+
+  /** A group's name in the deck view: a shape's own, or the group's. */
+  function groupName(group: DeckGroupId): string {
+    return group === 'basic' || group === 'equipment' || group === 'other' ? RUN_COPY.group[group] : SHAPES[group].name;
+  }
+
+  /**
+   * A card as the run's screens show it: cost, name, owner, its picture and
+   * what it does. `tall` is the offer's and the market's (the picture under
+   * the name), `wide` the card coming in on the replace screen (the picture
+   * beside the words), `row` a deck list's (a small picture at the end).
+   */
+  function cardTile(id: string, layout: 'tall' | 'wide' | 'row' = 'row'): HTMLElement {
     const def = CARDS[id]!;
     const node = el('div', 'cr-card');
     node.dataset['owner'] = def.owner;
+    node.dataset['layout'] = layout;
     if (def.equipment) node.dataset['equipment'] = 'true';
     const top = el('div', 'cr-card-top');
     top.append(el('span', 'cr-card-cost', String(def.cost)), el('span', 'cr-card-name', nameOf(def.name)));
     node.append(top);
     node.append(el('div', 'cr-card-owner', def.equipment ? RUN_COPY.owner.equipment : def.owner === 'neutral' ? RUN_COPY.owner.neutral : `${def.owner} ${nameOf(UNITS[def.owner].name)}`));
+    node.append(cardPicture(id));
     for (const line of effectLines(def.effects)) node.append(el('div', 'cr-card-line', line));
     return node;
+  }
+
+  /** The card's picture from the battle's pack, or an empty window for a card it has none for (the art list). */
+  function cardPicture(id: string): HTMLElement {
+    const frame = el('span', 'cr-card-art');
+    const art = `art-${CARDS[id]!.art ?? id.replace(/\+$/, '')}` as CardAssetId;
+    if ((CARD_ASSET_GROUPS.art.ids as readonly string[]).includes(art)) frame.append(cardAsset(art, 'fill'));
+    else frame.dataset['empty'] = 'true';
+    return frame;
   }
 
   /** Every card that can take an upgrade, each showing what it becomes. */
@@ -532,9 +704,19 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
     const panel = el('div', 'cr-overlay-panel');
     if (kind === 'deck') {
       panel.append(heading(RUN_COPY.deck(s.deck.length)));
-      const list = el('div', 'cr-deck');
-      for (const id of s.deck) list.append(cardTile(id));
-      panel.append(list);
+      // By shape, each with its count, so where the build is heading reads at a glance (step 7a).
+      for (const group of DECK_GROUPS) {
+        const cards = s.deck.filter((id) => deckGroupOf(id) === group);
+        if (cards.length === 0) continue;
+        const section = el('section', 'cr-group');
+        section.dataset['group'] = group;
+        section.append(el('h3', 'cr-group-name', RUN_COPY.groupCount(groupName(group), cards.length)));
+        if (group !== 'basic' && group !== 'equipment' && group !== 'other') section.append(el('p', 'cr-group-plan', SHAPES[group].plan));
+        const list = el('div', 'cr-deck');
+        for (const id of cards) list.append(cardTile(id));
+        section.append(list);
+        panel.append(section);
+      }
     } else {
       panel.append(heading(RUN_COPY.camp.heading, `${RUN_COPY.camp.pick} · ${RUN_COPY.suppliesN(campPrice(s).price)}`));
       panel.append(upgradeList(s, (index) => act({ type: 'upgrade', index })));
