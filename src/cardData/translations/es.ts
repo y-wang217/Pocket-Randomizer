@@ -62,7 +62,7 @@ export const ES: CardCopy = {
   effect: {
     shieldSelf: (n: number) => `Escudo ${n}, propio`,
     shieldFriendly: (n: number) => `Escudo ${n}, aliado`,
-    gainMp: (n: number) => `+${n} PM al usarla`,
+    gainMp: (n: number) => `+${n} PM el próximo turno`,
     mpNextTurns: (n: number, turns: number) => `+${n} PM los próximos ${turns} turnos`,
     grantMove: (n: number) => `Aliado: Mover ${n}, sin PM`,
     drawNext: (n: number) => `Próxima mano +${n}, no mías`,
@@ -129,8 +129,8 @@ export const ES: CardCopy = {
     shieldDrops: (who: string, n: number) => `${who}: el escudo ${n} se disipa`,
     defeated: (who: string) => `${who} derrotado`,
     fainted: (who: string) => `${who} fuera de combate`,
-    mp: (who: string, n: number) => `${who} +${n} PM`,
-    roundMp: (who: string) => `PM +1: ${who}`,
+    mp: (who: string, bonus: string) => `${who}: ${bonus}`,
+    roundMp: (mp: number) => `PM recargados: ${mp}`,
     drawQueued: (n: number) => `Próxima mano +${n}`,
     next: 'Siguiente ronda',
     telegraph: (who: string, act: string) => `${who}: ${act}`,
@@ -159,7 +159,6 @@ export const ES: CardCopy = {
   meters: {
     vitals: (hp: number, max: number, shield: number, base: number) => `PV ${hp}/${max} · Escudo ${shield} · Base ${base}`,
     mana: (free: number, held: number, cap: number) => `MP ${free} libres, ${held} reservados, de ${cap}`,
-    ult: (card: string, cost: number) => `${card} a ${cost}`,
   },
   tutorial: {
     button: 'Tutorial',
@@ -174,12 +173,12 @@ export const ES: CardCopy = {
       start: { title: 'Empezar', text: 'Pulsa Empezar cuando tus unidades estén listas. Luego los enemigos toman posición.' },
       hand: { title: 'Tu mano', text: 'La banda y la letra indican qué unidad juega cada carta; una gris, cualquiera. Arriba a la izquierda, su coste en MP. Mantén pulsada una carta para leerla.' },
       vitals: { title: 'Corazones y burbujas', text: 'Los corazones son PV. Las burbujas son escudos y revientan antes que los corazones: la rellena se desvanece, la de anillo es el escudo base, de un solo uso. Una pieza con escudo lleva una burbuja en el tablero.' },
-      mana: { title: 'MP', text: (card: string, cost: number, cap: number) => `Cada unidad gana 1 MP por ronda, hasta ${cap}. La estrella marca su definitiva: ${card} a ${cost}. Las celdas atenuadas están reservadas por cartas planeadas.` },
+      mana: { title: 'MP compartidos', text: (cap: number) => `Las cartas de todas las unidades se pagan de una sola reserva de MP. Se recarga a ${cap} al inicio de cada turno, y los MP que no gastes se pierden. Las celdas atenuadas están reservadas por cartas planeadas.` },
       move: { title: 'Mover', text: 'Toca Mover, elige quién la juega y luego una casilla iluminada.' },
       slots: { title: 'Huecos de carta', text: 'Una carta planeada ocupa el hueco de su unidad, numerada en el orden del plan. Toca el hueco para retirarla.' },
       attack: { title: 'Ataque', text: 'Toca Disparar. Golpea al primer enemigo en el carril del Artillero, a cualquier distancia.' },
       end: { title: 'Fin del turno', text: 'Tus cartas se juegan en orden y luego actúan los enemigos. El muñeco solo espera.' },
-      finish: { title: 'Derriba el muñeco', text: 'Sigue hasta que caiga el Muñeco de práctica. Los MP se acumulan cada ronda, así que se abren cartas más fuertes.' },
+      finish: { title: 'Derriba el muñeco', text: 'Sigue hasta que caiga el Muñeco de práctica. Tus MP se recargan cada turno, así que gástalos.' },
     },
   },
   names: {

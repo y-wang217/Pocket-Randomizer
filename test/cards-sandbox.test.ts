@@ -77,26 +77,31 @@ describe('the sandbox screen', () => {
     expect(onExit).toHaveBeenCalledTimes(1);
   });
 
-  it('a Neutral asks who plays it even when one unit can, and a unit that cannot says why', () => {
-    // Round 1 of the bug report's seed: only A has the MP for Attack.
+  it('a Neutral asks who plays it, and a unit that cannot says why', () => {
+    // Round 1 of the bug report's seed. The MP pool is shared, so MP never
+    // tells the units apart: a full slot does. Command fills the Commander's
+    // one slot and the Sword dasher's first.
     const sandbox = openSandbox(document.body, { seed: 'X5A72HUA', encounter: 'test' });
     const root = sandbox.root;
     begin(root);
     const panel = (id: string) => all(root, '.cb-panel--unit').find((p) => p.querySelector('.cb-panel-name')!.textContent!.startsWith(`${id} `))!;
     const filled = (id: string) => panel(id).querySelectorAll('.cb-slot--filled').length;
+    all(root, '.cb-card[data-card="command"]')[0]!.click();
+    panel('C').click();
+    all(root, '.cb-tile').find((t) => t.querySelector('.cb-ov--selectable'))!.click();
+    expect(filled('A')).toBe(1);
 
     all(root, '.cb-card[data-card="attack"]')[0]!.click();
-    expect(filled('A')).toBe(0);
-    expect(root.querySelector('.cb-note')!.textContent).toBe('Pick who plays it · B, C: Not enough MP');
-    expect(panel('A').dataset['target']).toBe('true');
-    expect(panel('B').dataset['blocked']).toBe('true');
-
-    panel('B').click();
-    expect(root.querySelector('.cb-note')!.textContent).toBe('B: Not enough MP');
-    expect(filled('B')).toBe(0);
+    expect(root.querySelector('.cb-note')!.textContent).toBe('Pick who plays it · A: No free slot');
+    expect(panel('B').dataset['target']).toBe('true');
+    expect(panel('A').dataset['blocked']).toBe('true');
 
     panel('A').click();
+    expect(root.querySelector('.cb-note')!.textContent).toBe('A: No free slot');
     expect(filled('A')).toBe(1);
+
+    panel('B').click();
+    expect(filled('B')).toBe(1);
     sandbox.close();
   });
 

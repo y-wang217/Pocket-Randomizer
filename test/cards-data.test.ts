@@ -29,10 +29,11 @@ describe('card data', () => {
       ['call-medic', 'A', 1, false],
       ['command', 'A', 1, false],
       ['focus', 'A', 1, false],
-      ['moon-strike', 'A', 4, false],
+      // The ults at 3, from 4, by the shared mana ruling of 2026-10-12.
+      ['moon-strike', 'A', 3, false],
       ['shoot', 'B', 0, false],
       ['resupply', 'B', 1, false],
-      ['artillery', 'B', 4, false],
+      ['artillery', 'B', 3, false],
       ['fire', 'B', 1, false],
       ['dash', 'C', 1, false],
       ['slash', 'C', 1, false],
@@ -130,7 +131,8 @@ describe('card data', () => {
   });
 
   it('carries the rule defaults it is asked to', () => {
-    expect(RULES.mp.cap).toBe(5);
+    // The shared mana ruling of 2026-10-12: one MP per unit, pooled.
+    expect(RULES.mp).toEqual({ perUnit: 1 });
     expect(RULES.handSize).toBe(5);
     expect(RULES.huntTieBreak).toEqual(['nearestLane', 'lowestHp', 'upperLane']);
     expect(RULES.advance).toEqual({ cols: 1, limitCol: 3, ifBlocked: 'wait' });

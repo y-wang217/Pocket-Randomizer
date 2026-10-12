@@ -48,11 +48,11 @@ function narrate(log: BattleLog): string[] {
     return `${i.act[0]!.toUpperCase()}${i.act.slice(1)} ${i.n} on ${tiles(i.tiles)}`;
   };
   const board = (title = s.wave > 0 ? `WAVE ${s.wave + 1} ROUND ${s.round}` : `ROUND ${s.round}`): void => {
-    out.push('', title);
+    out.push('', title, `  shared MP ${s.mp}`);
     for (const u of s.units) {
       out.push(u.fainted
         ? `  ${who(u.id)}: fainted`
-        : `  ${who(u.id)} at ${at(u.pos)}  HP ${u.hp}/${u.maxHp}  base shield ${u.baseShield}  MP ${u.mp}`);
+        : `  ${who(u.id)} at ${at(u.pos)}  HP ${u.hp}/${u.maxHp}  base shield ${u.baseShield}`);
     }
     for (const e of s.enemies) {
       if (!e.pos) continue;
@@ -90,7 +90,8 @@ function narrate(log: BattleLog): string[] {
       case 'shielded': return `  ${who(e.unit)} gains shield ${e.amount}`;
       case 'defeated': return `  ${who(e.enemy)} is defeated`;
       case 'fainted': return `  ${who(e.unit)} FAINTS; its cards leave the battle (${e.removed.join(' ')})`;
-      case 'mpGained': return e.source === 'card' ? `  ${who(e.unit)} +${e.amount} MP` : null;
+      case 'mpQueued': return `  +${e.n} MP at the next ${e.turns === 1 ? 'refill' : `${e.turns} refills`}`;
+      case 'mpRefilled': return null;
       case 'drawQueued': return `  next hand gets +${e.n} card not owned by this unit`;
       case 'enemyActed': return e.act === 'shield' ? null : `${who(e.enemy)} acts: ${e.act} ${e.n}`;
       case 'enemyMissed': return `  misses: nobody on the lit tiles`;

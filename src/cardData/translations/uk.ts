@@ -62,7 +62,7 @@ export const UK: CardCopy = {
   effect: {
     shieldSelf: (n: number) => `Щит ${n}, собі`,
     shieldFriendly: (n: number) => `Щит ${n}, союзнику`,
-    gainMp: (n: number) => `+${n} MP при використанні`,
+    gainMp: (n: number) => `+${n} MP наступного ходу`,
     mpNextTurns: (n: number, turns: number) => `+${n} MP на ${turns} наступні ходи`,
     grantMove: (n: number) => `Союзник: Рух ${n}, без MP`,
     drawNext: (n: number) => `Наступна рука +${n}, не мої`,
@@ -129,8 +129,8 @@ export const UK: CardCopy = {
     shieldDrops: (who: string, n: number) => `${who}: щит ${n} зникає`,
     defeated: (who: string) => `${who} знищено`,
     fainted: (who: string) => `${who} вибуває`,
-    mp: (who: string, n: number) => `${who} +${n} MP`,
-    roundMp: (who: string) => `MP +1: ${who}`,
+    mp: (who: string, bonus: string) => `${who}: ${bonus}`,
+    roundMp: (mp: number) => `MP поповнено: ${mp}`,
     drawQueued: (n: number) => `Наступна рука +${n}`,
     next: 'Наступний раунд',
     telegraph: (who: string, act: string) => `${who}: ${act}`,
@@ -159,7 +159,6 @@ export const UK: CardCopy = {
   meters: {
     vitals: (hp: number, max: number, shield: number, base: number) => `ОЗ ${hp}/${max} · Щит ${shield} · Базовий ${base}`,
     mana: (free: number, held: number, cap: number) => `MP ${free} вільно, ${held} зайнято, з ${cap}`,
-    ult: (card: string, cost: number) => `${card} за ${cost}`,
   },
   tutorial: {
     button: 'Навчання',
@@ -174,12 +173,12 @@ export const UK: CardCopy = {
       start: { title: 'Старт', text: 'Натисніть «Старт», коли юніти на місцях. Потім вороги займуть позиції.' },
       hand: { title: 'Ваша рука', text: 'Смуга й літера показують, який юніт грає карту; сіру — будь-який. Ліворуч угорі — вартість MP. Утримуйте карту, щоб прочитати.' },
       vitals: { title: 'Серця й бульбашки', text: 'Серця — це ОЗ. Бульбашки — щити, вони лопають раніше за серця: заповнена зникає з часом, кільце — базовий щит, одноразовий. Захищена фігура на полі вкрита бульбашкою.' },
-      mana: { title: 'MP', text: (card: string, cost: number, cap: number) => `Кожен юніт отримує 1 MP за раунд, до ${cap}. Зірка позначає ульту: ${card} за ${cost}. Тьмяні клітинки зайняті запланованими картами.` },
+      mana: { title: 'Спільні MP', text: (cap: number) => `Карти всіх юнітів оплачуються з одного запасу MP. На початку кожного ходу він поповнюється до ${cap}, а невитрачені MP згорають. Тьмяні клітинки зайняті запланованими картами.` },
       move: { title: 'Рух', text: 'Торкніться «Рух», оберіть, хто її грає, потім підсвічену клітинку.' },
       slots: { title: 'Слоти карт', text: 'Запланована карта лежить у слоті свого юніта з номером у порядку плану. Торкніться слота, щоб забрати карту.' },
       attack: { title: 'Атака', text: 'Торкніться «Постріл». Він влучає в першого ворога на смузі стрільця, на будь-якій відстані.' },
       end: { title: 'Кінець ходу', text: 'Ваші карти спрацьовують по черзі, потім діють вороги. Опудало лише чекає.' },
-      finish: { title: 'Здолайте опудало', text: 'Продовжуйте, доки тренувальне опудало не впаде. MP накопичуються щораунду, тож сильніші карти стають доступні.' },
+      finish: { title: 'Здолайте опудало', text: 'Продовжуйте, доки тренувальне опудало не впаде. MP поповнюються щоходу, тож витрачайте їх.' },
     },
   },
   names: {

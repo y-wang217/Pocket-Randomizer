@@ -139,8 +139,8 @@ describe('the boss screen', () => {
 
 describe('the end of a run', () => {
   it('names the act it fell in, the shape it leaned into and the talents it took', async () => {
-    // LOST4: the bot falls in act 2.
-    const { root, run } = await resumeAt('LOST4', (s) => s.screen.k === 'over');
+    // LOST7: the bot falls in act 2 (LOST4 did before the shared MP pool, which it now wins).
+    const { root, run } = await resumeAt('LOST7', (s) => s.screen.k === 'over');
     const notes = all(root, '.cr-screen .cr-note').map((n) => n.textContent ?? '');
     expect(notes.some((n) => n.startsWith('Fell in act 2/3: '))).toBe(true);
     const lean = shapesLeanedInto(run.deck);

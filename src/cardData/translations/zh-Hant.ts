@@ -62,7 +62,7 @@ export const ZH_HANT: CardCopy = {
   effect: {
     shieldSelf: (n: number) => `護盾 ${n}，自身`,
     shieldFriendly: (n: number) => `護盾 ${n}，隊友`,
-    gainMp: (n: number) => `使用時 +${n} MP`,
+    gainMp: (n: number) => `下回合 +${n} MP`,
     mpNextTurns: (n: number, turns: number) => `之後 ${turns} 回合 +${n} MP`,
     grantMove: (n: number) => `隊友：移動 ${n}，不需 MP`,
     drawNext: (n: number) => `下回合手牌 +${n}，非本單位`,
@@ -129,8 +129,8 @@ export const ZH_HANT: CardCopy = {
     shieldDrops: (who: string, n: number) => `${who} 的護盾 ${n} 消失`,
     defeated: (who: string) => `${who} 被擊敗`,
     fainted: (who: string) => `${who} 倒下`,
-    mp: (who: string, n: number) => `${who} +${n} MP`,
-    roundMp: (who: string) => `MP +1：${who}`,
+    mp: (who: string, bonus: string) => `${who}：${bonus}`,
+    roundMp: (mp: number) => `MP 回滿：${mp}`,
     drawQueued: (n: number) => `下回合手牌 +${n}`,
     next: '下一回合',
     telegraph: (who: string, act: string) => `${who}：${act}`,
@@ -159,7 +159,6 @@ export const ZH_HANT: CardCopy = {
   meters: {
     vitals: (hp: number, max: number, shield: number, base: number) => `HP ${hp}/${max} · 護盾 ${shield} · 基礎 ${base}`,
     mana: (free: number, held: number, cap: number) => `MP 可用 ${free}，保留 ${held}，上限 ${cap}`,
-    ult: (card: string, cost: number) => `${card}：${cost}`,
   },
   tutorial: {
     button: '教學',
@@ -174,12 +173,12 @@ export const ZH_HANT: CardCopy = {
       start: { title: '開始', text: '單位就位後按「開始」。敵人隨後就位。' },
       hand: { title: '手牌', text: '色帶與字母表示由哪個單位打出；灰色卡任何單位皆可。左上是 MP 費用。長按卡片可查看。' },
       vitals: { title: '愛心與泡泡', text: '愛心是 HP。泡泡是護盾，會先於愛心破掉：實心的會消退，空心環是基礎護盾，只能用一次。有護盾的棋子在棋盤上會罩著泡泡。' },
-      mana: { title: 'MP', text: (card: string, cost: number, cap: number) => `每個單位每回合獲得 1 MP，最多 ${cap}。星號標示它的大招：${card} 需 ${cost}。變暗的格子已被你計劃的卡保留。` },
+      mana: { title: '共享 MP', text: (cap: number) => `所有單位的卡都從同一個 MP 池支付。每回合開始時回滿到 ${cap}，沒用完的 MP 會作廢。變暗的格子已被你計劃的卡保留。` },
       move: { title: '移動', text: '點「移動」，選擇由誰打出，再點一個亮起的格子。' },
       slots: { title: '卡槽', text: '計劃好的卡放在該單位的卡槽，數字是計劃執行的順序。點卡槽可收回卡片。' },
       attack: { title: '攻擊', text: '點「射擊」。它會擊中槍手所在路線上的第一個敵人，不限距離。' },
       end: { title: '結束回合', text: '你的卡依序執行，然後敵人行動。假人只會等待。' },
-      finish: { title: '打倒假人', text: '繼續直到標靶假人倒下。MP 每回合累積，更強的卡就能使用。' },
+      finish: { title: '打倒假人', text: '繼續直到標靶假人倒下。MP 每回合回滿，記得用完。' },
     },
   },
   names: {

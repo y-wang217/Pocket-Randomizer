@@ -10,7 +10,9 @@ import { describe, expect, it } from 'vitest';
 import { createBattle } from '../src/core/cards/create';
 import type { BattleEvent } from '../src/core/cards/events';
 import { damage, faint, type Ctx } from '../src/core/cards/keywords';
+import { maxMpOf } from '../src/core/cards/plan';
 import { step } from '../src/core/cards/step';
+import { viewOf } from '../src/core/cards/view';
 import type { Action, BattleState, Choice, PileName, UnitId } from '../src/core/cards/state';
 import { at, begun, board, iidOf } from './fixtures/card-battle';
 
@@ -46,7 +48,8 @@ describe('createBattle', () => {
     expect(state.round).toBe(1);
     expect(state.piles.hand).toHaveLength(5);
     expect(state.piles.draw).toHaveLength(10);
-    expect(state.units.map((u) => u.mp)).toEqual([1, 0, 0]);
+    // Round 1's hand refills the shared pool: one MP each, the Commander's two.
+    expect(state.mp).toBe(4);
     for (const e of state.enemies) expect(e.step).toBeGreaterThanOrEqual(0);
     expect(state.rngDraws).toBe(3 + 14);
     expect(JSON.parse(JSON.stringify(state))).toEqual(state);
@@ -97,7 +100,7 @@ describe('step', () => {
 
 describe('keywords', () => {
   it('Strike hits the first enemy in the lane, from the attacker side', () => {
-    let state = board({ hand: ['attack'], mp: { A: 1 }, enemies: [at(1, 4), at(2, 5), at(1, 6)] });
+    let state = board({ hand: ['attack'], mp: 1, enemies: [at(1, 4), at(2, 5), at(1, 6)] });
     state = play(state, 'attack', 'A');
     const { events } = commit(state);
     expect(damaged(events)).toEqual(['e0']);
@@ -113,20 +116,20 @@ describe('keywords', () => {
   });
 
   it('Slash hits the three tiles of the next column, clipped at the edge', () => {
-    let state = board({ hand: ['slash'], mp: { C: 1 }, units: { C: at(3, 4) }, enemies: [at(1, 5), at(2, 5), at(3, 5)] });
+    let state = board({ hand: ['slash'], mp: 1, units: { C: at(3, 4) }, enemies: [at(1, 5), at(2, 5), at(3, 5)] });
     state = play(state, 'slash', 'C');
     expect(damaged(commit(state).events)).toEqual(['e1', 'e2']);
   });
 
   it('Blast hits a chosen tile and its four neighbours, clipped at the edge', () => {
-    let state = board({ hand: ['fire'], mp: { B: 1 }, units: { B: at(1, 4) }, enemies: [at(1, 5), at(2, 5), at(1, 6)] });
+    let state = board({ hand: ['fire'], mp: 1, units: { B: at(1, 4) }, enemies: [at(1, 5), at(2, 5), at(1, 6)] });
     state = play(state, 'fire', 'B', { tile: at(1, 6) });
     // (1,6) and its in-board neighbours (1,5) and (2,6).
     expect(damaged(commit(state).events)).toEqual(['e0', 'e2']);
   });
 
   it('Move is blocked by units and by the reach limit', () => {
-    const state = board({ hand: ['dash'], mp: { C: 1 }, units: { C: at(3, 3), B: at(3, 2) }, enemies: [at(1, 5), at(2, 5), at(3, 4)] });
+    const state = board({ hand: ['dash'], mp: 1, units: { C: at(3, 3), B: at(3, 2) }, enemies: [at(1, 5), at(2, 5), at(3, 4)] });
     // (3,4) holds an enemy, (3,2) holds B; column 5 is outside the player's reach.
     expect(step(state, { type: 'select', card: iidOf(state, 'dash'), unit: 'C', choice: { tile: at(3, 4) } })).toMatchObject({ ok: false });
     expect(step(state, { type: 'select', card: iidOf(state, 'dash'), unit: 'C', choice: { tile: at(2, 5) } })).toMatchObject({ ok: false });
@@ -151,7 +154,7 @@ describe('keywords', () => {
   });
 
   it('Target lands at any range', () => {
-    let state = board({ hand: ['moon-strike'], mp: { A: 4 }, enemies: [at(3, 6), at(2, 5), at(1, 5)] });
+    let state = board({ hand: ['moon-strike'], mp: 4, enemies: [at(3, 6), at(2, 5), at(1, 5)] });
     state = play(state, 'moon-strike', 'A', { unit: 'e0' });
     const { state: after, events } = commit(state);
     expect(damaged(events)).toEqual(['e0']);
@@ -162,28 +165,27 @@ describe('keywords', () => {
 
 describe('Puppeteer cards', () => {
   it('Call Medic: Shield 1 on a chosen friendly unit, A included', () => {
-    let state = board({ hand: ['call-medic'], mp: { A: 1 } });
+    let state = board({ hand: ['call-medic'], mp: 1 });
     state = play(state, 'call-medic', 'A', { unit: 'A' });
     const { events } = commit(state);
     expect(events).toContainEqual({ t: 'shielded', unit: 'A', amount: 1 });
   });
 
-  it('Command: the ally moves where Command sits in the plan, A pays, the ally does not', () => {
-    let state = board({ hand: ['command', 'attack'], mp: { A: 1, C: 1 }, units: { C: at(3, 2) } });
+  it('Command: the ally moves where Command sits in the plan, and only its own cost leaves the pool', () => {
+    let state = board({ hand: ['command', 'attack'], mp: 2, units: { C: at(3, 2) } });
     state = play(state, 'command', 'A', { unit: 'C', tile: at(3, 3) });
     state = play(state, 'attack', 'C');
+    // Command 1 and Attack 1: the move it grants costs the pool nothing.
+    expect(viewOf(state).mana).toEqual({ mp: 2, max: 4, reserved: 2 });
     const { state: after, events } = commit(state);
     expect(unit(after, 'C').pos).toEqual(at(3, 3));
-    // A: 1 - 1 + 1 round + 1 ability. C: 1 - 1 (Attack) + 1 round.
-    expect(unit(after, 'A').mp).toBe(2);
-    expect(unit(after, 'C').mp).toBe(1);
     const moveAt = events.findIndex((e) => e.t === 'moved');
     const attackAt = events.findIndex((e) => e.t === 'played' && e.card === iidOf(state, 'attack'));
     expect(moveAt).toBeLessThan(attackAt);
   });
 
   it('resolves the plan in the order it was made: a unit may shoot, then move', () => {
-    let state = board({ hand: ['attack', 'move'], mp: { C: 1 }, units: { C: at(3, 2) } });
+    let state = board({ hand: ['attack', 'move'], mp: 1, units: { C: at(3, 2) } });
     state = play(state, 'attack', 'C');
     state = play(state, 'move', 'C', { tile: at(3, 3) });
     const { events } = commit(state);
@@ -194,37 +196,32 @@ describe('Puppeteer cards', () => {
     expect(events.findIndex((e) => e.t === 'damaged')).toBeLessThan(events.findIndex((e) => e.t === 'moved'));
   });
 
-  it('Focus: A gains 1 more MP at the start of each of its next 2 turns', () => {
-    let state = board({ hand: ['focus'], mp: { A: 1 } });
+  it('Focus: the shared pool refills 1 over its max at the start of each of the next 2 turns', () => {
+    let state = board({ hand: ['focus'], mp: 1 });
     state = play(state, 'focus', 'A');
     const r1 = commit(state);
-    expect(r1.events.filter((e) => e.t === 'mpGained' && e.unit === 'A').map((e) => (e as { source: string }).source)).toEqual(['round', 'ability', 'focus']);
-    // Spend A down each round so the cap (R2) cannot swallow the grant.
-    const drained = (s: BattleState): BattleState => {
-      const copy = structuredClone(s);
-      copy.units.find((u) => u.id === 'A')!.mp = 0;
-      return copy;
-    };
-    const r2 = commit(drained(r1.state));
-    expect(r2.events.some((e) => e.t === 'mpGained' && e.source === 'focus')).toBe(true);
-    const r3 = commit(drained(r2.state));
-    expect(r3.events.some((e) => e.t === 'mpGained' && e.source === 'focus')).toBe(false);
-    expect(unit(r3.state, 'A').pendingMp).toEqual([]);
+    expect(r1.events).toContainEqual({ t: 'mpQueued', card: iidOf(state, 'focus'), unit: 'A', n: 1, turns: 2 });
+    const refill = (events: BattleEvent[]) => events.find((e) => e.t === 'mpRefilled');
+    expect(refill(r1.events)).toEqual({ t: 'mpRefilled', mp: 5, max: 4, bonus: 1 });
+    const r2 = commit(r1.state);
+    expect(refill(r2.events)).toEqual({ t: 'mpRefilled', mp: 5, max: 4, bonus: 1 });
+    const r3 = commit(r2.state);
+    expect(refill(r3.events)).toEqual({ t: 'mpRefilled', mp: 4, max: 4, bonus: 0 });
+    expect(r3.state.pendingMp).toEqual([]);
   });
 
   it('Moon Strike and Artillery: a second play at a target already gone fizzles, used and paid', () => {
-    let state = board({ hand: ['moon-strike', 'artillery'], mp: { A: 4, B: 4 }, units: { B: at(2, 3) }, enemies: [null, at(2, 5), at(3, 6)] });
+    let state = board({ hand: ['moon-strike', 'artillery'], mp: 8, units: { B: at(2, 3) }, enemies: [null, at(2, 5), at(3, 6)] });
     state = play(state, 'moon-strike', 'A', { unit: 'e1' });
     state = play(state, 'artillery', 'B', { unit: 'e1' });
     const { state: after, events } = commit(state);
     expect(events).toContainEqual({ t: 'defeated', enemy: 'e1' });
     expect(events).toContainEqual({ t: 'fizzled', card: iidOf(state, 'artillery'), unit: 'B', why: 'targetGone' });
     expect(after.piles.discard).toContain(iidOf(state, 'artillery'));
-    expect(unit(after, 'B').mp).toBe(1);
   });
 
   it('Artillery: Blast 2 centred on the chosen enemy', () => {
-    let state = board({ hand: ['artillery'], mp: { B: 4 }, units: { B: at(2, 3) } });
+    let state = board({ hand: ['artillery'], mp: 4, units: { B: at(2, 3) } });
     state = play(state, 'artillery', 'B', { unit: 'e1' });
     expect(damaged(commit(state).events)).toEqual(['e0', 'e1', 'e2']);
   });
@@ -235,35 +232,36 @@ describe('Puppeteer cards', () => {
     expect(damaged(commit(state).events)).toEqual(['e1']);
   });
 
-  it('Resupply: B gains 2 MP when it resolves, spendable next turn', () => {
-    let state = board({ hand: ['resupply'], mp: { B: 1 } });
+  it('Resupply: 2 bonus MP on top of the next turn\'s refill', () => {
+    let state = board({ hand: ['resupply'], mp: 1 });
     state = play(state, 'resupply', 'B');
     const { state: after, events } = commit(state);
-    expect(events).toContainEqual({ t: 'mpGained', unit: 'B', amount: 2, source: 'card' });
-    expect(unit(after, 'B').mp).toBe(3);
+    expect(events).toContainEqual({ t: 'mpQueued', card: iidOf(state, 'resupply'), unit: 'B', n: 2, turns: 1 });
+    expect(after.mp).toBe(4 + 2);
+    expect(after.pendingMp).toEqual([]);
   });
 
   it('Fire!: Blast 1 on a chosen tile', () => {
-    let state = board({ hand: ['fire'], mp: { B: 1 }, units: { B: at(2, 4) } });
+    let state = board({ hand: ['fire'], mp: 1, units: { B: at(2, 4) } });
     state = play(state, 'fire', 'B', { tile: at(2, 5) });
     // (2,5)'s neighbours include (2,6), the Lancer.
     expect(damaged(commit(state).events)).toEqual(['e1']);
   });
 
   it('Dash: Move 2', () => {
-    let state = board({ hand: ['dash'], mp: { C: 1 } });
+    let state = board({ hand: ['dash'], mp: 1 });
     state = play(state, 'dash', 'C', { tile: at(3, 4) });
     expect(unit(commit(state).state, 'C').pos).toEqual(at(3, 4));
   });
 
   it('Slash: Slash 1 from the danger zone', () => {
-    let state = board({ hand: ['slash'], mp: { C: 1 }, units: { C: at(2, 5) } });
+    let state = board({ hand: ['slash'], mp: 1, units: { C: at(2, 5) } });
     state = play(state, 'slash', 'C');
     expect(damaged(commit(state).events)).toEqual(['e0', 'e1', 'e2']);
   });
 
   it('Need Help: the next hand draws one extra card that is not C\'s', () => {
-    let state = board({ hand: ['need-help'], mp: { C: 1 } });
+    let state = board({ hand: ['need-help'], mp: 1 });
     // Order the draw pile: five cards, then two of C's, then a Neutral.
     const ids = (defs: string[]) => defs.map((d) => iidOf(state, d));
     state.piles.draw = ids(['shoot', 'resupply', 'artillery', 'fire', 'call-medic', 'dash', 'slash', 'move', 'prep', 'dig-in', 'attack', 'command', 'focus', 'moon-strike']);
@@ -274,7 +272,7 @@ describe('Puppeteer cards', () => {
   });
 
   it('Need Help: with no such card in the draw pile the extra draw fizzles, and nothing reshuffles for it', () => {
-    let state = board({ hand: ['need-help'], mp: { C: 1 } });
+    let state = board({ hand: ['need-help'], mp: 1 });
     const ids = (defs: string[]) => defs.map((d) => iidOf(state, d));
     // Exactly five left to draw, then nothing: the extra cannot come from the discard.
     state.piles.draw = ids(['shoot', 'resupply', 'artillery', 'fire', 'call-medic']);
@@ -287,7 +285,7 @@ describe('Puppeteer cards', () => {
   });
 
   it('Prep and Dig In: Once cards go to spent and never return', () => {
-    let state = board({ hand: ['prep', 'dig-in'], mp: { C: 1 } });
+    let state = board({ hand: ['prep', 'dig-in'], mp: 1 });
     state = play(state, 'prep', 'C');
     state = play(state, 'dig-in', 'B');
     let after = commit(state);
@@ -301,26 +299,37 @@ describe('Puppeteer cards', () => {
     }
   });
 
-  it('Move and Attack: Neutrals spend the MP of the unit that plays them', () => {
-    let state = board({ hand: ['move', 'attack'], mp: { B: 1 } });
+  it('Move and Attack: Neutrals spend from the shared pool, and the next turn refills it', () => {
+    let state = board({ hand: ['move', 'attack'], mp: 1 });
     state = play(state, 'move', 'B', { tile: at(2, 3) });
     state = play(state, 'attack', 'B');
     const { state: after } = commit(state);
     expect(unit(after, 'B').pos).toEqual(at(2, 3));
-    expect(unit(after, 'B').mp).toBe(1);
+    expect(after.mp).toBe(4);
   });
 });
 
 describe('unit abilities', () => {
-  it('A gains 1 MP at the start of each turn, turn 1 included', () => {
+  it('A holds max MP 2, so the shared pool refills to 4 at the start of each turn, turn 1 included', () => {
     const created = begun('test', 'A');
-    expect(created.events).toContainEqual({ t: 'mpGained', unit: 'A', amount: 1, source: 'ability' });
+    expect(created.events).toContainEqual({ t: 'mpRefilled', mp: 4, max: 4, bonus: 0 });
     const next = commit(created.state);
-    expect(next.events).toContainEqual({ t: 'mpGained', unit: 'A', amount: 1, source: 'ability' });
+    expect(next.events).toContainEqual({ t: 'mpRefilled', mp: 4, max: 4, bonus: 0 });
+  });
+
+  it('a fainted unit keeps its max MP in the pool (the author\'s ruling)', () => {
+    const state = board({ units: { C: null } });
+    expect(maxMpOf(state)).toBe(4);
+  });
+
+  it('the pool gates every unit\'s cards together: two 1-cost cards need 2 MP between them', () => {
+    let state = board({ hand: ['focus', 'attack'], mp: 1 });
+    state = play(state, 'focus', 'A');
+    expect(step(state, { type: 'select', card: iidOf(state, 'attack'), unit: 'C' })).toMatchObject({ ok: false, reason: 'noMp' });
   });
 
   it('B converts only its first card, only at full HP', () => {
-    let state = board({ hand: ['shoot', 'attack'], mp: { B: 1 }, enemies: [at(1, 5), at(2, 4), at(2, 6)] });
+    let state = board({ hand: ['shoot', 'attack'], mp: 1, enemies: [at(1, 5), at(2, 4), at(2, 6)] });
     state = play(state, 'attack', 'B');
     state = play(state, 'shoot', 'B');
     const first = commit(state);
@@ -336,7 +345,7 @@ describe('unit abilities', () => {
   });
 
   it('B\'s first slot taken by Command means no conversion this turn', () => {
-    let state = board({ hand: ['command', 'shoot'], mp: { A: 1 }, enemies: [at(1, 5), at(2, 4), at(2, 6)] });
+    let state = board({ hand: ['command', 'shoot'], mp: 1, enemies: [at(1, 5), at(2, 4), at(2, 6)] });
     state = play(state, 'command', 'A', { unit: 'B', tile: at(2, 3) });
     state = play(state, 'shoot', 'B');
     expect(commit(state).events.some((e) => e.t === 'converted')).toBe(false);
@@ -404,7 +413,7 @@ describe('shield timing, faint and piles', () => {
   });
 
   it('wins when no enemy remains, and stops there', () => {
-    let state = board({ hand: ['moon-strike'], mp: { A: 4 }, enemies: [null, at(2, 5), null] });
+    let state = board({ hand: ['moon-strike'], mp: 4, enemies: [null, at(2, 5), null] });
     state = play(state, 'moon-strike', 'A', { unit: 'e1' });
     const { state: after, events } = commit(state);
     expect(after.phase).toBe('won');

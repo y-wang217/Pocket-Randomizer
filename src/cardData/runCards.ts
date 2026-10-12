@@ -38,7 +38,7 @@ const TOWN: Readonly<Record<string, CardDef>> = {
   // Group A (`docs/spec/gymrun-card-run-shapes-prompt.md`, checkpoint 3).
   // Whirlwind is the Dasher's first ult. Both it and Rally are a move with a
   // follow-up, as first drafted, since checkpoint 4b taught the engine one.
-  whirlwind: card({ id: 'whirlwind', name: 'Whirlwind', owner: 'C', cost: 4, type: null, effects: [{ k: 'move', n: 1 }, { k: 'slash', n: 3 }], ult: true, art: 'slash' }),
+  whirlwind: card({ id: 'whirlwind', name: 'Whirlwind', owner: 'C', cost: 3, type: null, effects: [{ k: 'move', n: 1 }, { k: 'slash', n: 3 }], ult: true, art: 'slash' }),
   rally: card({ id: 'rally', name: 'Rally', owner: 'A', cost: 2, type: null, effects: [{ k: 'grantMove', n: 1 }, { k: 'shield', n: 1, to: 'friendly' }], art: 'command' }),
   'mark-target': card({ id: 'mark-target', name: 'Mark Target', owner: 'A', cost: 1, type: null, effects: [{ k: 'strike', n: 1 }, { k: 'target', n: 1 }], art: 'moon-strike' }),
   suppress: card({ id: 'suppress', name: 'Suppress', owner: 'B', cost: 3, type: null, effects: [{ k: 'blast', n: 1 }, { k: 'target', n: 1 }, { k: 'shield', n: 1, to: 'self' }], art: 'fire' }),
@@ -52,8 +52,9 @@ const TOWN: Readonly<Record<string, CardDef>> = {
   // Checkpoint 5b: a card for each shape that had none of its own yet.
   // The Commander's nuke, for "only nukes and mana".
   overcharge: card({ id: 'overcharge', name: 'Overcharge', owner: 'A', cost: 3, type: null, effects: [{ k: 'strike', n: 3 }], art: 'moon-strike' }),
-  // The Gunner's massive artillery, from the danger zone the others walk it into. All its MP.
-  barrage: card({ id: 'barrage', name: 'Barrage', owner: 'B', cost: 5, type: null, effects: [{ k: 'blast', n: 3 }], ult: true, art: 'artillery' }),
+  // The Gunner's massive artillery, from the danger zone the others walk it into.
+  // Most of the shared pool: every ult is 3 at most since the shared mana ruling.
+  barrage: card({ id: 'barrage', name: 'Barrage', owner: 'B', cost: 3, type: null, effects: [{ k: 'blast', n: 3 }], ult: true, art: 'artillery' }),
   // The Dasher steps beside the one it defends.
   interpose: card({ id: 'interpose', name: 'Interpose', owner: 'C', cost: 1, type: null, effects: [{ k: 'move', n: 1 }, { k: 'cover', n: 1 }], art: 'dash' }),
 };
@@ -95,10 +96,10 @@ export function upgradesOf(cards: Readonly<Record<string, CardDef>>): Record<str
     up(c('call-medic'), { effects: [{ k: 'shield', n: 2, to: 'friendly' }] }),
     up(c('command'), { effects: [{ k: 'grantMove', n: 2 }] }),
     up(c('focus'), { effects: [{ k: 'mpNextTurns', n: 1, turns: 3 }] }),
-    up(c('moon-strike'), { cost: 3 }),
+    up(c('moon-strike'), { cost: 2 }),
     up(c('shoot'), { effects: [{ k: 'strike', n: 2 }] }),
     up(c('resupply'), { effects: [{ k: 'gainMp', n: 3 }] }),
-    up(c('artillery'), { cost: 3 }),
+    up(c('artillery'), { cost: 2 }),
     up(c('fire'), { effects: [{ k: 'blast', n: 2 }] }),
     up(c('dash'), { cost: 0 }),
     up(c('slash'), { effects: [{ k: 'slash', n: 2 }] }),
@@ -119,7 +120,7 @@ export function upgradesOf(cards: Readonly<Record<string, CardDef>>): Record<str
     up(c('guard-up'), { effects: [{ k: 'shield', n: 2, to: 'self' }] }),
     up(c('sprint'), { cost: 0 }),
     up(c('jab'), { effects: [{ k: 'strike', n: 2 }] }),
-    up(c('whirlwind'), { cost: 3 }),
+    up(c('whirlwind'), { cost: 2 }),
     up(c('rally'), { cost: 1 }),
     up(c('mark-target'), { effects: [{ k: 'strike', n: 2 }, { k: 'target', n: 1 }] }),
     up(c('suppress'), { effects: [{ k: 'blast', n: 1 }, { k: 'target', n: 1 }, { k: 'shield', n: 2, to: 'self' }] }),
@@ -129,7 +130,7 @@ export function upgradesOf(cards: Readonly<Record<string, CardDef>>): Record<str
     up(c('guard-duty'), { effects: [{ k: 'shield', n: 2, to: 'self' }, { k: 'cover', n: 1 }] }),
     up(c('concuss'), { effects: [{ k: 'strike', n: 2 }, { k: 'stun', n: 1 }] }),
     up(c('overcharge'), { cost: 2 }),
-    up(c('barrage'), { cost: 4 }),
+    up(c('barrage'), { cost: 2 }),
     up(c('interpose'), { cost: 0 }),
   ];
   return Object.fromEntries(list.map((def) => [def.id, def]));

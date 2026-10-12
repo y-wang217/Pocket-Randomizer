@@ -62,7 +62,7 @@ export const FR: CardCopy = {
   effect: {
     shieldSelf: (n: number) => `Bouclier ${n}, soi`,
     shieldFriendly: (n: number) => `Bouclier ${n}, allié`,
-    gainMp: (n: number) => `+${n} PM à l’usage`,
+    gainMp: (n: number) => `+${n} PM au prochain tour`,
     mpNextTurns: (n: number, turns: number) => `+${n} PM pendant ${turns} tours`,
     grantMove: (n: number) => `Allié : Déplacement ${n}, sans PM`,
     drawNext: (n: number) => `Main suivante +${n}, pas les miennes`,
@@ -129,8 +129,8 @@ export const FR: CardCopy = {
     shieldDrops: (who: string, n: number) => `${who} : bouclier ${n} expire`,
     defeated: (who: string) => `${who} vaincu`,
     fainted: (who: string) => `${who} K.O.`,
-    mp: (who: string, n: number) => `${who} +${n} PM`,
-    roundMp: (who: string) => `PM +1 : ${who}`,
+    mp: (who: string, bonus: string) => `${who} : ${bonus}`,
+    roundMp: (mp: number) => `PM rechargés : ${mp}`,
     drawQueued: (n: number) => `Main suivante +${n}`,
     next: 'Manche suivante',
     telegraph: (who: string, act: string) => `${who} : ${act}`,
@@ -159,7 +159,6 @@ export const FR: CardCopy = {
   meters: {
     vitals: (hp: number, max: number, shield: number, base: number) => `PV ${hp}/${max} · Bouclier ${shield} · Base ${base}`,
     mana: (free: number, held: number, cap: number) => `MP ${free} libres, ${held} réservés, sur ${cap}`,
-    ult: (card: string, cost: number) => `${card} à ${cost}`,
   },
   tutorial: {
     button: 'Tutoriel',
@@ -174,12 +173,12 @@ export const FR: CardCopy = {
       start: { title: 'Démarrer', text: 'Appuyez sur Démarrer quand vos unités sont en place. Les ennemis prennent alors position.' },
       hand: { title: 'Votre main', text: "La bande et la lettre indiquent quelle unité joue une carte ; une grise, n'importe laquelle. En haut à gauche, son coût en MP. Maintenez une carte pour la lire." },
       vitals: { title: 'Cœurs et bulles', text: "Les cœurs sont les PV. Les bulles sont des boucliers et éclatent avant les cœurs : une pleine s'estompe, une cerclée est le bouclier de base, à usage unique. Une pièce protégée porte une bulle sur le plateau." },
-      mana: { title: 'MP', text: (card: string, cost: number, cap: number) => `Chaque unité gagne 1 MP par manche, jusqu'à ${cap}. L'étoile marque son ultime : ${card} à ${cost}. Les cases atténuées sont réservées par vos cartes prévues.` },
+      mana: { title: 'MP partagés', text: (cap: number) => `Les cartes de toutes les unités se paient sur une seule réserve de MP. Elle se recharge à ${cap} au début de chaque tour, et les MP non dépensés sont perdus. Les cases atténuées sont réservées par vos cartes prévues.` },
       move: { title: 'Déplacer', text: 'Touchez Déplacer, choisissez qui la joue, puis une case éclairée.' },
       slots: { title: 'Emplacements', text: "Une carte prévue occupe l'emplacement de son unité, numérotée dans l'ordre du plan. Touchez l'emplacement pour la reprendre." },
       attack: { title: 'Attaque', text: "Touchez Tirer. Il frappe le premier ennemi dans le couloir du Tireur, à n'importe quelle distance." },
       end: { title: 'Fin du tour', text: "Vos cartes se jouent dans l'ordre, puis les ennemis agissent. Le mannequin attend." },
-      finish: { title: 'Battez le mannequin', text: "Continuez jusqu'à la chute du Mannequin d'entraînement. Les MP s'accumulent chaque manche : des cartes plus fortes s'ouvrent." },
+      finish: { title: 'Battez le mannequin', text: "Continuez jusqu'à la chute du Mannequin d'entraînement. Vos MP se rechargent à chaque tour : dépensez-les." },
     },
   },
   names: {

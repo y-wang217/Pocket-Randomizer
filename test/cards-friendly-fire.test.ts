@@ -32,7 +32,7 @@ const damaged = (events: BattleEvent[]) => events.filter((e) => e.t === 'damaged
 
 /** B in the danger zone at L2C4 aiming Fire! at L2C5: its tiles are L2C5, L1C5, L3C5, L2C4 (B's own) and L2C6 (the Lancer). */
 function fireAtC(): BattleState {
-  return board({ hand: ['fire'], mp: { B: 1 }, units: { B: at(2, 4), C: at(1, 5) } });
+  return board({ hand: ['fire'], mp: 1, units: { B: at(2, 4), C: at(1, 5) } });
 }
 
 describe('Blast friendly fire', () => {
@@ -58,7 +58,7 @@ describe('Blast friendly fire', () => {
   });
 
   it('centres a targeted Blast on the enemy and hits an ally beside it', () => {
-    let state = board({ hand: ['artillery'], mp: { B: 4 }, units: { B: at(1, 3), C: at(2, 5) }, enemies: [at(1, 6), at(2, 6), at(3, 6)] });
+    let state = board({ hand: ['artillery'], mp: 4, units: { B: at(1, 3), C: at(2, 5) }, enemies: [at(1, 6), at(2, 6), at(3, 6)] });
     state = play(state, 'artillery', 'B', { unit: 'e1' });
     const { events } = ok(state, { type: 'commit' });
     expect(events).toContainEqual({ t: 'friendlyFire', card: iidOf(state, 'artillery'), unit: 'C' });
@@ -67,7 +67,7 @@ describe('Blast friendly fire', () => {
 
   it('never hits an ally with a Strike, a Pierce or a Slash', () => {
     // C slashes from the danger zone with A beside the Drone on the next column; B shoots down a lane past C.
-    let state = board({ hand: ['slash', 'shoot'], mp: { B: 1, C: 1 }, units: { A: at(2, 5), B: at(1, 2), C: at(1, 4) }, enemies: [at(1, 5), at(2, 6), at(3, 6)] });
+    let state = board({ hand: ['slash', 'shoot'], mp: 2, units: { A: at(2, 5), B: at(1, 2), C: at(1, 4) }, enemies: [at(1, 5), at(2, 6), at(3, 6)] });
     state = play(state, 'slash', 'C');
     state = play(state, 'shoot', 'B');
     const { events } = ok(state, { type: 'commit' });
@@ -77,7 +77,7 @@ describe('Blast friendly fire', () => {
 
   it('faints an ally normally, cards and all, and the fainted unit plays nothing more that round', () => {
     // A (HP 1, base shield 0 here) stands on the Blast's tiles with Focus in hand and a Neutral planned after the Blast.
-    let state = board({ hand: ['fire', 'focus', 'dig-in'], mp: { A: 1, B: 1 }, units: { A: at(1, 5), B: at(2, 4) } });
+    let state = board({ hand: ['fire', 'focus', 'dig-in'], mp: 2, units: { A: at(1, 5), B: at(2, 4) } });
     unit(state, 'A').baseShield = 0;
     state = play(state, 'fire', 'B', { tile: at(2, 5) });
     state = play(state, 'dig-in', 'A');
@@ -94,7 +94,7 @@ describe('Blast friendly fire', () => {
 
   it('keeps legality as it was: a Blast still needs an enemy on its tiles, an ally alone does not make it playable', () => {
     // B at L2C3: its centres are columns 4 and 5, so every footprint holds C and none an enemy.
-    const state = board({ hand: ['fire'], mp: { B: 1 }, units: { B: at(2, 3), C: at(1, 4) }, enemies: [at(1, 7), at(2, 7), at(3, 7)] });
+    const state = board({ hand: ['fire'], mp: 1, units: { B: at(2, 3), C: at(1, 4) }, enemies: [at(1, 7), at(2, 7), at(3, 7)] });
     expect(choicesFor(state, iidOf(state, 'fire'), 'B').tiles).toEqual([]);
     expect(viewOf(state).hand.flatMap((g) => g.cards).find((c) => c.def === 'fire')!.reason).toBe('noTarget');
   });

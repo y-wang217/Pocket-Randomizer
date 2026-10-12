@@ -8,7 +8,7 @@
  *      A play by a unit that fainted earlier in the round (a Blast's friendly
  *      fire, R14) is pruned instead.
  *   3. Win check. Dead enemies never act.
- *   4. MP gain, capped.
+ *   4. (MP no longer gains here: the shared pool refills at the next hand.)
  *   5-7. Enemy actions, moves and telegraph (`enemies.ts`).
  *   8. The next hand.
  *
@@ -20,8 +20,8 @@ import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { enemyActions, enemyMovesAndTelegraph } from './enemies';
 import type { Ctx } from './keywords';
-import { gainMp, payFor, resolveEffects, resolveMove, retire } from './keywords';
-import { abilitiesOf, cardDefOf, checkPlan, followUps, isMoveCard, livingEnemies, livingUnits, type StepResult, unitOf } from './plan';
+import { payFor, resolveEffects, resolveMove, retire } from './keywords';
+import { abilitiesOf, cardDefOf, checkPlan, followUps, isMoveCard, livingEnemies, maxMpOf, type StepResult, unitOf } from './plan';
 import { shuffled, withStream } from './random';
 import type { BattleState, PlannedPlay, UnitId } from './state';
 
@@ -45,7 +45,7 @@ export function firstSlots(s: BattleState, plan: readonly PlannedPlay[]): Partia
 export function draftOf(state: BattleState): BattleState {
   return {
     ...state,
-    units: state.units.map((u) => ({ ...u, pos: u.pos && { ...u.pos }, pendingMp: u.pendingMp.map((g) => ({ ...g })) })),
+    units: state.units.map((u) => ({ ...u, pos: u.pos && { ...u.pos } })),
     enemies: state.enemies.map((e) => ({
       ...e,
       pos: e.pos && { ...e.pos },
@@ -63,6 +63,7 @@ export function draftOf(state: BattleState): BattleState {
     uses: { ...state.uses },
     plan: [...state.plan],
     pendingDraws: state.pendingDraws.map((d) => ({ ...d })),
+    pendingMp: state.pendingMp.map((g) => ({ ...g })),
   };
 }
 
@@ -123,9 +124,6 @@ export function commit(state: BattleState): StepResult {
   }
   if (s.phase !== 'plan') return { ok: true, state: s, events: ctx.events };
 
-  // 4. MP gain.
-  for (const unit of livingUnits(s)) gainMp(ctx, unit, RULES.mp.gainPerRound, 'round');
-
   // 5. The enemies act; 6 and 7, they move and telegraph.
   enemyActions(ctx);
   if (s.phase !== 'plan') return { ok: true, state: s, events: ctx.events };
@@ -140,7 +138,7 @@ export function commit(state: BattleState): StepResult {
  * The next wave arrives (`RULES.betweenWaves`, the author's ruling of
  * 2026-10-11, `docs/spec/gymrun-card-run-shapes-prompt.md`). The cards reset
  * and nothing else does: each living unit keeps its HP, its base shield as
- * spent, its MP and any MP a card still owes it, and stays on its tile. Every
+ * spent, and stays on its tile; any bonus MP a card still owes the pool stays owed. Every
  * card a faint did not remove, Once cards included, is shuffled into a fresh
  * draw pile, in deck order first so the shuffle reads no history; extra draws
  * owed clear. The new wave spawns at once with no placement: the round count
@@ -187,7 +185,7 @@ export function grantWave(ctx: Ctx): void {
 
 function playCard(ctx: Ctx, play: PlannedPlay, resolve: () => void): void {
   const def = cardDefOf(ctx.s, play.card)!;
-  payFor(unitOf(ctx.s, play.unit), def);
+  payFor(ctx.s, def);
   ctx.events.push({ t: 'played', card: play.card, unit: play.unit });
   resolve();
   retire(ctx, play);
@@ -218,7 +216,7 @@ function drawCards(ctx: Ctx, n: number): void {
 }
 
 /**
- * Phase 8. Round up, player Shield clears (R3), start-of-turn MP lands, the
+ * Phase 8. Round up, player Shield clears (R3), the shared MP pool refills, the
  * unplayed hand is discarded, then a fresh hand and any extra draws owed.
  *
  * Need Help's extra card is the first card in the draw pile not owned by the
@@ -250,14 +248,12 @@ export function nextHand(ctx: Ctx): void {
     }
   }
 
-  for (const unit of livingUnits(s)) {
-    for (const ability of abilitiesOf(s, unit.id)) {
-      if (ability.k === 'mpAtTurnStart') gainMp(ctx, unit, ability.n, 'ability');
-    }
-    const owed = unit.pendingMp.reduce((sum, grant) => sum + grant.n, 0);
-    if (owed > 0) gainMp(ctx, unit, owed, 'focus');
-    unit.pendingMp = unit.pendingMp.map((grant) => ({ ...grant, turns: grant.turns - 1 })).filter((grant) => grant.turns > 0);
-  }
+  // The shared pool refills to its max, leftovers lost, plus any bonus a card owes it.
+  const max = maxMpOf(s);
+  const bonus = s.pendingMp.reduce((sum, grant) => sum + grant.n, 0);
+  s.mp = max + bonus;
+  s.pendingMp = s.pendingMp.map((grant) => ({ ...grant, turns: grant.turns - 1 })).filter((grant) => grant.turns > 0);
+  ctx.events.push({ t: 'mpRefilled', mp: s.mp, max, bonus });
 
   // Retain: an unplayed copy stays, holding one of the hand's places.
   const kept = s.piles.hand.filter((iid) => CARDS[s.cards[iid]!.def]!.retain);

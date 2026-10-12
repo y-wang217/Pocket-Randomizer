@@ -26,7 +26,6 @@ export function checkInvariants(s: BattleState): string[] {
     if (u.stealth !== undefined && (u.stealth < 1 || u.fainted)) out.push(`${u.id} holds stealth ${u.stealth}`);
     if (u.cover !== undefined && (u.cover < 1 || u.fainted)) out.push(`${u.id} holds cover ${u.cover}`);
     if (u.fainted !== (u.pos === null)) out.push(`${u.id} fainted ${u.fainted} but pos ${JSON.stringify(u.pos)}`);
-    if (u.mp < 0 || u.mp > RULES.mp.cap) out.push(`${u.id} MP ${u.mp} outside 0..${RULES.mp.cap}`);
     if (u.shield < 0 || u.baseShield < 0) out.push(`${u.id} has a negative shield`);
   }
   for (const e of s.enemies) {
@@ -46,7 +45,8 @@ export function checkInvariants(s: BattleState): string[] {
   if (all.length !== deckSize) out.push(`${all.length} cards across the piles, the battle holds ${deckSize}`);
   if (new Set(all).size !== all.length) out.push('a card is in two piles');
 
-  const mp: Partial<Record<UnitId, number>> = {};
+  if (s.mp < 0) out.push(`the pool holds negative MP ${s.mp}`);
+  let mp = 0;
   const slots: Partial<Record<UnitId, number>> = {};
   for (const play of s.plan) {
     const def = cardDefOf(s, play.card);
@@ -54,7 +54,7 @@ export function checkInvariants(s: BattleState): string[] {
       out.push(`planned ${play.card} is not a card`);
       continue;
     }
-    mp[play.unit] = (mp[play.unit] ?? 0) + def.cost;
+    mp += def.cost;
     slots[play.unit] = (slots[play.unit] ?? 0) + 1;
     if (def.effects.some((e) => e.k === 'grantMove') && play.choice?.unit) {
       const ally = play.choice.unit as UnitId;
@@ -63,8 +63,8 @@ export function checkInvariants(s: BattleState): string[] {
   }
   for (const u of s.units) {
     if ((slots[u.id] ?? 0) > slotsOf(s, u.id)) out.push(`${u.id} uses ${slots[u.id]} slots of ${slotsOf(s, u.id)}`);
-    if ((mp[u.id] ?? 0) > u.mp) out.push(`${u.id} reserves ${mp[u.id]} MP of ${u.mp}`);
   }
+  if (mp > s.mp) out.push(`the plan reserves ${mp} MP of the pool's ${s.mp}`);
   const plan = checkPlan(s, s.plan);
   if (!plan.ok) out.push(`plan illegal at ${plan.index}: ${plan.reason}`);
   if (s.phase !== 'plan' && s.plan.length > 0) out.push(`a battle in ${s.phase} holds a plan`);

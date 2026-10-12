@@ -44,7 +44,7 @@ export const RUN_COPY = {
   slots: (n: number) => `${n} slot${n === 1 ? '' : 's'}`,
   hp: (n: number) => `${n} HP`,
   base: (n: number) => `Base ${n}`,
-  mp: (n: number) => `+${n} MP`,
+  mp: (n: number) => `+${n} max MP`,
   close: 'Close',
   back: 'Back',
   cancel: 'Cancel',
@@ -121,7 +121,7 @@ export const RUN_COPY = {
       slots: (n: number) => `+${n} card slot`,
       hp: (n: number) => `+${n} max HP`,
       baseShield: (n: number) => `+${n} base shield`,
-      mp: (n: number) => `+${n} MP at the start of each fight`,
+      mp: (n: number) => `+${n} max MP, every turn`,
     } satisfies Record<BoostKind, (n: number) => string>,
     talent: 'Talent',
     /** A talent's shape (step 7a); Marksman is the Gunner's own, given back. */

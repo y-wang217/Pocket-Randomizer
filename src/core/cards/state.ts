@@ -23,7 +23,6 @@ export interface UnitState {
   maxHp: number;
   shield: number;
   baseShield: number;
-  mp: number;
   fainted: boolean;
   /**
    * Stealth: enemy phases left in which the enemies' acts pass over this unit.
@@ -32,8 +31,6 @@ export interface UnitState {
   stealth?: number;
   /** Cover: enemy phases left in which this unit takes the hits meant for its neighbours. Absent when none. */
   cover?: number;
-  /** Start-of-turn MP still owed by a card (Focus): one entry per grant. */
-  pendingMp: { n: number; turns: number }[];
 }
 
 export interface Intent {
@@ -125,6 +122,10 @@ export interface BattleState {
   uses: Record<CardIid, number>;
   /** Extra draws owed to the next hand (Need Help). */
   pendingDraws: { n: number; filter: 'notOwner'; owner: CardOwner }[];
+  /** The shared MP pool every unit's cards are paid from (`RULES.mp`). */
+  mp: number;
+  /** Bonus MP owed to the pool's next refills by a card (Resupply, Focus): one entry per grant. */
+  pendingMp: { n: number; turns: number }[];
   /** The card run's boosts to each unit (`Loadout.units`); absent in a sandbox battle. */
   boosts?: Partial<Record<UnitDefId, UnitBoost>>;
 }

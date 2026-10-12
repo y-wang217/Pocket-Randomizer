@@ -24,9 +24,9 @@ export const TALENTS: Readonly<Record<string, TalentDef>> = {
     id: 'battery',
     name: 'Battery',
     unit: 'A',
-    text: '+1 MP at the start of each turn',
+    text: '+1 max MP, every turn of the run',
     // Bodyguard and battery: the Commander only nukes and banks mana.
-    abilities: [{ k: 'mpAtTurnStart', n: 1 }],
+    abilities: [{ k: 'maxMp', n: 1 }],
   },
   'field-medic': {
     id: 'field-medic',

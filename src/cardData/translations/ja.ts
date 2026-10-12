@@ -62,7 +62,7 @@ export const JA: CardCopy = {
   effect: {
     shieldSelf: (n: number) => `シールド${n}・自分`,
     shieldFriendly: (n: number) => `シールド${n}・味方`,
-    gainMp: (n: number) => `使用時 MP+${n}`,
+    gainMp: (n: number) => `次のターン MP+${n}`,
     mpNextTurns: (n: number, turns: number) => `次の${turns}ターン MP+${n}`,
     grantMove: (n: number) => `味方：移動${n}・MP不要`,
     drawNext: (n: number) => `次の手札+${n}・他ユニットのカード`,
@@ -129,8 +129,8 @@ export const JA: CardCopy = {
     shieldDrops: (who: string, n: number) => `${who} シールド${n}が消滅`,
     defeated: (who: string) => `${who} 撃破`,
     fainted: (who: string) => `${who} 戦闘不能`,
-    mp: (who: string, n: number) => `${who} MP+${n}`,
-    roundMp: (who: string) => `MP+1：${who}`,
+    mp: (who: string, bonus: string) => `${who}：${bonus}`,
+    roundMp: (mp: number) => `MP回復：${mp}`,
     drawQueued: (n: number) => `次の手札 +${n}`,
     next: '次のラウンド',
     telegraph: (who: string, act: string) => `${who}：${act}`,
@@ -159,7 +159,6 @@ export const JA: CardCopy = {
   meters: {
     vitals: (hp: number, max: number, shield: number, base: number) => `HP ${hp}/${max} · シールド ${shield} · 基本 ${base}`,
     mana: (free: number, held: number, cap: number) => `MP 使用可 ${free}、確保 ${held}、上限 ${cap}`,
-    ult: (card: string, cost: number) => `${card}：${cost}`,
   },
   tutorial: {
     button: 'チュートリアル',
@@ -174,12 +173,12 @@ export const JA: CardCopy = {
       start: { title: '開始', text: '配置が済んだら「開始」。その後、敵が位置につく。' },
       hand: { title: '手札', text: '帯と文字はどのユニットが使うカードかを示す。灰色はどのユニットでも使える。左上はMPコスト。長押しで詳細。' },
       vitals: { title: 'ハートと泡', text: 'ハートはHP。泡はシールドで、ハートより先に割れる。塗りつぶしは時間で消え、輪は一度きりの基本シールド。シールドのある駒は盤上で泡に包まれる。' },
-      mana: { title: 'MP', text: (card: string, cost: number, cap: number) => `各ユニットは毎ラウンドMPを1得る（最大${cap}）。星は必殺技の印：${card}は${cost}。暗いマスは計画したカードで確保済み。` },
+      mana: { title: '共有MP', text: (cap: number) => `全ユニットのカードは1つのMPプールから支払う。毎ターン開始時に${cap}まで回復し、使わなかったMPは失われる。暗いマスは計画したカードで確保済み。` },
       move: { title: '移動', text: '「移動」をタップし、使うユニットを選び、光るマスをタップ。' },
       slots: { title: 'カードスロット', text: '計画したカードはユニットのスロットに入り、数字は実行順。スロットをタップで取り消し。' },
       attack: { title: '攻撃', text: '「射撃」をタップ。射手のレーンで最初の敵に当たる。距離は問わない。' },
       end: { title: 'ターン終了', text: 'カードが順に実行され、その後に敵が動く。カカシは待つだけ。' },
-      finish: { title: 'カカシを倒せ', text: '標的のカカシが倒れるまで続けよう。MPは毎ラウンド貯まり、強いカードが使えるようになる。' },
+      finish: { title: 'カカシを倒せ', text: '標的のカカシが倒れるまで続けよう。MPは毎ターン回復するので、使い切ろう。' },
     },
   },
   names: {

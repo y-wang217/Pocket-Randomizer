@@ -21,7 +21,7 @@ function board(card: string): BattleState {
   const iid = iidOf(state, card);
   state.piles.draw = state.piles.draw.filter((c) => c !== iid);
   state.piles.hand.push(iid);
-  for (const u of state.units) u.mp = 5;
+  state.mp = 15;
   for (const e of state.enemies) e.intent = null;
   return state;
 }
@@ -73,8 +73,8 @@ describe('the shape cards', () => {
     expect(events.find((e) => e.t === 'damaged' && e.target === drone.id)).toMatchObject({ amount: 3 });
   });
 
-  it('Barrage: the Gunner’s Blast 3 for all five MP, an ult', () => {
-    expect(CARDS['barrage']).toMatchObject({ owner: 'B', cost: 5, ult: true });
+  it('Barrage: the Gunner’s Blast 3 for 3 MP, an ult', () => {
+    expect(CARDS['barrage']).toMatchObject({ owner: 'B', cost: 3, ult: true });
     const state = board('barrage');
     Object.assign(state.units[1]!, { pos: at(2, 4) });
     const lancer = state.enemies[1]!;

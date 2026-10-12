@@ -12,7 +12,8 @@ import { step } from '../../src/core/cards/step';
 export interface BoardSpec {
   /** Card def ids to put in hand, in order. */
   hand?: string[];
-  mp?: Partial<Record<UnitId, number>>;
+  /** The shared MP pool. A layout holds 0 until its first hand refills it. */
+  mp?: number;
   /** Unit positions; `null` faints the unit. */
   units?: Partial<Record<UnitId, Pos | null>>;
   /** Enemy positions by spawn index; `null` kills it. */
@@ -26,9 +27,8 @@ export function board(spec: BoardSpec = {}): BattleState {
     state.piles.draw = state.piles.draw.filter((c) => c !== iid);
     state.piles.hand.push(iid);
   }
+  if (spec.mp !== undefined) state.mp = spec.mp;
   for (const unit of state.units) {
-    const mp = spec.mp?.[unit.id];
-    if (mp !== undefined) unit.mp = mp;
     if (spec.units && unit.id in spec.units) {
       const pos = spec.units[unit.id];
       unit.pos = pos ?? null;

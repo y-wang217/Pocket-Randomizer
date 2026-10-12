@@ -38,6 +38,7 @@ import { createBattle, gradeTotal } from '../../core/cards/create';
 import type { Effect, EnemyDefId, Pos } from '../../core/cards/defs';
 import { planDeploy, planRound } from '../../core/cards/guard';
 import { choicesFor } from '../../core/cards/legal';
+import { maxMpOf } from '../../core/cards/plan';
 import { newLog, type BattleLog } from '../../core/cards/log';
 import { displacementsFor, friendlyFireFor, interceptsFor, previewPlay, type AttackPreview, type Displacement, type FriendlyFire, type Intercept } from '../../core/cards/preview';
 import type { Action, BattleState, CardIid, TargetId, UnitId } from '../../core/cards/state';
@@ -48,7 +49,7 @@ import { samePos } from '../../core/cards/zones';
 import { newSeed } from '../seed';
 import { CARD_ASSET_GROUPS, assetStash, cardAsset, cardAssetUrl, type CardAssetId } from './assets';
 import { createCoach } from './coach';
-import { deckOf, manaBar, ultOf, vitals } from './meters';
+import { manaBar, vitals } from './meters';
 import { roundSteps, type RoundRecord, type Step } from './playback';
 import { CARD_PALETTES, loadCardPrefs, saveCardPrefs, saveTutorialSeen, type CardPalette, type CardPrefs } from './prefs';
 import { TUTORIAL_ENCOUNTER, TUTORIAL_SEED, type TutorialStep } from './tutorial';
@@ -478,13 +479,10 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     start(TUTORIAL_SEED, true);
   }
 
-  /** A step's words, in the current language. The MP step names the Commander's ult and its cost. */
+  /** A step's words, in the current language. The MP step names what the shared pool refills to. */
   function stepWords(step: TutorialStep): { title: string; text: string } {
     const words = CARD_COPY.tutorial.steps;
-    if (step.id === 'mana') {
-      const ult = ultOf('A', deckOf(state), RULES.mp.cap);
-      return { title: words.mana.title, text: words.mana.text(nameOf(ult?.name ?? ''), ult?.cost ?? RULES.mp.cap, RULES.mp.cap) };
-    }
+    if (step.id === 'mana') return { title: words.mana.title, text: words.mana.text(maxMpOf(state)) };
     return words[step.id];
   }
 
@@ -830,6 +828,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     status.append(
       el('span', 'cb-round', view.waves > 1 ? `${CARD_COPY.wave(view.wave + 1, view.waves)} · ${CARD_COPY.round} ${view.round}` : `${CARD_COPY.round} ${view.round}`),
       el('span', 'cb-piles', `${CARD_COPY.draw} ${view.piles.draw} · ${CARD_COPY.discard} ${view.piles.discard}`),
+      manaBar(view.mana),
     );
     const idle = state.phase === 'deploy' ? CARD_COPY.deployHint : graceShowing(view) ? CARD_COPY.graceBoard : '';
     const note = el('div', 'cb-note', message || (inspectMode ? CARD_COPY.inspectHint : idle));
@@ -1106,7 +1105,6 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
 
   function renderPanels(view: BattleView): void {
     const warned = allyWarnings(view);
-    const deck = deckOf(state);
     enemySide.replaceChildren(
       ...view.enemies.map((enemy, index) => {
         const target = !!pending && pending.stage !== 'tile' && pending.units.includes(enemy.id);
@@ -1160,7 +1158,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         const portrait = el('span', 'cb-panel-portrait');
         portrait.append(cardAsset(UNIT_PORTRAIT[unit.id], 'fill'));
         panel.append(portrait, el('div', 'cb-panel-name', `${unit.id} ${nameOf(unit.name)}`));
-        panel.append(vitals(unit.hp, unit.maxHp, unit.shield, unit.baseShield), manaBar(unit, ultOf(unit.id, deck, unit.mpCap)));
+        panel.append(vitals(unit.hp, unit.maxHp, unit.shield, unit.baseShield));
         const slots = el('div', 'cb-slots');
         slots.dataset['coach'] = 'slots';
         for (let i = 0; i < unit.slots; i++) {

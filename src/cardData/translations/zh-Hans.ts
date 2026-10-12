@@ -62,7 +62,7 @@ export const ZH_HANS: CardCopy = {
   effect: {
     shieldSelf: (n: number) => `护盾 ${n}，自身`,
     shieldFriendly: (n: number) => `护盾 ${n}，友军`,
-    gainMp: (n: number) => `使用时 +${n} MP`,
+    gainMp: (n: number) => `下回合 +${n} MP`,
     mpNextTurns: (n: number, turns: number) => `之后 ${turns} 回合 +${n} MP`,
     grantMove: (n: number) => `友军：移动 ${n}，无需 MP`,
     drawNext: (n: number) => `下回合手牌 +${n}，非本单位`,
@@ -129,8 +129,8 @@ export const ZH_HANS: CardCopy = {
     shieldDrops: (who: string, n: number) => `${who} 的护盾 ${n} 消失`,
     defeated: (who: string) => `${who} 被击败`,
     fainted: (who: string) => `${who} 倒下`,
-    mp: (who: string, n: number) => `${who} +${n} MP`,
-    roundMp: (who: string) => `MP +1：${who}`,
+    mp: (who: string, bonus: string) => `${who}：${bonus}`,
+    roundMp: (mp: number) => `MP 回满：${mp}`,
     drawQueued: (n: number) => `下回合手牌 +${n}`,
     next: '下一回合',
     telegraph: (who: string, act: string) => `${who}：${act}`,
@@ -159,7 +159,6 @@ export const ZH_HANS: CardCopy = {
   meters: {
     vitals: (hp: number, max: number, shield: number, base: number) => `HP ${hp}/${max} · 护盾 ${shield} · 基础 ${base}`,
     mana: (free: number, held: number, cap: number) => `MP 可用 ${free}，保留 ${held}，上限 ${cap}`,
-    ult: (card: string, cost: number) => `${card}：${cost}`,
   },
   tutorial: {
     button: '教程',
@@ -174,12 +173,12 @@ export const ZH_HANS: CardCopy = {
       start: { title: '开始', text: '单位就位后按“开始”。敌人随后就位。' },
       hand: { title: '手牌', text: '色带和字母表示由哪个单位打出；灰色卡任何单位都可以。左上是 MP 费用。长按卡牌可查看。' },
       vitals: { title: '爱心与泡泡', text: '爱心是 HP。泡泡是护盾，会先于爱心破掉：实心的会消退，空心环是基础护盾，只能用一次。有护盾的棋子在棋盘上会罩着泡泡。' },
-      mana: { title: 'MP', text: (card: string, cost: number, cap: number) => `每个单位每回合获得 1 MP，最多 ${cap}。星号标示它的大招：${card} 需 ${cost}。变暗的格子已被你计划的卡保留。` },
+      mana: { title: '共享 MP', text: (cap: number) => `所有单位的卡都从同一个 MP 池支付。每回合开始时回满到 ${cap}，没用完的 MP 会作废。变暗的格子已被你计划的卡保留。` },
       move: { title: '移动', text: '点“移动”，选择由谁打出，再点一个亮起的格子。' },
       slots: { title: '卡槽', text: '计划好的卡放在该单位的卡槽，数字是计划执行的顺序。点卡槽可收回卡牌。' },
       attack: { title: '攻击', text: '点“射击”。它会击中枪手所在路线上的第一个敌人，不限距离。' },
       end: { title: '结束回合', text: '你的卡依次执行，然后敌人行动。假人只会等待。' },
-      finish: { title: '打倒假人', text: '继续直到标靶假人倒下。MP 每回合累积，更强的卡就能使用。' },
+      finish: { title: '打倒假人', text: '继续直到标靶假人倒下。MP 每回合回满，记得用完。' },
     },
   },
   names: {

@@ -62,7 +62,7 @@ export const DE: CardCopy = {
   effect: {
     shieldSelf: (n: number) => `Schild ${n}, selbst`,
     shieldFriendly: (n: number) => `Schild ${n}, Verbündeter`,
-    gainMp: (n: number) => `+${n} MP beim Einsatz`,
+    gainMp: (n: number) => `+${n} MP nächsten Zug`,
     mpNextTurns: (n: number, turns: number) => `+${n} MP für ${turns} Züge`,
     grantMove: (n: number) => `Verbündeter: Bewegen ${n}, ohne MP`,
     drawNext: (n: number) => `Nächste Hand +${n}, nicht eigene`,
@@ -129,8 +129,8 @@ export const DE: CardCopy = {
     shieldDrops: (who: string, n: number) => `${who}: Schild ${n} verfällt`,
     defeated: (who: string) => `${who} besiegt`,
     fainted: (who: string) => `${who} kampfunfähig`,
-    mp: (who: string, n: number) => `${who} +${n} MP`,
-    roundMp: (who: string) => `MP +1: ${who}`,
+    mp: (who: string, bonus: string) => `${who}: ${bonus}`,
+    roundMp: (mp: number) => `MP aufgefüllt: ${mp}`,
     drawQueued: (n: number) => `Nächste Hand +${n}`,
     next: 'Nächste Runde',
     telegraph: (who: string, act: string) => `${who}: ${act}`,
@@ -159,7 +159,6 @@ export const DE: CardCopy = {
   meters: {
     vitals: (hp: number, max: number, shield: number, base: number) => `LP ${hp}/${max} · Schild ${shield} · Basis ${base}`,
     mana: (free: number, held: number, cap: number) => `MP ${free} frei, ${held} gebunden, von ${cap}`,
-    ult: (card: string, cost: number) => `${card} bei ${cost}`,
   },
   tutorial: {
     button: 'Tutorial',
@@ -174,12 +173,12 @@ export const DE: CardCopy = {
       start: { title: 'Start', text: 'Tippe Start, wenn deine Einheiten stehen. Dann beziehen die Gegner Stellung.' },
       hand: { title: 'Deine Hand', text: 'Band und Buchstabe zeigen, welche Einheit eine Karte spielt; graue Karten jede. Oben links: MP-Kosten. Halte eine Karte, um sie zu lesen.' },
       vitals: { title: 'Herzen und Blasen', text: 'Herzen sind LP. Blasen sind Schilde und platzen vor den Herzen: gefüllte vergehen, umrandete sind der Basisschild, einmal nutzbar. Eine geschützte Figur trägt auf dem Feld eine Blase.' },
-      mana: { title: 'MP', text: (card: string, cost: number, cap: number) => `Jede Einheit erhält 1 MP pro Runde, bis ${cap}. Der Stern markiert ihr Ult: ${card} bei ${cost}. Gedimmte Zellen sind von geplanten Karten gebunden.` },
+      mana: { title: 'Gemeinsame MP', text: (cap: number) => `Die Karten aller Einheiten zahlen aus einem gemeinsamen MP-Vorrat. Er füllt sich zu Beginn jedes Zugs auf ${cap} auf; nicht ausgegebene MP verfallen. Gedimmte Zellen sind von geplanten Karten gebunden.` },
       move: { title: 'Bewegen', text: 'Tippe Bewegen, wähle, wer sie spielt, dann ein leuchtendes Feld.' },
       slots: { title: 'Kartenplätze', text: 'Eine geplante Karte liegt im Platz ihrer Einheit, nummeriert in der Reihenfolge des Plans. Tippe den Platz, um sie zurückzunehmen.' },
       attack: { title: 'Angriff', text: 'Tippe Schießen. Es trifft den ersten Gegner in der Bahn des Schützen, egal wie weit.' },
       end: { title: 'Zug beenden', text: 'Deine Karten wirken der Reihe nach, dann handeln die Gegner. Die Puppe wartet nur.' },
-      finish: { title: 'Besiege die Puppe', text: 'Mach weiter, bis die Übungspuppe fällt. MP wachsen jede Runde, so werden stärkere Karten spielbar.' },
+      finish: { title: 'Besiege die Puppe', text: 'Mach weiter, bis die Übungspuppe fällt. Deine MP füllen sich jeden Zug auf, also gib sie aus.' },
     },
   },
   names: {

@@ -109,7 +109,8 @@ describe('Group A (checkpoint 3): reward cards from the existing effects', () =>
     const iid = iidOf(state, card);
     state.piles.draw = state.piles.draw.filter((c) => c !== iid);
     state.piles.hand.push(iid);
-    state.units.forEach((u, i) => Object.assign(u, { mp, pos: at((i + 1) as 1 | 2 | 3, 3) }));
+    state.mp = mp;
+    state.units.forEach((u, i) => Object.assign(u, { pos: at((i + 1) as 1 | 2 | 3, 3) }));
     state.enemies.forEach((e, i) => Object.assign(e, { pos: at((i + 1) as 1 | 2 | 3, 4), baseShield: 0 }));
     return { state, iid };
   }
@@ -145,7 +146,7 @@ describe('Group A (checkpoint 3): reward cards from the existing effects', () =>
     expect(kinds(suppress)).toContain('damaged');
     expect(suppress).toContainEqual({ t: 'shielded', unit: 'B', amount: 1 });
     const second = play('second-wind');
-    expect(kinds(second)).toEqual(expect.arrayContaining(['drawQueued', 'mpGained']));
+    expect(kinds(second)).toEqual(expect.arrayContaining(['drawQueued', 'mpQueued']));
     const flash = play('flashbang');
     expect(kinds(flash)).toEqual(expect.arrayContaining(['damaged', 'drawQueued', 'usedUp']));
   });

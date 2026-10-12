@@ -131,7 +131,7 @@ const EN = {
   effect: {
     shieldSelf: (n: number) => `Shield ${n}, self`,
     shieldFriendly: (n: number) => `Shield ${n}, ally`,
-    gainMp: (n: number) => `+${n} MP on use`,
+    gainMp: (n: number) => `+${n} MP next turn`,
     mpNextTurns: (n: number, turns: number) => `+${n} MP next ${turns} turns`,
     grantMove: (n: number) => `Ally: Move ${n}, no MP`,
     drawNext: (n: number) => `Next hand +${n}, not mine`,
@@ -181,8 +181,8 @@ const EN = {
     shieldDrops: (who: string, n: number) => `${who} shield ${n} wears off`,
     defeated: (who: string) => `${who} defeated`,
     fainted: (who: string) => `${who} fainted`,
-    mp: (who: string, n: number) => `${who} +${n} MP`,
-    roundMp: (who: string) => `MP +1: ${who}`,
+    mp: (who: string, bonus: string) => `${who}: ${bonus}`,
+    roundMp: (mp: number) => `MP refilled: ${mp}`,
     drawQueued: (n: number) => `Next hand +${n}`,
     next: 'Next round',
     telegraph: (who: string, act: string) => `${who}: ${act}`,
@@ -195,7 +195,6 @@ const EN = {
   meters: {
     vitals: (hp: number, max: number, shield: number, base: number) => `HP ${hp}/${max} · Shield ${shield} · Base ${base}`,
     mana: (free: number, held: number, cap: number) => `MP ${free} free, ${held} held, of ${cap}`,
-    ult: (card: string, cost: number) => `${card} at ${cost}`,
   },
   /** The tutorial (`ui/cardbattle/tutorial.ts`): its buttons, and each step's title and text. */
   tutorial: {
@@ -211,12 +210,12 @@ const EN = {
       start: { title: 'Start', text: 'Press Start when your units are set. The enemies then take their places.' },
       hand: { title: 'Your hand', text: 'The band and letter say which unit plays a card; a grey card, any unit. Top left is its MP cost. Hold a card to read it.' },
       vitals: { title: 'Hearts and bubbles', text: 'Hearts are HP. Bubbles are shields and pop before hearts: a filled one wears off, a ringed one is the base shield, used once. A shielded piece wears a bubble on the board.' },
-      mana: { title: 'MP', text: (card: string, cost: number, cap: number) => `Each unit gains 1 MP a round, up to ${cap}. The star marks its ult: ${card} at ${cost}. Dimmed cells are held by cards you planned.` },
+      mana: { title: 'Shared MP', text: (cap: number) => `Every unit's cards pay from one MP pool. It refills to ${cap} at the start of each turn, and MP you leave unspent is lost. Dimmed cells are held by cards you planned.` },
       move: { title: 'Move', text: 'Tap Move, pick who plays it, then a lit tile.' },
       slots: { title: 'Card slots', text: "A planned card sits in its unit's slot, numbered in the order the plan plays. Tap a slot to take the card back." },
       attack: { title: 'Attack', text: "Tap Shoot. It hits the first enemy down the Gunner's lane, at any range." },
       end: { title: 'End Turn', text: 'Your cards play in order, then the enemies act. The dummy only waits.' },
-      finish: { title: 'Beat the dummy', text: 'Keep going until the Target Dummy falls. MP builds each round, so bigger cards open up.' },
+      finish: { title: 'Beat the dummy', text: 'Keep going until the Target Dummy falls. Your MP refills every turn, so spend it.' },
     },
   },
   /**

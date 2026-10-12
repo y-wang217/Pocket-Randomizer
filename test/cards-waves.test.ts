@@ -45,8 +45,9 @@ function lastOfWaveOne(): BattleState {
   for (const pile of ['draw', 'hand', 'discard', 'spent'] as const) draft.piles[pile] = draft.piles[pile].filter((c) => c !== shoot && c !== prep);
   draft.piles.hand.push(shoot);
   draft.piles.spent.push(prep);
-  const [a, b, c] = draft.units;
-  Object.assign(a!, { mp: 3, pendingMp: [{ n: 1, turns: 2 }] });
+  const [, b, c] = draft.units;
+  draft.mp = 3;
+  draft.pendingMp = [{ n: 1, turns: 2 }];
   Object.assign(b!, { hp: 1, baseShield: 0, shield: 1, pos: at(2, 3) });
   Object.assign(c!, { baseShield: 0, pos: at(3, 4) });
   draft.pendingDraws = [{ n: 1, filter: 'notOwner', owner: 'C' }];
@@ -79,13 +80,14 @@ describe('waves', () => {
     expect(events.some((e) => e.t === 'won' || e.t === 'enemyActed')).toBe(false);
     expect([next.phase, next.wave, next.round]).toEqual(['plan', 1, 1]);
     // Units: HP, spent base shield and tiles kept; card shield cleared at the turn start (R3);
-    // A's MP kept, plus its turn-start 1 and the 1 Focus still owed it.
-    expect(next.units.map((u) => [u.id, u.hp, u.shield, u.baseShield, u.mp, u.pos])).toEqual([
-      ['A', 1, 0, 1, 5, at(1, 2)],
-      ['B', 1, 0, 0, s.units[1]!.mp, at(2, 3)],
-      ['C', 3, 0, 0, s.units[2]!.mp, at(3, 4)],
+    // The shared pool refilled to its max, plus the 1 a Focus still owes it.
+    expect(next.units.map((u) => [u.id, u.hp, u.shield, u.baseShield, u.pos])).toEqual([
+      ['A', 1, 0, 1, at(1, 2)],
+      ['B', 1, 0, 0, at(2, 3)],
+      ['C', 3, 0, 0, at(3, 4)],
     ]);
-    expect(next.units[0]!.pendingMp).toEqual([{ n: 1, turns: 1 }]);
+    expect(next.mp).toBe(4 + 1);
+    expect(next.pendingMp).toEqual([{ n: 1, turns: 1 }]);
     expect(next.pendingDraws).toEqual([]);
     // Every card back, Prep included; a fresh hand of five.
     expect(next.piles.spent).toEqual([]);

@@ -22,7 +22,7 @@ function board(card: string): { state: BattleState; iid: string } {
   const iid = iidOf(state, card);
   state.piles.draw = state.piles.draw.filter((c) => c !== iid);
   state.piles.hand.push(iid);
-  for (const u of state.units) u.mp = 5;
+  state.mp = 15;
   for (const e of state.enemies) e.intent = null;
   return { state, iid };
 }
@@ -35,7 +35,7 @@ describe('a move with a follow-up', () => {
         expect(followUps(def).some((e) => ['strike', 'pierce', 'slash'].includes(e.k)), def.id).toBe(false);
       }
     }
-    expect(CARDS['whirlwind']).toMatchObject({ owner: 'C', cost: 4, ult: true, effects: [{ k: 'move', n: 1 }, { k: 'slash', n: 3 }] });
+    expect(CARDS['whirlwind']).toMatchObject({ owner: 'C', cost: 3, ult: true, effects: [{ k: 'move', n: 1 }, { k: 'slash', n: 3 }] });
     expect(CARDS['rally']).toMatchObject({ owner: 'A', effects: [{ k: 'grantMove', n: 1 }, { k: 'shield', n: 1, to: 'friendly' }] });
   });
 

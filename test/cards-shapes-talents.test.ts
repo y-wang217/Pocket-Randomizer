@@ -16,6 +16,7 @@ import type { Loadout, UnitBoost, UnitDefId } from '../src/core/cards/defs';
 import type { BattleEvent } from '../src/core/cards/events';
 import { checkInvariants } from '../src/core/cards/invariants';
 import { replay } from '../src/core/cards/log';
+import { maxMpOf } from '../src/core/cards/plan';
 import { previewPlay } from '../src/core/cards/preview';
 import type { BattleState, Choice, UnitId } from '../src/core/cards/state';
 import { step } from '../src/core/cards/step';
@@ -29,7 +30,7 @@ function board(cards: string[], units?: Loadout['units']): BattleState {
     state.piles.draw = state.piles.draw.filter((c) => c !== iid);
     state.piles.hand.push(iid);
   }
-  for (const u of state.units) u.mp = 5;
+  state.mp = 15;
   for (const e of state.enemies) e.intent = null;
   return state;
 }
@@ -89,7 +90,7 @@ describe('Stun', () => {
     const iid = iidOf(lair, 'concuss');
     lair.piles.draw = lair.piles.draw.filter((c) => c !== iid);
     lair.piles.hand.push(iid);
-    for (const u of lair.units) u.mp = 5;
+    lair.mp = 15;
     // The Gunner's lane is one of the two the Colossus stands in.
     const { events } = play(lair, 'concuss', 'B');
     expect(events.some((e) => e.t === 'damaged' && e.target === lair.enemies[0]!.id)).toBe(true);
@@ -108,16 +109,12 @@ describe('talents', () => {
     expect(Object.values(UNIT_TALENTS).flat().sort()).toEqual(Object.keys(TALENTS).sort());
   });
 
-  it('Battery: the Commander gains one more MP at each turn start', () => {
-    // From 0 MP, so the cap does not swallow what it gains.
-    const empty = (state: BattleState): BattleState => {
-      state.units[0]!.mp = 0;
-      return state;
-    };
-    const plain = play(empty(board(['dig-in'])), 'dig-in', 'A');
-    const charged = play(empty(board(['dig-in'], only('A', 'battery'))), 'dig-in', 'A');
-    const fromAbility = (events: BattleEvent[]) => events.filter((e) => e.t === 'mpGained' && e.unit === 'A' && e.source === 'ability').reduce((n, e) => n + (e.t === 'mpGained' ? e.amount : 0), 0);
-    expect(fromAbility(charged.events)).toBe(fromAbility(plain.events) + 1);
+  it('Battery: the Commander has one more max MP, so the shared pool refills one higher every turn', () => {
+    const plain = play(board(['dig-in']), 'dig-in', 'A');
+    const charged = play(board(['dig-in'], only('A', 'battery')), 'dig-in', 'A');
+    const refill = (events: BattleEvent[]) => events.find((e) => e.t === 'mpRefilled');
+    expect(maxMpOf(charged.state)).toBe(maxMpOf(plain.state) + 1);
+    expect(refill(charged.events)).toMatchObject({ mp: maxMpOf(plain.state) + 1 });
   });
 
   it('Field Medic: the Commander’s Shields and Repairs are one bigger', () => {

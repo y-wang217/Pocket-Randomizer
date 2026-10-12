@@ -289,8 +289,8 @@ function enemyAct(ctx: Ctx, enemy: EnemyState): void {
     if (units.length + others.length === 0) ctx.events.push({ t: 'enemyMissed', enemy: enemy.id, act: 'scream' });
     for (const target of [...units, ...others]) {
       if (s.phase !== 'plan') return;
-      if ('mp' in target && unseen(ctx, target, enemy)) continue;
-      const hit = 'mp' in target ? coveredBy(ctx, target, enemy) : target;
+      if ('fainted' in target && unseen(ctx, target, enemy)) continue;
+      const hit = 'fainted' in target ? coveredBy(ctx, target, enemy) : target;
       if (hit.pos) damage(ctx, hit, intent.n);
     }
     return;

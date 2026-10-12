@@ -14,7 +14,7 @@ import type { EnemyDefId } from '../src/core/cards/defs';
 import { guardBot } from '../src/core/cards/guard';
 import { replay } from '../src/core/cards/log';
 import { newLog } from '../src/core/cards/log';
-import { select } from '../src/core/cards/plan';
+import { maxMpOf, select } from '../src/core/cards/plan';
 import {
   CARD_RUN_VERSION,
   createRun,
@@ -140,7 +140,9 @@ describe('card run: the battle loadout', () => {
     const state = layoutBattle('test', 'LOAD', { cards: ['shoot+', 'ration', 'move'], units: { A: { slots: 1, hp: 2, baseShield: 1, mp: 1 } } })!;
     expect(Object.values(state.cards).map((c) => c.def)).toEqual(['shoot+', 'ration', 'move']);
     const a = state.units.find((u) => u.id === 'A')!;
-    expect([a.maxHp, a.hp, a.baseShield, a.mp]).toEqual([UNITS.A.hp + 2, UNITS.A.hp + 2, UNITS.A.baseShield + 1, 1]);
+    expect([a.maxHp, a.hp, a.baseShield]).toEqual([UNITS.A.hp + 2, UNITS.A.hp + 2, UNITS.A.baseShield + 1]);
+    // Max MP: one each, the Commander's one more, and the boost's one more for the run.
+    expect(maxMpOf(state)).toBe(3 + 1 + 1);
     expect(viewOf(state).units.find((u) => u.id === 'A')!.slots).toBe(2);
     expect(layoutBattle('test', 'LOAD', { cards: ['no-such-card'] })).toBeNull();
   });
@@ -340,7 +342,7 @@ describe('card run: the whole run, headless', () => {
   });
 
   it('refuses a run log from another version, naming both values', () => {
-    expect(() => replayRun({ version: 'cardrun-0.0.1', seed: 'X', actions: [] })).toThrow(/cardrun-0\.0\.1.*cardrun-0\.9\.0/);
+    expect(() => replayRun({ version: 'cardrun-0.0.1', seed: 'X', actions: [] })).toThrow(/cardrun-0\.0\.1.*cardrun-0\.10\.0/);
   });
 
   it('refuses anything malformed without throwing, and nothing once the run is over', () => {

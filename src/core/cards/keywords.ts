@@ -82,10 +82,10 @@ export function faint(ctx: Ctx, unit: UnitState): void {
   }
 }
 
-export function gainMp(ctx: Ctx, unit: UnitState, amount: number, source: 'card' | 'round' | 'ability' | 'focus'): void {
-  const gained = Math.max(0, Math.min(amount, RULES.mp.cap - unit.mp));
-  unit.mp += gained;
-  if (gained > 0) ctx.events.push({ t: 'mpGained', unit: unit.id, amount: gained, source });
+/** Bonus MP a card owes the shared pool's next `turns` refills. */
+function queueMp(ctx: Ctx, play: PlannedPlay, n: number, turns: number): void {
+  ctx.s.pendingMp.push({ n, turns });
+  ctx.events.push({ t: 'mpQueued', card: play.card, unit: play.unit, n, turns });
 }
 
 /** Where a player's damage keyword lands without Target, from where the unit stands. */
@@ -250,11 +250,11 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
         break;
       }
       case 'gainMp':
-        // R12: it lands now, and the plan already spent this turn's MP, so it is next turn's.
-        gainMp(ctx, unit, effect.n, 'card');
+        // R12: the plan already spent this turn's MP, so it is next turn's, on top of the refill.
+        queueMp(ctx, play, effect.n, 1);
         break;
       case 'mpNextTurns':
-        unit.pendingMp.push({ n: effect.n, turns: effect.turns });
+        queueMp(ctx, play, effect.n, effect.turns);
         break;
       case 'drawNext':
         s.pendingDraws.push({ n: effect.n, filter: effect.filter, owner: def.owner });
@@ -345,7 +345,8 @@ export function retire(ctx: Ctx, play: PlannedPlay): void {
   s.piles.discard.push(play.card);
 }
 
-export function payFor(unit: UnitState | undefined, def: CardDef): void {
-  if (unit) unit.mp = Math.max(0, unit.mp - def.cost);
+/** A card's cost leaves the shared pool, whichever unit plays it. */
+export function payFor(s: BattleState, def: CardDef): void {
+  s.mp = Math.max(0, s.mp - def.cost);
 }
 

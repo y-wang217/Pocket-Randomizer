@@ -9,7 +9,8 @@ export const UNITS: Readonly<Record<UnitDefId, UnitDef>> = {
     class: 'special',
     hp: 1,
     baseShield: 1,
-    abilities: [{ k: 'mpAtTurnStart', n: 1 }],
+    // Max MP 2, the others' 1: the shared pool's battery (the shared mana ruling).
+    abilities: [{ k: 'maxMp', n: 1 }],
   },
   B: {
     id: 'B',

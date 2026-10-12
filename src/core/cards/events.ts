@@ -30,7 +30,10 @@ export type BattleEvent =
   | { t: 'defeated'; enemy: EnemyId }
   /** A unit at 0 HP leaves the board; its own cards leave every pile for `removed`. */
   | { t: 'fainted'; unit: UnitId; removed: CardIid[] }
-  | { t: 'mpGained'; unit: UnitId; amount: number; source: 'card' | 'round' | 'ability' | 'focus' }
+  /** A turn starts: the shared pool refills to its max plus any bonus a card owes it. */
+  | { t: 'mpRefilled'; mp: number; max: number; bonus: number }
+  /** A card owes the pool `n` bonus MP at each of the next `turns` refills. */
+  | { t: 'mpQueued'; card: CardIid; unit: UnitId; n: number; turns: number }
   /** Need Help: an extra card owed to the next hand. */
   | { t: 'drawQueued'; card: CardIid; n: number }
   // The enemies.

@@ -4,8 +4,10 @@
  * grace and Fast on each enemy's starting step, a Blast's friendly fire, a
  * play the faint left unplayed, and the scenario's grade total.
  *
- * The friendly fire log is a random-bot battle (seed FF646, bot seed
- * FFBOT646) saved at `cards-0.4.0`.
+ * The friendly fire log is a random-bot battle (seed FF3786, bot seed
+ * FFBOT3786) saved at `cards-0.12.0`: the shared MP pool replays the old
+ * FF646 log differently, so it was searched for again, the first seed from
+ * FF646 up whose Artillery hits the dasher and leaves its Attack unplayed.
  */
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
@@ -23,7 +25,7 @@ describe('cards:narrate', () => {
     const out = narrate('test/fixtures/card-battle-friendly-fire-log.json');
     expect(out).toContain('encounter skirmish (grade 5)');
     for (const id of ['e0', 'e1', 'e2']) expect(out).toContain(`grace: ${id} starts on a setup step`);
-    expect(out).toContain('C Sword dasher takes 2 from Artillery (friendly fire): HP -2');
+    expect(out).toContain('C Sword dasher takes 2 from Artillery (friendly fire): HP -1');
     expect(out).toContain('C Sword dasher has fainted: c14 Attack is not played');
     expect(out).toContain('encounter skirmish  grade 5');
   }, 60_000);

@@ -175,9 +175,11 @@ export const BOOST_AMOUNT: Readonly<Record<BoostKind, number>> = { slots: 1, hp:
 
 /**
  * The boss upgrade's kinds and their weights. A card slot, the prompt's
- * example of the most impactful, is drawn most often.
+ * example of the most impactful, is drawn most often. Max MP is the rarest:
+ * it grows the shared pool every turn for the rest of the run, which the
+ * author calls "crazy powerful" (the shared mana ruling of 2026-10-12).
  */
-export const BOOST_WEIGHTS: Readonly<Record<BoostKind, number>> = { slots: 3, hp: 1, baseShield: 1, mp: 1 };
+export const BOOST_WEIGHTS: Readonly<Record<BoostKind, number>> = { slots: 6, hp: 2, baseShield: 2, mp: 1 };
 
 /** The units a boss upgrade is offered for, one offer each, in this order. */
 export const BOOST_UNITS: readonly UnitDefId[] = ['A', 'B', 'C'];

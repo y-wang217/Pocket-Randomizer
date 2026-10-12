@@ -11,7 +11,7 @@ import { UNITS } from '../../cardData/units';
 import type { CardOwner, ClassId, EnemyDefId, Effect, Pos, Zone } from './defs';
 import { deployTiles } from './deploy';
 import { playBlock, playersOf } from './legal';
-import { cardDefOf, needsOf, project, slotsOf, type Needs } from './plan';
+import { cardDefOf, maxMpOf, needsOf, project, slotsOf, type Needs } from './plan';
 import { enemyThreat, playedOut, previewPlay, type PlayPreview } from './preview';
 import type { BattleState, CardIid, EnemyId, EnemyState, Intent, PlayBlock, UnitId } from './state';
 import { allTiles, covers, samePos, zoneOf } from './zones';
@@ -68,10 +68,6 @@ export interface UnitView {
   maxHp: number;
   shield: number;
   baseShield: number;
-  mp: number;
-  mpCap: number;
-  /** MP the plan has already spent. */
-  reserved: number;
   slots: number;
   planned: PlannedView[];
   fainted: boolean;
@@ -168,6 +164,8 @@ export interface BattleView {
   /** One per planned play, in plan order. */
   previews: PlanPreview[];
   piles: { draw: number; discard: number; spent: number; removed: number; reserve: number };
+  /** The shared MP pool: what it holds this turn, its max, and what the plan has already spent. */
+  mana: { mp: number; max: number; reserved: number };
 }
 
 /** An enemy's number as the screen shows it: its place in its wave, from 1 (the wave's first is 1). */
@@ -235,12 +233,10 @@ export function viewOf(state: BattleState, { forecast = true }: { forecast?: boo
 
   const units: UnitView[] = state.units.map((u) => {
     const planned: PlannedView[] = [];
-    let reserved = 0;
     state.plan.forEach((play, planIndex) => {
       const def = cardDefOf(state, play.card)!;
       if (play.unit === u.id) {
         planned.push({ planIndex, card: play.card, name: def.name });
-        reserved += def.cost;
       } else if (play.choice?.unit === u.id && def.effects.some((e) => e.k === 'grantMove')) {
         planned.push({ planIndex, card: play.card, name: def.name, by: play.unit });
       }
@@ -264,9 +260,6 @@ export function viewOf(state: BattleState, { forecast = true }: { forecast?: boo
       maxHp: u.maxHp,
       shield: u.shield,
       baseShield: u.baseShield,
-      mp: u.mp,
-      mpCap: RULES.mp.cap,
-      reserved,
       slots: slotsOf(state, u.id),
       planned,
       fainted: u.fainted,
@@ -333,6 +326,7 @@ export function viewOf(state: BattleState, { forecast = true }: { forecast?: boo
       removed: state.piles.removed.length,
       reserve: state.piles.reserve.length,
     },
+    mana: { mp: state.mp, max: maxMpOf(state), reserved: state.plan.reduce((sum, play) => sum + cardDefOf(state, play.card)!.cost, 0) },
   };
 }
 

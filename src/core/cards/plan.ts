@@ -111,6 +111,18 @@ export function livingEnemies(state: BattleState): BattleState['enemies'] {
 }
 
 /** A unit's card slots each turn: its class's, and any the card run has added. */
+/**
+ * The shared pool's max: every unit's max MP, fainted units included (the
+ * author's answer of 2026-10-12, `docs/spec/gymrun-patch-card-battle-shared-mana.md`).
+ * A unit's max is `RULES.mp.perUnit`, plus its abilities' and its boost's.
+ */
+export function maxMpOf(state: BattleState): number {
+  return state.units.reduce(
+    (sum, u) => sum + RULES.mp.perUnit + (state.boosts?.[u.id]?.mp ?? 0) + abilitiesOf(state, u.id).reduce((n, a) => (a.k === 'maxMp' ? n + a.n : n), 0),
+    0,
+  );
+}
+
 export function slotsOf(state: BattleState, id: UnitId): number {
   return CLASS_SLOTS[UNITS[id].class] + (state.boosts?.[id]?.slots ?? 0);
 }
@@ -220,14 +232,15 @@ function checkEffects(state: BattleState, play: PlannedPlay, def: CardDef, posit
 
 /** What a walk through the plan has spent so far. */
 interface Spent {
-  mpUsed: Partial<Record<UnitId, number>>;
+  /** MP the plan has spent from the shared pool. */
+  mpUsed: number;
   slotsUsed: Partial<Record<UnitId, number>>;
   seen: string[];
 }
 
 /** The checks every play passes in plan order: the card, the unit, MP, slots, the choice's shape. */
 function checkCommon(state: BattleState, play: PlannedPlay, def: CardDef | undefined, spent: Spent): IllegalReason | null {
-  const { mpUsed, slotsUsed, seen } = spent;
+  const { slotsUsed, seen } = spent;
   if (!def || !state.piles.hand.includes(play.card)) return 'notInHand';
   if (seen.includes(play.card)) return 'alreadyPlanned';
   seen.push(play.card);
@@ -236,13 +249,13 @@ function checkCommon(state: BattleState, play: PlannedPlay, def: CardDef | undef
   if (unit.fainted) return 'fainted';
   if (def.owner !== 'neutral' && def.owner !== play.unit) return 'notOwner';
 
-  mpUsed[unit.id] = (mpUsed[unit.id] ?? 0) + def.cost;
-  if (mpUsed[unit.id]! > unit.mp) return 'noMp';
+  spent.mpUsed += def.cost;
+  if (spent.mpUsed > state.mp) return 'noMp';
   slotsUsed[unit.id] = (slotsUsed[unit.id] ?? 0) + 1;
   if (slotsUsed[unit.id]! > slotsOf(state, unit.id)) return 'noSlot';
 
   if (effect(def, 'grantMove')) {
-    // Command: another friendly unit's slot, none of its MP.
+    // Command: another friendly unit's slot, and only its own cost from the pool.
     const ally = unitOf(state, play.choice?.unit);
     if (!ally || ally.id === unit.id || ally.fainted) return 'badChoice';
     slotsUsed[ally.id] = (slotsUsed[ally.id] ?? 0) + 1;
@@ -254,7 +267,7 @@ function checkCommon(state: BattleState, play: PlannedPlay, def: CardDef | undef
 
 function walk(state: BattleState, plan: readonly PlannedPlay[]): { check: PlanCheck; spent: Spent } {
   const positions = Object.fromEntries(state.units.map((u) => [u.id, u.fainted || !u.pos ? null : { ...u.pos }])) as Projection;
-  const spent: Spent = { mpUsed: {}, slotsUsed: {}, seen: [] };
+  const spent: Spent = { mpUsed: 0, slotsUsed: {}, seen: [] };
 
   for (const [index, play] of plan.entries()) {
     const def = cardDefOf(state, play.card);
@@ -294,7 +307,7 @@ export function checkAppend(state: BattleState, play: PlannedPlay): PlanCheck {
   if (!base.check.ok) return checkPlan(state, [...state.plan, play]);
   const index = state.plan.length;
   const fail = (reason: IllegalReason): PlanCheck => ({ ok: false, index, reason });
-  const spent: Spent = { mpUsed: { ...base.spent.mpUsed }, slotsUsed: { ...base.spent.slotsUsed }, seen: [...base.spent.seen] };
+  const spent: Spent = { mpUsed: base.spent.mpUsed, slotsUsed: { ...base.spent.slotsUsed }, seen: [...base.spent.seen] };
   const common = checkCommon(state, play, def, spent);
   if (common) return fail(common);
   if (!isMoveCard(def!)) {
