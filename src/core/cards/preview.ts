@@ -12,7 +12,7 @@
  */
 import { RULES } from '../../cardData/rules';
 import type { DamageKeyword, Pos } from './defs';
-import { abilitiesOf, cardDefOf, damageOf, livingEnemies, project, projectAt, select, type Projection } from './plan';
+import { abilitiesOf, bonusOf, cardDefOf, damageOf, livingEnemies, project, projectAt, select, type Projection } from './plan';
 import { alliesOn } from './keywords';
 import { firstSlots } from './resolve';
 import type { BattleState, CardIid, EnemyId, EnemyState, PlannedPlay, TargetId, UnitId } from './state';
@@ -169,12 +169,12 @@ export function previewPlay(state: BattleState, play: PlannedPlay, at: number = 
       const chosen = livingEnemies(state).find((e) => e.id === play.choice?.unit);
       add(chosen?.id);
       const tiles = !chosen ? [] : k === 'blast' ? blastTiles(chosen.pos!).map((pos) => lit(pos)) : [lit(chosen.pos!, true)];
-      attack = { act: k, n: dmg.n, tiles };
+      attack = { act: k, n: dmg.n + bonusOf(state, play.unit, k, from), tiles };
     } else {
-      attack = { act: k, n: dmg.n, tiles: footprint(state, k, from, play.choice?.tile) };
+      attack = { act: k, n: dmg.n + bonusOf(state, play.unit, k, from), tiles: footprint(state, k, from, play.choice?.tile) };
     }
     if (k === 'blast') {
-      allies = alliesOn(state, play.unit, attack.tiles.map((t) => t.pos), positions).map((unit) => ({ unit, n: dmg.n }));
+      allies = alliesOn(state, play.unit, attack.tiles.map((t) => t.pos), positions).map((unit) => ({ unit, n: attack!.n }));
     }
   }
 
@@ -193,6 +193,7 @@ export function previewPlay(state: BattleState, play: PlannedPlay, at: number = 
         add(play.choice?.unit);
         break;
       case 'stealth':
+      case 'cover':
         add(play.unit);
         break;
       default:

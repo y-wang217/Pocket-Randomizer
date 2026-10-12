@@ -77,19 +77,26 @@ describe('everything taken away is given back', () => {
     expect(createBattle('skirmish', 'S', { cards: [...STARTING_DECK], units: { B: { talents: ['nope'] } } }).ok).toBe(false);
   });
 
-  it("offers the Gunner's slot Marksman at every boss until taken, then the stat the node drew", () => {
+  it('offers Marksman first at every boss until taken, then the talents the boss drew, then a stat', () => {
     const run = createRun('BOSSES');
     const bosses = run.nodes.filter((n): n is FightNode => n.kind === 'fight' && n.boosts.length > 0);
     expect(bosses.length).toBeGreaterThan(1);
     for (const boss of bosses) {
+      expect([...boss.talentOrder].sort()).toEqual(Object.keys(TALENTS).sort());
       const offers = offersFor(run, boss);
-      expect(offers.map((o) => o.unit)).toEqual(['A', 'B', 'C']);
-      expect(offers[1]).toEqual({ unit: 'B', kind: 'talent', talent: 'marksman' });
-      // A and C have no talent yet: their slots are the drawn stats.
-      expect([offers[0], offers[2]]).toEqual([boss.boosts[0], boss.boosts[2]]);
+      expect(offers).toHaveLength(3);
+      expect(offers[0]).toEqual({ unit: 'B', kind: 'talent', talent: 'marksman' });
+      const second = boss.talentOrder.find((t) => t !== 'marksman')!;
+      expect(offers[1]).toEqual({ unit: TALENTS[second]!.unit, kind: 'talent', talent: second });
+      // The stat is the node's own draw, for a unit neither talent is for when there is one.
+      expect(boss.boosts).toContainEqual(offers[2]);
+      if (TALENTS[second]!.unit !== 'B') expect(['A', 'C'].filter((u) => u !== TALENTS[second]!.unit)).toContain(offers[2]!.unit);
     }
     const taken: CardRunState = { ...run, boosts: { ...run.boosts, B: { talents: ['marksman'] } } };
-    for (const boss of bosses) expect(offersFor(taken, boss)).toEqual(boss.boosts);
+    for (const boss of bosses) {
+      const offers = offersFor(taken, boss);
+      expect(offers.slice(0, 2).map((o) => (o.kind === 'talent' ? o.talent : null))).toEqual(boss.talentOrder.filter((t) => t !== 'marksman').slice(0, 2));
+    }
   });
 });
 

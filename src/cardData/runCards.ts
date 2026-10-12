@@ -46,6 +46,9 @@ const TOWN: Readonly<Record<string, CardDef>> = {
   // Group B (checkpoint 4): the four effects that were reserved, each with its resolver now.
   shove: card({ id: 'shove', name: 'Shove', owner: 'C', cost: 1, type: null, effects: [{ k: 'slash', n: 1 }, { k: 'push', n: 1 }], art: 'dash' }),
   'patch-up': card({ id: 'patch-up', name: 'Patch Up', owner: 'A', cost: 2, type: null, effects: [{ k: 'repair', n: 1 }], art: 'call-medic' }),
+  // Checkpoint 5a: Cover and Stun.
+  'guard-duty': card({ id: 'guard-duty', name: 'Guard Duty', owner: 'C', cost: 1, type: null, effects: [{ k: 'shield', n: 1, to: 'self' }, { k: 'cover', n: 1 }], art: 'prep' }),
+  concuss: card({ id: 'concuss', name: 'Concuss', owner: 'B', cost: 2, type: null, effects: [{ k: 'strike', n: 1 }, { k: 'stun', n: 1 }], art: 'shoot' }),
 };
 
 /**
@@ -114,6 +117,8 @@ export function upgradesOf(cards: Readonly<Record<string, CardDef>>): Record<str
     up(c('second-wind'), { cost: 0 }),
     up(c('shove'), { effects: [{ k: 'slash', n: 1 }, { k: 'push', n: 2 }] }),
     up(c('patch-up'), { effects: [{ k: 'repair', n: 2 }] }),
+    up(c('guard-duty'), { effects: [{ k: 'shield', n: 2, to: 'self' }, { k: 'cover', n: 1 }] }),
+    up(c('concuss'), { effects: [{ k: 'strike', n: 2 }, { k: 'stun', n: 1 }] }),
   ];
   return Object.fromEntries(list.map((def) => [def.id, def]));
 }

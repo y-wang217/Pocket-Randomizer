@@ -30,6 +30,8 @@ export interface UnitState {
    * Absent when none, so a battle that never plays Stealth holds no field.
    */
   stealth?: number;
+  /** Cover: enemy phases left in which this unit takes the hits meant for its neighbours. Absent when none. */
+  cover?: number;
   /** Start-of-turn MP still owed by a card (Focus): one entry per grant. */
   pendingMp: { n: number; turns: number }[];
 }

@@ -230,11 +230,14 @@ export function nextHand(ctx: Ctx): void {
     ctx.events.push({ t: 'shieldCleared', unit: unit.id, amount: unit.shield });
     unit.shield = 0;
   }
-  // Stealth wears off a turn at a time, with the card shield (Group B).
+  // Stealth (Group B) and Cover (5a) wear off a turn at a time, with the card shield.
   for (const unit of s.units) {
-    if (unit.stealth === undefined) continue;
-    if (unit.stealth > 1) unit.stealth -= 1;
-    else delete unit.stealth;
+    for (const key of ['stealth', 'cover'] as const) {
+      const left = unit[key];
+      if (left === undefined) continue;
+      if (left > 1) unit[key] = left - 1;
+      else delete unit[key];
+    }
   }
 
   for (const unit of livingUnits(s)) {

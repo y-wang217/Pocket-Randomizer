@@ -17181,3 +17181,104 @@ cards in its deck. Group A's behaviour test leaves these two to this file.
 fights, 2.50 bosses**, against 16 of 20, 12.15 and 2.60. Within the noise
 of twenty seeds; only two cards changed. **Recorded, not chased.**
 
+## 137. Card run shapes, checkpoint 5a: Cover, Stun, and talents for every unit
+
+**2026-10-12**, on `claude/card-run-shapes`, after section 136. From the
+author's go-ahead for 5a and 5b, filed under
+[`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md).
+`CARD_ENGINE_VERSION` moves to `cards-0.10.0` (two effects, three ability
+kinds, a stunned enemy's telegraph) and `CARD_RUN_VERSION` to `cardrun-0.7.0`
+(a boss's offers changed). `contentHash` holds.
+
+**Cover n** (Q5). For the next n enemy phases, an enemy act that would hit a
+unit orthogonally next to the covering unit hits the covering unit instead
+(`coveredBy`, `core/cards/enemies.ts`). That covers a Strike, Pierce, Slash,
+Scream or stalk stomp; the first covering neighbour in unit order takes it.
+`covered` says who took what for whom. A hidden unit is passed over before
+cover is asked, so Stealth and Cover do not stack on one hit. Cover wears off
+with Stealth and the card shield, and a fainting unit loses it. Cover is
+allowed as a move follow-up (`FOLLOW_UPS`).
+
+**Stun n** (Q5). Every enemy the card's damage landed on and left standing,
+not a boss, is held for n of its turns (`stun`). It neither acts nor moves.
+Its telegraph is cleared at once, so the board shows the stun. It reuses the
+Harpoon's `pinned` count and wears off the same way, a turn at a time in the
+move phase. A held enemy that is not a boss telegraphs nothing; a held boss
+still Screams, as Part D built. The Harpoon pins bosses and Stun holds
+everyone else. The playback says "shakes off the stun" for one and "tears the
+harpoon out" for the other.
+
+**Talents** (`cardData/talents.ts`). Two or three per unit, one for each
+shape the author named. Three new ability kinds: `bonus`, which adds to one
+effect of the unit's own cards, optionally only from the danger zone;
+`coverOnShield`; and `equipmentDraws`.
+
+| Talent | Unit | Does | Shape |
+|---|---|---|---|
+| Battery | Commander | +1 MP at each turn start | Bodyguard and battery |
+| Field Medic | Commander | Shields and Repairs +1 | Puppeteer |
+| Marksman | Gunner | first Strike a turn becomes Pierce at full HP | given back (133) |
+| Siege Mode | Gunner | Blast +1 from the danger zone | Escort artillery |
+| Quartermaster | Gunner | equipment it plays: next hand +1 | Control |
+| Bodyguard | Dasher | a Shield on itself also Covers its neighbours | Bodyguard and battery |
+| Sweep | Dasher | Slash +1 | Control and sweep |
+
+A bonus is added where the card resolves (`bonusOf`, `core/cards/plan.ts`):
+to the damage of the keyword the card resolves as, after Marksman's
+conversion, and to friendly fire too. It is also added to the preview's
+number, so the board shows what the round will do. Every Blast is played
+from the danger zone (`RULES.keywordZone`), so Siege Mode's condition always
+holds today; it is written as the talent says, for a rule that may change.
+
+**The boss screen.** **Supersedes section 125r's provisional reading 7**
+("one boss upgrade per unit") and section 133's one-talent slot. A boss now
+offers two talents and a stat:
+
+- Marksman first while untaken, so everything taken away stays on offer.
+- Then the next untaken talent in an order the boss draws at generation
+  (`FightNode.talentOrder`, its own `talents` stream).
+- Then a stat, for a unit neither talent is for when there is one.
+
+The stats draw exactly as before, on their own stream. What the player took
+only selects among what was drawn (`offersFor`). The run's two boss screens
+hand out two talents at most, so which two is the run's shape choice.
+
+**The cards:**
+
+| Card | Owner | Cost | Effects | Upgrade |
+|---|---|---|---|---|
+| Guard Duty | Dasher | 1 | Shield 1 self, Cover 1 | Shield 2 |
+| Concuss | Gunner | 2 | Strike 1, Stun 1 | Strike 2 |
+
+Both join the card pool.
+
+**Screens.**
+
+- Cover wears the shield icon on a card's face and Stun the pinned icon.
+- The lines read "Cover neighbours n turn" and "Stun what it hits n turn".
+- The playback narrates covering, a covered hit, a stun and its end, in all
+  eight languages.
+- A stunned enemy's panel shows its turns held, as a pinned boss's does.
+- The run's team panel already lists talents by name (133).
+
+**Held by** `test/cards-shapes-talents.test.ts`:
+
+- Cover sends a lane Strike meant for the Gunner to the Dasher beside it,
+  only for an orthogonal neighbour, and wears off.
+- Stun clears the Lancer's telegraph, it does not act, and it aims again next
+  round; a boss is never stunned.
+- Each talent changes what it says. Siege Mode shows in the preview too.
+- 105 random-bot battles (35 encounters, three seeds) with every talent taken
+  and Cover and Stun in the deck hold the invariants after every step, every
+  log replays, and the bot reached each new event.
+
+`test/cards-run.test.ts` and `test/cards-run-shapes.test.ts` hold the new
+boss screen.
+
+**The bench** (`balance.md`, the card run): **13 of 20 runs won, 11.45
+fights, 2.40 bosses**, against 14 of 20, 12.00 and 2.50. The run bot takes
+the first boss offer. That was the Commander's stat, nearly always +1 card
+slot; now it is Marksman at the first boss and a drawn talent at the second.
+Losing a card slot each run is the likeliest reason for the drop, and four
+more cards in the pool thin each offer. **Recorded, not chased.**
+

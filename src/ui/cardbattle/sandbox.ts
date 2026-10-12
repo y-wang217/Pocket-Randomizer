@@ -211,6 +211,10 @@ function effectFace(effects: readonly Effect[]): { icon: CardAssetId; n: number 
         return { icon: 'icon-repair', n: effect.n, targeted };
       case 'stealth':
         return { icon: 'icon-stealth', n: effect.n, targeted };
+      case 'cover':
+        return { icon: 'icon-shield', n: effect.n, targeted };
+      case 'stun':
+        return { icon: 'icon-pinned', n: effect.n, targeted };
       default:
         break;
     }
@@ -306,6 +310,12 @@ export function effectLines(effects: readonly Effect[]): string[] {
         break;
       case 'stealth':
         lines.push(CARD_COPY.effect.stealth(effect.n));
+        break;
+      case 'cover':
+        lines.push(CARD_COPY.effect.cover(effect.n));
+        break;
+      case 'stun':
+        lines.push(CARD_COPY.effect.stun(effect.n));
         break;
       default:
         break;

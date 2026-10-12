@@ -295,7 +295,7 @@ describe('card run: stops and rewards', () => {
     expect(kept.run.deck.includes('ration')).toBe(!kept.last.piles.spent.includes(iid));
   });
 
-  it('a fallen boss offers one upgrade per unit; the pick lasts the rest of the run', () => {
+  it('a fallen boss offers two talents and a stat; the pick lasts the rest of the run', () => {
     let run = createRun('BOSS');
     let guard = 0;
     while (!(run.screen.k === 'boost') && guard++ < 50) {
@@ -310,17 +310,17 @@ describe('card run: stops and rewards', () => {
     }
     expect(run.screen.k).toBe('boost');
     if (run.screen.k !== 'boost') return;
-    expect(run.screen.offers.map((o) => o.unit)).toEqual(['A', 'B', 'C']);
-    // The Gunner's slot offers Marksman, its old ability, until it is taken.
-    expect(run.screen.offers[1]).toEqual({ unit: 'B', kind: 'talent', talent: 'marksman' });
-    const offer = run.screen.offers[0]!;
-    if (offer.kind === 'talent') throw new Error('the Commander has no talent yet');
-    run = go(run, { type: 'pick', index: 0 });
-    expect(run.boosts.A[offer.kind]).toBe(offer.n);
+    expect(run.screen.offers.map((o) => o.kind === 'talent')).toEqual([true, true, false]);
+    // Marksman, the Gunner's old ability, comes first until it is taken.
+    expect(run.screen.offers[0]).toEqual({ unit: 'B', kind: 'talent', talent: 'marksman' });
+    const offer = run.screen.offers[2]!;
+    if (offer.kind === 'talent') throw new Error('the third offer is a stat');
+    run = go(run, { type: 'pick', index: 2 });
+    expect(run.boosts[offer.unit][offer.kind]).toBe(offer.n);
     // The next battle carries it.
     run = go(run, { type: 'go', to: 'wild' });
     while (run.screen.k !== 'battle') run = run.screen.k === 'wild' && !currentStop(run)!.wild.event ? go(run, { type: 'leave' }) : go(run, { type: 'event', option: EVENTS[currentStop(run)!.wild.event!]!.options.length - 1 });
-    expect(run.battle!.loadout.units?.A?.[offer.kind]).toBe(offer.n);
+    expect(run.battle!.loadout.units?.[offer.unit]?.[offer.kind]).toBe(offer.n);
   });
 });
 
@@ -332,7 +332,7 @@ describe('card run: the whole run, headless', () => {
   });
 
   it('refuses a run log from another version, naming both values', () => {
-    expect(() => replayRun({ version: 'cardrun-0.0.1', seed: 'X', actions: [] })).toThrow(/cardrun-0\.0\.1.*cardrun-0\.6\.0/);
+    expect(() => replayRun({ version: 'cardrun-0.0.1', seed: 'X', actions: [] })).toThrow(/cardrun-0\.0\.1.*cardrun-0\.7\.0/);
   });
 
   it('refuses anything malformed without throwing, and nothing once the run is over', () => {

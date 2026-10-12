@@ -8,9 +8,9 @@
  */
 import { RULES } from '../../cardData/rules';
 import type { CardDef, DamageKeyword, Pos } from './defs';
-import { displace } from './enemies';
+import { displace, stun } from './enemies';
 import type { BattleEvent } from './events';
-import { abilitiesOf, cardDefOf, damageOf, livingEnemies, livingUnits, unitOf } from './plan';
+import { abilitiesOf, bonusOf, cardDefOf, damageOf, livingEnemies, livingUnits, unitOf } from './plan';
 import type { BattleState, EnemyState, PileName, PlannedPlay, UnitId, UnitState } from './state';
 import { blastTiles, covers, enemyTiles, laneFromSide, moveDestinations, samePos, slashTiles, tile as tileAt } from './zones';
 
@@ -64,6 +64,7 @@ export function faint(ctx: Ctx, unit: UnitState): void {
   unit.fainted = true;
   unit.shield = 0;
   delete unit.stealth;
+  delete unit.cover;
   const removed: string[] = [];
   for (const pile of PILES) {
     s.piles[pile] = s.piles[pile].filter((iid) => {
@@ -221,13 +222,15 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
       fizzled = true;
       ctx.events.push({ t: 'fizzled', card: play.card, unit: unit.id, why: 'nothingHit' });
     }
-    for (const enemy of hits) if (enemy.pos) damage(ctx, enemy, dmg.n);
+    // A talent's bonus (5a) rides the keyword the card resolves as, from where the unit stands.
+    const amount = dmg.n + bonusOf(s, unit.id, k, unit.pos);
+    for (const enemy of hits) if (enemy.pos) damage(ctx, enemy, amount);
     landed = hits;
     // R14: the Blast hits the allies on its tiles too, after the enemies.
     for (const ally of allies) {
       if (s.phase !== 'plan' || !ally.pos) continue;
       ctx.events.push({ t: 'friendlyFire', card: play.card, unit: ally.id });
-      damage(ctx, ally, dmg.n);
+      damage(ctx, ally, amount);
     }
   }
 
@@ -239,8 +242,11 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
           if (!fizzled) ctx.events.push({ t: 'fizzled', card: play.card, unit: unit.id, why: 'targetGone' });
           break;
         }
-        to.shield += effect.n;
-        ctx.events.push({ t: 'shielded', unit: to.id, amount: effect.n });
+        const amount = effect.n + bonusOf(s, unit.id, 'shield', unit.pos);
+        to.shield += amount;
+        ctx.events.push({ t: 'shielded', unit: to.id, amount });
+        // Bodyguard (5a): a Shield the unit gives itself has it Cover its neighbours too.
+        if (to === unit && abilitiesOf(s, unit.id).some((a) => a.k === 'coverOnShield')) setCover(ctx, unit, 1);
         break;
       }
       case 'gainMp':
@@ -273,7 +279,7 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
           ctx.events.push({ t: 'fizzled', card: play.card, unit: unit.id, why: 'targetGone' });
           break;
         }
-        const amount = Math.min(effect.n, to.maxHp - to.hp);
+        const amount = Math.min(effect.n + bonusOf(s, unit.id, 'repair', unit.pos), to.maxHp - to.hp);
         to.hp += amount;
         ctx.events.push({ t: 'repaired', unit: to.id, card: play.card, amount });
         break;
@@ -281,6 +287,13 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
       case 'stealth':
         unit.stealth = Math.max(unit.stealth ?? 0, effect.n);
         ctx.events.push({ t: 'stealthed', unit: unit.id, card: play.card, turns: effect.n });
+        break;
+      case 'cover':
+        setCover(ctx, unit, effect.n);
+        break;
+      case 'stun':
+        // Every enemy the damage landed on and left standing, not a boss: the Harpoon pins those.
+        for (const enemy of landed) if (enemy.pos) stun(ctx, enemy, effect.n, play.card);
         break;
       case 'harpoon': {
         const boss = livingEnemies(s).find((e) => e.id === play.choice?.unit);
@@ -296,6 +309,21 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
         break;
     }
   }
+
+  // Quartermaster (5a): equipment the unit plays also queues extra cards.
+  if (def.equipment) {
+    for (const a of abilitiesOf(s, unit.id)) {
+      if (a.k !== 'equipmentDraws') continue;
+      s.pendingDraws.push({ n: a.n, filter: 'notOwner', owner: def.owner });
+      ctx.events.push({ t: 'drawQueued', card: play.card, n: a.n });
+    }
+  }
+}
+
+/** Cover (5a): the unit takes its neighbours' hits for the next `turns` enemy phases. */
+function setCover(ctx: Ctx, unit: UnitState, turns: number): void {
+  unit.cover = Math.max(unit.cover ?? 0, turns);
+  ctx.events.push({ t: 'covering', unit: unit.id, turns });
 }
 
 /** A played card leaves the hand: for `spent` on its last use, otherwise for `discard`. */

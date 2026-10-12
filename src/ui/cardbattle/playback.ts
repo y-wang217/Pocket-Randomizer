@@ -157,9 +157,14 @@ export function roundSteps(before: BattleState, events: readonly BattleEvent[], 
         begin('enemy', L.shieldsReturned(who(event.enemy), event.amount), { actor: event.enemy });
         break;
       }
-      case 'pinEnded':
-        begin('move', L.pinEnded(who(event.enemy)), { actor: event.enemy });
+      case 'pinEnded': {
+        // A Harpoon's pin on a boss, or a Stun (5a) on anyone else.
+        const enemy = enemyOf(event.enemy);
+        if (enemy) enemy.pinned = 0;
+        const boss = enemy ? ENEMIES[enemy.def].boss : false;
+        begin('move', boss ? L.pinEnded(who(event.enemy)) : L.stunEnded(who(event.enemy)), { actor: event.enemy });
         break;
+      }
       case 'stalked':
         begin('move', L.stalked(who(event.enemy)), { actor: event.enemy });
         break;
@@ -200,6 +205,21 @@ export function roundSteps(before: BattleState, events: readonly BattleEvent[], 
       case 'unseen':
         (open ?? begin('card', '')).lines.push(L.unseen(who(event.unit)));
         break;
+      case 'covering': {
+        const unit = unitOf(event.unit);
+        if (unit) unit.cover = event.turns;
+        current('card', '').lines.push(L.covering(who(event.unit)));
+        break;
+      }
+      case 'covered':
+        (open ?? begin('card', '')).lines.push(L.covered(who(event.unit), who(event.ally)));
+        break;
+      case 'stunned': {
+        const enemy = enemyOf(event.enemy);
+        if (enemy) enemy.pinned = event.turns;
+        current('card', '').lines.push(L.stunned(who(event.enemy), event.turns));
+        break;
+      }
       case 'usedUp':
         current('card', '').lines.push(L.usedUp(nameOf(CARDS[draft.cards[event.card]!.def]!.name)));
         break;

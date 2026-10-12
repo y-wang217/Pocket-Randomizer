@@ -24,7 +24,7 @@ import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { TALENTS } from '../../cardData/talents';
 import { UNITS } from '../../cardData/units';
-import type { Ability, CardDef, DamageKeyword, Effect, Pos, UnitDefId } from './defs';
+import type { Ability, BonusEffect, CardDef, DamageKeyword, Effect, Pos, UnitDefId } from './defs';
 import type { BattleEvent } from './events';
 import type { Action, BattleState, Choice, IllegalReason, PlannedPlay, PlayBlock, UnitId, UnitState } from './state';
 import { blastCentres, blastTiles, covers, enemyTiles, inDanger, lanesOf, moveDestinations, onBoard, samePos, slashTiles } from './zones';
@@ -73,7 +73,7 @@ export function followUps(def: CardDef): Effect[] {
 }
 
 /** What a move card may carry: nothing that asks for a tile or an enemy of its own. */
-export const FOLLOW_UPS: readonly Effect['k'][] = ['strike', 'pierce', 'slash', 'shield', 'gainMp', 'drawNext', 'push', 'stealth'];
+export const FOLLOW_UPS: readonly Effect['k'][] = ['strike', 'pierce', 'slash', 'shield', 'gainMp', 'drawNext', 'push', 'stealth', 'cover', 'stun'];
 
 export function needsOf(def: CardDef): Needs {
   if (effect(def, 'grantMove')) return 'unitThenTile';
@@ -92,6 +92,14 @@ export function unitOf(state: BattleState, id: unknown): UnitState | undefined {
 export function abilitiesOf(state: BattleState, id: UnitDefId): Ability[] {
   const talents = state.boosts?.[id]?.talents ?? [];
   return [...UNITS[id].abilities, ...talents.flatMap((t) => TALENTS[t]?.abilities ?? [])];
+}
+
+/** What a unit's talents add to one effect of its own cards, played from `pos` (checkpoint 5a). */
+export function bonusOf(state: BattleState, id: UnitDefId, effect: BonusEffect, pos: Pos | null | undefined): number {
+  return abilitiesOf(state, id).reduce(
+    (sum, a) => (a.k === 'bonus' && a.effect === effect && (!a.inDanger || (pos && inDanger(pos))) ? sum + a.n : sum),
+    0,
+  );
 }
 
 export function livingUnits(state: BattleState): UnitState[] {

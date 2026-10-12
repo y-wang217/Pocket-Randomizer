@@ -67,6 +67,8 @@ export const TOWN_POOL: readonly string[] = [
   'whirlwind', 'rally', 'mark-target', 'suppress', 'second-wind',
   // Group B (checkpoint 4).
   'shove', 'patch-up',
+  // Checkpoint 5a.
+  'guard-duty', 'concuss',
 ];
 
 /** What a City's market sells, at what price in supplies. */

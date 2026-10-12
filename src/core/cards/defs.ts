@@ -60,7 +60,15 @@ export type Effect =
   /** Repair: a chosen friendly unit, the player included, heals `n` HP, never past its max. */
   | { k: 'repair'; n: number }
   /** Stealth: the playing unit is unseen by the enemies' acts for the next `n` enemy phases. */
-  | { k: 'stealth'; n: number };
+  | { k: 'stealth'; n: number }
+  /**
+   * Cover (checkpoint 5a): for the next `n` enemy phases, an enemy act that
+   * would hit a unit orthogonally next to the playing unit hits the playing
+   * unit instead.
+   */
+  | { k: 'cover'; n: number }
+  /** Stun (checkpoint 5a): every enemy the card's damage landed on, not a boss, skips its next `n` turns. */
+  | { k: 'stun'; n: number };
 
 export interface CardDef {
   id: string;
@@ -100,7 +108,16 @@ export type Ability =
   /** A: MP at the start of each of its turns, turn 1 included. */
   | { k: 'mpAtTurnStart'; n: number }
   /** Marksman: the first card each turn resolves a Strike as a Pierce while at full HP. */
-  | { k: 'firstCardConverts'; from: 'strike'; to: 'pierce'; while: 'fullHp' };
+  | { k: 'firstCardConverts'; from: 'strike'; to: 'pierce'; while: 'fullHp' }
+  /** A talent's +n to one effect of the unit's own cards, while in the danger zone when `inDanger`. */
+  | { k: 'bonus'; effect: BonusEffect; n: number; inDanger?: true }
+  /** Bodyguard: a Shield the unit gives itself also has it Cover its neighbours until its next turn. */
+  | { k: 'coverOnShield' }
+  /** Quartermaster: each piece of equipment the unit plays also queues `n` extra cards for the next hand. */
+  | { k: 'equipmentDraws'; n: number };
+
+/** What a talent's bonus can add to. */
+export type BonusEffect = 'strike' | 'pierce' | 'slash' | 'blast' | 'shield' | 'repair';
 
 /**
  * A talent: an ability one unit gains for the rest of a run, offered by a

@@ -66,6 +66,11 @@ export type BattleEvent =
   | { t: 'stealthed'; unit: UnitId; card: CardIid; turns: number }
   /** An enemy's act passed over a unit under Stealth. */
   | { t: 'unseen'; unit: UnitId; enemy: EnemyId }
+  // Checkpoint 5a.
+  | { t: 'covering'; unit: UnitId; turns: number }
+  /** A hit meant for `ally` went to `unit`, which covers it. Its `damaged` follows. */
+  | { t: 'covered'; unit: UnitId; ally: UnitId; enemy: EnemyId }
+  | { t: 'stunned'; enemy: EnemyId; card: CardIid; turns: number }
   /** A card with Uses has none left: spent until the next wave. */
   | { t: 'usedUp'; card: CardIid }
   /** The last enemy of a wave fell and the next arrives at once, the units where they stand (2026-10-11). */

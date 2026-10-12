@@ -24,6 +24,7 @@ export function checkInvariants(s: BattleState): string[] {
     if (u.hp < 0) out.push(`${u.id} has negative HP`);
     if (u.hp > u.maxHp) out.push(`${u.id} HP ${u.hp} over its max ${u.maxHp}`);
     if (u.stealth !== undefined && (u.stealth < 1 || u.fainted)) out.push(`${u.id} holds stealth ${u.stealth}`);
+    if (u.cover !== undefined && (u.cover < 1 || u.fainted)) out.push(`${u.id} holds cover ${u.cover}`);
     if (u.fainted !== (u.pos === null)) out.push(`${u.id} fainted ${u.fainted} but pos ${JSON.stringify(u.pos)}`);
     if (u.mp < 0 || u.mp > RULES.mp.cap) out.push(`${u.id} MP ${u.mp} outside 0..${RULES.mp.cap}`);
     if (u.shield < 0 || u.baseShield < 0) out.push(`${u.id} has a negative shield`);

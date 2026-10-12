@@ -119,7 +119,7 @@ function stalk(ctx: Ctx, enemy: EnemyState): void {
     for (const unit of unitsOn(s, ahead)) {
       if (s.phase !== 'plan') return;
       if (unseen(ctx, unit, enemy)) continue;
-      damage(ctx, unit, RULES.stalk.damage);
+      damage(ctx, coveredBy(ctx, unit, enemy), RULES.stalk.damage);
     }
     if (!free) return;
     enemy.pos = { ...to };
@@ -233,6 +233,12 @@ function telegraph(ctx: Ctx, enemy: EnemyState): void {
   const act = pickAct(step.act, enemy);
   const own = enemyTiles(enemy);
   let intent: Intent;
+  // Stunned (5a): an enemy that is not a boss does nothing while it is held.
+  if (enemy.pinned > 0 && !ENEMIES[enemy.def].boss) {
+    enemy.intent = { act: 'none', n: 0, tiles: [] };
+    ctx.events.push({ t: 'telegraphed', enemy: enemy.id, step: enemy.step, intent: { ...enemy.intent, tiles: [] } });
+    return;
+  }
   // D2: pinned, it Screams instead.
   if (enemy.pinned > 0) {
     enemy.intent = { act: 'scream', n: RULES.scream.n, tiles: screamTiles(enemy) };
@@ -284,7 +290,8 @@ function enemyAct(ctx: Ctx, enemy: EnemyState): void {
     for (const target of [...units, ...others]) {
       if (s.phase !== 'plan') return;
       if ('mp' in target && unseen(ctx, target, enemy)) continue;
-      if (target.pos) damage(ctx, target, intent.n);
+      const hit = 'mp' in target ? coveredBy(ctx, target, enemy) : target;
+      if (hit.pos) damage(ctx, hit, intent.n);
     }
     return;
   }
@@ -303,8 +310,34 @@ function enemyAct(ctx: Ctx, enemy: EnemyState): void {
   for (const unit of hits) {
     if (s.phase !== 'plan') return;
     if (unseen(ctx, unit, enemy)) continue;
-    damage(ctx, unit, intent.n);
+    damage(ctx, coveredBy(ctx, unit, enemy), intent.n);
   }
+}
+
+/**
+ * Cover (5a): a hit meant for `unit` goes to a living neighbour, orthogonally
+ * next to it, that is covering, the first in unit order. The unit itself when
+ * none is.
+ */
+function coveredBy(ctx: Ctx, unit: UnitState, enemy: EnemyState): UnitState {
+  const guard = livingUnits(ctx.s).find(
+    (u) => u !== unit && (u.cover ?? 0) > 0 && u.pos && unit.pos && Math.abs(u.pos.lane - unit.pos.lane) + Math.abs(u.pos.col - unit.pos.col) === 1,
+  );
+  if (!guard) return unit;
+  ctx.events.push({ t: 'covered', unit: guard.id, ally: unit.id, enemy: enemy.id });
+  return guard;
+}
+
+/**
+ * Stun (5a): an enemy that is not a boss is held for `turns` of its turns: it
+ * neither acts nor moves, and its telegraph is cleared at once so the board
+ * shows it. It wears off as a pin does, a turn at a time.
+ */
+export function stun(ctx: Ctx, enemy: EnemyState, turns: number, card: string): void {
+  if (ENEMIES[enemy.def].boss) return;
+  enemy.pinned = Math.max(enemy.pinned, turns);
+  ctx.events.push({ t: 'stunned', enemy: enemy.id, card, turns });
+  telegraph(ctx, enemy);
 }
 
 /**

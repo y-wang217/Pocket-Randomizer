@@ -32,7 +32,7 @@ import {
   type BoostKind,
   type EventOption,
 } from '../../cardData/cardrunTables';
-import { UNIT_TALENTS } from '../../cardData/talents';
+import { GIVEN_BACK, TALENT_OFFERS, TALENTS } from '../../cardData/talents';
 import { createRng, formatSeed, type RngStream } from '../rng';
 import { cardRunKey } from '../streamKeys';
 import { createBattle } from './create';
@@ -43,17 +43,23 @@ import type { Action, BattleState } from './state';
 import { step } from './step';
 
 /** Bumps when a run's draws, its tables' meaning or a logged decision changes what a run log replays to. */
-export const CARD_RUN_VERSION = 'cardrun-0.6.0';
+export const CARD_RUN_VERSION = 'cardrun-0.7.0';
 
 export type StopKind = 'city' | 'town' | 'wild';
 
+/** A stat a boss offers: this unit gets this much more of it for the rest of the run. */
+export interface StatOffer {
+  unit: UnitDefId;
+  kind: BoostKind;
+  n: number;
+}
+
 /**
- * One boss upgrade on offer: this unit gets this much more of this stat, or
- * this talent, for the rest of the run. A node holds the stat drawn for each
- * unit; the boss screen offers the unit's next untaken talent in its place
- * (`offersFor`).
+ * One boss upgrade on offer: a stat, or a talent for its unit. A node holds
+ * the stats and the talent order it drew; the boss screen picks among them by
+ * what the run has already taken (`offersFor`).
  */
-export type BoostOffer = { unit: UnitDefId; kind: BoostKind; n: number } | { unit: UnitDefId; kind: 'talent'; talent: string };
+export type BoostOffer = StatOffer | { unit: UnitDefId; kind: 'talent'; talent: string };
 
 /** A fight a stop can send the player on, with the battle seed drawn for it. */
 export interface QuestDraw {
@@ -70,8 +76,10 @@ export interface FightNode {
   encounter: string;
   seed: string;
   boss: boolean;
-  /** A boss's three upgrade offers, one per unit; none on the last boss, whose fall ends the run. */
-  boosts: BoostOffer[];
+  /** A boss's stat offers, one drawn per unit; none on the last boss, whose fall ends the run. */
+  boosts: StatOffer[];
+  /** Every talent, in the order this boss offers them (5a); empty on the last boss. */
+  talentOrder: string[];
 }
 
 export interface StopNode {
@@ -256,6 +264,8 @@ function fightNode(seed: string, act: number, index: 0 | 1 | 'boss'): FightNode 
     const kind = weighted(stream, BOOST_WEIGHTS);
     return { unit, kind, n: BOOST_AMOUNT[kind] };
   });
+  // Its own stream, so the stats above draw as they did before talents had an order.
+  const talentOrder = shuffled(streamFor(seed, key, 'talents'), Object.keys(TALENTS));
   return {
     kind: 'fight',
     key,
@@ -264,6 +274,7 @@ function fightNode(seed: string, act: number, index: 0 | 1 | 'boss'): FightNode 
     seed: battleSeed(seed, key, 'battle'),
     boss,
     boosts: boss && !last ? boosts : [],
+    talentOrder: boss && !last ? talentOrder : [],
   };
 }
 
@@ -349,15 +360,21 @@ export function progressOf(s: CardRunState): { act: number; acts: number; fight:
 }
 
 /**
- * A fallen boss's three offers, one per unit: the unit's next talent it has
- * not taken (`UNIT_TALENTS`), else the stat the node drew for it. The stat is
- * drawn either way, so what the player took moves no draw.
+ * A fallen boss's three offers (5a): two talents, then a stat. Marksman comes
+ * first while it is untaken (the Gunner's ability, given back), then the
+ * untaken talents in the order the boss drew; the stat is the one the node
+ * drew for a unit neither talent is for. Talents run out before they could
+ * fill both slots only on a run that took nearly all of them, and stats fill
+ * in. Everything is drawn at generation, so what the player took moves no
+ * draw; it only selects among what was drawn.
  */
 export function offersFor(s: CardRunState, node: FightNode): BoostOffer[] {
-  return node.boosts.map((offer) => {
-    const talent = UNIT_TALENTS[offer.unit].find((t) => !(s.boosts[offer.unit].talents ?? []).includes(t));
-    return talent ? { unit: offer.unit, kind: 'talent', talent } : offer;
-  });
+  const taken = (t: string): boolean => (s.boosts[TALENTS[t]!.unit].talents ?? []).includes(t);
+  const order = [GIVEN_BACK, ...node.talentOrder.filter((t) => t !== GIVEN_BACK)].filter((t) => !taken(t));
+  const talents: BoostOffer[] = order.slice(0, TALENT_OFFERS).map((t) => ({ unit: TALENTS[t]!.unit, kind: 'talent', talent: t }));
+  const covered = new Set(talents.map((o) => o.unit));
+  const stats = [...node.boosts.filter((o) => !covered.has(o.unit)), ...node.boosts.filter((o) => covered.has(o.unit))];
+  return [...talents, ...stats].slice(0, RUN_RULES.offer);
 }
 
 /** The boosts a battle carries: only the units the run has boosted. */
