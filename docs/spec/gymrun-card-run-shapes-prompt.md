@@ -102,3 +102,14 @@ effect follows it as checkpoint 4b, each stopped for review.
 Filed before any checkpoint 4b work.
 
 > Go for 4b
+
+## The author's go-ahead for checkpoints 5a and 5b, verbatim
+
+Filed before any checkpoint 5 work. The session had offered checkpoint 5
+(shapes: cover, stun, talents for every unit, shape cards, shape-aware
+offers) split as 5a (cover, stun, talents) and 5b (shape cards and offers).
+
+> Go ahead 5a and b
+
+Read as both, built in turn, each committed at its own checkpoint, with the
+stop for review after 5b.
