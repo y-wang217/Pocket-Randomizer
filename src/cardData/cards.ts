@@ -24,7 +24,8 @@ export const PUPPETEER_CARDS: Readonly<Record<string, CardDef>> = {
   slash: card({ id: 'slash', name: 'Slash', owner: 'C', cost: 1, type: null, effects: [{ k: 'slash', n: 1 }] }),
   'need-help': card({ id: 'need-help', name: 'Need Help', owner: 'C', cost: 1, type: null, effects: [{ k: 'drawNext', n: 1, filter: 'notOwner' }] }),
   prep: card({ id: 'prep', name: 'Prep', owner: 'C', cost: 1, type: null, effects: [{ k: 'shield', n: 2, to: 'self' }], uses: 1 }),
-  move: card({ id: 'move', name: 'Move', owner: 'neutral', cost: 1, type: null, effects: [{ k: 'move', n: 1 }] }),
+  // The one free card (the author's follow-up to the no-free-cards ruling): positioning never competes with a hit.
+  move: card({ id: 'move', name: 'Move', owner: 'neutral', cost: 0, type: null, effects: [{ k: 'move', n: 1 }] }),
   'dig-in': card({ id: 'dig-in', name: 'Dig In', owner: 'neutral', cost: 1, type: null, effects: [{ k: 'shield', n: 1, to: 'self' }], uses: 1, face: 'shovel' }),
   attack: card({ id: 'attack', name: 'Attack', owner: 'neutral', cost: 1, type: null, effects: [{ k: 'strike', n: 1 }] }),
   // Part D: not in any deck. The Colossus grants it when its wave arrives.
