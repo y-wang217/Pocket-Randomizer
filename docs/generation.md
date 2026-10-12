@@ -17730,3 +17730,53 @@ that is a second cause this patch does not address.
 a file in the bundle, each drawn exactly as `cardAsset` draws it, and nothing
 for a missing file. `test/cards-sandbox.test.ts`: the open screen holds it
 outside the frame, the two bands as masks among it, and closing drops it.
+
+## 144. The card run's screens in every language
+
+**2026-10-12**, on `claude/brave-bardeen-54slbx`, from `main` at `3938a86`.
+From [`spec/gymrun-patch-card-run-translations.md`](spec/gymrun-patch-card-run-translations.md),
+filed before any change to `src/`. **No version axis moves**: copy and tests
+only. `cards-0.11.0`, `cardrun-0.9.0`, `contentHash` holds (`cardData/` is
+not under `src/data/`).
+
+**What changed.** Step 7b translated the run's names and left its own
+screens in English (section 141, item 12). They now follow the battle's
+language setting:
+
+- `RUN_COPY` (`cardData/cardrunCopy.ts`) is a live binding over one table
+  per language, the English source and seven drafts in
+  `cardData/translations/run/`, the same shape as the battle's `CARD_COPY`.
+  `setCardLanguage` swaps both, so a run and its battles are never in two
+  languages. The setting is still the battle's Menu; a change made there
+  mid-run shows on the run's screens when the battle screen closes.
+- The lines the run's tables carry onto a screen go through `textOf`, keyed
+  by their English like `nameOf`: the four shapes' names and plans, the five
+  ? events' names, texts and options, the seven talents' texts, and the three
+  act bosses' blurbs. A table line without a draft reads in English.
+- Every line a screen reader is given on the run (the strip's node labels,
+  the supplies count, the team, an upgrade pair) was already in `RUN_COPY` and
+  is translated with it. The shell sets `lang` on its root, as the battle
+  does, so a reader voices it in the right language.
+- Two strings that were not in the table now are: the stale-save message, and
+  a ? event's price, which lower-cased the English *Supplies*; it reads
+  `suppliesN` now, so it counts in each language's own plural (Ukrainian has
+  three forms).
+
+**Machine-drafted**, like every other translation table, and not yet read
+by a native speaker. Each language reuses the battle's words for its units,
+enemies and keywords (*Schwertläufer*, *Lame-éclair*, *疾剑士*). The run is
+*Kartenlauf*, *Partida de cartas*, *Expédition de cartes*, *カードラン*,
+*Картковий похід*, *卡牌远征*, *卡牌遠征*. Spanish calls the team *Escuadrón*
+because *Equipo* is already its word for equipment.
+
+**Held by** `test/cards-run-translations.test.ts`: every fixed word has a
+draft in every language, none left as the English except seven loanwords
+and labels a language shares (*Sandbox*, *Tutorial*, *Neutral*, *Talent*,
+*Boss*, *Camp*, *Team*); every table line a screen shows has a draft and no
+draft is stale; one setting swaps both tables; and a run steered through
+every screen (route, City, market, offer, upgrade, replace, shrine, Wild
+with a ? event, boss, end, and the deck) shows, in each language, none of
+the English it replaced, in its text, its labels or its titles. The
+browser leg (`test/visual-card-run.test.ts`) lays each language out on the
+route with the deck open, the offer, the replace and the boss screens at 390
+by 844: no sideways scroll, no touch target under 44px.
