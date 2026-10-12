@@ -17780,7 +17780,7 @@ answers to three questions filed beside it. `cards-0.11.0` to `cards-0.12.0`,
 
 `npm run cards:run -- 20 CRUN`: 10/20 runs won, 10.40 mean fights won,
 2.10 mean bosses, against 7/20, 9.40 and 1.80 at `cardrun-0.9.0`. The losses
-moved later. Six fell in act 2, three at Turret Alley; one at the first boss.
+moved later. Six fell in act 2, four of them at Turret Alley; three in act 3; one at the first boss.
 `docs/balance.md`. **Recorded, not chased.**
 
 **Held by** `test/cards-step.test.ts` (the refill, Focus and Resupply's bonus,
