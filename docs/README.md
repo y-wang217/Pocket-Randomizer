@@ -168,7 +168,8 @@ the plan: smarter bot choices, and act 2's difficulty. **The run's menus take
 the author's mock** (section 142): seventeen SVG slots with CSS fallbacks, and
 the ChatGPT prompt that generates them,
 [`reports/card-run-menus-asset-prompt.md`](reports/card-run-menus-asset-prompt.md).
-No file has arrived yet.
+All seventeen files arrived from the author on 2026-10-12 and are in
+`src/ui/assets/cardrun/`.
 
 **Card battle sandbox: sides, telegraph kinds and card previews.** Branch
 `claude/card-battler-ui-layout-yejhur`, feedback

@@ -17664,3 +17664,15 @@ that the route, the City, the offer and the boss screen each ask for their
 slots. Checked in Chromium at 390 by 844, with no file and with a stand-in
 for every slot, removed before the commit: no sideways scroll on the route,
 offer, replace, boss, City or end screens.
+
+**The files arrived** the same day, from the author, as a zip of all
+seventeen at the paths the prompt names. Each was checked before it entered
+the tree: the right name, the exact viewBox, well-formed, and only plain
+shapes (`path`, `rect`, `circle`, `ellipse`, `g`), with no script, link,
+embedded image or text. The sign keeps the slice rules: its posts sit in the
+top corners, its nails in the four corners, and only horizontal grain crosses
+its middle. Together they come to 117 KB, the four backdrops 95 KB of it.
+Seen in Chromium at 390 by 844 on the route, offer, replace, boss, City and
+end screens, with no sideways scroll. One change came with them: a note
+standing straight on a screen gets a light cream backing, so it reads over
+the backdrop.

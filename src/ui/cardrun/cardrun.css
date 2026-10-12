@@ -858,3 +858,9 @@ body:has(.cr) {
   border-radius: 12px;
   background: rgba(255, 250, 240, 0.82);
 }
+/* A line straight on the screen, not in a panel: a light cream backing keeps it readable over the backdrop. */
+.cr-screen > .cr-note {
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255, 250, 240, 0.88);
+}
