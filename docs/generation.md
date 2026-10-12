@@ -17696,7 +17696,7 @@ trip.
 
 ### The fix
 
-`assetStash()` in `assets.ts` draws one of every ID that has a file, through
+`assetStash()` in `src/ui/cardbattle/assets.ts` draws one of every ID that has a file, through
 `cardAsset` itself, in a 1px holder at opacity 0. The sandbox appends it to
 its root, outside the frame, so it goes when the screen closes, and adds the
 two owner bands, which the stylesheet draws as masks rather than `cardAsset`.
