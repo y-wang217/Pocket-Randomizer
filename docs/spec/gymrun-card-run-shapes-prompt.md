@@ -113,3 +113,11 @@ offers) split as 5a (cover, stun, talents) and 5b (shape cards and offers).
 
 Read as both, built in turn, each committed at its own checkpoint, with the
 stop for review after 5b.
+
+## The author's go-ahead for checkpoint 6, verbatim
+
+Filed before any checkpoint 6 work. The runthrough's section 3.4: enemies
+gain HP by act, harder attack patterns from act 2, and a second boss so the
+Colossus is not all three.
+
+> Go with step 6
