@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { CARD_ASSET_GROUPS, cardAsset, cardAssetPath, cardAssetUrl, renderSize, type CardAssetId } from '../src/ui/cardbattle/assets';
+import { CARD_ASSET_GROUPS, assetStash, cardAsset, cardAssetPath, cardAssetUrl, renderSize, type CardAssetId } from '../src/ui/cardbattle/assets';
 
 const CONTRACT: Record<string, string[]> = {
   tiles: ['tile-player-backline', 'tile-danger-zone', 'tile-enemy-backline', 'tile-overlay-selectable', 'tile-overlay-selected', 'tile-overlay-telegraph', 'tile-overlay-unavailable'],
@@ -103,5 +103,29 @@ describe('card battle assets', () => {
     const panel = cardAsset('panel-frame', 'fill', files);
     expect(panel.style.borderImage).toContain('30');
     expect(panel.style.borderWidth).toBe('12px');
+  });
+
+  it('holds every arrived file once, drawn as the screen draws it, and nothing for a missing one', () => {
+    // Fixes the flash of a piece first drawn on a tap (`docs/spec/gymrun-patch-card-sprite-flash.md`).
+    const files = {
+      '../assets/cardbattle/markers/marker-reticle.webp': 'reticle.webp',
+      '../assets/cardbattle/icons/icon-target.svg': 'target.svg',
+      '../assets/cardbattle/ui/panel-frame.webp': 'panel.webp',
+    };
+    const stash = assetStash(files);
+    expect(stash.getAttribute('aria-hidden')).toBe('true');
+    const drawn = [...stash.children] as HTMLElement[];
+    expect(drawn.map((el) => el.dataset['asset'])).toEqual(['panel-frame', 'icon-target', 'marker-reticle']);
+    for (const el of drawn) {
+      const screen = cardAsset(el.dataset['asset'] as CardAssetId, 'fill', files);
+      expect(el.className, el.dataset['asset']).toBe(screen.className);
+      expect(el.getAttribute('style'), el.dataset['asset']).toBe(screen.getAttribute('style'));
+    }
+  });
+
+  it('holds one of every ID that has a file in the bundle', () => {
+    const ids = Object.values(CARD_ASSET_GROUPS).flatMap((g) => [...g.ids]).filter((id) => cardAssetUrl(id) !== null);
+    expect(ids.length).toBeGreaterThan(0);
+    expect([...assetStash().children].map((el) => (el as HTMLElement).dataset['asset'])).toEqual(ids);
   });
 });

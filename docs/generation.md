@@ -17677,7 +17677,61 @@ end screens, with no sideways scroll. One change came with them: a note
 standing straight on a screen gets a light cream backing, so it reads over
 the backdrop.
 
-## 143. The card run's screens in every language
+## 143. Card battle: every image held from the start, so a tap paints nothing empty
+
+**2026-10-12**, a bug report, on `claude/card-sprite-flash`, from `main` at
+`e29376b`. Prompt
+[`spec/gymrun-patch-card-sprite-flash.md`](spec/gymrun-patch-card-sprite-flash.md):
+*"theres this ugly flash that happens on all the sprites when i click a
+card"*. Presentation only: no `core/` change, no version axis moves.
+
+### The cause
+
+`cardAsset` draws every sprite as a CSS background, mask or sliced border, and
+nothing loaded an image before the board first drew it. A card tap adds pieces
+the battle has not shown yet: a reticle on each unit that could play the card,
+the selected overlay, the filled slot, the selected ring. Each painted empty
+for a frame and filled in when its file arrived, which on a phone is a round
+trip.
+
+### The fix
+
+`assetStash()` in `src/ui/cardbattle/assets.ts` draws one of every ID that has a file, through
+`cardAsset` itself, in a 1px holder at opacity 0. The sandbox appends it to
+its root, outside the frame, so it goes when the screen closes, and adds the
+two owner bands, which the stylesheet draws as masks rather than `cardAsset`.
+Opacity rather than `display: none`, which a browser need not fetch for.
+
+**Through `cardAsset`, not `new Image()`, and measured, not assumed.** A
+`new Image()` preload still flashed: Chromium fetched the selected ring a
+second time for the CSS background, under the preview server's
+`Cache-Control: no-cache`. A holder drawn the way the screen draws removes
+that difference.
+
+### Measured
+
+Headless Chromium 1194, the production build under `vite preview`, 150ms
+added to every image request, the first playable card tapped after Start:
+
+| build | runs with a late frame | second request for any image |
+|---|---|---|
+| `e29376b` | 5 of 6, each ~150ms after the tap | none |
+| `e29376b` plus `new Image()` preload | 5 of 6 | `marker-ring-selected`, 5 of 6 |
+| this patch | 0 of 8 | none |
+
+### Not claimed
+
+Every render still rebuilds every sprite element. Chromium paints a rebuilt
+element from a loaded image in the same frame. WebKit was not run. If the
+flash persists on every tap on an iPhone, not only the first of each kind,
+that is a second cause this patch does not address.
+
+**Held by** `test/cards-assets.test.ts`: the stash holds one of every ID with
+a file in the bundle, each drawn exactly as `cardAsset` draws it, and nothing
+for a missing file. `test/cards-sandbox.test.ts`: the open screen holds it
+outside the frame, the two bands as masks among it, and closing drops it.
+
+## 144. The card run's screens in every language
 
 **2026-10-12**, on `claude/brave-bardeen-54slbx`, from `main` at `3938a86`.
 From [`spec/gymrun-patch-card-run-translations.md`](spec/gymrun-patch-card-run-translations.md),

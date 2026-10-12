@@ -120,6 +120,18 @@
 .cb-asset--slice {
   box-sizing: border-box;
 }
+/* Every image drawn once out of sight, so none paints empty when first shown.
+   Not display: none, which a browser need not fetch for. */
+.cb-stash {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
 .cb-asset--placeholder {
   font-size: 9px;
   font-weight: 700;
