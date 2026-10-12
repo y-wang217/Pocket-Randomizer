@@ -17443,7 +17443,7 @@ returns is what the round will do to the board before any enemy acts, read by
 the round's own code and not by a second opinion beside it. The view reads
 Push, Pull, Stun, Cover and Stealth off it. Everything else the board
 forecasts is as before: an enemy the plan kills still shows its attack, as
-`preview.ts` has always said.
+`core/cards/preview.ts` has always said.
 
 **A. Facts the player could not see.**
 
