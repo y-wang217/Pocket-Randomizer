@@ -167,3 +167,12 @@ answer, verbatim:
 
 Read as: 7a (A and B) then 7b (C), each committed at its own checkpoint and
 stopped for review, in the plan's order.
+
+## The author's go-ahead for step 7b, verbatim
+
+Filed before any step 7b work. Step 7a was built and stopped for review
+(`../generation.md` section 140); the session listed 7b as the plan's
+section C: the keyword glossary, translations, the art list and browser
+tests.
+
+> Go 7b
