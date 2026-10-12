@@ -17282,3 +17282,66 @@ slot; now it is Marksman at the first boss and a drawn talent at the second.
 Losing a card slot each run is the likeliest reason for the drop, and four
 more cards in the pool thin each offer. **Recorded, not chased.**
 
+## 138. Card run shapes, checkpoint 5b: the shape cards, and offers drawn by shape
+
+**2026-10-12**, on `claude/card-run-shapes`, after section 137. Same
+go-ahead. `CARD_RUN_VERSION` moves to `cardrun-0.8.0` (offers are drawn
+differently, the pool and the market grew). `CARD_ENGINE_VERSION` holds at
+`cards-0.10.0`: no rule or resolver changed. `contentHash` holds.
+
+**The shapes** (`SHAPES`, `cardData/cardrunTables.ts`). The author's three
+examples and the Puppeteer, each with its plan in a line. Every reward card
+belongs to exactly one, and `TOWN_POOL` is now their union, shape by shape.
+
+| Shape | Plan | Cards |
+|---|---|---|
+| Puppeteer | the Commander moves and shields the others | Call Medic, Command, Focus, Need Help, Resupply, Orders, Fortify, Rally, Patch Up |
+| Bodyguard and Battery | the Dasher tanks and blocks; the Commander only nukes and banks mana | Moon Strike, Mark Target, **Overcharge**, Second Wind, Prep, Guard Up, Guard Duty |
+| Escort Artillery | the Commander walks the Gunner into the danger zone, the Dasher defends, the Gunner lays artillery | Artillery, Fire!, Volley, Snipe, Suppress, **Barrage**, Dash, Sprint, **Interpose** |
+| Control and Sweep | the Gunner runs equipment and holds enemies; the Dasher sweeps them down | Concuss, Shove, Cleave, Whirlwind, Jab |
+
+The talents of section 137 are matched to the same four. **Riot Net**, Control's
+equipment, sells at the market.
+
+**The new cards:**
+
+| Card | Owner | Cost | Effects | Upgrade | Where |
+|---|---|---|---|---|---|
+| Overcharge | Commander | 3 | Strike 3 | cost 2 | Bodyguard and Battery |
+| Barrage (ult) | Gunner | 5, the cap | Blast 3 | cost 4 | Escort Artillery |
+| Interpose | Dasher | 1 | Move 1, then Cover 1 | cost 0 | Escort Artillery |
+| Riot Net (equipment, Once) | Neutral | 0 | Blast 1, Stun 1 | none | market, 4 |
+
+Barrage is the Gunner's second ult. The bar marks the cheaper one it holds
+(section 130), so a deck with Artillery still marks 4. Interpose is the first
+reward built on section 136's follow-ups and section 137's Cover: step beside
+the Gunner and take its hits.
+
+**Offers by shape** (`shapedOffer`, `core/cards/cardrun.ts`). A Town's offer
+and an ambush's draw three of the four shapes, then one card from each, on
+the streams they always used. The shapes share no card, so the three are
+always distinct, and there is still no skip (`CLAUDE.md`, Rewards). The
+Peddler's single card still draws from the whole pool. The offer screen
+shows each card's shape under it, with its plan as the tooltip
+(`.cr-shape`).
+
+**Held by** `test/cards-shapes-offers.test.ts`:
+
+- The shapes divide the pool exactly: no card in two, none from the starting
+  deck, none equipment, each with an upgrade, at least five per shape.
+- Every Town and ambush offer over four seeds spans three shapes.
+- Overcharge strikes for 3, and Barrage blasts for 3 at cost 5 as an ult.
+- Interpose offers the step beside the Gunner, moves, then Covers, and takes
+  the lane Strike meant for the Gunner.
+- Riot Net stuns both enemies its Blast covers.
+
+`test/cards-run-shell.test.ts` reads three shape tags from three different
+shapes on the offer screen. `test/cards-tutorial.test.ts` lists Barrage among
+the ult cards.
+
+**The bench** (`balance.md`, the card run): **16 of 20 runs won, 12.35
+fights, 2.70 bosses**, against 13 of 20, 11.45 and 2.40. The run bot takes
+the first card of every offer, which is now one card of a drawn shape rather
+than a draw from the whole pool, so its decks change. That is what moved the
+bench, not a measure of the shapes. **Recorded, not chased.**
+

@@ -426,3 +426,14 @@ body:has(.cr) {
   border-radius: 14px;
   background: var(--cr-bg);
 }
+
+/* The shape an offered card belongs to (card run shapes, checkpoint 5b). */
+.cr-shape {
+  display: block;
+  margin: 4px 0;
+  font-size: 11px;
+  line-height: 1.3;
+  opacity: 0.8;
+  text-align: center;
+}
+

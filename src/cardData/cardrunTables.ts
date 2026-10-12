@@ -54,22 +54,57 @@ export const ACTS: readonly ActDef[] = [
 export const STARTING_DECK: readonly string[] = ['baton', 'brace-a', 'shoot', 'brace-b', 'slash', 'brace-c', 'move', 'move', 'attack', 'dig-in'];
 
 /**
- * What a card offer draws from: a Town's, an ambush's, the Peddler's. The
- * Puppeteer's cards that are not in the starting deck come back here, so the
- * Puppeteer is a deck a run can build toward rather than one it starts with.
+ * The four shapes a deck can grow into (`docs/spec/gymrun-card-run-shapes-prompt.md`,
+ * the author's three examples and the Puppeteer). Every reward card belongs to
+ * exactly one. A Town's and an ambush's three cards come from three different
+ * shapes, so a run chasing one usually sees a card for it.
  */
-export const TOWN_POOL: readonly string[] = [
-  'call-medic', 'command', 'focus', 'moon-strike',
-  'resupply', 'artillery', 'fire',
-  'dash', 'need-help', 'prep',
-  'fortify', 'orders', 'snipe', 'volley', 'cleave', 'guard-up', 'sprint', 'jab',
-  // Group A (checkpoint 3).
-  'whirlwind', 'rally', 'mark-target', 'suppress', 'second-wind',
-  // Group B (checkpoint 4).
-  'shove', 'patch-up',
-  // Checkpoint 5a.
-  'guard-duty', 'concuss',
-];
+export type ShapeId = 'puppeteer' | 'bodyguard' | 'escort' | 'control';
+
+export interface ShapeDef {
+  id: ShapeId;
+  name: string;
+  /** The plan, in a line, as the author put it. */
+  plan: string;
+  cards: readonly string[];
+}
+
+export const SHAPES: Readonly<Record<ShapeId, ShapeDef>> = {
+  puppeteer: {
+    id: 'puppeteer',
+    name: 'Puppeteer',
+    plan: 'The Commander moves and shields the others',
+    // The Puppeteer's cards the starting deck leaves out come back here (133).
+    cards: ['call-medic', 'command', 'focus', 'need-help', 'resupply', 'orders', 'fortify', 'rally', 'patch-up'],
+  },
+  bodyguard: {
+    id: 'bodyguard',
+    name: 'Bodyguard and Battery',
+    plan: 'The Dasher builds tanky and blocks; the Commander only nukes and banks mana',
+    cards: ['moon-strike', 'mark-target', 'overcharge', 'second-wind', 'prep', 'guard-up', 'guard-duty'],
+  },
+  escort: {
+    id: 'escort',
+    name: 'Escort Artillery',
+    plan: 'The Commander walks the Gunner into the danger zone, the Dasher defends, the Gunner lays artillery',
+    cards: ['artillery', 'fire', 'volley', 'snipe', 'suppress', 'barrage', 'dash', 'sprint', 'interpose'],
+  },
+  control: {
+    id: 'control',
+    name: 'Control and Sweep',
+    plan: 'The Gunner runs equipment and holds enemies; the Dasher sweeps them down',
+    cards: ['concuss', 'shove', 'cleave', 'whirlwind', 'jab'],
+  },
+};
+
+/** Every reward card, shape by shape: the Peddler's pool, and what the shapes divide. */
+export const TOWN_POOL: readonly string[] = Object.values(SHAPES).flatMap((shape) => shape.cards);
+
+/** The shape a reward card belongs to; `null` for a card no offer draws. */
+export function shapeOf(card: string): ShapeDef | null {
+  const base = card.endsWith('+') ? card.slice(0, -1) : card;
+  return Object.values(SHAPES).find((shape) => shape.cards.includes(base)) ?? null;
+}
 
 /** What a City's market sells, at what price in supplies. */
 export const MARKET: Readonly<Record<string, number>> = {
@@ -82,6 +117,7 @@ export const MARKET: Readonly<Record<string, number>> = {
   flashbang: 3,
   grapple: 3,
   smoke: 3,
+  'riot-net': 4,
 };
 
 /** A stat a boss upgrade adds to; a talent is offered in its place (`talents.ts`). */

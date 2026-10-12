@@ -49,6 +49,13 @@ const TOWN: Readonly<Record<string, CardDef>> = {
   // Checkpoint 5a: Cover and Stun.
   'guard-duty': card({ id: 'guard-duty', name: 'Guard Duty', owner: 'C', cost: 1, type: null, effects: [{ k: 'shield', n: 1, to: 'self' }, { k: 'cover', n: 1 }], art: 'prep' }),
   concuss: card({ id: 'concuss', name: 'Concuss', owner: 'B', cost: 2, type: null, effects: [{ k: 'strike', n: 1 }, { k: 'stun', n: 1 }], art: 'shoot' }),
+  // Checkpoint 5b: a card for each shape that had none of its own yet.
+  // The Commander's nuke, for "only nukes and mana".
+  overcharge: card({ id: 'overcharge', name: 'Overcharge', owner: 'A', cost: 3, type: null, effects: [{ k: 'strike', n: 3 }], art: 'moon-strike' }),
+  // The Gunner's massive artillery, from the danger zone the others walk it into. All its MP.
+  barrage: card({ id: 'barrage', name: 'Barrage', owner: 'B', cost: 5, type: null, effects: [{ k: 'blast', n: 3 }], ult: true, art: 'artillery' }),
+  // The Dasher steps beside the one it defends.
+  interpose: card({ id: 'interpose', name: 'Interpose', owner: 'C', cost: 1, type: null, effects: [{ k: 'move', n: 1 }, { k: 'cover', n: 1 }], art: 'dash' }),
 };
 
 /**
@@ -68,6 +75,8 @@ const EQUIPMENT: Readonly<Record<string, CardDef>> = {
   // Group B, checkpoint 4.
   grapple: card({ id: 'grapple', name: 'Grapple', owner: 'neutral', cost: 0, type: null, effects: [{ k: 'pull', n: 2 }], uses: 1, equipment: true, face: 'harpoon' }),
   smoke: card({ id: 'smoke', name: 'Smoke', owner: 'neutral', cost: 0, type: null, effects: [{ k: 'stealth', n: 1 }], uses: 1, equipment: true }),
+  // Checkpoint 5b: crowd control for the Gunner's equipment.
+  'riot-net': card({ id: 'riot-net', name: 'Riot Net', owner: 'neutral', cost: 0, type: null, effects: [{ k: 'blast', n: 1 }, { k: 'stun', n: 1 }], uses: 1, equipment: true }),
 };
 
 /** One upgrade per card: the same card, better. It wears its base card's art and keeps its owner. */
@@ -119,6 +128,9 @@ export function upgradesOf(cards: Readonly<Record<string, CardDef>>): Record<str
     up(c('patch-up'), { effects: [{ k: 'repair', n: 2 }] }),
     up(c('guard-duty'), { effects: [{ k: 'shield', n: 2, to: 'self' }, { k: 'cover', n: 1 }] }),
     up(c('concuss'), { effects: [{ k: 'strike', n: 2 }, { k: 'stun', n: 1 }] }),
+    up(c('overcharge'), { cost: 2 }),
+    up(c('barrage'), { cost: 4 }),
+    up(c('interpose'), { cost: 0 }),
   ];
   return Object.fromEntries(list.map((def) => [def.id, def]));
 }

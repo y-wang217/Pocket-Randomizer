@@ -27,8 +27,10 @@ import {
   EVENTS,
   MARKET,
   RUN_RULES,
+  SHAPES,
   STARTING_DECK,
   TOWN_POOL,
+  type ShapeId,
   type BoostKind,
   type EventOption,
 } from '../../cardData/cardrunTables';
@@ -43,7 +45,7 @@ import type { Action, BattleState } from './state';
 import { step } from './step';
 
 /** Bumps when a run's draws, its tables' meaning or a logged decision changes what a run log replays to. */
-export const CARD_RUN_VERSION = 'cardrun-0.7.0';
+export const CARD_RUN_VERSION = 'cardrun-0.8.0';
 
 export type StopKind = 'city' | 'town' | 'wild';
 
@@ -220,6 +222,14 @@ function weighted<K extends string>(stream: RngStream, weights: Readonly<Record<
   return entries.at(-1)![0];
 }
 
+/**
+ * A card offer (5b): three of the four shapes, drawn, then one card from each.
+ * The shapes share no card, so the three are distinct.
+ */
+function shapedOffer(stream: RngStream): string[] {
+  return shuffled(stream, Object.keys(SHAPES)).slice(0, RUN_RULES.offer).map((id) => pickOne(stream, SHAPES[id as ShapeId].cards));
+}
+
 function quest(seed: string, node: string, what: string, pool: readonly string[]): QuestDraw {
   return { encounter: pickOne(streamFor(seed, node, what), pool), seed: battleSeed(seed, node, `${what}/battle`) };
 }
@@ -240,7 +250,7 @@ function stopNode(seed: string, act: number, index: number): StopNode {
     town: {
       quest: quest(seed, key, 'town', def.townQuests),
       supplies: between(streamFor(seed, key, 'town/supplies'), RUN_RULES.town.supplies),
-      offer: distinct(streamFor(seed, key, 'town/offer'), TOWN_POOL, RUN_RULES.offer),
+      offer: shapedOffer(streamFor(seed, key, 'town/offer')),
     },
     wild: {
       supplies,
@@ -248,7 +258,7 @@ function stopNode(seed: string, act: number, index: number): StopNode {
       equipment: pickOne(streamFor(seed, key, 'wild/equipment'), Object.keys(MARKET)),
       card: pickOne(streamFor(seed, key, 'wild/card'), TOWN_POOL),
       ambush: quest(seed, key, 'ambush', def.townQuests),
-      offer: distinct(streamFor(seed, key, 'ambush/offer'), TOWN_POOL, RUN_RULES.offer),
+      offer: shapedOffer(streamFor(seed, key, 'ambush/offer')),
     },
   };
 }

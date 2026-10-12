@@ -19,7 +19,7 @@ import './cardrun.css';
 
 import { CARDS, UPGRADE_OF } from '../../cardData/cards';
 import { RUN_COPY } from '../../cardData/cardrunCopy';
-import { ACTS, EVENTS } from '../../cardData/cardrunTables';
+import { ACTS, EVENTS, shapeOf } from '../../cardData/cardrunTables';
 import { nameOf, setCardLanguage } from '../../cardData/copy';
 import { ENCOUNTERS } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
@@ -364,6 +364,14 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
         const row = el('div', 'cr-cards');
         screen.offer.forEach((card, index) => {
           const node = cardTile(card);
+          // The shape it belongs to (5b): each offer is three cards from three shapes.
+          const shape = shapeOf(card);
+          if (shape) {
+            const tag = el('span', 'cr-shape', shape.name);
+            tag.dataset['shape'] = shape.id;
+            tag.title = shape.plan;
+            node.append(tag);
+          }
           node.append(btn('cr-btn--small cr-btn--primary', RUN_COPY.cards.take, () => act({ type: 'pick', index })));
           row.append(node);
         });

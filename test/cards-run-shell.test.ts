@@ -96,6 +96,10 @@ describe('the card run screens', () => {
     byText(root, '.cr-btn', 'Continue run')!.click();
     await tick();
     expect(root.querySelector('.cr-screen')!.getAttribute('data-screen')).toBe('cards');
+    // Each offered card wears its shape, three shapes for three cards (5b).
+    const shapes = all(root, '.cr-cards .cr-shape').map((t) => t.dataset['shape']);
+    expect(shapes).toHaveLength(3);
+    expect(new Set(shapes).size).toBe(3);
     all(root, '.cr-cards .cr-btn')[1]!.click();
     expect(root.querySelector('.cr-screen')!.getAttribute('data-screen')).toBe('replace');
     const tiles = all(root, '.cr-deck .cr-card--tap');
