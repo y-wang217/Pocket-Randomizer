@@ -19,7 +19,7 @@ function play(state: BattleState, def: string, unit: UnitId, choice?: Choice): B
 
 describe('roundSteps', () => {
   it('lists the cards in the order they were planned, each with the board it left', () => {
-    let state = board({ hand: ['attack', 'move'], mp: 1, units: { C: at(3, 2) } });
+    let state = board({ hand: ['attack', 'move'], mp: 2, units: { C: at(3, 2) } });
     state = play(state, 'attack', 'C');
     state = play(state, 'move', 'C', { tile: at(3, 3) });
     const result = step(state, { type: 'commit' });

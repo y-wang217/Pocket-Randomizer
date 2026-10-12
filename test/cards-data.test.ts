@@ -31,7 +31,8 @@ describe('card data', () => {
       ['focus', 'A', 1, false],
       // The ults at 3, from 4, by the shared mana ruling of 2026-10-12.
       ['moon-strike', 'A', 3, false],
-      ['shoot', 'B', 0, false],
+      // Shoot, Move and Dig In at 1, from 0, by the no-free-cards ruling of 2026-10-12.
+      ['shoot', 'B', 1, false],
       ['resupply', 'B', 1, false],
       ['artillery', 'B', 3, false],
       ['fire', 'B', 1, false],
@@ -39,8 +40,8 @@ describe('card data', () => {
       ['slash', 'C', 1, false],
       ['need-help', 'C', 1, false],
       ['prep', 'C', 1, true],
-      ['move', 'neutral', 0, false],
-      ['dig-in', 'neutral', 0, true],
+      ['move', 'neutral', 1, false],
+      ['dig-in', 'neutral', 1, true],
       ['attack', 'neutral', 1, false],
     ];
     // Every card but the Harpoon, which the Colossus grants (Part D) and no deck holds.
@@ -128,6 +129,13 @@ describe('card data', () => {
       expect(new Set(tiles).size).toBe(3);
     }
     expect([...rows].sort()).toEqual([6, 7]);
+  });
+
+  it('makes no card free but one-use equipment, and never a shield (the no-free-cards ruling)', () => {
+    for (const card of Object.values(CARDS)) {
+      if (card.effects.some((e) => e.k === 'shield')) expect(card.cost, card.id).toBeGreaterThanOrEqual(1);
+      if (!card.equipment) expect(card.cost, card.id).toBeGreaterThanOrEqual(1);
+    }
   });
 
   it('carries the rule defaults it is asked to', () => {

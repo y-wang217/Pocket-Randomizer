@@ -48,20 +48,20 @@ describe('projection', () => {
   it('checks each play on the board as the Moves before it leave it, so a Move after a Slash never touches it', () => {
     // From (3,4) the Slash covers column 5, where the enemies stand. The plan
     // resolves in order, so stepping back to (3,3) afterwards is the player's call.
-    let state = board({ hand: ['slash', 'move'], mp: 1, units: { C: at(3, 4) }, enemies: COL5 });
+    let state = board({ hand: ['slash', 'move'], mp: 2, units: { C: at(3, 4) }, enemies: COL5 });
     state = pick(state, { type: 'select', card: iidOf(state, 'slash'), unit: 'C' });
     expect(choicesFor(state, iidOf(state, 'move'), 'C').tiles).toEqual(expect.arrayContaining([at(3, 3), at(2, 4)]));
     state = pick(state, { type: 'select', card: iidOf(state, 'move'), unit: 'C', choice: { tile: at(3, 3) } });
     expect(project(state).C).toEqual(at(3, 3));
 
     // The other way round, the Move comes first and the Slash would fire from (3,3).
-    let reversed = board({ hand: ['slash', 'move'], mp: 1, units: { C: at(3, 4) }, enemies: COL5 });
+    let reversed = board({ hand: ['slash', 'move'], mp: 2, units: { C: at(3, 4) }, enemies: COL5 });
     reversed = pick(reversed, { type: 'select', card: iidOf(reversed, 'move'), unit: 'C', choice: { tile: at(3, 3) } });
     expect(sel(reversed, 'slash', 'C')).toMatchObject({ ok: false, reason: 'noTarget' });
   });
 
   it('allows Fire! only on tiles in the next two columns of the projected position', () => {
-    let state = board({ hand: ['move', 'fire'], mp: 1, units: { B: at(2, 2) }, enemies: COL5 });
+    let state = board({ hand: ['move', 'fire'], mp: 2, units: { B: at(2, 2) }, enemies: COL5 });
     expect(sel(state, 'fire', 'B', { tile: at(2, 5) })).toMatchObject({ ok: false, reason: 'wrongZone' });
     state = pick(state, { type: 'select', card: iidOf(state, 'move'), unit: 'B', choice: { tile: at(2, 3) } });
     // From (2,3) the next two columns are 4 and 5; enemies stand in column 5.
@@ -92,13 +92,13 @@ describe('MP and slots', () => {
   });
 
   it('Command uses a slot of the ally and none of its MP', () => {
-    let state = board({ hand: ['command', 'shoot', 'attack'], mp: 2 });
+    let state = board({ hand: ['command', 'shoot', 'attack'], mp: 3 });
     const command = iidOf(state, 'command');
     expect(choicesFor(state, command, 'A').units).toEqual(['B', 'C']);
     expect(choicesFor(state, command, 'A', 'B').tiles).toContainEqual(at(2, 3));
     state = pick(state, { type: 'select', card: command, unit: 'A', choice: { unit: 'B', tile: at(2, 3) } });
     expect(project(state).B).toEqual(at(2, 3));
-    // B has 2 slots and 1 MP: Command took a slot and no MP, so one card fits.
+    // B has 2 slots: Command took one and none of the pool's MP for B, so one card fits.
     state = pick(state, { type: 'select', card: iidOf(state, 'attack'), unit: 'B' });
     expect(sel(state, 'shoot', 'B')).toMatchObject({ ok: false, reason: 'noSlot' });
   });

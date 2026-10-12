@@ -185,7 +185,7 @@ describe('Puppeteer cards', () => {
   });
 
   it('resolves the plan in the order it was made: a unit may shoot, then move', () => {
-    let state = board({ hand: ['attack', 'move'], mp: 1, units: { C: at(3, 2) } });
+    let state = board({ hand: ['attack', 'move'], mp: 2, units: { C: at(3, 2) } });
     state = play(state, 'attack', 'C');
     state = play(state, 'move', 'C', { tile: at(3, 3) });
     const { events } = commit(state);
@@ -285,7 +285,7 @@ describe('Puppeteer cards', () => {
   });
 
   it('Prep and Dig In: Once cards go to spent and never return', () => {
-    let state = board({ hand: ['prep', 'dig-in'], mp: 1 });
+    let state = board({ hand: ['prep', 'dig-in'], mp: 2 });
     state = play(state, 'prep', 'C');
     state = play(state, 'dig-in', 'B');
     let after = commit(state);
@@ -300,7 +300,7 @@ describe('Puppeteer cards', () => {
   });
 
   it('Move and Attack: Neutrals spend from the shared pool, and the next turn refills it', () => {
-    let state = board({ hand: ['move', 'attack'], mp: 1 });
+    let state = board({ hand: ['move', 'attack'], mp: 2 });
     state = play(state, 'move', 'B', { tile: at(2, 3) });
     state = play(state, 'attack', 'B');
     const { state: after } = commit(state);
@@ -329,7 +329,7 @@ describe('unit abilities', () => {
   });
 
   it('B converts only its first card, only at full HP', () => {
-    let state = board({ hand: ['shoot', 'attack'], mp: 1, enemies: [at(1, 5), at(2, 4), at(2, 6)] });
+    let state = board({ hand: ['shoot', 'attack'], mp: 2, enemies: [at(1, 5), at(2, 4), at(2, 6)] });
     state = play(state, 'attack', 'B');
     state = play(state, 'shoot', 'B');
     const first = commit(state);
@@ -345,7 +345,7 @@ describe('unit abilities', () => {
   });
 
   it('B\'s first slot taken by Command means no conversion this turn', () => {
-    let state = board({ hand: ['command', 'shoot'], mp: 1, enemies: [at(1, 5), at(2, 4), at(2, 6)] });
+    let state = board({ hand: ['command', 'shoot'], mp: 2, enemies: [at(1, 5), at(2, 4), at(2, 6)] });
     state = play(state, 'command', 'A', { unit: 'B', tile: at(2, 3) });
     state = play(state, 'shoot', 'B');
     expect(commit(state).events.some((e) => e.t === 'converted')).toBe(false);
