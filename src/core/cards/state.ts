@@ -62,6 +62,8 @@ export interface EnemyState {
   step: number;
   /** Turns of a Harpoon's pin still to come (D); 0 when free. */
   pinned: number;
+  /** Its HP at full: its definition's plus the encounter's bonus (checkpoint 6). */
+  maxHp: number;
   /** The base shield a Harpoon took, returned on its second pinned turn. */
   stripped: number;
   /** Its one stalk is spent (D3). */

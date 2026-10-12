@@ -42,8 +42,8 @@ export interface ActDef {
  */
 export const ACTS: readonly ActDef[] = [
   { fights: ['run-test', 'run-staggered'], boss: 'run-colossus-lair', townQuests: ['run-bandit-camp', 'run-stray-drones'], defenseQuests: ['run-gatehouse'] },
-  { fights: ['run-skirmish', 'run-turret-alley'], boss: 'run-colossus-escort', townQuests: ['run-outriders', 'run-gun-nest'], defenseQuests: ['run-the-walls'] },
-  { fights: ['run-the-pack', 'run-wall-and-gun'], boss: 'siege', townQuests: ['run-raiders', 'run-warband'], defenseQuests: ['run-last-stand'] },
+  { fights: ['run-skirmish', 'run-turret-alley'], boss: 'run-warlord-guard', townQuests: ['run-outriders', 'run-gun-nest'], defenseQuests: ['run-the-walls'] },
+  { fights: ['run-the-pack', 'run-wall-and-gun'], boss: 'run-siege', townQuests: ['run-raiders', 'run-warband'], defenseQuests: ['run-last-stand'] },
 ];
 
 /**

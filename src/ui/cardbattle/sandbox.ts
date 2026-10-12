@@ -124,6 +124,15 @@ const ENEMY_MARKER: Record<EnemyDefId, CardAssetId> = {
   pikeman: 'marker-enemy-pikeman',
   colossus: 'marker-enemy-colossus',
   dummy: 'marker-enemy-dummy',
+  // Checkpoint 6: a veteran wears its plain kind's marker until its own art arrives; the Warlord the base.
+  'drone-mk2': 'marker-enemy-drone',
+  'lancer-captain': 'marker-enemy-lancer',
+  'dire-hound': 'marker-enemy-hound',
+  'heavy-turret': 'marker-enemy-turret',
+  juggernaut: 'marker-enemy-bulwark',
+  deadeye: 'marker-enemy-sniper',
+  halberdier: 'marker-enemy-pikeman',
+  warlord: 'marker-enemy-base',
 };
 const INTENT_ICON: Record<string, CardAssetId> = {
   strike: 'icon-strike',

@@ -16493,6 +16493,13 @@ draft for the author to play and overrule:
 **The bench**: `balance.md` section 0's card run row. The guard bot clears
 all 20 runs, so the first lever a playtest will reach for is difficulty.
 
+*2026-10-11 and 2026-10-12, superseded in part:* the shape above has moved
+under the card run shapes prompt (sections 132 to 139). Every fight is three
+waves, and the run starts from a basic ten-card deck. A boss offers two
+talents and a stat. Act 2's boss is the Warlord, not Colossus Escort, and
+fights scale by act. Provisional readings 6 (HP full at every battle: now at
+every fight of three waves) and 7 (one upgrade per unit) are replaced there.
+
 ## 126. The Node leg's reporter timeout was one test, not load
 
 **2026-10-09**, on `claude/sharp-ritchie-qb95px`, from `main` at `f58835e`.
@@ -17344,4 +17351,73 @@ fights, 2.70 bosses**, against 13 of 20, 11.45 and 2.40. The run bot takes
 the first card of every offer, which is now one card of a drawn shape rather
 than a draw from the whole pool, so its decks change. That is what moved the
 bench, not a measure of the shapes. **Recorded, not chased.**
+
+## 139. Card run shapes, checkpoint 6: enemies scale by act, veterans, and a second boss
+
+**2026-10-12**, on `claude/card-run-shapes`, after section 138. From the
+runthrough's section 3.4 and the author's go-ahead filed under
+[`spec/gymrun-card-run-shapes-prompt.md`](spec/gymrun-card-run-shapes-prompt.md).
+`CARD_ENGINE_VERSION` moves to `cards-0.11.0` (an enemy's max HP is its own,
+an encounter may add HP, eight new enemies) and `CARD_RUN_VERSION` to
+`cardrun-0.9.0` (every act 2 and act 3 fight changed). `contentHash` holds.
+
+**HP by act** (`ACT_SCALING`, `cardData/encounters.ts`). An encounter may
+carry `hpBonus`, and every enemy of the battle is laid out with that much
+more HP (`layoutBattle`). Act 1 adds nothing, act 2 adds 1 and act 3 adds 2,
+bosses included: the last Colossus has 14. Each enemy now holds its own
+`maxHp`. The board's hearts, the Colossus's stalk threshold, its panel's
+"stalks at" and the bench's starting total read it in place of the
+definition's HP. The sandbox's scenarios carry no bonus and play as before.
+
+**Veterans** (`VETERAN`). Each of the seven plain enemies has a harder
+version: the same kind of body, a pattern with fewer idle steps or a bigger
+hit. Act 2's two lead waves and every wave of act 3 field them; act 1 fields
+none.
+
+| Plain | Veteran | What changed |
+|---|---|---|
+| Drone | Drone Mk II | its shield step is a Strike 2 |
+| Lancer | Lancer Captain | 3 HP, Pierce 2 |
+| Hound | Dire Hound | its advance step strikes too |
+| Turret | Heavy Turret | base shield 2, Strike 2 twice in three steps |
+| Bulwark | Juggernaut | 5 HP, Slash 2 |
+| Sniper | Deadeye | base shield 1, Strike 3 every other step |
+| Pikeman | Halberdier | its cycle a step shorter |
+
+**The Warlord**, act 2's boss in Warlord's Guard (a Hound either side of it):
+
+- 10 HP, base shield 2, one tile, so it hunts lanes as the Colossus cannot.
+- It cycles Shield 2, Lance (hunt, Pierce 2), and Cleave (Slash 2 from the
+  danger zone, else advance and Strike 2).
+- A boss: Push, Pull and Stun do not move or hold it, and a Harpoon pins it
+  if one is in hand. It grants no Harpoon; that is the Colossus's answer.
+- Colossus Escort leaves the run and stays a sandbox scenario. The bosses are
+  now Colossus Lair, Warlord's Guard and Siege; the run plays Siege as
+  `run-siege`, scaled.
+
+Markers: a veteran wears its plain kind's until its own art arrives, and the
+Warlord the base marker. Names are English only, like the run's other copy.
+
+**Held by** `test/cards-act-scaling.test.ts`:
+
+- Each veteran keeps its plain enemy's speed and boss status, with at least
+  its HP and shield and grade. Each hits more often or harder.
+- Every fight of every act carries its act's HP and its act's veterans.
+- A run battle lays its enemies out at the act's HP, `maxHp` included, and
+  the view reads it; the sandbox's Siege does not scale.
+- The Warlord is act 2's boss, one tile, damaged by Concuss but never
+  stunned.
+
+`test/cards-run.test.ts` holds that each fight's last wave is its scenario,
+on its own tiles, as veterans in act 3. `test/cards-new-enemies.test.ts`
+leaves the new eight to this file. The guard bot's whole-battle test plays
+every new encounter.
+
+**The bench** (`balance.md`, the card run): **7 of 20 runs won, 9.40
+fights, 1.80 bosses**, against 16 of 20, 12.35 and 2.70. The first draft
+that makes the run lose more than it wins. Act 2 is the wall: Turret Alley
+stopped five runs, Warlord's Guard three and Skirmish one. Act 3 stopped
+three, and the first Colossus one. **Recorded, not chased**, per
+`balance.md` section 0. The lever, if a playtest asks for one, is
+`ACT_SCALING` and the veterans' numbers, all in `cardData/`.
 

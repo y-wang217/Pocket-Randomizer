@@ -28,7 +28,25 @@ export type UnitDefId = 'A' | 'B' | 'C';
 export type ClassId = 'special' | 'ranged' | 'melee';
 export type TypeId = 'fire' | 'plasma' | 'water';
 export type CardOwner = UnitDefId | 'neutral';
-export type EnemyDefId = 'drone' | 'lancer' | 'hound' | 'turret' | 'bulwark' | 'sniper' | 'pikeman' | 'colossus' | 'dummy';
+export type EnemyDefId =
+  | 'drone'
+  | 'lancer'
+  | 'hound'
+  | 'turret'
+  | 'bulwark'
+  | 'sniper'
+  | 'pikeman'
+  | 'colossus'
+  | 'dummy'
+  // Checkpoint 6: the veterans, a harder pattern on each, and the second boss.
+  | 'drone-mk2'
+  | 'lancer-captain'
+  | 'dire-hound'
+  | 'heavy-turret'
+  | 'juggernaut'
+  | 'deadeye'
+  | 'halberdier'
+  | 'warlord';
 
 export type DamageKeyword = 'strike' | 'pierce' | 'slash' | 'blast';
 
@@ -226,6 +244,8 @@ export interface EncounterDef {
    * falls. Ids continue across waves (`e0`, `e1`, ... in the order listed).
    */
   waves?: readonly (readonly EnemySpawn[])[];
+  /** HP every enemy of the battle gains over its definition's (checkpoint 6: the card run's acts). */
+  hpBonus?: number;
 }
 
 /**

@@ -195,7 +195,7 @@ function enemyMove(ctx: Ctx, enemy: EnemyState, advance: boolean): void {
   // Each condition is evaluated once, here, before the move; the act reads the stored result.
   enemy.conds = { slashInRange: holds(s, enemy, 'slashInRange') };
   // D3: the stalk replaces the step's move, once.
-  if (advance && def.stalks && !enemy.stalked && enemy.hp <= def.hp * RULES.stalk.atHpShare) {
+  if (advance && def.stalks && !enemy.stalked && enemy.hp <= enemy.maxHp * RULES.stalk.atHpShare) {
     stalk(ctx, enemy);
     if (enemy.pos) enemy.conds = { slashInRange: holds(s, enemy, 'slashInRange') };
     return;

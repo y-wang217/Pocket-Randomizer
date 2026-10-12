@@ -227,7 +227,7 @@ export function viewOf(state: BattleState): BattleView {
     def: e.def,
     name: ENEMIES[e.def].name,
     hp: e.hp,
-    maxHp: ENEMIES[e.def].hp,
+    maxHp: e.maxHp,
     shield: e.shield,
     baseShield: e.baseShield,
     pos: e.pos,
@@ -235,7 +235,7 @@ export function viewOf(state: BattleState): BattleView {
     fast: ENEMIES[e.def].fast === true,
     size: ENEMIES[e.def].size ?? { lanes: 1, cols: 1 },
     pinned: e.pinned,
-    stalkAt: ENEMIES[e.def].stalks && !e.stalked ? Math.floor(ENEMIES[e.def].hp * RULES.stalk.atHpShare) : null,
+    stalkAt: ENEMIES[e.def].stalks && !e.stalked ? Math.floor(e.maxHp * RULES.stalk.atHpShare) : null,
     intent: e.pos && e.intent ? { icon: e.intent.act, n: e.intent.n, tiles: e.intent.tiles, ...(e.intent.label ? { label: e.intent.label } : {}) } : null,
   }));
 

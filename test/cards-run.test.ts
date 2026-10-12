@@ -7,9 +7,10 @@ import { describe, expect, it } from 'vitest';
 
 import { CARDS, DECKS, UPGRADE_OF } from '../src/cardData/cards';
 import { ACTS, EVENTS, MARKET, RUN_RULES, STARTING_DECK, TOWN_POOL } from '../src/cardData/cardrunTables';
-import { ENCOUNTERS } from '../src/cardData/encounters';
+import { ENCOUNTERS, VETERAN } from '../src/cardData/encounters';
 import { UNITS } from '../src/cardData/units';
 import { createBattle, layoutBattle, wavesOf } from '../src/core/cards/create';
+import type { EnemyDefId } from '../src/core/cards/defs';
 import { guardBot } from '../src/core/cards/guard';
 import { replay } from '../src/core/cards/log';
 import { newLog } from '../src/core/cards/log';
@@ -73,7 +74,7 @@ describe('card run: shape and draws', () => {
     expect(fights.map((n) => n.kind === 'fight' && n.encounter)).toEqual(ACTS.flatMap((a) => [...a.fights, a.boss]));
     // The last boss is Siege, and its fall ends the run: no upgrade offered after it.
     const last = nodes.at(-1)!;
-    expect(last.kind === 'fight' && [last.encounter, last.boosts.length]).toEqual(['siege', 0]);
+    expect(last.kind === 'fight' && [last.encounter, last.boosts.length]).toEqual(['run-siege', 0]);
   });
 
   it('uses every scenario the sandbox has, every fight is three waves, and every encounter it names exists', () => {
@@ -83,10 +84,17 @@ describe('card run: shape and draws', () => {
     for (const id of named) expect(wavesOf(ENCOUNTERS[id]!), id).toHaveLength(3);
     const reached = named.flatMap((id) => [id, id.replace(/^run-/, '')]);
     for (const id of ['skirmish', 'test', 'staggered', 'turret-alley', 'wall-and-gun', 'the-pack', 'siege']) expect(reached, id).toContain(id);
-    for (const id of named.filter((n) => n.startsWith('run-'))) {
-      const base = ENCOUNTERS[id.replace(/^run-/, '')]!;
-      expect(wavesOf(ENCOUNTERS[id]!)[2], id).toEqual(base.enemies);
-    }
+    // The scenario is the last wave, on its own tiles; act 3 fields its veterans (checkpoint 6).
+    const asVeteran = (def: EnemyDefId): EnemyDefId => VETERAN[def] ?? def;
+    ACTS.forEach((act, index) => {
+      for (const id of [...act.fights, act.boss, ...act.townQuests, ...act.defenseQuests]) {
+        const base = ENCOUNTERS[id.replace(/^run-/, '')]!;
+        const last = wavesOf(ENCOUNTERS[id]!).at(-1)!;
+        const baseLast = wavesOf(base).at(-1)!;
+        expect(last.map((s) => s.pos), id).toEqual(baseLast.map((s) => s.pos));
+        expect(last.map((s) => s.def), id).toEqual(baseLast.map((s) => (index === 2 ? asVeteran(s.def) : s.def)));
+      }
+    });
   });
 
   it('is a function of the seed: the same seed draws the same run, another seed another', () => {
@@ -332,7 +340,7 @@ describe('card run: the whole run, headless', () => {
   });
 
   it('refuses a run log from another version, naming both values', () => {
-    expect(() => replayRun({ version: 'cardrun-0.0.1', seed: 'X', actions: [] })).toThrow(/cardrun-0\.0\.1.*cardrun-0\.8\.0/);
+    expect(() => replayRun({ version: 'cardrun-0.0.1', seed: 'X', actions: [] })).toThrow(/cardrun-0\.0\.1.*cardrun-0\.9\.0/);
   });
 
   it('refuses anything malformed without throwing, and nothing once the run is over', () => {
