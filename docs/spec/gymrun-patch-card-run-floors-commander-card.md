@@ -62,3 +62,13 @@ from its own design, which is filed under it for the author before code.
 > also introduce 'cleanse n' which reduces duration of all debuffs by n turns
 >
 > also, melee currently can't hit units in the top row. this is frustrating and means melee doesn't get payoff. melee should be able to get to the end, hit once, and get repelled back outside of the 'end zone', meaning it takes move and strike to hit in the end zone, which is flavourful. make snese?
+
+## The go-ahead for floor 2, verbatim
+
+Filed before any work on it, at `baeb0e6`, with the author's assets attached
+as a zip.
+
+> build floor 2. here are the assets
+
+What it approves is [`../reports/floor-2-design.md`](../reports/floor-2-design.md)
+as drafted.
