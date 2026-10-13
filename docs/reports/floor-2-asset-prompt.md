@@ -5,6 +5,27 @@ for every file below by name. Until a file arrives the screen draws a
 placeholder of the right size. Save each as `src/ui/assets/cardbattle/<group>/<name>.svg`,
 with the group given beside the file.
 
+## Update, 2026-10-13: the nine illustrated files come as PNG
+
+ChatGPT's SVG conversions lost facial detail under the 40 KB cap, so the nine
+illustrated files (the background, the three tiles, the three enemies and the
+two card arts) come as **PNG**. Only the three icons stay SVG, because the game
+tints them. No code change is needed for this: the battle already prefers a
+raster `{group}/{id}.webp` over the `.svg` of the same name, which is how the
+meadow pack ships. Each PNG is converted to WebP at the pack's own pixel size
+before it is committed:
+
+| files | pixels | as the meadow pack |
+|---|---|---|
+| `background-fort` | 780 × 1688, opaque | `background-meadow.webp`, 58 KB |
+| the three `tile-fort-*` | 168 × 168, opaque | `tile-danger-zone.webp` |
+| the three `marker-enemy-*` | 144 × 144, transparent | `marker-enemy-drone.webp` |
+| `art-cleanse`, `art-antidote` | 180 × 150, transparent | `art-shoot.webp` |
+
+Each PNG is one subject on a transparent background (the background and the
+tiles excepted), square-on, with nothing else in the frame: three enemies in
+one image are cut into three files.
+
 ## How to run it
 
 Paste the prompt below into ChatGPT once, with a screenshot of a floor 1
