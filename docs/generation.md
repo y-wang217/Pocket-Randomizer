@@ -17969,3 +17969,53 @@ screens use SCREENS3.
 mean bosses**, against 3/20, 7.55 and 1.40 at section 146. The losses moved:
 the Warlord's Guard (floor 2's boss) stopped 6, Turret Alley 4, the
 Gatehouse defence quest 3. **Recorded, not chased.**
+
+## 148. Floor 2: Root and Frail, Cleanse, three new enemies, melee into the end zone, the fort
+
+**2026-10-13**, on `claude/shared-mana` after section 147, from the design
+[`reports/floor-2-design.md`](reports/floor-2-design.md) and the author's
+go-ahead with their assets, both filed under
+[`spec/gymrun-patch-card-run-floors-commander-card.md`](spec/gymrun-patch-card-run-floors-commander-card.md).
+`cards-0.17.0` to `cards-0.18.0`, `cardrun-0.15.0` to `cardrun-0.16.0`.
+
+### What is built
+
+- **Root and Frail** on `UnitState`, put there by an enemy act's `inflict`
+  on each unit its hit lands on, a second taking the longer. Root refuses a
+  Move as `rooted`, and keeps a Command from choosing the unit. Frail turns a
+  card's Shield into `frailBlocked`. Both count down once the unit's cards
+  have played in `commit`, so `n` is `n` of the player's turns.
+- **Cleanse n**, an effect: every living ally's Root and Frail lose `n`.
+  Cleanse (any unit, 1 MP, Cleanse 2; Cleanse+ 3) joins the Puppeteer shape's
+  rewards; the Antidote (0 MP, Cleanse 9, equipment) joins the City's market,
+  sold from floor 2 (`MARKET_FROM`). Floor 1's market and Wild equipment draw
+  from the same list as before.
+- **The Snarer, the Breaker and the Reaver** lead floor 2's first wave and
+  floor 3's second; none has a veteran.
+- **Melee into the end zone.** A melee unit's moves reach column 7
+  (`RULES.endZone`); it may Slash there; `repel` pushes it to column 5 right
+  after a damaging card of its there and, for any still there, once the plan
+  has played. The plan check projects the repel, so later plays read the
+  board it leaves.
+- **The fort.** `EncounterDef.skin` is `'fort'` from floor 2 on; the battle
+  draws `background-fort` and the `tile-fort-*` tiles. The author's nine PNGs
+  ship as WebP at the meadow pack's sizes; their three icons as given.
+
+### A deviation
+
+**The Reaver is not Fast.** `test/cards-opening.test.ts` holds the game's rule
+that a Fast enemy attacks from round 1 for 1, and the Reaver hits for 2. The
+design said Fast; as built it waits out opening grace and is the faster one
+by hitting two rounds in three. Recorded in the design.
+
+### Measured
+
+`npm run cards:run -- 20 CRUN`: **1/20 runs won, 7.40 mean fights won, 1.20
+mean bosses**, against 3/20, 7.85 and 1.40 at section 147. The Warlord's Guard,
+floor 2's boss, now led by a Reaver and a Snarer, stopped 8 of 19 losses; the
+Gatehouse defence quest on floor 1 stopped 3. The bot never plays into the end
+zone on purpose and has no Cleanse in its starting deck. **Recorded, not
+chased.**
+
+**Held by** `test/cards-floor-2.test.ts`, and the asset, glossary, enemy and
+scaling tests updated for the new entries.
