@@ -3,16 +3,16 @@ import type { RunCopy } from '../../cardrunCopy';
 
 export const RUN_ZH_HANS: RunCopy = {
   title: '卡牌远征',
-  tagline: '三幕。每场战斗之间都有一站。每幕最后是一个巨像。',
+  tagline: '三层楼。两场战斗后是首领，每场之间都有停靠点。',
   newRun: '新远征',
   continueRun: '继续远征',
   sandbox: '沙盒',
   tutorial: '教程',
   seed: (seed: string) => `种子 ${seed}`,
-  act: (n: number, of: number) => `第 ${n}/${of} 幕`,
+  act: (n: number, of: number) => `第 ${n}/${of} 层`,
   actScaling: (n: number, hp: number, veterans: 'none' | 'leads' | 'all') => {
-    const parts = [hp > 0 ? `敌人 HP +${hp}` : '', { none: '', leads: '前两波出现老兵', all: '每一波都有老兵' }[veterans]].filter(Boolean);
-    return parts.length > 0 ? `第 ${n} 幕：${parts.join('，')}` : '';
+    const parts = [hp > 0 ? `敌人 HP +${hp}` : '', { none: '', leads: '最后一波之前的各波有老兵', all: '每一波都有老兵' }[veterans]].filter(Boolean);
+    return parts.length > 0 ? `第 ${n} 层：${parts.join('，')}` : '';
   },
   actChip: (hp: number, veterans: 'none' | 'leads' | 'all') => [hp > 0 ? `HP +${hp}` : '', veterans === 'none' ? '' : '老兵'].filter(Boolean).join(' · '),
   fight: (n: number) => `战斗 ${n}`,
@@ -26,7 +26,7 @@ export const RUN_ZH_HANS: RunCopy = {
   slots: (n: number) => `${n} 个槽位`,
   hp: (n: number) => `${n} HP`,
   base: (n: number) => `基础 ${n}`,
-  mp: (n: number) => `+${n} MP`,
+  mp: (n: number) => `最大 MP +${n}`,
   close: '关闭',
   back: '返回',
   cancel: '取消',
@@ -101,7 +101,7 @@ export const RUN_ZH_HANS: RunCopy = {
       slots: (n: number) => `+${n} 卡牌槽位`,
       hp: (n: number) => `+${n} 最大 HP`,
       baseShield: (n: number) => `+${n} 基础护盾`,
-      mp: (n: number) => `每场战斗开始时 +${n} MP`,
+      mp: (n: number) => `最大 MP +${n}，每回合`,
     },
     talent: '天赋',
     givenBack: '归还',
@@ -119,7 +119,7 @@ export const RUN_ZH_HANS: RunCopy = {
     stats: (fights: number, bosses: number, quests: number, upgrades: number) =>
       `赢得 ${fights} 场战斗 · ${bosses} 个首领 · ${quests} 个任务 · ${upgrades} 次升级`,
     reached: (where: string) => `抵达：${where}`,
-    fellIn: (act: number, of: number, where: string) => `倒在第 ${act}/${of} 幕：${where}`,
+    fellIn: (act: number, of: number, where: string) => `倒在第 ${act}/${of} 层：${where}`,
     leaned: (shapes: string, n: number) => `偏向：${shapes}，${n} 张卡牌`,
     leanedNone: '没有偏向任何流派',
     talents: (list: string) => `天赋：${list}`,
@@ -149,6 +149,7 @@ export const RUN_ZH_HANS: RunCopy = {
     wrongScreen: '现在不行。',
     badIndex: '没有这个选项。',
     cannotPay: '物资不足。',
+    noCity: '这两场战斗之间没有城市。',
     alreadyBought: '已经买过了。',
     notUpgradable: '这张卡牌已无法再升级。',
     deckTooSmall: '你的牌组太少，不能再失去卡牌。',
@@ -183,13 +184,13 @@ export const RUN_ZH_HANS: RunCopy = {
     Fight: '战斗',
     'Pay them off': '花钱打发',
     'First card each turn: a Strike becomes a Pierce while at full HP': '每回合第一张卡牌：HP 全满时，打击变为穿透',
-    '+1 MP at the start of each turn': '每回合开始时 +1 MP',
+    '+1 max MP, every turn of the run': '最大 MP +1，本局每回合',
     'Shields and Repairs from its cards +1': '自身卡牌的护盾和修复 +1',
     'Blast +1 from the danger zone': '在危险区内爆破 +1',
     'Equipment it plays: next hand +1': '打出装备：下回合手牌 +1',
     'A Shield on itself also Covers its neighbours': '给自己的护盾同时掩护相邻友方',
     'Slash +1': '斩击 +1',
-    'Three waves. Last: The Colossus alone. It grants the Harpoon as it arrives.': '三波敌人。最后：巨像单独出场。它出现时你获得鱼叉。',
+    'Two waves. Last: The Colossus alone. It grants the Harpoon as it arrives.': '两波敌人。最后：巨像单独出场。它出现时你获得鱼叉。',
     'Three waves. Last: The Warlord holds the middle lane, a Hound on either side.': '三波敌人。最后：军阀据守中路，两侧各一只猎犬。',
     'Three waves, each harder, the Colossus last. Only the cards reset between waves.': '三波敌人，一波比一波强，最后是巨像。波与波之间只重置卡牌。',
   },

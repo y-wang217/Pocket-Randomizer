@@ -7,6 +7,11 @@
  * `docs/spec/gymrun-patch-card-battle-grace-friendly-fire.md` A3, built from
  * the existing vocabulary only. Every `grade` is provisional: the bot's
  * per-scenario numbers (Part B) are what correct them.
+ *
+ * No step neither moves nor acts, but the Target Dummy's (the author's
+ * "fewer rest turns" of 2026-10-13): the Turret, Bulwark, Sniper, Pikeman and
+ * Juggernaut each lost theirs, and the Drone the second of its advance-only
+ * steps. A step that walks closer still rests its act.
  */
 import type { EnemyDef, EnemyDefId } from '../core/cards/defs';
 
@@ -28,7 +33,6 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
         },
         { move: 'none', act: { k: 'shield', n: 1 } },
         { move: 'hunt', act: { k: 'strike', n: 1 } },
-        { move: 'advance', act: { k: 'none' } },
       ],
     },
   },
@@ -72,8 +76,8 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
       kind: 'cycle',
       steps: [
         { move: 'none', act: { k: 'shield', n: 1 } },
-        { move: 'none', act: { k: 'strike', n: 2 } },
-        { move: 'none', act: { k: 'none' } },
+        // Strike 1, from 2 (the author's ruling of 2026-10-13, after Turret Alley stopped 7 runs).
+        { move: 'none', act: { k: 'strike', n: 1 } },
       ],
     },
   },
@@ -91,7 +95,6 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
           move: { if: 'slashInRange', then: 'none', else: 'hunt' },
           act: { if: 'slashInRange', then: { k: 'slash', n: 1 }, else: { k: 'shield', n: 1 } },
         },
-        { move: 'none', act: { k: 'none' } },
       ],
     },
   },
@@ -105,7 +108,6 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
       kind: 'cycle',
       steps: [
         { move: 'hunt', act: { k: 'none' } },
-        { move: 'none', act: { k: 'none' } },
         { move: 'none', act: { k: 'strike', n: 3 } },
       ],
     },
@@ -121,7 +123,6 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
       steps: [
         { move: 'none', act: { k: 'shield', n: 1 } },
         { move: 'hunt', act: { k: 'none' } },
-        { move: 'none', act: { k: 'none' } },
         { move: 'none', act: { k: 'pierce', n: 2 } },
       ],
     },
@@ -248,7 +249,6 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
           move: { if: 'slashInRange', then: 'none', else: 'hunt' },
           act: { if: 'slashInRange', then: { k: 'slash', n: 2 }, else: { k: 'shield', n: 1 } },
         },
-        { move: 'none', act: { k: 'none' } },
       ],
     },
   },
@@ -260,10 +260,12 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
     grade: 4,
     script: {
       kind: 'cycle',
-      // The Sniper's aim, one step shorter.
+      // The Sniper's aim, and a second shot: the Sniper lost its wait (fewer rests,
+      // 2026-10-13), so one step shorter was no longer the harder pattern.
       steps: [
         { move: 'hunt', act: { k: 'none' } },
         { move: 'none', act: { k: 'strike', n: 3 } },
+        { move: 'hunt', act: { k: 'strike', n: 1 } },
       ],
     },
   },
@@ -275,9 +277,11 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
     grade: 4,
     script: {
       kind: 'cycle',
+      // The Pikeman's, striking as it hunts: the Pikeman lost its wait (fewer rests,
+      // 2026-10-13), which left the two patterns the same.
       steps: [
         { move: 'none', act: { k: 'shield', n: 1 } },
-        { move: 'hunt', act: { k: 'none' } },
+        { move: 'hunt', act: { k: 'strike', n: 1 } },
         { move: 'none', act: { k: 'pierce', n: 2 } },
       ],
     },
@@ -303,6 +307,56 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
           act: { if: 'slashInRange', then: { k: 'slash', n: 2 }, else: { k: 'strike', n: 2 } },
           label: 'Cleave',
         },
+      ],
+    },
+  },
+  // Floor 2 (`docs/reports/floor-2-design.md`, 2026-10-13): they hit harder and
+  // come faster than floor 1's, and the first two leave a status on what they hit.
+  // Each keeps one step that deals nothing, which opening grace needs.
+  snarer: {
+    id: 'snarer',
+    name: 'Snarer',
+    hp: 3,
+    baseShield: 1,
+    fast: true,
+    grade: 3,
+    script: {
+      kind: 'cycle',
+      steps: [
+        { move: 'hunt', act: { k: 'strike', n: 1, inflict: { k: 'root', n: 2 } } },
+        { move: 'advance', act: { k: 'shield', n: 1 } },
+      ],
+    },
+  },
+  breaker: {
+    id: 'breaker',
+    name: 'Breaker',
+    hp: 4,
+    baseShield: 1,
+    grade: 4,
+    script: {
+      kind: 'cycle',
+      steps: [
+        { move: 'none', act: { k: 'pierce', n: 2, inflict: { k: 'frail', n: 2 } } },
+        { move: 'hunt', act: { k: 'strike', n: 2 } },
+        { move: 'none', act: { k: 'shield', n: 1 } },
+      ],
+    },
+  },
+  reaver: {
+    id: 'reaver',
+    name: 'Reaver',
+    hp: 3,
+    baseShield: 0,
+    // Not Fast: a Fast enemy hits for 1 (`rule.fast`). It is the faster one by hitting
+    // two rounds in three.
+    grade: 4,
+    script: {
+      kind: 'cycle',
+      steps: [
+        { move: 'hunt', act: { k: 'strike', n: 2 } },
+        { move: 'hunt', act: { k: 'strike', n: 2 } },
+        { move: 'advance', act: { k: 'shield', n: 1 } },
       ],
     },
   },

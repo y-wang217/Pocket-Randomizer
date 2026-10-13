@@ -12,11 +12,13 @@ import { describe, expect, it } from 'vitest';
 import { DECKS } from '../src/cardData/cards';
 import { ENCOUNTERS } from '../src/cardData/encounters';
 import { ENEMIES } from '../src/cardData/enemies';
+import { RULES } from '../src/cardData/rules';
 import { botStream, playBattle, randomBot } from '../src/core/cards/bots';
 import { createBattle, gradeTotal } from '../src/core/cards/create';
 import type { BattleEvent } from '../src/core/cards/events';
 import { guardBot } from '../src/core/cards/guard';
 import { checkInvariants } from '../src/core/cards/invariants';
+import { legalActions } from '../src/core/cards/legal';
 import { replay } from '../src/core/cards/log';
 import type { Action, BattleState } from '../src/core/cards/state';
 import { step } from '../src/core/cards/step';
@@ -45,8 +47,9 @@ function lastOfWaveOne(): BattleState {
   for (const pile of ['draw', 'hand', 'discard', 'spent'] as const) draft.piles[pile] = draft.piles[pile].filter((c) => c !== shoot && c !== prep);
   draft.piles.hand.push(shoot);
   draft.piles.spent.push(prep);
-  const [a, b, c] = draft.units;
-  Object.assign(a!, { mp: 3, pendingMp: [{ n: 1, turns: 2 }] });
+  const [, b, c] = draft.units;
+  draft.mp = 3;
+  draft.pendingMp = [{ n: 1, turns: 2 }];
   Object.assign(b!, { hp: 1, baseShield: 0, shield: 1, pos: at(2, 3) });
   Object.assign(c!, { baseShield: 0, pos: at(3, 4) });
   draft.pendingDraws = [{ n: 1, filter: 'notOwner', owner: 'C' }];
@@ -79,13 +82,14 @@ describe('waves', () => {
     expect(events.some((e) => e.t === 'won' || e.t === 'enemyActed')).toBe(false);
     expect([next.phase, next.wave, next.round]).toEqual(['plan', 1, 1]);
     // Units: HP, spent base shield and tiles kept; card shield cleared at the turn start (R3);
-    // A's MP kept, plus its turn-start 1 and the 1 Focus still owed it.
-    expect(next.units.map((u) => [u.id, u.hp, u.shield, u.baseShield, u.mp, u.pos])).toEqual([
-      ['A', 1, 0, 1, 5, at(1, 2)],
-      ['B', 1, 0, 0, s.units[1]!.mp, at(2, 3)],
-      ['C', 3, 0, 0, s.units[2]!.mp, at(3, 4)],
+    // The shared pool refilled to its max, plus the 1 a Focus still owes it.
+    expect(next.units.map((u) => [u.id, u.hp, u.shield, u.baseShield, u.pos])).toEqual([
+      ['A', 1, 0, 1, at(1, 2)],
+      ['B', 1, 0, 0, at(2, 3)],
+      ['C', 3, 0, 0, at(3, 4)],
     ]);
-    expect(next.units[0]!.pendingMp).toEqual([{ n: 1, turns: 1 }]);
+    expect(next.mp).toBe(3 + 1);
+    expect(next.pendingMp).toEqual([{ n: 1, turns: 1 }]);
     expect(next.pendingDraws).toEqual([]);
     // Every card back, Prep included; a fresh hand of five.
     expect(next.piles.spent).toEqual([]);
@@ -139,5 +143,62 @@ describe('waves', () => {
         if (result.ok) expect(checkInvariants(result.state)).toEqual([]);
       });
     }
+  });
+});
+
+describe('the supply pack a fallen wave leaves (2026-10-13)', () => {
+  /** The board just after wave 1 falls: wave 2 has arrived and the pack waits. */
+  function packWaiting(): BattleState {
+    const s = lastOfWaveOne();
+    const selected = ok(s, { type: 'select', card: iidOf(s, 'shoot'), unit: 'B' }).state;
+    const { state, events } = ok(selected, { type: 'commit' });
+    expect(events).toContainEqual({ t: 'rewardOffered' });
+    return state;
+  }
+
+  it('waits on a claim before the wave is planned: three offers, nothing else legal', () => {
+    const s = packWaiting();
+    expect([s.wave, s.waveReward]).toEqual([1, true]);
+    expect(legalActions(s)).toEqual([
+      { type: 'claim', reward: 'supplies' },
+      { type: 'claim', reward: 'hp' },
+      { type: 'claim', reward: 'mp' },
+    ]);
+    expect(step(s, { type: 'commit' })).toMatchObject({ ok: false, reason: 'claimFirst' });
+    expect(step(s, { type: 'select', card: s.piles.hand[0]!, unit: 'B' })).toMatchObject({ ok: false, reason: 'claimFirst' });
+    expect(step(s, { type: 'claim', reward: 'gold' })).toMatchObject({ ok: false, reason: 'malformed' });
+    const view = viewOf(s);
+    expect(view.reward).toEqual([
+      { kind: 'supplies', n: RULES.waveReward.supplies },
+      { kind: 'hp', n: RULES.waveReward.hp },
+      { kind: 'mp', n: RULES.waveReward.mp },
+    ]);
+    expect(view.canCommit).toBe(false);
+    expect(checkInvariants(s)).toEqual([]);
+  });
+
+  it('pays what it says: supplies for the run, HP to every living unit up to its max, or MP this turn', () => {
+    const s = packWaiting();
+    const supplies = ok(s, { type: 'claim', reward: 'supplies' });
+    expect(supplies.events).toEqual([{ t: 'claimed', reward: 'supplies', n: RULES.waveReward.supplies }]);
+    expect([supplies.state.suppliesWon, supplies.state.waveReward]).toEqual([RULES.waveReward.supplies, false]);
+
+    const hp = ok(s, { type: 'claim', reward: 'hp' }).state;
+    // B was down to 1 of 2; A and C were full and stay so.
+    expect(hp.units.map((u) => [u.id, u.hp])).toEqual(s.units.map((u) => [u.id, Math.min(u.maxHp, u.hp + RULES.waveReward.hp)]));
+    expect(hp.units.find((u) => u.id === 'B')!.hp).toBe(2);
+
+    const mp = ok(s, { type: 'claim', reward: 'mp' }).state;
+    expect(mp.mp).toBe(s.mp + RULES.waveReward.mp);
+    // Claimed, the wave plans as any other, and a second claim is refused.
+    expect(step(mp, { type: 'commit' }).ok).toBe(true);
+    expect(step(mp, { type: 'claim', reward: 'hp' })).toMatchObject({ ok: false, reason: 'nothingToClaim' });
+  });
+
+  it('offers nothing after the last wave, and nothing in a one-wave battle', () => {
+    const created = createBattle('test', 'PACK1');
+    if (!created.ok) throw new Error('create');
+    expect(created.state.waveReward).toBe(false);
+    expect(step(created.state, { type: 'claim', reward: 'hp' })).toMatchObject({ ok: false });
   });
 });

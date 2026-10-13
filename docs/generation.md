@@ -17780,3 +17780,303 @@ the English it replaced, in its text, its labels or its titles. The
 browser leg (`test/visual-card-run.test.ts`) lays each language out on the
 route with the deck open, the offer, the replace and the boss screens at 390
 by 844: no sideways scroll, no touch target under 44px.
+
+## 145. Card battle: one shared MP pool, refilled each turn to the units' max
+
+**2026-10-12**, a feature request, on `claude/shared-mana`, from `main` at
+`0482454`. Prompt
+[`spec/gymrun-patch-card-battle-shared-mana.md`](spec/gymrun-patch-card-battle-shared-mana.md):
+*"Mana doesnt gate properly we give it too generously"*, with the author's
+answers to three questions filed beside it. `cards-0.11.0` to `cards-0.12.0`,
+`cardrun-0.9.0` to `cardrun-0.10.0`; the run's four axes do not move.
+
+### What changed
+
+- **R2 superseded.** MP was per unit: from 0, +1 after each turn, capped at
+  5. It is now one pool on `BattleState.mp` that every unit's cards pay from.
+  At each turn start (`nextHand`, round 1 included) it refills to
+  `maxMpOf(state)`, and leftovers are lost. `RULES.mp` is `{ perUnit: 1 }`.
+- **Max MP.** Each unit adds `RULES.mp.perUnit`, plus its `maxMp` abilities
+  and its boost's `mp`. A fainted unit still counts (the author's answer). The
+  Commander's `mpAtTurnStart` and the Battery talent are both `maxMp 1`.
+  The usual pool is 4.
+- **Cards that gave MP give bonus MP.** `gainMp` and `mpNextTurns` queue onto
+  `BattleState.pendingMp`, and the refill adds it above the max. The events
+  are `mpQueued` and `mpRefilled`; `mpGained` is gone.
+- **Ults at 3.** Moon Strike, Artillery and Whirlwind go from 4 to 3,
+  Barrage from 5 to 3, and each upgrade to 2, so an ult fits the pool of
+  three units.
+- **The boss upgrade's +1 MP** is +1 max MP for the rest of the run. Its
+  weight goes from 1 in 6 to 1 in 11 (`BOOST_WEIGHTS` 6/2/2/1), because the
+  author calls permanent max MP "crazy powerful".
+- **The screen.** One MP bar in the status replaces the bar on each unit's
+  panel. A cell past the max is bonus MP, ringed gold. The tutorial's MP
+  step points at it and says the pool refills.
+
+### Deviations
+
+- **The ult star is gone.** The hearts-and-tutorial patch asked for an MP
+  bar that marks each unit's ult. With one pool and every ult at 3 or less,
+  the star marked nothing a player plans around; the ult's cost is still on
+  its card. The `meters.ult` string is deleted in all eight languages.
+- **The Neutral picker test** (`test/cards-sandbox.test.ts`) asserted that
+  only one unit had the MP for Attack. A shared pool never tells units apart,
+  so the test now blocks the Commander with a full slot instead.
+- **The narrate fixture** was re-searched: FF646 no longer replays. FF3786 is
+  the first seed from FF646 up whose Artillery hits the dasher and leaves its
+  Attack unplayed. The step 7 end-of-run test moves from LOST4 to LOST7.
+
+### Measured
+
+`npm run cards:run -- 20 CRUN`: 10/20 runs won, 10.40 mean fights won,
+2.10 mean bosses, against 7/20, 9.40 and 1.80 at `cardrun-0.9.0`. The losses
+moved later. Six fell in act 2, four of them at Turret Alley; three in act 3; one at the first boss.
+`docs/balance.md`. **Recorded, not chased.**
+
+**Held by** `test/cards-step.test.ts` (the refill, Focus and Resupply's bonus,
+a fainted unit's max kept, one pool gating two units),
+`test/cards-shapes-talents.test.ts` (Battery), `test/cards-run.test.ts` (the
+boost), `test/cards-waves.test.ts` (bonus owed across a wave),
+`test/cards-tutorial.test.ts` (every ult 3 at most) and
+`test/cards-sandbox-tutorial.test.ts` (the one bar in the status).
+
+## 146. Card battle: no card is free but Move and one-use equipment, and no shield is
+
+**2026-10-12**, a feature request and its follow-up, on `claude/shared-mana`
+after section 145. Prompt
+[`spec/gymrun-patch-card-battle-no-free-cards.md`](spec/gymrun-patch-card-battle-no-free-cards.md):
+*"make the basic cards each cost mana … and shields aren't free"*, then
+*"move should be free but shield should cost mana"*, with the author's
+answer filed beside them. `cards-0.12.0` to `cards-0.14.0` (`0.13.0` was
+Move at 1, superseded the same day before a benchmark); `cardrun-0.10.0` to
+`cardrun-0.12.0`.
+
+### What changed
+
+- Shoot, Dig In, the three Braces, Guard Up and Jab cost 1, from 0. So do
+  Sandbags and Tower Shield, equipment that shields.
+- Move stays at 0, the one free card that is not equipment: positioning
+  never competes with a hit (the follow-up).
+- Equipment that does not shield stays free; supplies already paid for it.
+- The upgrades that made a card free go further instead: Dash+ and Sprint+
+  Move 3, Interpose+ Move 2 and Cover 1, Second Wind+ 2 bonus MP and a draw.
+
+### A deviation
+
+The request reads *"that means 1 card per mon per turn, max"*. That is
+built as a consequence of the costs, not a rule of its own: the pool is
+shared, so a unit may play two cards while another sits out, and the
+Commander's second MP is the pool's, not a second card of its own.
+
+### Measured
+
+`npm run cards:run -- 20 CRUN`: 10/20 runs won, 10.40 mean fights won, 2.10
+mean bosses, **identical** to section 145 seed by seed; only the action
+counts moved. A probe of the guard bot over 80 sandbox battles (`PROBE0` to
+`PROBE39`, `skirmish` and `test`) says why: it plays 2.18 cards a round and
+leaves **1.86 MP of the pool's 4 unspent** each round. Its hand of five and
+its targets bind before the pool does. Against `cards-0.11.0`, before section
+145, the same probe played 1.74 cards a round over 685 rounds, against 507
+now, and lost 0.41 HP a battle against 0.17. For this bot, the shared pool
+made battles easier, not harder: a full 4 every turn outpaces the old +1 a
+round from 0. **Recorded, not chased.**
+
+**Held by** `test/cards-data.test.ts`: no card free but Move and one-use
+equipment, no shield free.
+
+### A layout fix it surfaced
+
+`test/visual-card-battle.test.ts` failed, by seed, with a Sword dasher slot
+43.36px wide against the 44px touch-target floor. The dasher's three slots
+never fit a 390px phone: 134px for 136. Until section 145, round 1 held no MP
+for the dasher's cards, so the test never filled one. The unit panel's left
+padding goes from 8px to 7px and the gap between slots from 2px to 1px, which
+leaves about 137px.
+
+### Move costs 1 again (the second follow-up, the same day)
+
+*"no just make the moves cost 1 again"*, filed under the prompt.
+**Superseded:** this section's free Move. Move is 1 MP, and no card is free
+but one-use equipment that does not shield. `cards-0.14.0` to `cards-0.15.0`,
+`cardrun-0.12.0` to `cardrun-0.13.0`; the costs are `cards-0.13.0`'s again,
+so the narrate fixture replays unchanged.
+
+`npm run cards:run -- 20 CRUN`: **8/20 runs won, 9.95 mean fights won, 1.90
+mean bosses**, against 10/20, 10.40 and 2.10 with Move free. Three runs lost
+that had won: CRUN7 and CRUN17 at the Warlord's Guard, CRUN18 at the act 3
+boss. No seed did better. **Recorded, not chased.**
+
+## 147. Card battle: enemies rest less, and a fallen wave leaves a supply pack
+
+**2026-10-13**, a feature request, on `claude/shared-mana` after section 146.
+Prompt
+[`spec/gymrun-patch-card-battle-fewer-rests-wave-reward.md`](spec/gymrun-patch-card-battle-fewer-rests-wave-reward.md):
+*"Make enemies have fewer rest turns. And give the player a small reward
+after each wave"*, with the author's answers filed beside it.
+`cards-0.15.0` to `cards-0.16.0`, `cardrun-0.13.0` to `cardrun-0.14.0`.
+
+### Fewer rests
+
+Every step that neither moves nor acts is gone but the Target Dummy's: the
+Turret, Bulwark, Sniper, Pikeman and Juggernaut lose one each, and the Drone
+the second of its two advance-only steps (six steps to five). A step that
+walks closer still rests its act.
+
+**A deviation the cut forced.** The veteran test holds that a veteran hits
+more often or harder than its plain enemy. The Sniper losing its wait made
+it the Deadeye; the Pikeman losing its wait made it the Halberdier. The
+Deadeye gains a third step, Hunt with Strike 1, and the Halberdier strikes 1
+as it hunts. Each keeps a step that deals nothing, which opening grace needs.
+
+### The supply pack
+
+The author answered *"instead of heal, get a supply pack - get resource or
+get a hp pack or a mp pack"*. Built as a pick of three, which `CLAUDE.md`
+asks of every offer: +1 supply, +1 HP to every living unit up to its max, or
++2 MP (`RULES.waveReward`, first drafts).
+
+**When.** The next wave still arrives at once (section 132's ruling), and
+`BattleState.waveReward` holds the pack. A `claim` action takes it before the
+wave's first plan: a select or a commit is refused `claimFirst`, and
+`legalActions` lists only the three claims. The MP pack lands on a pool the
+wave's first hand has already refilled, so it is spent that turn. A pick
+between waves would have needed a new phase that the guard bot's search and
+its wave-count scoring would have had to learn.
+
+**Supplies.** `BattleState.suppliesWon` holds them, and the card run adds them
+when the battle is won. In the sandbox there is no wallet, so a supply pack
+there pays nothing visible. That is a known gap.
+
+**On screen.** The pack takes the hand's place: a title and three buttons,
+the End Turn button disabled until one is claimed. No browser test reaches a
+second wave, so the pack's layout on a phone is not checked by one.
+
+**The bots.** The random bot claims at random. The guard bot claims HP while
+any unit is hurt, else MP.
+
+### Measured
+
+`npm run cards:run -- 20 CRUN`: **3/20 runs won, 7.55 mean fights won, 1.40
+mean bosses**, against 8/20, 9.95 and 1.90 at section 146. Turret Alley
+stopped 7 of the 17 losses; the Gatehouse defence quest 3, in act 1. The
+Turret, Shield 1 then Strike 2 with nothing between, now fires every other
+round. **Recorded, not chased.**
+
+**Held by** `test/cards-waves.test.ts` (the pack: its offers, the refusals,
+what each pays), `test/cards-new-enemies.test.ts` and
+`test/cards-enemies.test.ts` (the shorter scripts),
+`test/cards-act-scaling.test.ts` (every veteran harder than its plain enemy),
+`test/cards-opening.test.ts` (opening steps).
+
+## 148. Card run: floors, Spark, the Turret at Strike 1, and the decks in the README
+
+**2026-10-13**, a feature request, on `claude/shared-mana` after section 147.
+Prompt [`spec/gymrun-patch-card-run-floors-commander-card.md`](spec/gymrun-patch-card-run-floors-commander-card.md),
+with the author's answers filed beside it. `cards-0.16.0` to `cards-0.17.0`,
+`cardrun-0.14.0` to `cardrun-0.15.0`.
+
+### What changed
+
+- **The Turret** strikes for 1, from 2.
+- **Spark.** The Commander's `maxMp 1` ability is gone; every unit is max MP
+  1, a pool of 3. In its place, Spark: the Commander's, 0 MP, once a wave,
+  `gainMpNow 1`, MP into the pool as it resolves. The plan check counts it for
+  the plays after it, and the MP bar shows it as soon as Spark is planned.
+  Spark+ is twice a wave. It is in the run's starting deck (eleven cards),
+  not the sandbox's Puppeteer deck: adding it there reshuffled every scripted
+  deal, the tutorial's included, so the sandbox's pool is simply 3.
+- **Floors.** `FLOOR_LEADS`: floor 1's fights are the scenario alone and its
+  boss one lead wave then the boss; floor 2 one and two lead waves; floor 3
+  two and two (the Siege as it is). Town, Wild and City fights are their
+  floor's length. The stop between a floor's two fights has no City
+  (`StopNode.cityOpen`); its City is drawn all the same, so no draw moves.
+  Every player-facing "act" in the run's copy reads "floor".
+- **The decks in the README.** The root `README.md` carries the units and both
+  starting decks as a tuning sheet; `test/cards-readme-decks.test.ts` fails
+  when a deck changes and the sheet does not.
+
+### Deviations
+
+- **The full heal after a boss is not built.** The author chose *Pick + full
+  heal*, but HP does not carry between a run's fights: every fight starts every
+  unit at full. The heal would do nothing, and the session said so rather than
+  build it. The boss reward stays +4 supplies and the talent or stat pick.
+- **Veterans read "the waves before the last"**, not "the first two waves":
+  floor 2's fights have one lead wave now.
+
+### Seeds the change moved
+
+The narrate fixture is FF1842: with a pool of 3, Artillery costs all of it
+and no seed to FF60000 faints the dasher with it, so the fixture's friendly
+fire is now Fire!. Also moved: the City tests now reach the City at the stop
+before floor 1's boss, through `atCityStop`, on DEF0 and MKT; the step 7
+end-of-run test uses LOST2; the equipment test uses EQUIP0; the browser run
+screens use SCREENS3.
+
+### Measured
+
+`npm run cards:run -- 20 CRUN`: **3/20 runs won, 7.85 mean fights won, 1.40
+mean bosses**, against 3/20, 7.55 and 1.40 at section 147. The losses moved:
+the Warlord's Guard (floor 2's boss) stopped 6, Turret Alley 4, the
+Gatehouse defence quest 3. **Recorded, not chased.**
+
+## 149. Floor 2: Root and Frail, Cleanse, three new enemies, melee into the end zone, the fort
+
+**2026-10-13**, on `claude/shared-mana` after section 148, from the design
+[`reports/floor-2-design.md`](reports/floor-2-design.md) and the author's
+go-ahead with their assets, both filed under
+[`spec/gymrun-patch-card-run-floors-commander-card.md`](spec/gymrun-patch-card-run-floors-commander-card.md).
+`cards-0.17.0` to `cards-0.18.0`, `cardrun-0.15.0` to `cardrun-0.16.0`.
+
+### What is built
+
+- **Root and Frail** on `UnitState`, put there by an enemy act's `inflict`
+  on each unit its hit lands on, a second taking the longer. Root refuses a
+  Move as `rooted`, and keeps a Command from choosing the unit. Frail turns a
+  card's Shield into `frailBlocked`. Both count down once the unit's cards
+  have played in `commit`, so `n` is `n` of the player's turns.
+- **Cleanse n**, an effect: every living ally's Root and Frail lose `n`.
+  Cleanse (any unit, 1 MP, Cleanse 2; Cleanse+ 3) joins the Puppeteer shape's
+  rewards; the Antidote (0 MP, Cleanse 9, equipment) joins the City's market,
+  sold from floor 2 (`MARKET_FROM`). Floor 1's market and Wild equipment draw
+  from the same list as before.
+- **The Snarer, the Breaker and the Reaver** lead floor 2's first wave and
+  floor 3's second; none has a veteran.
+- **Melee into the end zone.** A melee unit's moves reach column 7
+  (`RULES.endZone`); it may Slash there; `repel` pushes it to column 5 right
+  after a damaging card of its there and, for any still there, once the plan
+  has played. The plan check projects the repel, so later plays read the
+  board it leaves.
+- **The fort.** `EncounterDef.skin` is `'fort'` from floor 2 on; the battle
+  draws `background-fort` and the `tile-fort-*` tiles. The author's nine PNGs
+  ship as WebP at the meadow pack's sizes; their three icons as given.
+
+### A deviation
+
+**The Reaver is not Fast.** `test/cards-opening.test.ts` holds the game's rule
+that a Fast enemy attacks from round 1 for 1, and the Reaver hits for 2. The
+design said Fast; as built it waits out opening grace and is the faster one
+by hitting two rounds in three. Recorded in the design.
+
+### Measured
+
+`npm run cards:run -- 20 CRUN`: **1/20 runs won, 7.40 mean fights won, 1.20
+mean bosses**, against 3/20, 7.85 and 1.40 at section 148. The Warlord's Guard,
+floor 2's boss, now led by a Reaver and a Snarer, stopped 8 of 19 losses; the
+Gatehouse defence quest on floor 1 stopped 3. The bot never plays into the end
+zone on purpose and has no Cleanse in its starting deck. **Recorded, not
+chased.**
+
+**Held by** `test/cards-floor-2.test.ts`, and the asset, glossary, enemy and
+scaling tests updated for the new entries.
+
+### Merging `main` (#118, the run's screens in every language)
+
+`main` merged section 144 first, so this branch's 144 to 148 are 145 to 149.
+Its seven run translations predate the floors: each gains `noCity`, "Act"
+reads "Floor" in the tagline, labels and the end of run, veterans sit "in the
+waves before the last", the boss stat reads "max MP", Battery's new text is
+translated, and floor 1's boss blurb is "Two waves". Its tests move with the
+branch: the translation test's steered run skips a closed City and uses
+RUNCOPY7, the browser run screens use SCREENS3. A long slot name (Ukrainian's
+Need Help, now playable on round 1) wraps onto a second line, not an ellipsis.

@@ -48,11 +48,12 @@ export const ACTS: readonly ActDef[] = [
 ];
 
 /**
- * The run's starting deck: ten cards that do nothing fancy
+ * The run's starting deck: eleven cards that do nothing fancy
  * (`docs/spec/gymrun-card-run-shapes-prompt.md`). Each unit's basic hit and
- * its Brace, two Moves, an Attack and a Dig In.
+ * its Brace, two Moves, an Attack, a Dig In, and the Commander's Spark (the
+ * author's ruling of 2026-10-13). Listed in the root `README.md` for tuning.
  */
-export const STARTING_DECK: readonly string[] = ['baton', 'brace-a', 'shoot', 'brace-b', 'slash', 'brace-c', 'move', 'move', 'attack', 'dig-in'];
+export const STARTING_DECK: readonly string[] = ['baton', 'brace-a', 'spark', 'shoot', 'brace-b', 'slash', 'brace-c', 'move', 'move', 'attack', 'dig-in'];
 
 /**
  * The four shapes a deck can grow into (`docs/spec/gymrun-card-run-shapes-prompt.md`,
@@ -76,7 +77,7 @@ export const SHAPES: Readonly<Record<ShapeId, ShapeDef>> = {
     name: 'Puppeteer',
     plan: 'The Commander moves and shields the others',
     // The Puppeteer's cards the starting deck leaves out come back here (133).
-    cards: ['call-medic', 'command', 'focus', 'need-help', 'resupply', 'orders', 'fortify', 'rally', 'patch-up'],
+    cards: ['call-medic', 'command', 'focus', 'need-help', 'resupply', 'orders', 'fortify', 'rally', 'patch-up', 'cleanse'],
   },
   bodyguard: {
     id: 'bodyguard',
@@ -165,7 +166,11 @@ export const MARKET: Readonly<Record<string, number>> = {
   grapple: 3,
   smoke: 3,
   'riot-net': 4,
+  antidote: 2,
 };
+
+/** The floor, from 0, a market item is first sold on: the Antidote from floor 2 (2026-10-13). Absent, floor 1. */
+export const MARKET_FROM: Readonly<Record<string, number>> = { antidote: 1 };
 
 /** A stat a boss upgrade adds to; a talent is offered in its place (`talents.ts`). */
 export type BoostKind = Exclude<keyof Required<UnitBoost>, 'talents'>;
@@ -175,9 +180,11 @@ export const BOOST_AMOUNT: Readonly<Record<BoostKind, number>> = { slots: 1, hp:
 
 /**
  * The boss upgrade's kinds and their weights. A card slot, the prompt's
- * example of the most impactful, is drawn most often.
+ * example of the most impactful, is drawn most often. Max MP is the rarest:
+ * it grows the shared pool every turn for the rest of the run, which the
+ * author calls "crazy powerful" (the shared mana ruling of 2026-10-12).
  */
-export const BOOST_WEIGHTS: Readonly<Record<BoostKind, number>> = { slots: 3, hp: 1, baseShield: 1, mp: 1 };
+export const BOOST_WEIGHTS: Readonly<Record<BoostKind, number>> = { slots: 6, hp: 2, baseShield: 2, mp: 1 };
 
 /** The units a boss upgrade is offered for, one offer each, in this order. */
 export const BOOST_UNITS: readonly UnitDefId[] = ['A', 'B', 'C'];

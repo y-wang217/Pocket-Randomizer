@@ -51,7 +51,12 @@ describe('the acts', () => {
         if (scale.veterans === 'all') {
           for (const wave of waves) for (const s of wave) expect(Object.keys(VETERAN), `${id} ${s.def}`).not.toContain(s.def);
         }
-        if (scale.veterans === 'leads' && id !== act.boss) expect([vets[0], vets[1]], id).toEqual([true, true]);
+        // Every enemy of a lead wave that has a veteran fields it, the scenario itself plain
+        // (floor 2: one lead wave, its boss two). Floor 2's own enemies have none (2026-10-13).
+        if (scale.veterans === 'leads') {
+          for (const wave of waves.slice(0, -1)) for (const s of wave) expect(Object.keys(VETERAN), `${id} ${s.def}`).not.toContain(s.def);
+          expect(vets.at(-1), id).toBe(false);
+        }
       }
     });
   });
@@ -83,7 +88,7 @@ describe('the Warlord', () => {
     const iid = iidOf(state, 'concuss');
     state.piles.draw = state.piles.draw.filter((c) => c !== iid);
     state.piles.hand.push(iid);
-    for (const u of state.units) u.mp = 5;
+    state.mp = 15;
     for (const e of state.enemies) e.intent = null;
     // The Gunner's lane is the Warlord's.
     const selected = step(state, { type: 'select', card: iid, unit: 'B' });

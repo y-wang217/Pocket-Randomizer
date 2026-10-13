@@ -36,9 +36,10 @@ npm run build    # static bundle in dist/, deploys to any static host
 ```
 
 **The deployed page is the card run** (`index.html`): the card battler's
-scenarios stitched into three acts with City, Town and Wild stops between
-fights and a Colossus at the end of each act
-([`docs/generation.md`](docs/generation.md) section 125r). GYMRUN itself is
+scenarios stitched into three floors, each two fights and a boss fight, with
+a Town or Wild stop between the two fights and a City, Town or Wild stop
+before the boss; floor 1's fights are one wave each, and each floor after
+adds one ([`docs/generation.md`](docs/generation.md) sections 125r and 148). GYMRUN itself is
 built beside it as `gymrun.html`, unlinked; the smoke run plays that page.
 `npm run cards:run` plays whole card runs headless and prints how far each got.
 
@@ -49,6 +50,67 @@ npm run smoke    # play a whole run in a real Chromium, fail on any error
 npm run sim      # play N runs headless and report the balance
 npm run measure  # per-dependency gzipped bundle sizes
 ```
+
+## The card battler's starting decks (a tuning sheet)
+
+What a card run and the sandbox deal before any reward, for tuning by eye.
+**The data is the truth:** the run's deck is `STARTING_DECK` in
+[`src/cardData/cardrunTables.ts`](src/cardData/cardrunTables.ts), the
+Puppeteer's is `DECKS.puppeteer` in [`src/cardData/cards.ts`](src/cardData/cards.ts),
+cards and upgrades are in those two files and
+[`src/cardData/runCards.ts`](src/cardData/runCards.ts), and units in
+[`src/cardData/units.ts`](src/cardData/units.ts). `test/cards-readme-decks.test.ts`
+fails when a deck changes and this sheet does not.
+
+**MP.** One pool for the whole team, refilled at the start of every turn to
+the units' max MP added together, leftovers lost (`RULES.mp` in
+[`src/cardData/rules.ts`](src/cardData/rules.ts)). A card's MP comes out of
+that pool, whichever unit plays it. "1× a wave" is Uses: after its last use
+the card waits for the next wave.
+
+**Units**
+
+| unit | HP | base shield | card slots | max MP |
+|---|---|---|---|---|
+| A Commander | 1 | 1 | 1 | 1 |
+| B Gunner | 2 | 1 | 2 | 1 |
+| C Sword dasher | 3 | 2 | 3 | 1 |
+
+**The card run** (11 cards; a hand is 5)
+
+| card | id | owner | MP | does | upgrade (+) |
+|---|---|---|---|---|---|
+| Baton | `baton` | A Commander | 1 | Strike 1 | Strike 2 |
+| Brace | `brace-a` | A Commander | 1 | Shield 1 | Shield 2 |
+| Spark | `spark` | A Commander | 0 | +1 MP now · 1× a wave | 2× a wave |
+| Shoot | `shoot` | B Gunner | 1 | Strike 1 | Strike 2 |
+| Brace | `brace-b` | B Gunner | 1 | Shield 1 | Shield 2 |
+| Slash | `slash` | C Sword dasher | 1 | Slash 1 | Slash 2 |
+| Brace | `brace-c` | C Sword dasher | 1 | Shield 1 | Shield 2 |
+| 2× Move | `move` | any | 1 | Move 1 | Move 2 |
+| Attack | `attack` | any | 1 | Strike 1 | Strike 2 |
+| Dig In | `dig-in` | any | 1 | Shield 1 · 1× a wave | Shield 2 |
+
+**The sandbox's Puppeteer deck** (15 cards; the tutorial and the sandbox
+scenarios deal it)
+
+| card | id | owner | MP | does | upgrade (+) |
+|---|---|---|---|---|---|
+| Call Medic | `call-medic` | A Commander | 1 | Shield 1 (ally) | Shield 2 (ally) |
+| Command | `command` | A Commander | 1 | Ally Move 1 | Ally Move 2 |
+| Focus | `focus` | A Commander | 1 | +1 MP for 2 turns | +1 MP for 3 turns |
+| Moon Strike | `moon-strike` | A Commander | 3 | Strike 2, Target 1 · ult | cost 2 |
+| Shoot | `shoot` | B Gunner | 1 | Strike 1 | Strike 2 |
+| Resupply | `resupply` | B Gunner | 1 | +2 MP next turn | +3 MP next turn |
+| Artillery | `artillery` | B Gunner | 3 | Blast 2, Target 1 · ult | cost 2 |
+| Fire! | `fire` | B Gunner | 1 | Blast 1 | Blast 2 |
+| Dash | `dash` | C Sword dasher | 1 | Move 2 | Move 3 |
+| Slash | `slash` | C Sword dasher | 1 | Slash 1 | Slash 2 |
+| Need Help | `need-help` | C Sword dasher | 1 | Next hand +1 | Next hand +2 |
+| Prep | `prep` | C Sword dasher | 1 | Shield 2 · 1× a wave | Shield 3 |
+| Move | `move` | any | 1 | Move 1 | Move 2 |
+| Dig In | `dig-in` | any | 1 | Shield 1 · 1× a wave | Shield 2 |
+| Attack | `attack` | any | 1 | Strike 1 | Strike 2 |
 
 ## What the `contentHash` release adds
 

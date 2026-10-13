@@ -25,7 +25,7 @@ function board(cards: string[], encounter = 'test'): BattleState {
     state.piles.draw = state.piles.draw.filter((c) => c !== iid);
     state.piles.hand.push(iid);
   }
-  for (const u of state.units) u.mp = 5;
+  state.mp = 15;
   return state;
 }
 

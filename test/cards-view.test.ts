@@ -43,7 +43,7 @@ describe('viewOf', () => {
   });
 
   it('says what a card needs, whether it is playable and why not', () => {
-    const view = viewOf(board({ hand: ['slash', 'move', 'command', 'moon-strike', 'fire'], mp: { A: 1, B: 1, C: 1 } }));
+    const view = viewOf(board({ hand: ['slash', 'move', 'command', 'moon-strike', 'fire'], mp: 2 }));
     const card = (def: string) => view.hand.flatMap((g) => g.cards).find((c) => c.def === def)!;
     expect(card('move')).toMatchObject({ needs: 'tile', playable: true, players: ['A', 'B', 'C'] });
     expect(card('command')).toMatchObject({ needs: 'unitThenTile', playable: true, players: ['A'] });
@@ -53,7 +53,7 @@ describe('viewOf', () => {
   });
 
   it('shows the plan: slots, reserved MP, a planned card and its destination ghost', () => {
-    let state = board({ hand: ['dash', 'command'], mp: { A: 1, C: 1 } });
+    let state = board({ hand: ['dash', 'command'], mp: 2 });
     const step = (action: Parameters<typeof select>[1]) => {
       const result = select(state, action);
       if (!result.ok) throw new Error(result.reason);
@@ -63,7 +63,9 @@ describe('viewOf', () => {
     step({ type: 'select', card: iidOf(state, 'command'), unit: 'A', choice: { unit: 'B', tile: at(2, 3) } });
     const view = viewOf(state);
     const c = view.units.find((u) => u.id === 'C')!;
-    expect(c).toMatchObject({ reserved: 1, projected: at(3, 4), pos: at(3, 2) });
+    expect(c).toMatchObject({ projected: at(3, 4), pos: at(3, 2) });
+    // Dash and Command, 1 each, from the one shared pool.
+    expect(view.mana).toMatchObject({ mp: 2, reserved: 2 });
     expect(c.planned).toEqual([{ planIndex: 0, card: iidOf(state, 'dash'), name: 'Dash' }]);
     expect(view.units.find((u) => u.id === 'B')!.planned).toEqual([{ planIndex: 1, card: iidOf(state, 'command'), name: 'Command', by: 'A' }]);
     expect(view.tiles.find((t) => t.pos.lane === 3 && t.pos.col === 4)!.planGhost).toBe('C');
@@ -71,7 +73,7 @@ describe('viewOf', () => {
   });
 
   it('tells the attacks apart: a Strike stops on the first unit, a Pierce and a Slash light every tile', () => {
-    let state = board({ hand: ['dash'], mp: { C: 1 }, units: { A: at(1, 2), B: at(2, 1), C: at(3, 1) }, enemies: [at(3, 5), at(2, 5), at(1, 4)] });
+    let state = board({ hand: ['dash'], mp: 1, units: { A: at(1, 2), B: at(2, 1), C: at(3, 1) }, enemies: [at(3, 5), at(2, 5), at(1, 4)] });
     const [strike, pierce, slash] = state.enemies;
     strike!.intent = { act: 'strike', n: 1, tiles: [at(3, 4), at(3, 3), at(3, 2), at(3, 1)] };
     pierce!.intent = { act: 'pierce', n: 2, tiles: [at(2, 4), at(2, 3), at(2, 2), at(2, 1)] };

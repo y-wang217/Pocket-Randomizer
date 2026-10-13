@@ -26,6 +26,7 @@ import {
   BOOST_WEIGHTS,
   EVENTS,
   MARKET,
+  MARKET_FROM,
   RUN_RULES,
   SHAPES,
   STARTING_DECK,
@@ -45,7 +46,7 @@ import type { Action, BattleState } from './state';
 import { step } from './step';
 
 /** Bumps when a run's draws, its tables' meaning or a logged decision changes what a run log replays to. */
-export const CARD_RUN_VERSION = 'cardrun-0.9.0';
+export const CARD_RUN_VERSION = 'cardrun-0.16.0';
 
 export type StopKind = 'city' | 'town' | 'wild';
 
@@ -90,6 +91,12 @@ export interface StopNode {
   act: number;
   /** A market of equipment, or a defense quest whose reward is a card upgrade. */
   city: { market: { card: string; price: number }[]; defense: QuestDraw };
+  /**
+   * Whether the City is open at this stop. The stop between a floor's two
+   * fights has none (the author's ruling of 2026-10-13); its City is drawn all
+   * the same, so no other draw moves.
+   */
+  cityOpen: boolean;
   /** A quest whose reward is supplies and one of three new cards. */
   town: { quest: QuestDraw; supplies: number; offer: string[] };
   /**
@@ -180,6 +187,8 @@ export type RunRefusal =
   | 'badIndex'
   /** A stated price the run cannot pay: never charged in part, never waived. */
   | 'cannotPay'
+  /** The City at a stop that has none: between a floor's two fights. */
+  | 'noCity'
   | 'alreadyBought'
   | 'notUpgradable'
   | 'deckTooSmall'
@@ -237,7 +246,8 @@ function quest(seed: string, node: string, what: string, pool: readonly string[]
 function stopNode(seed: string, act: number, index: number): StopNode {
   const key = `a${act + 1}/s${index}`;
   const def = ACTS[act]!;
-  const market = distinct(streamFor(seed, key, 'market'), Object.keys(MARKET), RUN_RULES.offer).map((card) => ({ card, price: MARKET[card]! }));
+  const sold = Object.keys(MARKET).filter((card) => (MARKET_FROM[card] ?? 0) <= act);
+  const market = distinct(streamFor(seed, key, 'market'), sold, RUN_RULES.offer).map((card) => ({ card, price: MARKET[card]! }));
   const wild = streamFor(seed, key, 'wild');
   const supplies = between(wild, RUN_RULES.wild.supplies);
   const rolled = wild.nextFloat() < RUN_RULES.wild.eventChance;
@@ -247,6 +257,7 @@ function stopNode(seed: string, act: number, index: number): StopNode {
     key,
     act,
     city: { market, defense: quest(seed, key, 'defense', def.defenseQuests) },
+    cityOpen: index !== 0,
     town: {
       quest: quest(seed, key, 'town', def.townQuests),
       supplies: between(streamFor(seed, key, 'town/supplies'), RUN_RULES.town.supplies),
@@ -255,7 +266,7 @@ function stopNode(seed: string, act: number, index: number): StopNode {
     wild: {
       supplies,
       event: rolled ? event : null,
-      equipment: pickOne(streamFor(seed, key, 'wild/equipment'), Object.keys(MARKET)),
+      equipment: pickOne(streamFor(seed, key, 'wild/equipment'), sold),
       card: pickOne(streamFor(seed, key, 'wild/card'), TOWN_POOL),
       ambush: quest(seed, key, 'ambush', def.townQuests),
       offer: shapedOffer(streamFor(seed, key, 'ambush/offer')),
@@ -436,6 +447,8 @@ function consumeEquipment(s: CardRunState, battle: BattleState): void {
 
 function battleWon(s: CardRunState, battle: RunBattle): void {
   consumeEquipment(s, battle.state);
+  // The supplies the battle's wave packs paid (the author's answer of 2026-10-13).
+  s.supplies += battle.state.suppliesWon;
   s.stats.fights += 1;
   const stop = currentStop(s);
   switch (battle.kind) {
@@ -509,6 +522,7 @@ export function stepRun(state: CardRunState, action: RunAction | unknown): RunRe
     case 'go': {
       if (screen.k !== 'route' || !stop) return refuse('wrongScreen');
       if (a.to === 'city') {
+        if (!stop.cityOpen) return refuse('noCity');
         s.stop = 'city';
         s.screen = { k: 'city' };
       } else if (a.to === 'town') {

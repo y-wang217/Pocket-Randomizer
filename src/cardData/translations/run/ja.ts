@@ -3,16 +3,16 @@ import type { RunCopy } from '../../cardrunCopy';
 
 export const RUN_JA: RunCopy = {
   title: 'カードラン',
-  tagline: '全3幕。戦闘の間には必ず立ち寄り先。各幕の最後にはコロッサス。',
+  tagline: '3つの階層。2回の戦闘のあとにボス、その間に休憩所。',
   newRun: '新しいラン',
   continueRun: 'ランを続ける',
   sandbox: 'サンドボックス',
   tutorial: 'チュートリアル',
   seed: (seed: string) => `シード ${seed}`,
-  act: (n: number, of: number) => `幕 ${n}/${of}`,
+  act: (n: number, of: number) => `階層 ${n}/${of}`,
   actScaling: (n: number, hp: number, veterans: 'none' | 'leads' | 'all') => {
-    const parts = [hp > 0 ? `敵HP +${hp}` : '', { none: '', leads: '最初の2ウェーブに精鋭', all: '全ウェーブに精鋭' }[veterans]].filter(Boolean);
-    return parts.length > 0 ? `第${n}幕：${parts.join('、')}` : '';
+    const parts = [hp > 0 ? `敵HP +${hp}` : '', { none: '', leads: '最後の前のウェーブにベテラン', all: '全ウェーブに精鋭' }[veterans]].filter(Boolean);
+    return parts.length > 0 ? `第${n}階層：${parts.join('、')}` : '';
   },
   actChip: (hp: number, veterans: 'none' | 'leads' | 'all') => [hp > 0 ? `HP +${hp}` : '', veterans === 'none' ? '' : '精鋭'].filter(Boolean).join(' · '),
   fight: (n: number) => `戦闘 ${n}`,
@@ -26,7 +26,7 @@ export const RUN_JA: RunCopy = {
   slots: (n: number) => `スロット ${n}`,
   hp: (n: number) => `HP ${n}`,
   base: (n: number) => `基本 ${n}`,
-  mp: (n: number) => `MP +${n}`,
+  mp: (n: number) => `最大MP+${n}`,
   close: '閉じる',
   back: '戻る',
   cancel: 'キャンセル',
@@ -101,7 +101,7 @@ export const RUN_JA: RunCopy = {
       slots: (n: number) => `カードスロット +${n}`,
       hp: (n: number) => `最大HP +${n}`,
       baseShield: (n: number) => `基本シールド +${n}`,
-      mp: (n: number) => `各戦闘の開始時 MP +${n}`,
+      mp: (n: number) => `最大MP+${n}（毎ターン）`,
     },
     talent: '特技',
     givenBack: '返還',
@@ -119,7 +119,7 @@ export const RUN_JA: RunCopy = {
     stats: (fights: number, bosses: number, quests: number, upgrades: number) =>
       `戦闘勝利 ${fights} · ボス ${bosses} · クエスト ${quests} · 強化 ${upgrades}`,
     reached: (where: string) => `到達：${where}`,
-    fellIn: (act: number, of: number, where: string) => `第${act}幕（全${of}幕）で敗北：${where}`,
+    fellIn: (act: number, of: number, where: string) => `第${act}階層（全${of}階層）で敗北：${where}`,
     leaned: (shapes: string, n: number) => `方針：${shapes}、${n}枚`,
     leanedNone: '方針なし',
     talents: (list: string) => `特技：${list}`,
@@ -149,6 +149,7 @@ export const RUN_JA: RunCopy = {
     wrongScreen: '今はできない。',
     badIndex: 'その選択肢はない。',
     cannotPay: '物資が足りない。',
+    noCity: 'この2戦の間に街はない。',
     alreadyBought: '購入済み。',
     notUpgradable: 'そのカードはもう強化できない。',
     deckTooSmall: 'デッキが少なすぎて、カードを手放せない。',
@@ -183,13 +184,13 @@ export const RUN_JA: RunCopy = {
     Fight: '戦う',
     'Pay them off': '金を払う',
     'First card each turn: a Strike becomes a Pierce while at full HP': '毎ターン最初のカード：HP満タンならストライクが貫通になる',
-    '+1 MP at the start of each turn': '毎ターン開始時 MP +1',
+    '+1 max MP, every turn of the run': '最大MP+1、この旅の毎ターン',
     'Shields and Repairs from its cards +1': '自分のカードのシールドと修理 +1',
     'Blast +1 from the danger zone': '危険地帯からのブラスト +1',
     'Equipment it plays: next hand +1': '使った装備：次の手札 +1',
     'A Shield on itself also Covers its neighbours': '自分へのシールドで隣もかばう',
     'Slash +1': 'スラッシュ +1',
-    'Three waves. Last: The Colossus alone. It grants the Harpoon as it arrives.': '3つのウェーブ。最後：コロッサス単体。現れるとハープーンが手に入る。',
+    'Two waves. Last: The Colossus alone. It grants the Harpoon as it arrives.': '2つのウェーブ。最後：コロッサス単体。現れるとハープーンが手に入る。',
     'Three waves. Last: The Warlord holds the middle lane, a Hound on either side.': '3つのウェーブ。最後：将軍が中央レーンを守り、両脇にハウンド。',
     'Three waves, each harder, the Colossus last. Only the cards reset between waves.':
       '3つのウェーブ、次第に強くなり、最後にコロッサス。ウェーブの間でリセットされるのはカードだけ。',

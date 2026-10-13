@@ -22,8 +22,9 @@ import { at, iidOf } from './fixtures/card-battle';
 const MARKSMAN = { k: 'firstCardConverts', from: 'strike', to: 'pierce', while: 'fullHp' };
 
 describe('the basic starting deck', () => {
-  it('is ten cards that do nothing fancy: a hit per unit, a Brace per unit, two Moves, an Attack and a Dig In', () => {
-    expect(STARTING_DECK).toHaveLength(10);
+  it('is eleven cards that do nothing fancy: a hit per unit, a Brace per unit, two Moves, an Attack, a Dig In and Spark', () => {
+    expect(STARTING_DECK).toHaveLength(11);
+    expect(STARTING_DECK).toContain('spark');
     expect(createRun('BASIC').deck).toEqual([...STARTING_DECK]);
     for (const id of STARTING_DECK) {
       const def = CARDS[id]!;
@@ -109,7 +110,8 @@ describe('Group A (checkpoint 3): reward cards from the existing effects', () =>
     const iid = iidOf(state, card);
     state.piles.draw = state.piles.draw.filter((c) => c !== iid);
     state.piles.hand.push(iid);
-    state.units.forEach((u, i) => Object.assign(u, { mp, pos: at((i + 1) as 1 | 2 | 3, 3) }));
+    state.mp = mp;
+    state.units.forEach((u, i) => Object.assign(u, { pos: at((i + 1) as 1 | 2 | 3, 3) }));
     state.enemies.forEach((e, i) => Object.assign(e, { pos: at((i + 1) as 1 | 2 | 3, 4), baseShield: 0 }));
     return { state, iid };
   }
@@ -145,7 +147,7 @@ describe('Group A (checkpoint 3): reward cards from the existing effects', () =>
     expect(kinds(suppress)).toContain('damaged');
     expect(suppress).toContainEqual({ t: 'shielded', unit: 'B', amount: 1 });
     const second = play('second-wind');
-    expect(kinds(second)).toEqual(expect.arrayContaining(['drawQueued', 'mpGained']));
+    expect(kinds(second)).toEqual(expect.arrayContaining(['drawQueued', 'mpQueued']));
     const flash = play('flashbang');
     expect(kinds(flash)).toEqual(expect.arrayContaining(['damaged', 'drawQueued', 'usedUp']));
   });

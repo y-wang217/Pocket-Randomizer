@@ -5,7 +5,7 @@
  * The plan lives here, not in the UI. `select` and `unselect` edit
  * `state.plan`, and every legality question is answered from this object.
  */
-import type { CardOwner, Col, Cond, EnemyDefId, Lane, Pos, UnitBoost, UnitDefId } from './defs';
+import type { CardOwner, Col, Cond, EnemyDefId, Inflict, Lane, Pos, UnitBoost, UnitDefId } from './defs';
 
 export type { Pos, Lane, Col };
 
@@ -23,7 +23,6 @@ export interface UnitState {
   maxHp: number;
   shield: number;
   baseShield: number;
-  mp: number;
   fainted: boolean;
   /**
    * Stealth: enemy phases left in which the enemies' acts pass over this unit.
@@ -32,13 +31,17 @@ export interface UnitState {
   stealth?: number;
   /** Cover: enemy phases left in which this unit takes the hits meant for its neighbours. Absent when none. */
   cover?: number;
-  /** Start-of-turn MP still owed by a card (Focus): one entry per grant. */
-  pendingMp: { n: number; turns: number }[];
+  /** Root (floor 2): its turns left unable to move. Absent when none. */
+  root?: number;
+  /** Frail (floor 2): its turns left in which a card's shield gives it nothing. Absent when none. */
+  frail?: number;
 }
 
 export interface Intent {
   act: 'none' | 'strike' | 'pierce' | 'slash' | 'shield' | 'scream';
   n: number;
+  /** The status the hit leaves on each unit it lands on (floor 2). */
+  inflict?: Inflict;
   /** The step's name for its act, when it has one (Crush, Stomp). */
   label?: string;
   /** The tiles the action will hit, from the enemy's position when telegraphed. */
@@ -125,9 +128,21 @@ export interface BattleState {
   uses: Record<CardIid, number>;
   /** Extra draws owed to the next hand (Need Help). */
   pendingDraws: { n: number; filter: 'notOwner'; owner: CardOwner }[];
+  /** A fallen wave's supply pack, waiting to be claimed before the next wave's first plan. */
+  waveReward: boolean;
+  /** Supplies the battle's packs have paid, for the card run to add once the battle is won. */
+  suppliesWon: number;
+  /** The shared MP pool every unit's cards are paid from (`RULES.mp`). */
+  mp: number;
+  /** Bonus MP owed to the pool's next refills by a card (Resupply, Focus): one entry per grant. */
+  pendingMp: { n: number; turns: number }[];
   /** The card run's boosts to each unit (`Loadout.units`); absent in a sandbox battle. */
   boosts?: Partial<Record<UnitDefId, UnitBoost>>;
 }
+
+/** What a supply pack holds; an offer is every one, in this order. */
+export type WaveReward = 'supplies' | 'hp' | 'mp';
+export const WAVE_REWARDS: readonly WaveReward[] = ['supplies', 'hp', 'mp'];
 
 export type Action =
   | { type: 'select'; card: CardIid; unit: UnitId; choice?: Choice }
@@ -136,10 +151,12 @@ export type Action =
   /** Deploy only: put a unit on a home tile, swapping with a unit already there. */
   | { type: 'place'; unit: UnitId; tile: Pos }
   /** Deploy only: the placement stands and round 1 begins. */
-  | { type: 'start' };
+  | { type: 'start' }
+  /** A fallen wave's supply pack: one of `WAVE_REWARDS`. */
+  | { type: 'claim'; reward: WaveReward };
 
 /** Why a card cannot be played by a unit right now. */
-export type PlayBlock = 'noMp' | 'noSlot' | 'wrongZone' | 'noTarget' | 'fainted' | 'outOfRange';
+export type PlayBlock = 'noMp' | 'noSlot' | 'wrongZone' | 'noTarget' | 'fainted' | 'outOfRange' | 'rooted';
 
 export type IllegalReason =
   | PlayBlock
@@ -155,4 +172,8 @@ export type IllegalReason =
   /** A card action before the battle has started. */
   | 'deploying'
   /** A placement after it has. */
-  | 'notDeploying';
+  | 'notDeploying'
+  /** A card action while a supply pack waits. */
+  | 'claimFirst'
+  /** A claim with no pack waiting. */
+  | 'nothingToClaim';

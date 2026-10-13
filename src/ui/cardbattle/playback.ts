@@ -92,7 +92,6 @@ export function roundSteps(before: BattleState, events: readonly BattleEvent[], 
   const steps: Step[] = [];
   // Cast so the checker does not narrow it to `null`: `begin` reassigns it.
   let open = null as Step | null;
-  const roundMp: { step?: Step; units: string[] } = { units: [] };
   let stomps = 0;
 
   const begin = (kind: StepKind, title: string, extra: Partial<Step> = {}): Step => {
@@ -121,10 +120,26 @@ export function roundSteps(before: BattleState, events: readonly BattleEvent[], 
         });
         if (index >= 0) draft.plan.splice(index, 1);
         draft.piles.hand = draft.piles.hand.filter((c) => c !== event.card);
-        const unit = unitOf(event.unit);
-        if (unit) unit.mp = Math.max(0, unit.mp - def.cost);
+        draft.mp = Math.max(0, draft.mp - def.cost);
         break;
       }
+      case 'repelled': {
+        const unit = unitOf(event.unit);
+        if (unit) unit.pos = { ...event.to };
+        const step = current('card', '');
+        step.moves.push({ id: event.unit, from: event.from, to: event.to });
+        step.lines.push(L.repelled(who(event.unit)));
+        break;
+      }
+      case 'inflicted':
+        (open ?? begin('round', '')).lines.push(L.inflicted(who(event.unit), CARD_COPY.status[event.status](event.turns)));
+        break;
+      case 'frailBlocked':
+        current('card', '').lines.push(L.frailBlocked(who(event.unit)));
+        break;
+      case 'cleansed':
+        current('card', '').lines.push(L.cleansed(event.n));
+        break;
       case 'moved': {
         const unit = unitOf(event.unit);
         if (unit) unit.pos = { ...event.to };
@@ -278,17 +293,19 @@ export function roundSteps(before: BattleState, events: readonly BattleEvent[], 
         (open ?? begin('card', '')).lines.push(L.fainted(who(event.unit)));
         break;
       }
-      case 'mpGained': {
-        const unit = unitOf(event.unit);
-        if (unit) unit.mp += event.amount;
-        if (event.source === 'card') current('card', '').lines.push(L.mp(event.unit, event.amount));
-        else if (event.source === 'round') {
-          roundMp.units.push(event.unit);
-          roundMp.step ??= begin('round', '', { quiet: true });
-          roundMp.step.title = L.roundMp(roundMp.units.join(', '));
-        } else (open ?? begin('round', '')).lines.push(L.mp(event.unit, event.amount));
+      case 'mpQueued': {
+        const E = CARD_COPY.effect;
+        current('card', '').lines.push(L.mp(event.unit, event.turns === 1 ? E.gainMp(event.n) : E.mpNextTurns(event.n, event.turns)));
         break;
       }
+      case 'mpGainedNow':
+        draft.mp += event.n;
+        current('card', '').lines.push(L.mp(event.unit, CARD_COPY.effect.gainMpNow(event.n)));
+        break;
+      case 'mpRefilled':
+        draft.mp = event.mp;
+        begin('round', L.roundMp(event.mp), { quiet: true });
+        break;
       case 'drawQueued':
         current('card', '').lines.push(L.drawQueued(event.n));
         break;

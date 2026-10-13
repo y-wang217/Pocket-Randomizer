@@ -101,9 +101,7 @@ export function layoutBattle(encounterId: string, seed: string, loadout?: Loadou
       maxHp: UNITS[def].hp + (boosts?.[def]?.hp ?? 0),
       shield: 0,
       baseShield: UNITS[def].baseShield + (boosts?.[def]?.baseShield ?? 0),
-      mp: Math.min(RULES.mp.cap, RULES.mp.start + (boosts?.[def]?.mp ?? 0)),
       fainted: false,
-      pendingMp: [],
     })),
     // Every wave's enemies, ids continuing across waves; a later wave's stand nowhere until it arrives.
     enemies: wavesOf(encounter).flatMap((wave, index) => wave.map((spawn) => ({ ...spawn, wave: index }))).map(({ def, pos, wave }, spawnIndex) => ({
@@ -129,6 +127,11 @@ export function layoutBattle(encounterId: string, seed: string, loadout?: Loadou
     plan: [],
     uses: Object.fromEntries(Object.values(cards).flatMap((c) => (CARDS[c.def]!.uses ? [[c.iid, CARDS[c.def]!.uses!]] : []))),
     pendingDraws: [],
+    waveReward: false,
+    suppliesWon: 0,
+    // The round 1 hand refills it.
+    mp: 0,
+    pendingMp: [],
     ...(boosts ? { boosts: JSON.parse(JSON.stringify(boosts)) as typeof boosts } : {}),
   };
 }

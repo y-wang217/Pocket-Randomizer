@@ -38,6 +38,7 @@ import { createBattle, gradeTotal } from '../../core/cards/create';
 import type { Effect, EnemyDefId, Pos } from '../../core/cards/defs';
 import { planDeploy, planRound } from '../../core/cards/guard';
 import { choicesFor } from '../../core/cards/legal';
+import { maxMpOf } from '../../core/cards/plan';
 import { newLog, type BattleLog } from '../../core/cards/log';
 import { displacementsFor, friendlyFireFor, interceptsFor, previewPlay, type AttackPreview, type Displacement, type FriendlyFire, type Intercept } from '../../core/cards/preview';
 import type { Action, BattleState, CardIid, TargetId, UnitId } from '../../core/cards/state';
@@ -48,7 +49,7 @@ import { samePos } from '../../core/cards/zones';
 import { newSeed } from '../seed';
 import { CARD_ASSET_GROUPS, assetStash, cardAsset, cardAssetUrl, type CardAssetId } from './assets';
 import { createCoach } from './coach';
-import { deckOf, manaBar, ultOf, vitals } from './meters';
+import { manaBar, vitals } from './meters';
 import { roundSteps, type RoundRecord, type Step } from './playback';
 import { CARD_PALETTES, loadCardPrefs, saveCardPrefs, saveTutorialSeen, type CardPalette, type CardPrefs } from './prefs';
 import { TUTORIAL_ENCOUNTER, TUTORIAL_SEED, type TutorialStep } from './tutorial';
@@ -135,6 +136,9 @@ const ENEMY_MARKER: Record<EnemyDefId, CardAssetId> = {
   deadeye: 'marker-enemy-sniper',
   halberdier: 'marker-enemy-pikeman',
   warlord: 'marker-enemy-base',
+  snarer: 'marker-enemy-snarer',
+  breaker: 'marker-enemy-breaker',
+  reaver: 'marker-enemy-reaver',
 };
 const INTENT_ICON: Record<string, CardAssetId> = {
   strike: 'icon-strike',
@@ -146,7 +150,7 @@ const INTENT_ICON: Record<string, CardAssetId> = {
   none: 'icon-wait',
 };
 /** The keywords the Inspect glossary explains (step 7b), in its order. */
-const GLOSSARY_KINDS = ['push', 'pull', 'repair', 'stealth', 'cover', 'stun'] as const;
+const GLOSSARY_KINDS = ['push', 'pull', 'repair', 'stealth', 'cover', 'stun', 'cleanse'] as const;
 const THREAT_ORDER: readonly TileThreat['act'][] = ['pierce', 'slash', 'scream', 'strike'];
 const THREAT_ORDER_ALL: readonly AttackPreview['act'][] = ['pierce', 'slash', 'blast', 'strike'];
 
@@ -164,6 +168,12 @@ const ZONE_TILE: Record<TileView['zone'], CardAssetId> = {
   playerBackline: 'tile-player-backline',
   danger: 'tile-danger-zone',
   enemyBackline: 'tile-enemy-backline',
+};
+/** Floor 2's fort (2026-10-13): its tiles, and its backdrop in place of the meadow. */
+const FORT_TILE: Record<TileView['zone'], CardAssetId> = {
+  playerBackline: 'tile-fort-player-backline',
+  danger: 'tile-fort-danger-zone',
+  enemyBackline: 'tile-fort-enemy-backline',
 };
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string): HTMLElementTagNameMap[K] {
@@ -211,6 +221,7 @@ function effectFace(effects: readonly Effect[]): { icon: CardAssetId; n: number 
       case 'shield':
         return { icon: 'icon-shield', n: effect.n, targeted };
       case 'gainMp':
+      case 'gainMpNow':
       case 'mpNextTurns':
         return { icon: 'icon-mp', n: effect.n, targeted };
       case 'drawNext':
@@ -228,6 +239,8 @@ function effectFace(effects: readonly Effect[]): { icon: CardAssetId; n: number 
         return { icon: 'icon-shield', n: effect.n, targeted };
       case 'stun':
         return { icon: 'icon-pinned', n: effect.n, targeted };
+      case 'cleanse':
+        return { icon: 'icon-cleanse', n: effect.n, targeted };
       default:
         break;
     }
@@ -300,6 +313,9 @@ export function effectLines(effects: readonly Effect[]): string[] {
       case 'gainMp':
         lines.push(CARD_COPY.effect.gainMp(effect.n));
         break;
+      case 'gainMpNow':
+        lines.push(CARD_COPY.effect.gainMpNow(effect.n));
+        break;
       case 'mpNextTurns':
         lines.push(CARD_COPY.effect.mpNextTurns(effect.n, effect.turns));
         break;
@@ -329,6 +345,9 @@ export function effectLines(effects: readonly Effect[]): string[] {
         break;
       case 'stun':
         lines.push(CARD_COPY.effect.stun(effect.n));
+        break;
+      case 'cleanse':
+        lines.push(CARD_COPY.effect.cleanse(effect.n));
         break;
       default:
         break;
@@ -445,6 +464,18 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   );
 
   /** A battle from its first draw. The tutorial's coach runs only when `tutorial` says so. */
+  /** The battle is on a floor 2 or later board: the fort's art (2026-10-13). */
+  function fort(): boolean {
+    return ENCOUNTERS[state.encounterId]?.skin === 'fort';
+  }
+
+  /** The backdrop for the battle's floor, when its file is in. */
+  function setBackdrop(): void {
+    const url = cardAssetUrl(fort() ? 'background-fort' : 'background-meadow');
+    if (url) root.style.setProperty('--cb-meadow', `url("${url}")`);
+    root.dataset['skin'] = fort() ? 'fort' : 'meadow';
+  }
+
   function start(nextSeed: string, tutorial = false): void {
     seed = nextSeed;
     tutorialDone = false;
@@ -461,6 +492,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
       state = created.state;
       log = newLog(seed, encounterId, state.deckId);
     }
+    setBackdrop();
     pending = null;
     placing = null;
     filter = null;
@@ -478,13 +510,10 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     start(TUTORIAL_SEED, true);
   }
 
-  /** A step's words, in the current language. The MP step names the Commander's ult and its cost. */
+  /** A step's words, in the current language. The MP step names what the shared pool refills to. */
   function stepWords(step: TutorialStep): { title: string; text: string } {
     const words = CARD_COPY.tutorial.steps;
-    if (step.id === 'mana') {
-      const ult = ultOf('A', deckOf(state), RULES.mp.cap);
-      return { title: words.mana.title, text: words.mana.text(nameOf(ult?.name ?? ''), ult?.cost ?? RULES.mp.cap, RULES.mp.cap) };
-    }
+    if (step.id === 'mana') return { title: words.mana.title, text: words.mana.text(maxMpOf(state)) };
     return words[step.id];
   }
 
@@ -830,6 +859,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     status.append(
       el('span', 'cb-round', view.waves > 1 ? `${CARD_COPY.wave(view.wave + 1, view.waves)} · ${CARD_COPY.round} ${view.round}` : `${CARD_COPY.round} ${view.round}`),
       el('span', 'cb-piles', `${CARD_COPY.draw} ${view.piles.draw} · ${CARD_COPY.discard} ${view.piles.discard}`),
+      manaBar(view.mana),
     );
     const idle = state.phase === 'deploy' ? CARD_COPY.deployHint : graceShowing(view) ? CARD_COPY.graceBoard : '';
     const note = el('div', 'cb-note', message || (inspectMode ? CARD_COPY.inspectHint : idle));
@@ -858,7 +888,7 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         node.type = 'button';
         node.dataset['lane'] = String(lane);
         node.dataset['col'] = String(col);
-        node.append(cardAsset(ZONE_TILE[tile.zone], 'fill'));
+        node.append(cardAsset((fort() ? FORT_TILE : ZONE_TILE)[tile.zone], 'fill'));
         const selectable = choosing && (pending?.tiles ?? placeTiles).some((t) => samePos(t, tile.pos));
         const acts = threatActs(tile);
         for (const act of acts) node.append(threatLayer(tile, act));
@@ -1106,7 +1136,6 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
 
   function renderPanels(view: BattleView): void {
     const warned = allyWarnings(view);
-    const deck = deckOf(state);
     enemySide.replaceChildren(
       ...view.enemies.map((enemy, index) => {
         const target = !!pending && pending.stage !== 'tile' && pending.units.includes(enemy.id);
@@ -1137,7 +1166,9 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
           pill.append(cardAsset('pill-badge', 'fill'));
           pill.append(cardAsset(INTENT_ICON[intent.icon] ?? 'icon-wait', { width: 16, height: 16 }));
           const word = intent.icon === 'none' ? CARD_COPY.intentNone : `${intent.label ?? CARD_COPY.keyword[intent.icon as 'strike']} ${intent.n}`;
-          pill.append(el('span', 'cb-pill-text', word));
+          // A hit that leaves a status says so on the pill (floor 2): Strike 1 · Root 2.
+          pill.append(el('span', 'cb-pill-text', intent.inflict ? `${word} · ${CARD_COPY.status[intent.inflict.k](intent.inflict.n)}` : word));
+          if (intent.inflict) pill.dataset['inflict'] = intent.inflict.k;
           panel.append(pill);
         }
         panel.addEventListener('click', () => tapTarget(enemy.id));
@@ -1160,7 +1191,19 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
         const portrait = el('span', 'cb-panel-portrait');
         portrait.append(cardAsset(UNIT_PORTRAIT[unit.id], 'fill'));
         panel.append(portrait, el('div', 'cb-panel-name', `${unit.id} ${nameOf(unit.name)}`));
-        panel.append(vitals(unit.hp, unit.maxHp, unit.shield, unit.baseShield), manaBar(unit, ultOf(unit.id, deck, unit.mpCap)));
+        panel.append(vitals(unit.hp, unit.maxHp, unit.shield, unit.baseShield));
+        // Root and Frail (floor 2): each with its turns left, icon and word, never colour alone.
+        if (unit.root > 0 || unit.frail > 0) {
+          const statuses = el('div', 'cb-statuses');
+          for (const k of ['root', 'frail'] as const) {
+            if (unit[k] === 0) continue;
+            const chip = el('span', 'cb-status-chip');
+            chip.dataset['status'] = k;
+            chip.append(cardAsset(k === 'root' ? 'icon-root' : 'icon-frail', { width: 12, height: 12 }), el('span', '', CARD_COPY.status[k](unit[k])));
+            statuses.append(chip);
+          }
+          panel.append(statuses);
+        }
         const slots = el('div', 'cb-slots');
         slots.dataset['coach'] = 'slots';
         for (let i = 0; i < unit.slots; i++) {
@@ -1218,6 +1261,22 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   }
 
   function renderHand(view: BattleView): void {
+    // A fallen wave's supply pack takes the hand's place until one is claimed.
+    if (view.reward && !playback) {
+      hand.dataset['count'] = '0';
+      delete hand.dataset['filter'];
+      const pack = el('div', 'cb-pack');
+      pack.append(el('div', 'cb-pack-title', CARD_COPY.pack.title));
+      const options = el('div', 'cb-pack-options');
+      for (const { kind, n } of view.reward) {
+        const option = button('cb-btn cb-pack-option', CARD_COPY.pack[kind](n), () => act({ type: 'claim', reward: kind }));
+        option.dataset['reward'] = kind;
+        options.append(option);
+      }
+      pack.append(options);
+      hand.replaceChildren(pack);
+      return;
+    }
     const all = view.hand.flatMap((group) => group.cards);
     const active = filter !== null && view.phase === 'plan' && !playback ? filter : null;
     const cards = active ? all.filter((card) => inFilter(card, active)) : all;
@@ -1384,6 +1443,9 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
     else if (RULES.openingGrace) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.rule.grace));
     if (enemy.pinned > 0 && !enemy.boss) card.append(el('div', 'cb-enemy-card-rule cb-glossary', CARD_COPY.glossary.stun));
     if (def.stalks) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.bossRules.stalk));
+    // Floor 2: what its hits leave, once each kind.
+    const inflicts = new Set(def.script.steps.flatMap((step) => ('inflict' in step.act && step.act.inflict ? [step.act.inflict.k] : [])));
+    for (const k of inflicts) card.append(el('div', 'cb-enemy-card-rule cb-glossary', CARD_COPY.glossary[k]));
     if (def.boss) card.append(el('div', 'cb-enemy-card-rule', CARD_COPY.bossRules.pin));
     inspect.replaceChildren(card);
     inspect.hidden = false;

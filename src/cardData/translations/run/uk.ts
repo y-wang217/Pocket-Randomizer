@@ -13,16 +13,16 @@ const supplies = (n: number): string => plural(n, 'припас', 'припас�
 
 export const RUN_UK: RunCopy = {
   title: 'Картковий похід',
-  tagline: 'Три акти. Зупинка між кожними двома боями. Колос наприкінці кожного акту.',
+  tagline: 'Три поверхи. Два бої, потім бос, із зупинкою між ними.',
   newRun: 'Новий похід',
   continueRun: 'Продовжити похід',
   sandbox: 'Пісочниця',
   tutorial: 'Навчання',
   seed: (seed: string) => `Сід ${seed}`,
-  act: (n: number, of: number) => `Акт ${n}/${of}`,
+  act: (n: number, of: number) => `Поверх ${n}/${of}`,
   actScaling: (n: number, hp: number, veterans: 'none' | 'leads' | 'all') => {
-    const parts = [hp > 0 ? `вороги +${hp} HP` : '', { none: '', leads: 'ветерани в перших двох хвилях', all: 'ветерани в кожній хвилі' }[veterans]].filter(Boolean);
-    return parts.length > 0 ? `Акт ${n}: ${parts.join(', ')}` : '';
+    const parts = [hp > 0 ? `вороги +${hp} HP` : '', { none: '', leads: 'ветерани у хвилях перед останньою', all: 'ветерани в кожній хвилі' }[veterans]].filter(Boolean);
+    return parts.length > 0 ? `Поверх ${n}: ${parts.join(', ')}` : '';
   },
   actChip: (hp: number, veterans: 'none' | 'leads' | 'all') => [hp > 0 ? `+${hp} HP` : '', veterans === 'none' ? '' : 'ветерани'].filter(Boolean).join(' · '),
   fight: (n: number) => `Бій ${n}`,
@@ -36,7 +36,7 @@ export const RUN_UK: RunCopy = {
   slots: (n: number) => `${n} ${plural(n, 'слот', 'слоти', 'слотів')}`,
   hp: (n: number) => `${n} HP`,
   base: (n: number) => `База ${n}`,
-  mp: (n: number) => `+${n} MP`,
+  mp: (n: number) => `+${n} макс. MP`,
   close: 'Закрити',
   back: 'Назад',
   cancel: 'Скасувати',
@@ -111,7 +111,7 @@ export const RUN_UK: RunCopy = {
       slots: (n: number) => `+${n} слот для карт`,
       hp: (n: number) => `+${n} макс. HP`,
       baseShield: (n: number) => `+${n} базовий щит`,
-      mp: (n: number) => `+${n} MP на початку кожного бою`,
+      mp: (n: number) => `+${n} макс. MP, щоходу`,
     },
     talent: 'Талант',
     givenBack: 'Повернуто',
@@ -129,7 +129,7 @@ export const RUN_UK: RunCopy = {
     stats: (fights: number, bosses: number, quests: number, upgrades: number) =>
       `Боїв виграно: ${fights} · босів: ${bosses} · завдань: ${quests} · покращень: ${upgrades}`,
     reached: (where: string) => `Дійшли до: ${where}`,
-    fellIn: (act: number, of: number, where: string) => `Полягли в акті ${act}/${of}: ${where}`,
+    fellIn: (act: number, of: number, where: string) => `Полягли на поверсі ${act}/${of}: ${where}`,
     leaned: (shapes: string, n: number) => `Напрям: ${shapes}, ${n} ${plural(n, 'карта', 'карти', 'карт')}`,
     leanedNone: 'Без напряму',
     talents: (list: string) => `Таланти: ${list}`,
@@ -159,6 +159,7 @@ export const RUN_UK: RunCopy = {
     wrongScreen: 'Не зараз.',
     badIndex: 'Такого варіанта немає.',
     cannotPay: 'Замало припасів.',
+    noCity: 'Між цими двома боями немає міста.',
     alreadyBought: 'Уже куплено.',
     notUpgradable: 'Цю карту більше не можна покращити.',
     deckTooSmall: 'Колода замала, щоб втратити карту.',
@@ -193,13 +194,13 @@ export const RUN_UK: RunCopy = {
     Fight: 'Битися',
     'Pay them off': 'Відкупитися',
     'First card each turn: a Strike becomes a Pierce while at full HP': 'Перша карта щоходу: Удар стає Пробиттям, поки HP повне',
-    '+1 MP at the start of each turn': '+1 MP на початку кожного ходу',
+    '+1 max MP, every turn of the run': '+1 макс. MP, щоходу протягом забігу',
     'Shields and Repairs from its cards +1': 'Щити й Ремонт з його карт +1',
     'Blast +1 from the danger zone': 'Вибух +1 з небезпечної зони',
     'Equipment it plays: next hand +1': 'Зігране спорядження: наступна рука +1',
     'A Shield on itself also Covers its neighbours': 'Щит на собі також Прикриває сусідів',
     'Slash +1': 'Розсік +1',
-    'Three waves. Last: The Colossus alone. It grants the Harpoon as it arrives.': 'Три хвилі. Остання: Колос сам. З його появою ви отримуєте Гарпун.',
+    'Two waves. Last: The Colossus alone. It grants the Harpoon as it arrives.': 'Дві хвилі. Остання: Колос сам. З його появою ви отримуєте Гарпун.',
     'Three waves. Last: The Warlord holds the middle lane, a Hound on either side.': 'Три хвилі. Остання: Воєвода тримає середню смугу, обабіч по Гончаку.',
     'Three waves, each harder, the Colossus last. Only the cards reset between waves.':
       'Три хвилі, кожна важча, остання — Колос. Між хвилями скидаються лише карти.',

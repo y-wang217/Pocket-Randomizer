@@ -7,12 +7,14 @@ import { createBattle, layoutBattle } from '../../src/core/cards/create';
 import type { Col, Pos } from '../../src/core/cards/defs';
 import type { BattleEvent } from '../../src/core/cards/events';
 import type { BattleState, CardIid, UnitId } from '../../src/core/cards/state';
+import { maxMpOf } from '../../src/core/cards/plan';
 import { step } from '../../src/core/cards/step';
 
 export interface BoardSpec {
   /** Card def ids to put in hand, in order. */
   hand?: string[];
-  mp?: Partial<Record<UnitId, number>>;
+  /** The shared MP pool; a full turn's, as a refill leaves it, when absent. */
+  mp?: number;
   /** Unit positions; `null` faints the unit. */
   units?: Partial<Record<UnitId, Pos | null>>;
   /** Enemy positions by spawn index; `null` kills it. */
@@ -26,9 +28,8 @@ export function board(spec: BoardSpec = {}): BattleState {
     state.piles.draw = state.piles.draw.filter((c) => c !== iid);
     state.piles.hand.push(iid);
   }
+  state.mp = spec.mp ?? maxMpOf(state);
   for (const unit of state.units) {
-    const mp = spec.mp?.[unit.id];
-    if (mp !== undefined) unit.mp = mp;
     if (spec.units && unit.id in spec.units) {
       const pos = spec.units[unit.id];
       unit.pos = pos ?? null;

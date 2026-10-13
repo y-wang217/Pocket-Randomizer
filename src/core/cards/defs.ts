@@ -46,7 +46,11 @@ export type EnemyDefId =
   | 'juggernaut'
   | 'deadeye'
   | 'halberdier'
-  | 'warlord';
+  | 'warlord'
+  // Floor 2 (2026-10-13): harder, faster, and the first to leave a status.
+  | 'snarer'
+  | 'breaker'
+  | 'reaver';
 
 export type DamageKeyword = 'strike' | 'pierce' | 'slash' | 'blast';
 
@@ -55,7 +59,11 @@ export type Effect =
   | { k: 'move'; n: number }
   | { k: 'shield'; n: number; to: 'self' | 'friendly' }
   | { k: 'target'; n: number }
+  /** Bonus MP on top of the pool's refill at the start of the next turn (R12). */
   | { k: 'gainMp'; n: number }
+  /** MP into the pool at once, for the cards the plan plays after it (Spark). */
+  | { k: 'gainMpNow'; n: number }
+  /** Bonus MP on top of the pool's refill at the start of each of the next `turns` turns. */
   | { k: 'mpNextTurns'; n: number; turns: number }
   /** Command: a Move of `n` placed in another friendly unit's slot. */
   | { k: 'grantMove'; n: number }
@@ -86,7 +94,9 @@ export type Effect =
    */
   | { k: 'cover'; n: number }
   /** Stun (checkpoint 5a): every enemy the card's damage landed on, not a boss, skips its next `n` turns. */
-  | { k: 'stun'; n: number };
+  | { k: 'stun'; n: number }
+  /** Cleanse (floor 2): every living ally's Root and Frail lose `n` turns. */
+  | { k: 'cleanse'; n: number };
 
 export interface CardDef {
   id: string;
@@ -114,8 +124,8 @@ export interface CardDef {
    */
   equipment?: true;
   /**
-   * An ult: its owner's MP bar marks its cost, the MP the unit is saving
-   * toward. Presentation only; the engine never reads it. An upgrade keeps it.
+   * An ult: the unit's signature card. Presentation only; the engine never
+   * reads it. An upgrade keeps it.
    * A unit holds one only if its deck does: the Sword dasher has none until a
    * card run hands it one.
    */
@@ -123,8 +133,8 @@ export interface CardDef {
 }
 
 export type Ability =
-  /** A: MP at the start of each of its turns, turn 1 included. */
-  | { k: 'mpAtTurnStart'; n: number }
+  /** Max MP over the rules' one per unit: it adds to the shared pool every turn refills to. */
+  | { k: 'maxMp'; n: number }
   /** Marksman: the first card each turn resolves a Strike as a Pierce while at full HP. */
   | { k: 'firstCardConverts'; from: 'strike'; to: 'pierce'; while: 'fullHp' }
   /** A talent's +n to one effect of the unit's own cards, while in the danger zone when `inDanger`. */
@@ -163,9 +173,17 @@ export interface UnitDef {
 
 export type Cond = 'slashInRange';
 export type MoveRule = 'none' | 'hunt' | 'advance' | { if: Cond; then: MoveRule; else: MoveRule };
+/** A status an enemy's hit leaves on a player unit for `n` of its turns (floor 2, 2026-10-13). */
+export interface Inflict {
+  k: 'root' | 'frail';
+  n: number;
+}
+
 export type ActRule =
   | { k: 'none' }
-  | { k: 'strike' | 'pierce' | 'slash' | 'shield'; n: number }
+  | { k: 'shield'; n: number }
+  /** A hit, and the status it leaves on every unit it lands on. */
+  | { k: 'strike' | 'pierce' | 'slash'; n: number; inflict?: Inflict }
   | { if: Cond; then: ActRule; else: ActRule };
 export interface EnemyStep {
   move: MoveRule;
@@ -246,12 +264,14 @@ export interface EncounterDef {
   waves?: readonly (readonly EnemySpawn[])[];
   /** HP every enemy of the battle gains over its definition's (checkpoint 6: the card run's acts). */
   hpBonus?: number;
+  /** The board's art: the meadow when absent, the fort for floor 2 on (2026-10-13). */
+  skin?: 'fort';
 }
 
 /**
  * What the card run adds to one unit for the rest of the run (its boss
- * upgrades): extra card slots, max HP, base shield and MP at the start of a
- * battle and of each wave.
+ * upgrades): extra card slots, max HP, base shield and max MP, the last
+ * adding to the shared pool every turn of every fight.
  */
 export interface UnitBoost {
   slots?: number;
@@ -293,8 +313,25 @@ export interface Rules {
   /** The column step that points away from a side's own edge. */
   forward: Readonly<Record<Side, 1 | -1>>;
   handSize: number;
-  /** R2 is the cap. MP starts at `start` and gains `gainPerRound` after each turn. */
-  mp: { start: number; gainPerRound: number; cap: number };
+  /**
+   * R2, as the shared mana ruling has it: one MP pool for every unit, refilled
+   * at the start of each turn to the sum of the units' max MP, fainted units
+   * included, and leftovers lost. A unit's max is `perUnit` unless an ability
+   * or a boost adds to it.
+   */
+  mp: { perUnit: number };
+  /**
+   * The supply pack a fallen wave leaves, claimed at the start of the next
+   * (the author's answer of 2026-10-13): supplies for the run, HP to every
+   * living unit, or bonus MP for that turn. Each offer is all three, in this order.
+   */
+  waveReward: { supplies: number; hp: number; mp: number };
+  /**
+   * Melee into the end zone (2026-10-13): a melee unit's moves reach to
+   * `meleeReachMax`, and a unit in the end zone is pushed back to `repelCol`
+   * once a card of its deals damage there, or when the plan has played.
+   */
+  endZone: { meleeReachMax: Col; repelCol: Col };
   /** R3. */
   playerShieldClears: 'nextTurnStart';
   /** R4. Strike hits the first opposing unit in the lane counted from the attacker's side of the board. */
@@ -370,7 +407,7 @@ export interface GuardWeights {
   hp: number;
   /** Per point of base shield a living unit has left. */
   baseShield: number;
-  /** Per MP a living unit holds. */
+  /** Per MP in the shared pool. */
   mp: number;
   /** Per point of HP, shield and base shield left on the enemies. A cost. */
   enemyHp: number;

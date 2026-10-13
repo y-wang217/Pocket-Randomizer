@@ -47,8 +47,9 @@ function arena(spec: { pos?: Pos; stepIndex?: number; units?: Partial<Record<Uni
     // A wave 1 enemy kept alive beside it, for the Scream's allies.
     Object.assign(s.enemies[3]!, { def: spec.extra.def, wave: 2, hp: ENEMIES[spec.extra.def].hp, pos: spec.extra.pos });
   }
+  s.mp = spec.mp ?? 15;
   for (const u of s.units) {
-    Object.assign(u, { hp: 9, maxHp: 9, mp: spec.mp ?? 5 });
+    Object.assign(u, { hp: 9, maxHp: 9 });
     if (spec.units?.[u.id]) u.pos = spec.units[u.id]!;
   }
   const harpoon = s.piles.reserve[0]!;
@@ -114,7 +115,8 @@ describe('the Harpoon', () => {
     expect(s.piles.hand).toHaveLength(5);
     expect(viewOf(s).hand.flatMap((g) => g.cards).find((c) => c.iid === harpoon)).toMatchObject({ granted: true, retain: true, uses: { left: 2, of: 2 } });
     // Unplayed, it stays through the round: the next hand is it plus four.
-    const started = ok(s, { type: 'start' }).state;
+    // The fallen wave's supply pack is claimed before the wave's first plan.
+    const started = ok(ok(s, { type: 'start' }).state, { type: 'claim', reward: 'mp' }).state;
     const next = commit(started).state;
     expect(next.piles.hand).toContain(harpoon);
     expect(next.piles.hand).toHaveLength(5);

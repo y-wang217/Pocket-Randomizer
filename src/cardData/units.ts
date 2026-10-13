@@ -9,7 +9,9 @@ export const UNITS: Readonly<Record<UnitDefId, UnitDef>> = {
     class: 'special',
     hp: 1,
     baseShield: 1,
-    abilities: [{ k: 'mpAtTurnStart', n: 1 }],
+    // Max MP 1 like the others: its second MP is Spark, a card (the author's ruling of
+    // 2026-10-13), not a passive.
+    abilities: [],
   },
   B: {
     id: 'B',

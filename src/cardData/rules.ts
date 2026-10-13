@@ -29,8 +29,15 @@ export const RULES: Rules = {
   },
   forward: { player: 1, enemy: -1 },
   handSize: 5,
-  // R2: the cap. MP is per unit, starts at 0 and gains 1 after each turn.
-  mp: { start: 0, gainPerRound: 1, cap: 5 },
+  // R2, superseded by the shared mana ruling of 2026-10-12
+  // (`docs/spec/gymrun-patch-card-battle-shared-mana.md`): one pool for every
+  // unit, refilled each turn to the sum of their max MP, one each by default.
+  mp: { perUnit: 1 },
+  // The supply pack after each wave (`docs/spec/gymrun-patch-card-battle-fewer-rests-wave-reward.md`).
+  // First drafts: a wave's pack is smaller than a fight's 2 supplies.
+  waveReward: { supplies: 1, hp: 1, mp: 2 },
+  // Melee into the end zone (`docs/reports/floor-2-design.md`): one hit there, then repelled.
+  endZone: { meleeReachMax: 7, repelCol: 5 },
   playerShieldClears: 'nextTurnStart', // R3
   strikeReach: 'anyDistanceInLane', // R4
   patterns: { slashCols: 1, blastCols: 2, blastNeighbours: 'orthogonal' }, // R5

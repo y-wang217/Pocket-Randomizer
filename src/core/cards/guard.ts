@@ -57,7 +57,7 @@ export function evaluate(state: BattleState, w: GuardWeights = GUARD_WEIGHTS): n
   const enemyCost = w.enemyHp * enemyLeft + w.enemyAlive * livingEnemies(state).length;
   if (state.phase === 'lost') return -w.win - enemyCost;
 
-  let score = -enemyCost - w.round * state.round;
+  let score = -enemyCost - w.round * state.round + w.mp * state.mp;
   const lanes = new Set(livingUnits(state).map((u) => u.pos!.lane));
   const reach = w.reach * (1 + w.urgency * state.round);
   score += reach * livingEnemies(state).filter((e) => lanesOf(e).some((lane) => lanes.has(lane))).length;
@@ -67,7 +67,7 @@ export function evaluate(state: BattleState, w: GuardWeights = GUARD_WEIGHTS): n
   score += w.win * state.wave;
   const threats = state.phase === 'won' ? {} : incoming(state);
   for (const unit of livingUnits(state)) {
-    score += w.unit[unit.id] + w.hp * unit.hp + w.baseShield * unit.baseShield + w.mp * unit.mp;
+    score += w.unit[unit.id] + w.hp * unit.hp + w.baseShield * unit.baseShield;
     if (inDanger(unit.pos!)) score += w.forward;
     const dmg = threats[unit.id] ?? 0;
     if (dmg === 0) continue;
@@ -213,6 +213,8 @@ export function guardBot(w: GuardWeights = GUARD_WEIGHTS, search: GuardSearch = 
   let index = 0;
   return (state) => {
     if (state.phase !== 'plan' && state.phase !== 'deploy') return null;
+    // A supply pack: HP while any unit is hurt, else the MP for this turn's plan.
+    if (state.waveReward) return { type: 'claim', reward: livingUnits(state).some((u) => u.hp < u.maxHp) ? 'hp' : 'mp' };
     // A queue belongs to the state it was planned on and the steps after it.
     if (planned === null || index >= queue.length || !follows(planned, state)) {
       queue = state.phase === 'deploy' ? planDeploy(state, w, search).actions : planRound(state, w, search).actions;

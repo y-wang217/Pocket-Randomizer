@@ -49,10 +49,10 @@ describe('opening grace and Fast', () => {
   });
 
   it('rolls a starting step among the non-damaging steps under grace, and among every step without it', () => {
-    expect(openingSteps(ENEMIES.drone)).toEqual([1, 3, 5]);
+    expect(openingSteps(ENEMIES.drone)).toEqual([1, 3]);
     expect(openingSteps(ENEMIES.lancer)).toEqual([0, 1]);
     rules.openingGrace = false;
-    expect(openingSteps(ENEMIES.drone)).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(openingSteps(ENEMIES.drone)).toEqual([0, 1, 2, 3, 4]);
     expect(openingSteps(ENEMIES.lancer)).toEqual([0, 1, 2]);
   });
 

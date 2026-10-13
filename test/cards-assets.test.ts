@@ -10,11 +10,11 @@ import { describe, expect, it } from 'vitest';
 import { CARD_ASSET_GROUPS, assetStash, cardAsset, cardAssetPath, cardAssetUrl, renderSize, type CardAssetId } from '../src/ui/cardbattle/assets';
 
 const CONTRACT: Record<string, string[]> = {
-  tiles: ['tile-player-backline', 'tile-danger-zone', 'tile-enemy-backline', 'tile-overlay-selectable', 'tile-overlay-selected', 'tile-overlay-telegraph', 'tile-overlay-unavailable'],
+  tiles: ['tile-player-backline', 'tile-danger-zone', 'tile-fort-player-backline', 'tile-fort-danger-zone', 'tile-fort-enemy-backline', 'tile-enemy-backline', 'tile-overlay-selectable', 'tile-overlay-selected', 'tile-overlay-telegraph', 'tile-overlay-unavailable'],
   cards: ['card-frame-compact', 'card-frame-full', 'card-overlay-selected', 'card-overlay-unavailable', 'card-badge-corner', 'card-band-compact', 'card-band-full'],
   ui: [
     'panel-frame', 'pill-badge', 'bar-track', 'bar-fill', 'pip-empty', 'pip-filled', 'slot-empty', 'slot-filled', 'button-default', 'button-pressed', 'button-unavailable',
-    'button-primary-default', 'button-primary-pressed', 'button-primary-unavailable', 'background-meadow',
+    'button-primary-default', 'button-primary-pressed', 'button-primary-unavailable', 'background-meadow', 'background-fort',
   ],
   icons: [
     'icon-hp', 'icon-shield', 'icon-mp', 'icon-strike', 'icon-pierce', 'icon-slash', 'icon-blast', 'icon-move', 'icon-target', 'icon-stealth',
@@ -22,16 +22,19 @@ const CONTRACT: Record<string, string[]> = {
     'icon-type-fire', 'icon-type-plasma', 'icon-type-water', 'icon-inspect', 'icon-confirm', 'icon-cancel', 'icon-end-turn', 'icon-deck', 'icon-discard',
     'icon-shovel', 'icon-harpoon', 'icon-scream',
     'icon-fast', 'icon-pinned', 'icon-retain', 'icon-undo', 'icon-menu',
+    'icon-root', 'icon-frail', 'icon-cleanse',
   ],
   markers: [
     'marker-player-base', 'marker-enemy-base', 'marker-unit-commander', 'marker-unit-gunner', 'marker-unit-dasher', 'marker-enemy-drone',
     'marker-enemy-lancer', 'marker-ring-selected', 'marker-ring-destination', 'marker-reticle',
     'marker-enemy-hound', 'marker-enemy-turret', 'marker-enemy-bulwark', 'marker-enemy-sniper', 'marker-enemy-pikeman',
-    'marker-enemy-colossus', 'marker-enemy-colossus-pinned', 'marker-enemy-dummy', 'portrait-commander', 'portrait-gunner', 'portrait-dasher',
+    'marker-enemy-colossus', 'marker-enemy-colossus-pinned', 'marker-enemy-dummy', 'marker-enemy-snarer', 'marker-enemy-breaker', 'marker-enemy-reaver', 'portrait-commander', 'portrait-gunner', 'portrait-dasher',
   ],
   art: [
     'art-call-medic', 'art-command', 'art-focus', 'art-moon-strike', 'art-shoot', 'art-resupply', 'art-artillery', 'art-fire',
     'art-dash', 'art-slash', 'art-need-help', 'art-prep', 'art-move', 'art-dig-in', 'art-attack', 'art-harpoon',
+    // Floor 2 (2026-10-13).
+    'art-cleanse', 'art-antidote',
   ],
 };
 

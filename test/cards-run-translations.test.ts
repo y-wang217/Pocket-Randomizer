@@ -113,7 +113,12 @@ function screensOf(seed: string): Map<CardRunState['screen']['k'], RunAction[]> 
     if (counts && !seen.has(run.screen.k)) seen.set(run.screen.k, [...actions]);
     let action = runBotAction(run, bot);
     if (!action) break;
-    if (run.screen.k === 'route' && action.type === 'go') action = { type: 'go', to: order[stops++ % order.length]! };
+    if (run.screen.k === 'route' && action.type === 'go') {
+      // The stop between a floor's two fights has no City (2026-10-13): take the next in the order there.
+      let to = order[stops++ % order.length]!;
+      if (to === 'city' && !currentStop(run)!.cityOpen) to = order[stops++ % order.length]!;
+      action = { type: 'go', to };
+    }
     const result = stepRun(run, action);
     if (!result.ok) throw new Error(result.reason);
     actions.push(action);
@@ -146,7 +151,8 @@ function said(root: HTMLElement): string[] {
 
 describe('a run screen in another language', () => {
   // A seed whose steered run reaches every screen, the shrine's and the smith's included.
-  const seed = 'RUNCOPY';
+  // RUNCOPY7: RUNCOPY's run no longer reaches every screen once floor 1 shortened (2026-10-13).
+  const seed = 'RUNCOPY7';
   const screens = screensOf(seed);
   const english = [...leaves(RUN_COPY_BY_LANGUAGE.en)];
 

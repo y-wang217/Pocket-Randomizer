@@ -14,7 +14,6 @@ import { choicesFor } from '../src/core/cards/legal';
 import type { Action, BattleState } from '../src/core/cards/state';
 import { step } from '../src/core/cards/step';
 import { viewOf } from '../src/core/cards/view';
-import { ultOf } from '../src/ui/cardbattle/meters';
 import { TUTORIAL_ENCOUNTER, TUTORIAL_SEED, TUTORIAL_STEPS, settle, waitMet } from '../src/ui/cardbattle/tutorial';
 
 function run(state: BattleState, actions: Action[], action: Action): BattleState {
@@ -54,26 +53,13 @@ describe('the Target Dummy', () => {
   });
 });
 
-describe('each unit marks its ult', () => {
-  const deck = (ids: string[]) => ids.map((id) => CARDS[id]!);
-  const puppeteer = deck([...DECKS.puppeteer!.cards]);
-
-  it('as the card marked ult in its deck: Moon Strike and Artillery, and none for the Sword dasher', () => {
-    // Whirlwind is the card run's reward that hands the dasher his (checkpoint 3); Barrage the Gunner's second (5b).
+describe('ults', () => {
+  it('are Moon Strike, Artillery, Whirlwind and Barrage, each 3 at most so it fits a pool of three units (the shared mana ruling)', () => {
     expect(Object.values(CARDS).filter((c) => c.ult && !c.id.endsWith('+')).map((c) => c.id).sort()).toEqual(['artillery', 'barrage', 'moon-strike', 'whirlwind']);
-    expect(ultOf('A', puppeteer, 5)).toEqual({ name: 'Moon Strike', cost: 4 });
-    expect(ultOf('B', puppeteer, 5)).toEqual({ name: 'Artillery', cost: 4 });
-    expect(ultOf('C', puppeteer, 5)).toBeNull();
-    expect(ultOf('C', [...puppeteer, CARDS['whirlwind']!], 5)).toEqual({ name: 'Whirlwind', cost: 4 });
-  });
-
-  it('follows the deck a card run builds: an upgrade keeps the mark and moves it, a new card for the dasher is no ult', () => {
-    const upgraded = deck([...DECKS.puppeteer!.cards.filter((id) => id !== 'moon-strike'), 'moon-strike+', 'cleave']);
-    expect(CARDS['moon-strike+']!.ult).toBe(true);
-    expect(ultOf('A', upgraded, 5)).toEqual({ name: 'Moon Strike+', cost: 3 });
-    expect(ultOf('C', upgraded, 5)).toBeNull();
-    // A card the campaign marks as the dasher's ult gives it one.
-    expect(ultOf('C', [...upgraded, { ...CARDS['cleave']!, ult: true }], 5)).toEqual({ name: 'Cleave', cost: 2 });
+    for (const card of Object.values(CARDS).filter((c) => c.ult)) expect(card.cost, card.id).toBeLessThanOrEqual(3);
+    // An upgrade keeps the mark and is cheaper.
+    expect(CARDS['moon-strike+']).toMatchObject({ ult: true, cost: 2 });
+    expect(DECKS.puppeteer!.cards).toContain('moon-strike');
   });
 });
 

@@ -3,16 +3,16 @@ import type { RunCopy } from '../../cardrunCopy';
 
 export const RUN_ES: RunCopy = {
   title: 'Partida de cartas',
-  tagline: 'Tres actos. Una parada entre cada combate. Un Coloso al final de cada uno.',
+  tagline: 'Tres pisos. Dos combates y luego un jefe, con una parada entre cada uno.',
   newRun: 'Nueva partida',
   continueRun: 'Continuar partida',
   sandbox: 'Sandbox',
   tutorial: 'Tutorial',
   seed: (seed: string) => `Semilla ${seed}`,
-  act: (n: number, of: number) => `Acto ${n}/${of}`,
+  act: (n: number, of: number) => `Piso ${n}/${of}`,
   actScaling: (n: number, hp: number, veterans: 'none' | 'leads' | 'all') => {
-    const parts = [hp > 0 ? `enemigos +${hp} PV` : '', { none: '', leads: 'veteranos en las dos primeras oleadas', all: 'veteranos en cada oleada' }[veterans]].filter(Boolean);
-    return parts.length > 0 ? `Acto ${n}: ${parts.join(', ')}` : '';
+    const parts = [hp > 0 ? `enemigos +${hp} PV` : '', { none: '', leads: 'veteranos en las oleadas antes de la última', all: 'veteranos en cada oleada' }[veterans]].filter(Boolean);
+    return parts.length > 0 ? `Piso ${n}: ${parts.join(', ')}` : '';
   },
   actChip: (hp: number, veterans: 'none' | 'leads' | 'all') => [hp > 0 ? `+${hp} PV` : '', veterans === 'none' ? '' : 'veteranos'].filter(Boolean).join(' · '),
   fight: (n: number) => `Combate ${n}`,
@@ -26,7 +26,7 @@ export const RUN_ES: RunCopy = {
   slots: (n: number) => `${n} ${n === 1 ? 'hueco' : 'huecos'}`,
   hp: (n: number) => `${n} PV`,
   base: (n: number) => `Base ${n}`,
-  mp: (n: number) => `+${n} PM`,
+  mp: (n: number) => `+${n} MP máx.`,
   close: 'Cerrar',
   back: 'Volver',
   cancel: 'Cancelar',
@@ -101,7 +101,7 @@ export const RUN_ES: RunCopy = {
       slots: (n: number) => `+${n} hueco de carta`,
       hp: (n: number) => `+${n} PV máx.`,
       baseShield: (n: number) => `+${n} escudo base`,
-      mp: (n: number) => `+${n} PM al inicio de cada combate`,
+      mp: (n: number) => `+${n} MP máx., cada turno`,
     },
     talent: 'Talento',
     givenBack: 'Devuelto',
@@ -119,7 +119,7 @@ export const RUN_ES: RunCopy = {
     stats: (fights: number, bosses: number, quests: number, upgrades: number) =>
       `${fights} combates ganados · ${bosses} jefes · ${quests} misiones · ${upgrades} mejoras`,
     reached: (where: string) => `Llegaste a: ${where}`,
-    fellIn: (act: number, of: number, where: string) => `Caíste en el acto ${act}/${of}: ${where}`,
+    fellIn: (act: number, of: number, where: string) => `Caíste en el piso ${act}/${of}: ${where}`,
     leaned: (shapes: string, n: number) => `Orientado a: ${shapes}, ${n} ${n === 1 ? 'carta' : 'cartas'}`,
     leanedNone: 'Sin orientación',
     talents: (list: string) => `Talentos: ${list}`,
@@ -149,6 +149,7 @@ export const RUN_ES: RunCopy = {
     wrongScreen: 'Ahora no.',
     badIndex: 'Esa opción no está.',
     cannotPay: 'Suministros insuficientes.',
+    noCity: 'No hay ciudad entre estos dos combates.',
     alreadyBought: 'Ya comprado.',
     notUpgradable: 'Esa carta ya no tiene mejora.',
     deckTooSmall: 'Tu mazo es demasiado pequeño para perder una carta.',
@@ -183,13 +184,13 @@ export const RUN_ES: RunCopy = {
     Fight: 'Luchar',
     'Pay them off': 'Pagarles',
     'First card each turn: a Strike becomes a Pierce while at full HP': 'Primera carta de cada turno: un Golpe se vuelve Perforar con los PV al máximo',
-    '+1 MP at the start of each turn': '+1 PM al inicio de cada turno',
+    '+1 max MP, every turn of the run': '+1 MP máx., cada turno de la partida',
     'Shields and Repairs from its cards +1': 'Escudos y Reparaciones de sus cartas +1',
     'Blast +1 from the danger zone': 'Explosión +1 desde la zona de peligro',
     'Equipment it plays: next hand +1': 'Equipo que juega: próxima mano +1',
     'A Shield on itself also Covers its neighbours': 'Un Escudo sobre sí mismo también Cubre a sus vecinos',
     'Slash +1': 'Tajo +1',
-    'Three waves. Last: The Colossus alone. It grants the Harpoon as it arrives.': 'Tres oleadas. Última: el Coloso solo. Al llegar te concede el Arpón.',
+    'Two waves. Last: The Colossus alone. It grants the Harpoon as it arrives.': 'Dos oleadas. Última: el Coloso solo. Al llegar te concede el Arpón.',
     'Three waves. Last: The Warlord holds the middle lane, a Hound on either side.': 'Tres oleadas. Última: el Señor de la guerra ocupa el carril central, con un Sabueso a cada lado.',
     'Three waves, each harder, the Colossus last. Only the cards reset between waves.':
       'Tres oleadas, cada una más dura, el Coloso al final. Entre oleadas solo se reinician las cartas.',

@@ -4,7 +4,7 @@
  * record of a round. Plain JSON, like the state.
  */
 import type { Pos } from './defs';
-import type { CardIid, EnemyId, IllegalReason, Intent, TargetId, UnitId } from './state';
+import type { CardIid, EnemyId, IllegalReason, Intent, TargetId, UnitId, WaveReward } from './state';
 
 export type BattleEvent =
   // The plan.
@@ -30,7 +30,12 @@ export type BattleEvent =
   | { t: 'defeated'; enemy: EnemyId }
   /** A unit at 0 HP leaves the board; its own cards leave every pile for `removed`. */
   | { t: 'fainted'; unit: UnitId; removed: CardIid[] }
-  | { t: 'mpGained'; unit: UnitId; amount: number; source: 'card' | 'round' | 'ability' | 'focus' }
+  /** A turn starts: the shared pool refills to its max plus any bonus a card owes it. */
+  | { t: 'mpRefilled'; mp: number; max: number; bonus: number }
+  /** Spark: `n` MP into the pool at once, for the plays after it. */
+  | { t: 'mpGainedNow'; card: CardIid; unit: UnitId; n: number }
+  /** A card owes the pool `n` bonus MP at each of the next `turns` refills. */
+  | { t: 'mpQueued'; card: CardIid; unit: UnitId; n: number; turns: number }
   /** Need Help: an extra card owed to the next hand. */
   | { t: 'drawQueued'; card: CardIid; n: number }
   // The enemies.
@@ -75,6 +80,20 @@ export type BattleEvent =
   | { t: 'usedUp'; card: CardIid }
   /** The last enemy of a wave fell and the next arrives at once, the units where they stand (2026-10-11). */
   | { t: 'waveStarted'; wave: number }
+  /** A unit in the end zone pushed back out of it, after its hit there or once the plan has played. */
+  | { t: 'repelled'; unit: UnitId; from: Pos; to: Pos }
+  /** An enemy's hit left a status on a unit; `turns` is what it now holds. */
+  | { t: 'inflicted'; unit: UnitId; status: 'root' | 'frail'; turns: number }
+  /** A shield a card would have given a Frail unit gave it nothing. */
+  | { t: 'frailBlocked'; unit: UnitId; amount: number }
+  /** Cleanse: each ally's Root and Frail after it. */
+  | { t: 'cleansed'; card: CardIid; n: number }
+  /** A status ran out at the end of the unit's turn. */
+  | { t: 'statusEnded'; unit: UnitId; status: 'root' | 'frail' }
+  /** The wave that fell left a supply pack. */
+  | { t: 'rewardOffered' }
+  /** The pack claimed: `n` supplies, HP to each living unit, or MP this turn. */
+  | { t: 'claimed'; reward: WaveReward; n: number }
   // The end.
   | { t: 'won' }
   | { t: 'lost'; why: 'allFainted' | 'roundCap' };

@@ -54,10 +54,10 @@ describe('the names, in every language', () => {
     expect(nameOf('Baton+')).toBe('Baton+');
   });
 
-  it('gives each language a glossary line for all six keywords', () => {
+  it('gives each language a glossary line for every keyword, floor 2\'s three included', () => {
     for (const language of CARD_LANGUAGES) {
       const glossary = CARD_COPY_BY_LANGUAGE[language].glossary;
-      expect(Object.keys(glossary).sort(), language).toEqual(['cover', 'pull', 'push', 'repair', 'stealth', 'stun']);
+      expect(Object.keys(glossary).sort(), language).toEqual(['cleanse', 'cover', 'frail', 'pull', 'push', 'repair', 'root', 'stealth', 'stun']);
       for (const line of Object.values(glossary)) expect(line.trim().length, language).toBeGreaterThan(10);
     }
   });

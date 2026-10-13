@@ -11,7 +11,7 @@ import type { Loadout } from './defs';
 import type { BattleEvent } from './events';
 import { completeChoices, placeActions, playersOf } from './legal';
 import { newLog, type BattleLog } from './log';
-import type { Action, BattleState, UnitId } from './state';
+import { WAVE_REWARDS, type Action, type BattleState, type UnitId } from './state';
 import { step, type StepResult } from './step';
 
 export function botStream(botSeed: string): RngStream {
@@ -34,6 +34,7 @@ export function randomBot(state: BattleState, stream: RngStream): Action | null 
     return stream.nextInt(4) === 0 || places.length === 0 ? { type: 'start' } : places[stream.nextInt(places.length)]!;
   }
   if (state.phase !== 'plan') return null;
+  if (state.waveReward) return { type: 'claim', reward: WAVE_REWARDS[stream.nextInt(WAVE_REWARDS.length)]! };
   type Pick = Action | { card: string; unit: UnitId };
   const menu: Pick[] = [{ type: 'commit' }];
   state.plan.forEach((_, planIndex) => menu.push({ type: 'unselect', planIndex }));

@@ -22,6 +22,10 @@ export const CARD_ASSET_GROUPS = {
     ids: [
       'tile-player-backline',
       'tile-danger-zone',
+      // Floor 2's fort (2026-10-13): a floor's tiles in place of the meadow's.
+      'tile-fort-player-backline',
+      'tile-fort-danger-zone',
+      'tile-fort-enemy-backline',
       'tile-enemy-backline',
       'tile-overlay-selectable',
       'tile-overlay-selected',
@@ -58,6 +62,8 @@ export const CARD_ASSET_GROUPS = {
       'button-primary-pressed',
       'button-primary-unavailable',
       'background-meadow',
+      // Floor 2's backdrop (2026-10-13).
+      'background-fort',
     ],
   },
   icons: {
@@ -71,6 +77,8 @@ export const CARD_ASSET_GROUPS = {
       // Not in the pack: placeholders for Part D, until the reskin's art.
       'icon-shovel', 'icon-harpoon', 'icon-scream',
       'icon-fast', 'icon-pinned', 'icon-retain', 'icon-undo', 'icon-menu',
+      // Floor 2 (2026-10-13): the two statuses, and the effect that lifts them.
+      'icon-root', 'icon-frail', 'icon-cleanse',
     ],
   },
   markers: {
@@ -99,6 +107,10 @@ export const CARD_ASSET_GROUPS = {
       'marker-enemy-colossus-pinned',
       // The tutorial's Target Dummy: a straw post under a target face.
       'marker-enemy-dummy',
+      // Floor 2's enemies (2026-10-13).
+      'marker-enemy-snarer',
+      'marker-enemy-breaker',
+      'marker-enemy-reaver',
       'portrait-commander',
       'portrait-gunner',
       'portrait-dasher',
@@ -111,6 +123,8 @@ export const CARD_ASSET_GROUPS = {
     ids: [
       'art-call-medic', 'art-command', 'art-focus', 'art-moon-strike', 'art-shoot', 'art-resupply', 'art-artillery', 'art-fire',
       'art-dash', 'art-slash', 'art-need-help', 'art-prep', 'art-move', 'art-dig-in', 'art-attack', 'art-harpoon',
+      // Floor 2's two cards (2026-10-13).
+      'art-cleanse', 'art-antidote',
     ],
   },
 } as const;

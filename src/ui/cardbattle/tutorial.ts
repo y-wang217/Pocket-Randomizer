@@ -45,7 +45,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   { id: 'start', anchor: ['[data-coach="end"]'], wait: 'started', dock: 'top' },
   { id: 'hand', anchor: ['[data-coach="hand"]'], dock: 'near' },
   { id: 'vitals', anchor: ['.cb-panel--unit[data-id="A"] [data-coach="vitals"]'], dock: 'near' },
-  { id: 'mana', anchor: ['.cb-panel--unit[data-id="A"] [data-coach="mana"]'], dock: 'near' },
+  { id: 'mana', anchor: ['[data-coach="mana"]'], dock: 'near' },
   { id: 'move', anchor: ['.cb-card[data-card="move"]', '[data-coach="hand"]'], wait: 'moved', dock: 'top' },
   { id: 'slots', anchor: ['.cb-slot--filled', '[data-coach="slots"]'], dock: 'near' },
   { id: 'attack', anchor: ['.cb-card[data-card="shoot"]', '[data-coach="hand"]'], wait: 'attacked', dock: 'top' },

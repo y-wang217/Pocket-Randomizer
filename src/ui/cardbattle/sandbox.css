@@ -924,9 +924,11 @@
   color: var(--cb-surface);
   font-size: calc(8px * var(--cb-fit, 1));
   line-height: 1.1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* A long name (Ukrainian's Need Help) takes a second line rather than an ellipsis:
+     no fact is cut short. A word too long for the chip still shrinks to fit. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 /* --------------------------------------------------------------- hand */
@@ -936,6 +938,54 @@
   justify-content: center;
   align-items: center;
   gap: 6px;
+}
+/* Root and Frail on a unit's panel (floor 2): an icon and its turns, as a word. */
+.cb-statuses {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.cb-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--cb-ink);
+  background: rgba(134, 100, 172, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(134, 100, 172, 0.7);
+}
+.cb-status-chip[data-status='frail'] {
+  background: rgba(192, 70, 59, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(192, 70, 59, 0.6);
+}
+/* A fallen wave's supply pack, in the hand's place: a title and three choices. */
+.cb-pack {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.cb-pack-title {
+  font-weight: 800;
+}
+.cb-pack-options {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.cb-pack-option {
+  min-height: 52px;
+  padding: 4px 6px;
+}
+.cb-pack-option .cb-btn-label {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
 }
 /*
  * A hand card, laid on the pack's compact frame (240 by 336): the cost in the
@@ -1652,7 +1702,9 @@
   grid-auto-rows: auto;
   column-gap: 4px;
   row-gap: 2px;
-  padding: 6px 5px 5px 8px;
+  /* 7px at the left, not 8, and 1px between slots below: the Sword dasher's
+     three slots need 136px at 44px each, which 8px and 2px left 134 for. */
+  padding: 6px 5px 5px 7px;
 }
 .cb-panel--unit > :not(.cb-asset):not(.cb-panel-portrait) {
   grid-column: 1 / -1;
@@ -1671,7 +1723,7 @@
 }
 .cb-slots {
   display: flex;
-  gap: 2px;
+  gap: 1px;
 }
 
 /* Cards: the illustration behind the frame's art window, the owner band
@@ -1805,8 +1857,6 @@
   --cb-star: #e2a521;
   --cb-heart-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 22'%3E%3Cpath d='M12 21L3.6 12.8C-1.4 7.9 5.4 0.4 12 6.6C18.6 0.4 25.4 7.9 20.4 12.8Z'/%3E%3C/svg%3E");
   --cb-heart-ring: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 22'%3E%3Cpath d='M12 19L4.8 12C0.6 7.9 6.4 2 12 7.6C17.6 2 23.4 7.9 19.2 12Z' fill='none' stroke='black' stroke-width='2.6' stroke-linejoin='round'/%3E%3C/svg%3E");
-  --cb-star-ring: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3.6L14.5 9.6L20.9 10.2L16 14.4L17.5 20.7L12 17.3L6.5 20.7L8 14.4L3.1 10.2L9.5 9.6Z' fill='none' stroke='black' stroke-width='2.8' stroke-linejoin='round'/%3E%3C/svg%3E");
-  --cb-star-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.5L15 8.6L22.6 9.3L16.8 14.3L18.6 21.8L12 17.8L5.4 21.8L7.2 14.3L1.4 9.3L9 8.6Z'/%3E%3C/svg%3E");
 }
 /* Tritan: the bubble leaves blue for a cool grey, apart from the player's teal by shape and tone. */
 .cb[data-palette='tritan'] {
@@ -1868,6 +1918,11 @@
   gap: 4px;
   height: 14px;
 }
+/* The shared pool sits in the status, under the round and the piles. */
+.cb-status .cb-mana {
+  width: 100%;
+  max-width: 140px;
+}
 .cb-mana-label {
   flex: none;
   font-size: 9px;
@@ -1897,35 +1952,9 @@
   background: repeating-linear-gradient(135deg, rgba(var(--cb-teal-rgb), 0.55) 0 2px, rgba(var(--cb-teal-rgb), 0.18) 2px 4px);
   box-shadow: inset 0 0 0 1px rgba(var(--cb-teal-rgb), 0.7);
 }
-/* The ult's cost: a gold tick through the bar at the end of its cell, the star on the tick. */
-.cb-mana-cell[data-ult='true']::after {
-  content: '';
-  position: absolute;
-  right: -2px;
-  top: -3px;
-  bottom: -3px;
-  width: 2px;
-  border-radius: 1px;
-  background: var(--cb-star);
-}
-.cb-mana-star {
-  position: absolute;
-  z-index: 1;
-  right: -7px;
-  top: -9px;
-  width: 12px;
-  height: 12px;
-  background: var(--cb-star);
-  -webkit-mask: var(--cb-star-mask) center / contain no-repeat;
-  mask: var(--cb-star-mask) center / contain no-repeat;
-}
-/* Not yet enough MP for the ult: the star hollow. Enough: filled and glowing. */
-.cb-mana-star:not([data-ready='true']) {
-  -webkit-mask-image: var(--cb-star-ring);
-  mask-image: var(--cb-star-ring);
-}
-.cb-mana-star[data-ready='true'] {
-  filter: drop-shadow(0 0 2px var(--cb-star));
+/* Bonus MP a card queued, past the pool's max: ringed gold. */
+.cb-mana-cell[data-bonus='true'] {
+  box-shadow: inset 0 0 0 1px var(--cb-star);
 }
 
 /* A shield on the piece: a bubble over its marker, and the total in a bubble at its corner. */

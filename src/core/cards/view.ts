@@ -8,12 +8,12 @@ import { VETERAN } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
-import type { CardOwner, ClassId, EnemyDefId, Effect, Pos, Zone } from './defs';
+import type { CardOwner, ClassId, EnemyDefId, Effect, Inflict, Pos, Zone } from './defs';
 import { deployTiles } from './deploy';
 import { playBlock, playersOf } from './legal';
-import { cardDefOf, needsOf, project, slotsOf, type Needs } from './plan';
+import { cardDefOf, maxMpOf, needsOf, project, slotsOf, type Needs } from './plan';
 import { enemyThreat, playedOut, previewPlay, type PlayPreview } from './preview';
-import type { BattleState, CardIid, EnemyId, EnemyState, Intent, PlayBlock, UnitId } from './state';
+import { WAVE_REWARDS, type BattleState, type CardIid, type EnemyId, type EnemyState, type Intent, type PlayBlock, type UnitId, type WaveReward } from './state';
 import { allTiles, covers, samePos, zoneOf } from './zones';
 
 /**
@@ -68,15 +68,14 @@ export interface UnitView {
   maxHp: number;
   shield: number;
   baseShield: number;
-  mp: number;
-  mpCap: number;
-  /** MP the plan has already spent. */
-  reserved: number;
   slots: number;
   planned: PlannedView[];
   fainted: boolean;
   /** Enemy phases left under Stealth: 0 when none. */
   stealth: number;
+  /** Its turns left Rooted and Frail (floor 2): 0 when none. */
+  root: number;
+  frail: number;
   /** Hidden once the plan's cards have played: a Smoke planned, or Stealth still on. */
   hiddenByPlan: boolean;
   /** Covering once the plan's cards have played (Guard Duty, Interpose, Bodyguard). */
@@ -115,7 +114,8 @@ export interface EnemyView {
   planned: { to: Pos | null; stun: number; intent: EnemyView['intent'] } | null;
   /** The HP at which its one stalk comes, while it has not come (D3); `null` for an enemy that never stalks. */
   stalkAt: number | null;
-  intent: { icon: Intent['act']; n: number; tiles: Pos[]; label?: string } | null;
+  /** `inflict`: the status its hit leaves (floor 2). */
+  intent: { icon: Intent['act']; n: number; tiles: Pos[]; label?: string; inflict?: Inflict } | null;
 }
 
 export interface HandCardView {
@@ -168,6 +168,10 @@ export interface BattleView {
   /** One per planned play, in plan order. */
   previews: PlanPreview[];
   piles: { draw: number; discard: number; spent: number; removed: number; reserve: number };
+  /** The shared MP pool: what it holds this turn, its max, and what the plan has already spent. */
+  mana: { mp: number; max: number; reserved: number };
+  /** A fallen wave's supply pack waiting to be claimed: each offer and how much it gives. `null` when none. */
+  reward: { kind: WaveReward; n: number }[] | null;
 }
 
 /** An enemy's number as the screen shows it: its place in its wave, from 1 (the wave's first is 1). */
@@ -180,7 +184,9 @@ export function enemyNumber(state: BattleState, id: EnemyId): number {
 const PLAIN_OF: Partial<Record<EnemyDefId, EnemyDefId>> = Object.fromEntries(Object.entries(VETERAN).map(([plain, vet]) => [vet, plain]));
 
 function intentView(e: EnemyState): EnemyView['intent'] {
-  return e.pos && e.intent ? { icon: e.intent.act, n: e.intent.n, tiles: e.intent.tiles, ...(e.intent.label ? { label: e.intent.label } : {}) } : null;
+  return e.pos && e.intent
+    ? { icon: e.intent.act, n: e.intent.n, tiles: e.intent.tiles, ...(e.intent.label ? { label: e.intent.label } : {}), ...(e.intent.inflict ? { inflict: { ...e.intent.inflict } } : {}) }
+    : null;
 }
 
 /**
@@ -235,12 +241,10 @@ export function viewOf(state: BattleState, { forecast = true }: { forecast?: boo
 
   const units: UnitView[] = state.units.map((u) => {
     const planned: PlannedView[] = [];
-    let reserved = 0;
     state.plan.forEach((play, planIndex) => {
       const def = cardDefOf(state, play.card)!;
       if (play.unit === u.id) {
         planned.push({ planIndex, card: play.card, name: def.name });
-        reserved += def.cost;
       } else if (play.choice?.unit === u.id && def.effects.some((e) => e.k === 'grantMove')) {
         planned.push({ planIndex, card: play.card, name: def.name, by: play.unit });
       }
@@ -264,13 +268,12 @@ export function viewOf(state: BattleState, { forecast = true }: { forecast?: boo
       maxHp: u.maxHp,
       shield: u.shield,
       baseShield: u.baseShield,
-      mp: u.mp,
-      mpCap: RULES.mp.cap,
-      reserved,
       slots: slotsOf(state, u.id),
       planned,
       fainted: u.fainted,
       stealth: u.stealth ?? 0,
+      root: u.root ?? 0,
+      frail: u.frail ?? 0,
       hiddenByPlan: !after.fainted && (after.stealth ?? 0) > 0,
       coveringByPlan: !after.fainted && (after.cover ?? 0) > 0,
       coveredBy: u.fainted ? [] : coveredBy,
@@ -319,7 +322,8 @@ export function viewOf(state: BattleState, { forecast = true }: { forecast?: boo
     wave: state.wave,
     waves: Math.max(...state.enemies.map((e) => e.wave)) + 1,
     phase: state.phase,
-    canCommit: live,
+    // A supply pack is claimed before the wave's first plan.
+    canCommit: live && !state.waveReward,
     deployTiles: state.phase === 'deploy' ? deployTiles() : [],
     tiles,
     units,
@@ -332,6 +336,13 @@ export function viewOf(state: BattleState, { forecast = true }: { forecast?: boo
       spent: state.piles.spent.length,
       removed: state.piles.removed.length,
       reserve: state.piles.reserve.length,
+    },
+    reward: state.waveReward ? WAVE_REWARDS.map((kind) => ({ kind, n: RULES.waveReward[kind] })) : null,
+    // A planned Spark's MP shows in the pool already, as the plan check counts it.
+    mana: {
+      mp: state.mp + state.plan.reduce((sum, play) => sum + cardDefOf(state, play.card)!.effects.reduce((n, e) => (e.k === 'gainMpNow' ? n + e.n : n), 0), 0),
+      max: maxMpOf(state),
+      reserved: state.plan.reduce((sum, play) => sum + cardDefOf(state, play.card)!.cost, 0),
     },
   };
 }

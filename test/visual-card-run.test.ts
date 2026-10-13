@@ -71,7 +71,7 @@ async function shoot(page: Page, name: string): Promise<void> {
 
 describe('the card run at 390x844', () => {
   it('the offer screen: three shapes, each with its plan in a line at rest', async () => {
-    const { log } = runTo('SCREENS2', (s) => s.screen.k === 'cards');
+    const { log } = runTo('SCREENS3', (s) => s.screen.k === 'cards');
     const { page, errors, close } = await resume(log);
     await page.waitForSelector('.cr-screen[data-screen="cards"]');
     const m = await measure(page);
@@ -87,7 +87,7 @@ describe('the card run at 390x844', () => {
 
   it('the replace screen: the basic cards first and marked, and no sideways scroll', async () => {
     let rewards = 0;
-    const { log, run } = runTo('SCREENS2', (s) => s.screen.k === 'replace' && ++rewards === 2);
+    const { log, run } = runTo('SCREENS3', (s) => s.screen.k === 'replace' && ++rewards === 2);
     const { page, errors, close } = await resume(log);
     await page.waitForSelector('.cr-screen[data-screen="replace"]');
     const m = await measure(page);
@@ -103,7 +103,7 @@ describe('the card run at 390x844', () => {
   }, 120_000);
 
   it("the boss screen: each talent's shape, and what each unit already has", async () => {
-    const { log, run } = runTo('SCREENS2', (s) => s.screen.k === 'boost');
+    const { log, run } = runTo('SCREENS3', (s) => s.screen.k === 'boost');
     if (run.screen.k !== 'boost') throw new Error('not the boss screen');
     const { page, errors, close } = await resume(log);
     await page.waitForSelector('.cr-screen[data-screen="boost"]');
@@ -118,8 +118,8 @@ describe('the card run at 390x844', () => {
     await close();
   }, 120_000);
 
-  it('a battle in act 2: veterans wear their badge, and a planned Concuss marks the stun', async () => {
-    const { log } = runTo('SCREENS2', concussOnVeteran);
+  it('a battle on floor 2: veterans wear their badge, and a planned Concuss marks the stun', async () => {
+    const { log } = runTo('SCREENS3', concussOnVeteran);
     const { page, errors, close } = await resume(log);
     // The run opens its battle over the shell at once.
     await page.waitForSelector('.cb .cb-tile', { timeout: 20_000 });
@@ -151,7 +151,7 @@ describe('the card run at 390x844', () => {
         ['boost', (s) => s.screen.k === 'boost'],
       ];
       for (const [name, until] of screens) {
-        const { log } = runTo('SCREENS2', until);
+        const { log } = runTo('SCREENS3', until);
         const { page, errors, close } = await resume(log, language);
         await page.waitForSelector(`.cr-screen[data-screen="${name}"]`);
         expect(await page.locator('.cr').getAttribute('lang')).toBe(language);

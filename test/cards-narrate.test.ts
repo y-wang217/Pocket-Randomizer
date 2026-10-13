@@ -4,8 +4,13 @@
  * grace and Fast on each enemy's starting step, a Blast's friendly fire, a
  * play the faint left unplayed, and the scenario's grade total.
  *
- * The friendly fire log is a random-bot battle (seed FF646, bot seed
- * FFBOT646) saved at `cards-0.4.0`.
+ * The friendly fire log is a random-bot battle (seed FF1842, bot seed
+ * FFBOT1842) saved at `cards-0.17.0`. Each change to the costs or the
+ * enemies' scripts replays the one before differently, so it is searched for
+ * again each time: the first seed from FF646 up where a Blast's friendly fire
+ * faints a unit with a card still planned. Since the pool is 3 MP, Artillery
+ * costs all of it and no seed to FF60000 faints the dasher with it, so this
+ * one is Fire!.
  */
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
@@ -23,8 +28,8 @@ describe('cards:narrate', () => {
     const out = narrate('test/fixtures/card-battle-friendly-fire-log.json');
     expect(out).toContain('encounter skirmish (grade 5)');
     for (const id of ['e0', 'e1', 'e2']) expect(out).toContain(`grace: ${id} starts on a setup step`);
-    expect(out).toContain('C Sword dasher takes 2 from Artillery (friendly fire): HP -2');
-    expect(out).toContain('C Sword dasher has fainted: c14 Attack is not played');
+    expect(out).toContain('C Sword dasher takes 1 from Fire! (friendly fire): HP -1');
+    expect(out).toContain('C Sword dasher has fainted: c10 Need Help is not played');
     expect(out).toContain('encounter skirmish  grade 5');
   }, 60_000);
 

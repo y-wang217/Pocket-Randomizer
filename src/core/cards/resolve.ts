@@ -8,7 +8,7 @@
  *      A play by a unit that fainted earlier in the round (a Blast's friendly
  *      fire, R14) is pruned instead.
  *   3. Win check. Dead enemies never act.
- *   4. MP gain, capped.
+ *   4. (MP no longer gains here: the shared pool refills at the next hand.)
  *   5-7. Enemy actions, moves and telegraph (`enemies.ts`).
  *   8. The next hand.
  *
@@ -20,10 +20,10 @@ import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { enemyActions, enemyMovesAndTelegraph } from './enemies';
 import type { Ctx } from './keywords';
-import { gainMp, payFor, resolveEffects, resolveMove, retire } from './keywords';
-import { abilitiesOf, cardDefOf, checkPlan, followUps, isMoveCard, livingEnemies, livingUnits, type StepResult, unitOf } from './plan';
+import { payFor, repel, resolveEffects, resolveMove, retire } from './keywords';
+import { abilitiesOf, cardDefOf, checkPlan, damageOf, followUps, isMoveCard, livingEnemies, livingUnits, maxMpOf, type StepResult, unitOf } from './plan';
 import { shuffled, withStream } from './random';
-import type { BattleState, PlannedPlay, UnitId } from './state';
+import { WAVE_REWARDS, type BattleState, type PlannedPlay, type UnitId, type WaveReward } from './state';
 
 /** The index in the plan of the first play that fills each unit's first slot. */
 export function firstSlots(s: BattleState, plan: readonly PlannedPlay[]): Partial<Record<UnitId, number>> {
@@ -45,7 +45,7 @@ export function firstSlots(s: BattleState, plan: readonly PlannedPlay[]): Partia
 export function draftOf(state: BattleState): BattleState {
   return {
     ...state,
-    units: state.units.map((u) => ({ ...u, pos: u.pos && { ...u.pos }, pendingMp: u.pendingMp.map((g) => ({ ...g })) })),
+    units: state.units.map((u) => ({ ...u, pos: u.pos && { ...u.pos } })),
     enemies: state.enemies.map((e) => ({
       ...e,
       pos: e.pos && { ...e.pos },
@@ -63,6 +63,7 @@ export function draftOf(state: BattleState): BattleState {
     uses: { ...state.uses },
     plan: [...state.plan],
     pendingDraws: state.pendingDraws.map((d) => ({ ...d })),
+    pendingMp: state.pendingMp.map((g) => ({ ...g })),
   };
 }
 
@@ -102,6 +103,8 @@ export function playPlan(ctx: Ctx): void {
       });
     } else playCard(ctx, play, () => resolveEffects(ctx, play, def, converts(play, index)));
   });
+  // A unit the plan left in the end zone without a hit there goes back out too.
+  for (const unit of livingUnits(s)) repel(ctx, unit);
 }
 
 export function commit(state: BattleState): StepResult {
@@ -111,6 +114,18 @@ export function commit(state: BattleState): StepResult {
   const s = draftOf(state);
   const ctx: Ctx = { s, events: [{ t: 'committed', round: s.round }] };
   playPlan(ctx);
+  // Root and Frail count the unit's turns: one is spent once its cards have played.
+  for (const unit of livingUnits(s)) {
+    for (const key of ['root', 'frail'] as const) {
+      const left = unit[key];
+      if (left === undefined) continue;
+      if (left > 1) unit[key] = left - 1;
+      else {
+        delete unit[key];
+        ctx.events.push({ t: 'statusEnded', unit: unit.id, status: key });
+      }
+    }
+  }
 
   // 3. Win check: the last enemy of a wave brings the next wave, of the last wave wins.
   if (livingEnemies(s).length === 0 && s.phase === 'plan') {
@@ -122,9 +137,6 @@ export function commit(state: BattleState): StepResult {
     ctx.events.push({ t: 'won' });
   }
   if (s.phase !== 'plan') return { ok: true, state: s, events: ctx.events };
-
-  // 4. MP gain.
-  for (const unit of livingUnits(s)) gainMp(ctx, unit, RULES.mp.gainPerRound, 'round');
 
   // 5. The enemies act; 6 and 7, they move and telegraph.
   enemyActions(ctx);
@@ -140,7 +152,7 @@ export function commit(state: BattleState): StepResult {
  * The next wave arrives (`RULES.betweenWaves`, the author's ruling of
  * 2026-10-11, `docs/spec/gymrun-card-run-shapes-prompt.md`). The cards reset
  * and nothing else does: each living unit keeps its HP, its base shield as
- * spent, its MP and any MP a card still owes it, and stays on its tile. Every
+ * spent, and stays on its tile; any bonus MP a card still owes the pool stays owed. Every
  * card a faint did not remove, Once cards included, is shuffled into a fresh
  * draw pile, in deck order first so the shuffle reads no history; extra draws
  * owed clear. The new wave spawns at once with no placement: the round count
@@ -164,6 +176,9 @@ export function startWave(ctx: Ctx, wave: number): void {
   // Uses come back with the reshuffle (C4), but not on used equipment.
   for (const iid of Object.keys(s.uses)) if (!gone.includes(iid)) s.uses[iid] = CARDS[s.cards[iid]!.def]!.uses!;
   ctx.events.push({ t: 'waveStarted', wave });
+  // The wave that fell leaves a supply pack, claimed before this wave's first plan.
+  s.waveReward = true;
+  ctx.events.push({ t: 'rewardOffered' });
   grantWave(ctx);
   s.round = 0;
   nextHand(ctx);
@@ -187,10 +202,13 @@ export function grantWave(ctx: Ctx): void {
 
 function playCard(ctx: Ctx, play: PlannedPlay, resolve: () => void): void {
   const def = cardDefOf(ctx.s, play.card)!;
-  payFor(unitOf(ctx.s, play.unit), def);
+  payFor(ctx.s, def);
   ctx.events.push({ t: 'played', card: play.card, unit: play.unit });
   resolve();
   retire(ctx, play);
+  // One hit in the end zone, then out of it (2026-10-13).
+  const unit = unitOf(ctx.s, play.unit);
+  if (unit && !unit.fainted && damageOf(def)) repel(ctx, unit);
 }
 
 /** Draw `n` from the top of the draw pile, reshuffling the discard in when it runs out. */
@@ -218,7 +236,7 @@ function drawCards(ctx: Ctx, n: number): void {
 }
 
 /**
- * Phase 8. Round up, player Shield clears (R3), start-of-turn MP lands, the
+ * Phase 8. Round up, player Shield clears (R3), the shared MP pool refills, the
  * unplayed hand is discarded, then a fresh hand and any extra draws owed.
  *
  * Need Help's extra card is the first card in the draw pile not owned by the
@@ -250,14 +268,12 @@ export function nextHand(ctx: Ctx): void {
     }
   }
 
-  for (const unit of livingUnits(s)) {
-    for (const ability of abilitiesOf(s, unit.id)) {
-      if (ability.k === 'mpAtTurnStart') gainMp(ctx, unit, ability.n, 'ability');
-    }
-    const owed = unit.pendingMp.reduce((sum, grant) => sum + grant.n, 0);
-    if (owed > 0) gainMp(ctx, unit, owed, 'focus');
-    unit.pendingMp = unit.pendingMp.map((grant) => ({ ...grant, turns: grant.turns - 1 })).filter((grant) => grant.turns > 0);
-  }
+  // The shared pool refills to its max, leftovers lost, plus any bonus a card owes it.
+  const max = maxMpOf(s);
+  const bonus = s.pendingMp.reduce((sum, grant) => sum + grant.n, 0);
+  s.mp = max + bonus;
+  s.pendingMp = s.pendingMp.map((grant) => ({ ...grant, turns: grant.turns - 1 })).filter((grant) => grant.turns > 0);
+  ctx.events.push({ t: 'mpRefilled', mp: s.mp, max, bonus });
 
   // Retain: an unplayed copy stays, holding one of the hand's places.
   const kept = s.piles.hand.filter((iid) => CARDS[s.cards[iid]!.def]!.retain);
@@ -283,4 +299,34 @@ export function nextHand(ctx: Ctx): void {
     }
   }
   s.pendingDraws = [];
+}
+
+/**
+ * A fallen wave's supply pack (the author's answer of 2026-10-13): supplies
+ * for the run, HP to every living unit up to its max, or bonus MP spent this
+ * turn. Claimed before the wave's first plan, so the MP pack lands on a pool
+ * already refilled.
+ */
+export function claim(state: BattleState, action: { reward?: unknown }): StepResult {
+  if (state.phase !== 'plan') return { ok: false, state, reason: state.phase === 'deploy' ? 'deploying' : 'battleOver' };
+  if (!state.waveReward) return { ok: false, state, reason: 'nothingToClaim' };
+  const reward = action.reward;
+  if (!WAVE_REWARDS.includes(reward as WaveReward)) return { ok: false, state, reason: 'malformed' };
+  const s = draftOf(state);
+  const ctx: Ctx = { s, events: [] };
+  const n = RULES.waveReward[reward as WaveReward];
+  s.waveReward = false;
+  switch (reward as WaveReward) {
+    case 'supplies':
+      s.suppliesWon += n;
+      break;
+    case 'hp':
+      for (const unit of livingUnits(s)) unit.hp = Math.min(unit.maxHp, unit.hp + n);
+      break;
+    case 'mp':
+      s.mp += n;
+      break;
+  }
+  ctx.events.push({ t: 'claimed', reward: reward as WaveReward, n });
+  return { ok: true, state: s, events: ctx.events };
 }

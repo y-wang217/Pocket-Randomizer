@@ -192,6 +192,10 @@ const LEAD: Readonly<Record<string, readonly EnemySpawn[]>> = {
   bulwarkLancer: [{ def: 'bulwark' }, { def: 'lancer' }], // 3
   sniperHound: [{ def: 'sniper' }, { def: 'hound' }], // 4
   pikemanHound: [{ def: 'pikeman' }, { def: 'hound' }], // 4
+  // Floor 2's own (2026-10-13): no veteran of their own, so a floor 3 wave fields them as they are.
+  snarerHound: [{ def: 'snarer' }, { def: 'hound' }], // 4
+  breakerLancer: [{ def: 'breaker' }, { def: 'lancer' }], // 5
+  reaverSnarer: [{ def: 'reaver' }, { def: 'snarer' }], // 7
 };
 
 /**
@@ -221,32 +225,48 @@ export const ACT_SCALING: readonly { hpBonus: number; veterans: 'none' | 'leads'
 const veteran = (wave: readonly EnemySpawn[]): EnemySpawn[] => wave.map((spawn) => ({ ...spawn, def: VETERAN[spawn.def] ?? spawn.def }));
 
 /**
- * A run fight: three waves back to back, HP carried between them
- * (`docs/spec/gymrun-card-run-shapes-prompt.md`, Q1 (a)). Two lead waves, then
- * the scenario itself as the third, on its own tiles; a scenario of three
- * waves already (Siege) is played as it is. Scaled for its act (checkpoint 6).
+ * How many lead waves a run fight on each floor plays before its scenario (the
+ * author's ruling of 2026-10-13): floor 1's fights are the scenario alone, one
+ * wave, and its boss fight one lead wave then the boss; each floor after adds
+ * a lead wave to both. A quest or an ambush is a fight of its floor.
  */
-const runFight = (base: EncounterDef, leads: readonly [keyof typeof LEAD, keyof typeof LEAD] | null, act: number): EncounterDef => {
+export const FLOOR_LEADS: readonly { fight: number; boss: number }[] = [
+  { fight: 0, boss: 1 },
+  { fight: 1, boss: 2 },
+  { fight: 2, boss: 2 },
+];
+
+/**
+ * A run fight: its floor's lead waves back to back, then the scenario itself on
+ * its own tiles, HP carried between them (`docs/spec/gymrun-card-run-shapes-prompt.md`,
+ * Q1 (a)); a scenario of waves already (Siege) is played as it is. Scaled for
+ * its act (checkpoint 6).
+ */
+const runFight = (base: EncounterDef, leads: readonly [keyof typeof LEAD, keyof typeof LEAD] | null, act: number, boss = false): EncounterDef => {
   const scale = ACT_SCALING[act]!;
   const lead = (wave: readonly EnemySpawn[]): readonly EnemySpawn[] => (scale.veterans === 'none' ? wave : veteran(wave));
   const own = (wave: readonly EnemySpawn[]): readonly EnemySpawn[] => (scale.veterans === 'all' ? veteran(wave) : wave);
-  const waves = leads ? [lead(LEAD[leads[0]]!), lead(LEAD[leads[1]]!), own(base.enemies)] : [own(base.enemies), ...(base.waves ?? []).map(own)];
+  const count = FLOOR_LEADS[act]![boss ? 'boss' : 'fight'];
+  const waves = leads ? [...leads.slice(0, count).map((id) => lead(LEAD[id]!)), own(base.enemies)] : [own(base.enemies), ...(base.waves ?? []).map(own)];
+  const named = ['One wave', 'Two waves', 'Three waves'][waves.length - 1]!;
   return {
     ...base,
     id: `run-${base.id}`,
-    blurb: leads ? `Three waves. Last: ${base.blurb}` : base.blurb,
+    blurb: leads && waves.length > 1 ? `${named}. Last: ${base.blurb}` : base.blurb,
     enemies: waves[0]!,
     waves: waves.slice(1),
     ...(scale.hpBonus > 0 ? { hpBonus: scale.hpBonus } : {}),
+    // Floor 2's fort (2026-10-13), and floor 3's until it has its own.
+    ...(act >= 1 ? { skin: 'fort' as const } : {}),
   };
 };
 
 const BASES: Readonly<Record<string, EncounterDef>> = { ...SCENARIOS, ...RUN_ENCOUNTERS };
 
 /**
- * Every fight the card run sends the player into, as three waves. Siege is
- * three waves already and is played as it is. Provisional: the first draft
- * of the chains, for the author to playtest.
+ * Every fight the card run sends the player into, as its floor's waves
+ * (`FLOOR_LEADS`). Siege is three waves already and is played as it is.
+ * Provisional: the first draft of the chains, for the author to playtest.
  */
 export const RUN_FIGHTS: Readonly<Record<string, EncounterDef>> = Object.fromEntries(
   (
@@ -254,27 +274,28 @@ export const RUN_FIGHTS: Readonly<Record<string, EncounterDef>> = Object.fromEnt
       // Act 1.
       ['test', ['lancers', 'houndLancer'], 0],
       ['staggered', ['houndLancer', 'lancers'], 0],
-      ['colossus-lair', ['lancers', 'hounds'], 0],
+      ['colossus-lair', ['lancers', 'hounds'], 0, true],
       ['bandit-camp', ['lancers', 'houndLancer'], 0],
       ['stray-drones', ['houndLancer', 'lancers'], 0],
       ['gatehouse', ['hounds', 'lancers'], 0],
       // Act 2: its boss is the Warlord now (checkpoint 6); Colossus Escort stays a sandbox scenario.
-      ['skirmish', ['hounds', 'lancerDrone'], 1],
-      ['turret-alley', ['lancerDrone', 'turretHound'], 1],
-      ['warlord-guard', ['drones', 'turretHound'], 1],
-      ['outriders', ['lancerDrone', 'hounds'], 1],
-      ['gun-nest', ['hounds', 'lancerDrone'], 1],
-      ['the-walls', ['lancerDrone', 'turretHound'], 1],
+      // Floor 2's first lead wave fields its own enemies, and floor 3's second (2026-10-13).
+      ['skirmish', ['snarerHound', 'lancerDrone'], 1],
+      ['turret-alley', ['breakerLancer', 'turretHound'], 1],
+      ['warlord-guard', ['reaverSnarer', 'turretHound'], 1, true],
+      ['outriders', ['snarerHound', 'hounds'], 1],
+      ['gun-nest', ['breakerLancer', 'lancerDrone'], 1],
+      ['the-walls', ['reaverSnarer', 'turretHound'], 1],
       // Act 3.
-      ['the-pack', ['bulwarkLancer', 'sniperHound'], 2],
-      ['wall-and-gun', ['pikemanHound', 'sniperHound'], 2],
+      ['the-pack', ['bulwarkLancer', 'reaverSnarer'], 2],
+      ['wall-and-gun', ['pikemanHound', 'breakerLancer'], 2],
       ['siege', null, 2],
-      ['raiders', ['bulwarkLancer', 'pikemanHound'], 2],
-      ['warband', ['pikemanHound', 'bulwarkLancer'], 2],
-      ['last-stand', ['sniperHound', 'bulwarkLancer'], 2],
+      ['raiders', ['bulwarkLancer', 'snarerHound'], 2],
+      ['warband', ['pikemanHound', 'reaverSnarer'], 2],
+      ['last-stand', ['sniperHound', 'breakerLancer'], 2],
     ] as const
-  ).map(([base, leads, act]) => {
-    const fight = runFight(BASES[base]!, leads, act);
+  ).map(([base, leads, act, boss]) => {
+    const fight = runFight(BASES[base]!, leads, act, boss === true);
     return [fight.id, fight];
   }),
 );

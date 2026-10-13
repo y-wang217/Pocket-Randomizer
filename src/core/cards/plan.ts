@@ -27,7 +27,7 @@ import { UNITS } from '../../cardData/units';
 import type { Ability, BonusEffect, CardDef, DamageKeyword, Effect, Pos, UnitDefId } from './defs';
 import type { BattleEvent } from './events';
 import type { Action, BattleState, Choice, IllegalReason, PlannedPlay, PlayBlock, UnitId, UnitState } from './state';
-import { blastCentres, blastTiles, covers, enemyTiles, inDanger, lanesOf, moveDestinations, onBoard, samePos, slashTiles } from './zones';
+import { blastCentres, blastTiles, covers, enemyTiles, inDanger, inEndZone, lanesOf, moveDestinations, onBoard, repelTile, samePos, slashTiles } from './zones';
 
 export type StepResult =
   | { ok: true; state: BattleState; events: BattleEvent[] }
@@ -111,6 +111,18 @@ export function livingEnemies(state: BattleState): BattleState['enemies'] {
 }
 
 /** A unit's card slots each turn: its class's, and any the card run has added. */
+/**
+ * The shared pool's max: every unit's max MP, fainted units included (the
+ * author's answer of 2026-10-12, `docs/spec/gymrun-patch-card-battle-shared-mana.md`).
+ * A unit's max is `RULES.mp.perUnit`, plus its abilities' and its boost's.
+ */
+export function maxMpOf(state: BattleState): number {
+  return state.units.reduce(
+    (sum, u) => sum + RULES.mp.perUnit + (state.boosts?.[u.id]?.mp ?? 0) + abilitiesOf(state, u.id).reduce((n, a) => (a.k === 'maxMp' ? n + a.n : n), 0),
+    0,
+  );
+}
+
 export function slotsOf(state: BattleState, id: UnitId): number {
   return CLASS_SLOTS[UNITS[id].class] + (state.boosts?.[id]?.slots ?? 0);
 }
@@ -138,6 +150,11 @@ function obstacles(state: BattleState, positions: Projection, except: UnitId): P
   return out;
 }
 
+/** How far a unit's moves reach: a melee unit's into the end zone (2026-10-13). */
+export function moveReachOf(id: UnitDefId): number | undefined {
+  return UNITS[id].class === 'melee' ? RULES.endZone.meleeReachMax : undefined;
+}
+
 function checkMove(
   state: BattleState,
   play: PlannedPlay,
@@ -150,11 +167,13 @@ function checkMove(
   const n = granted ? granted.n : effect(def, 'move')!.n;
   const from = typeof mover === 'string' && Object.hasOwn(positions, mover) ? positions[mover as UnitId] : null;
   if (!from) return granted ? 'badChoice' : 'fainted';
+  // Root (floor 2): a rooted unit moves for no card, its own or a Command.
+  if ((unitOf(state, mover as UnitId)?.root ?? 0) > 0) return granted ? 'badChoice' : 'rooted';
   // `memo` is only passed for one fixed board, so a mover and a distance name one answer.
   const key = `${mover}:${n}`;
   let destinations = memo?.get(key);
   if (!destinations) {
-    destinations = moveDestinations('player', from, n, obstacles(state, positions, mover as UnitId));
+    destinations = moveDestinations('player', from, n, obstacles(state, positions, mover as UnitId), moveReachOf(mover as UnitId));
     memo?.set(key, destinations);
   }
   if (destinations.length === 0) return 'noTarget';
@@ -170,7 +189,9 @@ function checkEffects(state: BattleState, play: PlannedPlay, def: CardDef, posit
   const enemies = livingEnemies(state);
   const damage = damageOf(def);
   if (damage) {
-    if (RULES.keywordZone[damage.k] === 'danger' && !inDanger(pos)) return 'wrongZone';
+    // A melee unit in the end zone may Slash from there too (2026-10-13).
+    const endZoneMelee = inEndZone(pos) && UNITS[play.unit].class === 'melee';
+    if (RULES.keywordZone[damage.k] === 'danger' && !inDanger(pos) && !endZoneMelee) return 'wrongZone';
     if (effect(def, 'target')) {
       if (enemies.length === 0) return 'noTarget';
       return enemies.some((e) => e.id === play.choice?.unit) ? null : 'badChoice';
@@ -220,14 +241,15 @@ function checkEffects(state: BattleState, play: PlannedPlay, def: CardDef, posit
 
 /** What a walk through the plan has spent so far. */
 interface Spent {
-  mpUsed: Partial<Record<UnitId, number>>;
+  /** MP the plan has spent from the shared pool. */
+  mpUsed: number;
   slotsUsed: Partial<Record<UnitId, number>>;
   seen: string[];
 }
 
 /** The checks every play passes in plan order: the card, the unit, MP, slots, the choice's shape. */
 function checkCommon(state: BattleState, play: PlannedPlay, def: CardDef | undefined, spent: Spent): IllegalReason | null {
-  const { mpUsed, slotsUsed, seen } = spent;
+  const { slotsUsed, seen } = spent;
   if (!def || !state.piles.hand.includes(play.card)) return 'notInHand';
   if (seen.includes(play.card)) return 'alreadyPlanned';
   seen.push(play.card);
@@ -236,13 +258,15 @@ function checkCommon(state: BattleState, play: PlannedPlay, def: CardDef | undef
   if (unit.fainted) return 'fainted';
   if (def.owner !== 'neutral' && def.owner !== play.unit) return 'notOwner';
 
-  mpUsed[unit.id] = (mpUsed[unit.id] ?? 0) + def.cost;
-  if (mpUsed[unit.id]! > unit.mp) return 'noMp';
+  spent.mpUsed += def.cost;
+  if (spent.mpUsed > state.mp) return 'noMp';
+  // Spark: its MP lands as it plays, for the plays after it.
+  spent.mpUsed -= def.effects.reduce((n, e) => (e.k === 'gainMpNow' ? n + e.n : n), 0);
   slotsUsed[unit.id] = (slotsUsed[unit.id] ?? 0) + 1;
   if (slotsUsed[unit.id]! > slotsOf(state, unit.id)) return 'noSlot';
 
   if (effect(def, 'grantMove')) {
-    // Command: another friendly unit's slot, none of its MP.
+    // Command: another friendly unit's slot, and only its own cost from the pool.
     const ally = unitOf(state, play.choice?.unit);
     if (!ally || ally.id === unit.id || ally.fainted) return 'badChoice';
     slotsUsed[ally.id] = (slotsUsed[ally.id] ?? 0) + 1;
@@ -254,7 +278,7 @@ function checkCommon(state: BattleState, play: PlannedPlay, def: CardDef | undef
 
 function walk(state: BattleState, plan: readonly PlannedPlay[]): { check: PlanCheck; spent: Spent } {
   const positions = Object.fromEntries(state.units.map((u) => [u.id, u.fainted || !u.pos ? null : { ...u.pos }])) as Projection;
-  const spent: Spent = { mpUsed: {}, slotsUsed: {}, seen: [] };
+  const spent: Spent = { mpUsed: 0, slotsUsed: {}, seen: [] };
 
   for (const [index, play] of plan.entries()) {
     const def = cardDefOf(state, play.card);
@@ -264,8 +288,17 @@ function walk(state: BattleState, plan: readonly PlannedPlay[]): { check: PlanCh
         ? (checkMove(state, play, def!, positions) ?? (followUps(def!).length > 0 ? checkEffects(state, play, def!, positions) : null))
         : checkEffects(state, play, def!, positions));
     if (reason) return { check: { ok: false, index, reason }, spent };
+    repelProjected(state, play, def!, positions);
   }
   return { check: { ok: true, positions }, spent };
+}
+
+/** A damaging play from the end zone leaves its unit repelled, for the plays after it (2026-10-13). */
+function repelProjected(state: BattleState, play: PlannedPlay, def: CardDef, positions: Projection): void {
+  const pos = positions[play.unit];
+  if (!pos || !inEndZone(pos) || !damageOf(def)) return;
+  const to = repelTile(pos, obstacles(state, positions, play.unit));
+  if (to) positions[play.unit] = to;
 }
 
 /** The one definition of a legal plan. See the header. */
@@ -294,16 +327,21 @@ export function checkAppend(state: BattleState, play: PlannedPlay): PlanCheck {
   if (!base.check.ok) return checkPlan(state, [...state.plan, play]);
   const index = state.plan.length;
   const fail = (reason: IllegalReason): PlanCheck => ({ ok: false, index, reason });
-  const spent: Spent = { mpUsed: { ...base.spent.mpUsed }, slotsUsed: { ...base.spent.slotsUsed }, seen: [...base.spent.seen] };
+  const spent: Spent = { mpUsed: base.spent.mpUsed, slotsUsed: { ...base.spent.slotsUsed }, seen: [...base.spent.seen] };
   const common = checkCommon(state, play, def, spent);
   if (common) return fail(common);
   if (!isMoveCard(def!)) {
     const reason = checkEffects(state, play, def!, base.check.positions);
-    return reason ? fail(reason) : base.check;
+    if (reason) return fail(reason);
+    const positions = { ...base.check.positions };
+    repelProjected(state, play, def!, positions);
+    return { ok: true, positions };
   }
   const positions = { ...base.check.positions };
   const moved = checkMove(state, play, def!, positions, base.moves) ?? (followUps(def!).length > 0 ? checkEffects(state, play, def!, positions) : null);
-  return moved ? fail(moved) : { ok: true, positions };
+  if (moved) return fail(moved);
+  repelProjected(state, play, def!, positions);
+  return { ok: true, positions };
 }
 
 /**
@@ -332,7 +370,7 @@ export function project(state: BattleState): Projection {
 
 const projections = new WeakMap<BattleState, Projection>();
 
-const PLAY_BLOCKS: readonly IllegalReason[] = ['noMp', 'noSlot', 'wrongZone', 'noTarget', 'fainted', 'outOfRange'];
+const PLAY_BLOCKS: readonly IllegalReason[] = ['noMp', 'noSlot', 'wrongZone', 'noTarget', 'fainted', 'outOfRange', 'rooted'];
 
 /** Why a check failing on a play with no choice yet means the card is unplayable. */
 export function asPlayBlock(reason: IllegalReason): PlayBlock {

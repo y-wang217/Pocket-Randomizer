@@ -49,7 +49,7 @@ const better = (a: BattleState, b: BattleState): boolean => {
 
 /** Units and enemies where they stand, and how hurt: two lines here have the same future. */
 function boardKey(s: BattleState): string {
-  return JSON.stringify([s.round, s.units.map((u) => [u.pos, u.hp, u.baseShield, u.mp]), s.enemies.map((e) => [e.pos, e.hp, e.shield, e.baseShield, e.step]), s.piles.hand]);
+  return JSON.stringify([s.round, s.mp, s.units.map((u) => [u.pos, u.hp, u.baseShield]), s.enemies.map((e) => [e.pos, e.hp, e.shield, e.baseShield, e.step]), s.piles.hand]);
 }
 
 export function solveBattle(encounterId: string, seed: string, options: SolveOptions): Solved {

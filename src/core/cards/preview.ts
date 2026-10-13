@@ -187,6 +187,7 @@ export function previewPlay(state: BattleState, play: PlannedPlay, at: number = 
         add(effect.to === 'self' ? play.unit : play.choice?.unit);
         break;
       case 'gainMp':
+      case 'gainMpNow':
       case 'mpNextTurns':
         add(play.unit);
         break;

@@ -48,11 +48,11 @@ function narrate(log: BattleLog): string[] {
     return `${i.act[0]!.toUpperCase()}${i.act.slice(1)} ${i.n} on ${tiles(i.tiles)}`;
   };
   const board = (title = s.wave > 0 ? `WAVE ${s.wave + 1} ROUND ${s.round}` : `ROUND ${s.round}`): void => {
-    out.push('', title);
+    out.push('', title, `  shared MP ${s.mp}`);
     for (const u of s.units) {
       out.push(u.fainted
         ? `  ${who(u.id)}: fainted`
-        : `  ${who(u.id)} at ${at(u.pos)}  HP ${u.hp}/${u.maxHp}  base shield ${u.baseShield}  MP ${u.mp}`);
+        : `  ${who(u.id)} at ${at(u.pos)}  HP ${u.hp}/${u.maxHp}  base shield ${u.baseShield}`);
     }
     for (const e of s.enemies) {
       if (!e.pos) continue;
@@ -79,6 +79,11 @@ function narrate(log: BattleLog): string[] {
       case 'planPruned': return `${who(e.unit)} has fainted: ${card(e.card)} is not played`;
       case 'played': return `${who(e.unit)} plays ${card(e.card)}`;
       case 'moved': return `  ${who(e.unit)} moves ${at(e.from)} -> ${at(e.to)}`;
+      case 'repelled': return `  ${who(e.unit)} is repelled out of the end zone ${at(e.from)} -> ${at(e.to)}`;
+      case 'inflicted': return `  ${who(e.unit)} is ${e.status === 'root' ? 'rooted' : 'frail'} for ${e.turns} turns`;
+      case 'frailBlocked': return `  ${who(e.unit)} is frail: its shield ${e.amount} gives nothing`;
+      case 'cleansed': return `  cleanse ${e.n}: every ally's Root and Frail lose ${e.n} turns`;
+      case 'statusEnded': return `  ${who(e.unit)}'s ${e.status} wears off`;
       case 'converted': return `  Gunner ability: the Strike becomes a Pierce`;
       case 'fizzled': return `  fizzles (${e.why === 'targetGone' ? 'target gone' : 'nothing to hit'})`;
       case 'damaged': {
@@ -90,7 +95,9 @@ function narrate(log: BattleLog): string[] {
       case 'shielded': return `  ${who(e.unit)} gains shield ${e.amount}`;
       case 'defeated': return `  ${who(e.enemy)} is defeated`;
       case 'fainted': return `  ${who(e.unit)} FAINTS; its cards leave the battle (${e.removed.join(' ')})`;
-      case 'mpGained': return e.source === 'card' ? `  ${who(e.unit)} +${e.amount} MP` : null;
+      case 'mpQueued': return `  +${e.n} MP at the next ${e.turns === 1 ? 'refill' : `${e.turns} refills`}`;
+      case 'mpRefilled': return null;
+      case 'mpGainedNow': return `  +${e.n} MP into the pool at once`;
       case 'drawQueued': return `  next hand gets +${e.n} card not owned by this unit`;
       case 'enemyActed': return e.act === 'shield' ? null : `${who(e.enemy)} acts: ${e.act} ${e.n}`;
       case 'enemyMissed': return `  misses: nobody on the lit tiles`;
@@ -106,6 +113,8 @@ function narrate(log: BattleLog): string[] {
       case 'granted': return `(${card(e.card)} granted into the hand)`;
       case 'usedUp': return `  ${card(e.card)} has no uses left this wave`;
       case 'waveStarted': return `WAVE ${e.wave + 1} ARRIVES: HP carries over; shields, MP and the deck start again`;
+      case 'rewardOffered': return `  the fallen wave leaves a supply pack`;
+      case 'claimed': return `SUPPLY PACK: ${e.reward} +${e.n}`;
       case 'won': return 'WON';
       case 'lost': return `LOST (${e.why === 'allFainted' ? 'every unit fainted' : 'round cap'})`;
       default: return null;

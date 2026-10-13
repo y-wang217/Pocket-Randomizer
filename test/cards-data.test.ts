@@ -29,17 +29,19 @@ describe('card data', () => {
       ['call-medic', 'A', 1, false],
       ['command', 'A', 1, false],
       ['focus', 'A', 1, false],
-      ['moon-strike', 'A', 4, false],
-      ['shoot', 'B', 0, false],
+      // The ults at 3, from 4, by the shared mana ruling of 2026-10-12.
+      ['moon-strike', 'A', 3, false],
+      // Shoot, Move and Dig In at 1, from 0, by the no-free-cards ruling of 2026-10-12 and its second follow-up.
+      ['shoot', 'B', 1, false],
       ['resupply', 'B', 1, false],
-      ['artillery', 'B', 4, false],
+      ['artillery', 'B', 3, false],
       ['fire', 'B', 1, false],
       ['dash', 'C', 1, false],
       ['slash', 'C', 1, false],
       ['need-help', 'C', 1, false],
       ['prep', 'C', 1, true],
-      ['move', 'neutral', 0, false],
-      ['dig-in', 'neutral', 0, true],
+      ['move', 'neutral', 1, false],
+      ['dig-in', 'neutral', 1, true],
       ['attack', 'neutral', 1, false],
     ];
     // Every card but the Harpoon, which the Colossus grants (Part D) and no deck holds.
@@ -61,7 +63,7 @@ describe('card data', () => {
   });
 
   it('matches the snapshot enemies (the rest: test/cards-new-enemies.test.ts)', () => {
-    expect([ENEMIES.drone.hp, ENEMIES.drone.baseShield, ENEMIES.drone.script.steps.length]).toEqual([3, 1, 6]);
+    expect([ENEMIES.drone.hp, ENEMIES.drone.baseShield, ENEMIES.drone.script.steps.length]).toEqual([3, 1, 5]);
     expect([ENEMIES.lancer.hp, ENEMIES.lancer.baseShield, ENEMIES.lancer.script.steps.length]).toEqual([2, 0, 3]);
   });
 
@@ -129,8 +131,18 @@ describe('card data', () => {
     expect([...rows].sort()).toEqual([6, 7]);
   });
 
+  it('makes no card free but one-use equipment and Spark, and never a shield (the no-free-cards ruling)', () => {
+    for (const card of Object.values(CARDS)) {
+      if (card.effects.some((e) => e.k === 'shield')) expect(card.cost, card.id).toBeGreaterThanOrEqual(1);
+      // Spark is the Commander's MP as a card (2026-10-13): free, once a wave.
+      if (!card.equipment && !card.id.startsWith('spark')) expect(card.cost, card.id).toBeGreaterThanOrEqual(1);
+    }
+    expect(CARDS['spark']).toMatchObject({ owner: 'A', cost: 0, uses: 1, effects: [{ k: 'gainMpNow', n: 1 }] });
+  });
+
   it('carries the rule defaults it is asked to', () => {
-    expect(RULES.mp.cap).toBe(5);
+    // The shared mana ruling of 2026-10-12: one MP per unit, pooled.
+    expect(RULES.mp).toEqual({ perUnit: 1 });
     expect(RULES.handSize).toBe(5);
     expect(RULES.huntTieBreak).toEqual(['nearestLane', 'lowestHp', 'upperLane']);
     expect(RULES.advance).toEqual({ cols: 1, limitCol: 3, ifBlocked: 'wait' });

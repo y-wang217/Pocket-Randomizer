@@ -28,7 +28,7 @@ function board(cards: string[], hand: string): { state: BattleState; iid: string
   const iid = iidOf(state, hand);
   state.piles.draw = state.piles.draw.filter((c) => c !== iid);
   state.piles.hand.push(iid);
-  for (const u of state.units) u.mp = 5;
+  state.mp = 15;
   return { state, iid };
 }
 
@@ -86,7 +86,7 @@ describe('Push', () => {
     const shove = iidOf(lair, 'shove');
     lair.piles.draw = lair.piles.draw.filter((x) => x !== shove);
     lair.piles.hand.push(shove);
-    for (const u of lair.units) u.mp = 5;
+    lair.mp = 15;
     Object.assign(lair.units[2]!, { pos: at(1, 4) });
     const boss = lair.enemies[0]!;
     Object.assign(boss, { pos: at(1, 5), baseShield: 0, hp: 12 });

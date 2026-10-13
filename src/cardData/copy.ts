@@ -82,6 +82,9 @@ const EN = {
     stealth: 'Hidden: while it lasts, enemy attacks pass over this unit. A Strike that stops on it hits nobody.',
     cover: 'Cover: while it lasts, a hit meant for a unit next to this one, not diagonally, lands on this one instead.',
     stun: 'Stun: each enemy it hits and leaves standing neither moves nor acts for that many of its turns. Never a boss.',
+    root: 'Root: the unit cannot move, by its own card or a Command, for that many of its turns.',
+    frail: 'Frail: shields from cards give the unit nothing for that many of its turns. Its base shield still works.',
+    cleanse: 'Cleanse: every ally\'s Root and Frail lose that many turns.',
   },
   enemyStats: (hp: number, base: number) => `HP ${hp} · Base ${base}`,
   /** The unit filter (A6): tap a unit to see only what it can play. */
@@ -118,6 +121,7 @@ const EN = {
     noTarget: 'Nothing to hit',
     fainted: 'Fainted',
     outOfRange: 'Too far: 3 tiles ahead in its lane',
+    rooted: 'Rooted: cannot move',
   } satisfies Record<PlayBlock, string>,
   keyword: {
     strike: 'Strike',
@@ -132,7 +136,8 @@ const EN = {
   effect: {
     shieldSelf: (n: number) => `Shield ${n}, self`,
     shieldFriendly: (n: number) => `Shield ${n}, ally`,
-    gainMp: (n: number) => `+${n} MP on use`,
+    gainMp: (n: number) => `+${n} MP next turn`,
+    gainMpNow: (n: number) => `+${n} MP now`,
     mpNextTurns: (n: number, turns: number) => `+${n} MP next ${turns} turns`,
     grantMove: (n: number) => `Ally: Move ${n}, no MP`,
     drawNext: (n: number) => `Next hand +${n}, not mine`,
@@ -143,6 +148,7 @@ const EN = {
     stealth: (n: number) => `Hidden ${n} turn`,
     cover: (n: number) => `Cover neighbours ${n} turn`,
     stun: (n: number) => `Stun what it hits ${n} turn`,
+    cleanse: (n: number) => `Cleanse ${n}`,
   },
   roundLog: 'Round log',
   replayRound: 'Replay round',
@@ -174,6 +180,11 @@ const EN = {
     covered: (who: string, ally: string) => `${who} takes the hit for ${ally}`,
     stunned: (who: string, n: number) => `${who} stunned ${n} turn`,
     stunEnded: (who: string) => `${who} shakes off the stun`,
+    repelled: (who: string) => `${who} repelled from the end zone`,
+    inflicted: (who: string, what: string) => `${who}: ${what}`,
+    frailBlocked: (who: string) => `${who} is Frail: no shield`,
+    cleansed: (n: number) => `Cleanse ${n}`,
+    statusEnded: (who: string, what: string) => `${who}: ${what} wears off`,
     notPlayed: 'Not played: fainted',
     hit: (who: string, n: number) => `${who} hit for ${n}`,
     absorbed: { shield: (n: number) => `shield -${n}`, baseShield: (n: number) => `base -${n}`, hp: (n: number) => `HP -${n}` },
@@ -182,8 +193,8 @@ const EN = {
     shieldDrops: (who: string, n: number) => `${who} shield ${n} wears off`,
     defeated: (who: string) => `${who} defeated`,
     fainted: (who: string) => `${who} fainted`,
-    mp: (who: string, n: number) => `${who} +${n} MP`,
-    roundMp: (who: string) => `MP +1: ${who}`,
+    mp: (who: string, bonus: string) => `${who}: ${bonus}`,
+    roundMp: (mp: number) => `MP refilled: ${mp}`,
     drawQueued: (n: number) => `Next hand +${n}`,
     next: 'Next round',
     telegraph: (who: string, act: string) => `${who}: ${act}`,
@@ -193,10 +204,21 @@ const EN = {
     step: (n: number, of: number) => `${n}/${of}`,
   },
   /** The panels' meters, each one's accessible name (`ui/cardbattle/meters.ts`). */
+  /** A fallen wave's supply pack, offered in the hand's place (`ui/cardbattle/sandbox.ts`). */
+  pack: {
+    title: 'Supply pack: take one',
+    supplies: (n: number) => `+${n} supply`,
+    hp: (n: number) => `HP pack: +${n} HP each`,
+    mp: (n: number) => `MP pack: +${n} MP now`,
+  },
+  /** Root and Frail on a unit, with its turns left (floor 2). */
+  status: {
+    root: (n: number) => `Root ${n}`,
+    frail: (n: number) => `Frail ${n}`,
+  },
   meters: {
     vitals: (hp: number, max: number, shield: number, base: number) => `HP ${hp}/${max} · Shield ${shield} · Base ${base}`,
     mana: (free: number, held: number, cap: number) => `MP ${free} free, ${held} held, of ${cap}`,
-    ult: (card: string, cost: number) => `${card} at ${cost}`,
   },
   /** The tutorial (`ui/cardbattle/tutorial.ts`): its buttons, and each step's title and text. */
   tutorial: {
@@ -212,12 +234,12 @@ const EN = {
       start: { title: 'Start', text: 'Press Start when your units are set. The enemies then take their places.' },
       hand: { title: 'Your hand', text: 'The band and letter say which unit plays a card; a grey card, any unit. Top left is its MP cost. Hold a card to read it.' },
       vitals: { title: 'Hearts and bubbles', text: 'Hearts are HP. Bubbles are shields and pop before hearts: a filled one wears off, a ringed one is the base shield, used once. A shielded piece wears a bubble on the board.' },
-      mana: { title: 'MP', text: (card: string, cost: number, cap: number) => `Each unit gains 1 MP a round, up to ${cap}. The star marks its ult: ${card} at ${cost}. Dimmed cells are held by cards you planned.` },
+      mana: { title: 'Shared MP', text: (cap: number) => `Every unit's cards pay from one MP pool. It refills to ${cap} at the start of each turn, and MP you leave unspent is lost. Dimmed cells are held by cards you planned.` },
       move: { title: 'Move', text: 'Tap Move, pick who plays it, then a lit tile.' },
       slots: { title: 'Card slots', text: "A planned card sits in its unit's slot, numbered in the order the plan plays. Tap a slot to take the card back." },
       attack: { title: 'Attack', text: "Tap Shoot. It hits the first enemy down the Gunner's lane, at any range." },
       end: { title: 'End Turn', text: 'Your cards play in order, then the enemies act. The dummy only waits.' },
-      finish: { title: 'Beat the dummy', text: 'Keep going until the Target Dummy falls. MP builds each round, so bigger cards open up.' },
+      finish: { title: 'Beat the dummy', text: 'Keep going until the Target Dummy falls. Your MP refills every turn, so spend it.' },
     },
   },
   /**

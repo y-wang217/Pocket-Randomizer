@@ -4,8 +4,8 @@
  */
 import type { Pos } from './defs';
 import type { CardDef } from './defs';
-import { asPlayBlock, cardDefOf, checkAppend, checkPlan, livingEnemies, livingUnits, needsOf, project } from './plan';
-import type { Action, BattleState, CardIid, Choice, PlayBlock, TargetId, UnitId } from './state';
+import { asPlayBlock, cardDefOf, checkAppend, checkPlan, livingEnemies, livingUnits, moveReachOf, needsOf, project } from './plan';
+import { WAVE_REWARDS, type Action, type BattleState, type CardIid, type Choice, type PlayBlock, type TargetId, type UnitId } from './state';
 import { deployTiles } from './deploy';
 import { blastCentres, enemyTiles, moveDestinations, samePos } from './zones';
 
@@ -36,7 +36,7 @@ function candidateTiles(state: BattleState, def: CardDef, mover: UnitId): Pos[] 
       ...Object.entries(projection).flatMap(([id, pos]) => (id !== mover && pos ? [pos] : [])),
       ...livingEnemies(state).flatMap((e) => enemyTiles(e)),
     ];
-    return moveDestinations('player', from, move.n, occupied);
+    return moveDestinations('player', from, move.n, occupied, moveReachOf(mover));
   }
   return blastCentres('player', from);
 }
@@ -125,6 +125,7 @@ export function placeActions(state: BattleState): Action[] {
 export function legalActions(state: BattleState): Action[] {
   if (state.phase === 'deploy') return [...placeActions(state), { type: 'start' }];
   if (state.phase !== 'plan') return [];
+  if (state.waveReward) return WAVE_REWARDS.map((reward) => ({ type: 'claim', reward }));
   const out: Action[] = [];
   for (const card of state.piles.hand) {
     if (state.plan.some((p) => p.card === card)) continue;

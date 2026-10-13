@@ -10,7 +10,7 @@
  */
 import { place, start } from './deploy';
 import { select, type StepResult, unselect } from './plan';
-import { commit } from './resolve';
+import { claim, commit } from './resolve';
 import type { Action, BattleState } from './state';
 
 export type { StepResult };
@@ -21,7 +21,11 @@ export function step(state: BattleState, action: Action | unknown): StepResult {
   if (state.phase === 'deploy' && (type === 'select' || type === 'unselect' || type === 'commit')) {
     return { ok: false, state, reason: 'deploying' };
   }
+  // A fallen wave's supply pack is claimed before the wave's first plan.
+  if (state.waveReward && (type === 'select' || type === 'commit')) return { ok: false, state, reason: 'claimFirst' };
   switch (type) {
+    case 'claim':
+      return claim(state, action as { reward?: unknown });
     case 'place':
       return place(state, action);
     case 'start':
