@@ -1,6 +1,6 @@
 # Floor 2: new enemies, root and frail, Cleanse, melee into the end zone, and a skin
 
-**2026-10-13, a draft for the author's review. Nothing here is built yet.**
+**2026-10-13. Built** after the author's go-ahead (`../generation.md` section 148), with one change: the Reaver is not Fast, see below.
 For [`../spec/gymrun-patch-card-run-floors-commander-card.md`](../spec/gymrun-patch-card-run-floors-commander-card.md),
 its last message. Every number is a first draft.
 
@@ -34,10 +34,12 @@ beside the veterans, and floor 3's too.
 |---|---|---|---|---|
 | **Snarer** | 3 | 1 | yes | Hunt, Strike 1 and **Root 2** · Advance, Shield 1 |
 | **Breaker** | 4 | 1 | no | stay, Pierce 2 and **Frail 2** · Hunt, Strike 2 · stay, Shield 1 |
-| **Reaver** | 3 | 0 | yes | Hunt, Strike 2 · Hunt, Strike 2 · Advance, Shield 1 |
+| **Reaver** | 3 | 0 | no (built) | Hunt, Strike 2 · Hunt, Strike 2 · Advance, Shield 1 |
 
 Each keeps one step that deals nothing, which opening grace needs. The Reaver
-is the "faster" one: two hits out of every three rounds, and Fast.
+is the "faster" one: two hits out of every three rounds. **As built it is not
+Fast:** the game's rule is that a Fast enemy attacks from round 1 for 1, and
+the Reaver hits for 2, so it waits out opening grace like any other.
 
 ## 4. Melee into the end zone
 

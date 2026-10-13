@@ -27,7 +27,7 @@ import { UNITS } from '../../cardData/units';
 import type { Ability, BonusEffect, CardDef, DamageKeyword, Effect, Pos, UnitDefId } from './defs';
 import type { BattleEvent } from './events';
 import type { Action, BattleState, Choice, IllegalReason, PlannedPlay, PlayBlock, UnitId, UnitState } from './state';
-import { blastCentres, blastTiles, covers, enemyTiles, inDanger, lanesOf, moveDestinations, onBoard, samePos, slashTiles } from './zones';
+import { blastCentres, blastTiles, covers, enemyTiles, inDanger, inEndZone, lanesOf, moveDestinations, onBoard, repelTile, samePos, slashTiles } from './zones';
 
 export type StepResult =
   | { ok: true; state: BattleState; events: BattleEvent[] }
@@ -150,6 +150,11 @@ function obstacles(state: BattleState, positions: Projection, except: UnitId): P
   return out;
 }
 
+/** How far a unit's moves reach: a melee unit's into the end zone (2026-10-13). */
+export function moveReachOf(id: UnitDefId): number | undefined {
+  return UNITS[id].class === 'melee' ? RULES.endZone.meleeReachMax : undefined;
+}
+
 function checkMove(
   state: BattleState,
   play: PlannedPlay,
@@ -162,11 +167,13 @@ function checkMove(
   const n = granted ? granted.n : effect(def, 'move')!.n;
   const from = typeof mover === 'string' && Object.hasOwn(positions, mover) ? positions[mover as UnitId] : null;
   if (!from) return granted ? 'badChoice' : 'fainted';
+  // Root (floor 2): a rooted unit moves for no card, its own or a Command.
+  if ((unitOf(state, mover as UnitId)?.root ?? 0) > 0) return granted ? 'badChoice' : 'rooted';
   // `memo` is only passed for one fixed board, so a mover and a distance name one answer.
   const key = `${mover}:${n}`;
   let destinations = memo?.get(key);
   if (!destinations) {
-    destinations = moveDestinations('player', from, n, obstacles(state, positions, mover as UnitId));
+    destinations = moveDestinations('player', from, n, obstacles(state, positions, mover as UnitId), moveReachOf(mover as UnitId));
     memo?.set(key, destinations);
   }
   if (destinations.length === 0) return 'noTarget';
@@ -182,7 +189,9 @@ function checkEffects(state: BattleState, play: PlannedPlay, def: CardDef, posit
   const enemies = livingEnemies(state);
   const damage = damageOf(def);
   if (damage) {
-    if (RULES.keywordZone[damage.k] === 'danger' && !inDanger(pos)) return 'wrongZone';
+    // A melee unit in the end zone may Slash from there too (2026-10-13).
+    const endZoneMelee = inEndZone(pos) && UNITS[play.unit].class === 'melee';
+    if (RULES.keywordZone[damage.k] === 'danger' && !inDanger(pos) && !endZoneMelee) return 'wrongZone';
     if (effect(def, 'target')) {
       if (enemies.length === 0) return 'noTarget';
       return enemies.some((e) => e.id === play.choice?.unit) ? null : 'badChoice';
@@ -279,8 +288,17 @@ function walk(state: BattleState, plan: readonly PlannedPlay[]): { check: PlanCh
         ? (checkMove(state, play, def!, positions) ?? (followUps(def!).length > 0 ? checkEffects(state, play, def!, positions) : null))
         : checkEffects(state, play, def!, positions));
     if (reason) return { check: { ok: false, index, reason }, spent };
+    repelProjected(state, play, def!, positions);
   }
   return { check: { ok: true, positions }, spent };
+}
+
+/** A damaging play from the end zone leaves its unit repelled, for the plays after it (2026-10-13). */
+function repelProjected(state: BattleState, play: PlannedPlay, def: CardDef, positions: Projection): void {
+  const pos = positions[play.unit];
+  if (!pos || !inEndZone(pos) || !damageOf(def)) return;
+  const to = repelTile(pos, obstacles(state, positions, play.unit));
+  if (to) positions[play.unit] = to;
 }
 
 /** The one definition of a legal plan. See the header. */
@@ -314,11 +332,16 @@ export function checkAppend(state: BattleState, play: PlannedPlay): PlanCheck {
   if (common) return fail(common);
   if (!isMoveCard(def!)) {
     const reason = checkEffects(state, play, def!, base.check.positions);
-    return reason ? fail(reason) : base.check;
+    if (reason) return fail(reason);
+    const positions = { ...base.check.positions };
+    repelProjected(state, play, def!, positions);
+    return { ok: true, positions };
   }
   const positions = { ...base.check.positions };
   const moved = checkMove(state, play, def!, positions, base.moves) ?? (followUps(def!).length > 0 ? checkEffects(state, play, def!, positions) : null);
-  return moved ? fail(moved) : { ok: true, positions };
+  if (moved) return fail(moved);
+  repelProjected(state, play, def!, positions);
+  return { ok: true, positions };
 }
 
 /**
@@ -347,7 +370,7 @@ export function project(state: BattleState): Projection {
 
 const projections = new WeakMap<BattleState, Projection>();
 
-const PLAY_BLOCKS: readonly IllegalReason[] = ['noMp', 'noSlot', 'wrongZone', 'noTarget', 'fainted', 'outOfRange'];
+const PLAY_BLOCKS: readonly IllegalReason[] = ['noMp', 'noSlot', 'wrongZone', 'noTarget', 'fainted', 'outOfRange', 'rooted'];
 
 /** Why a check failing on a play with no choice yet means the card is unplayable. */
 export function asPlayBlock(reason: IllegalReason): PlayBlock {

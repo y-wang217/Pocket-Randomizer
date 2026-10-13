@@ -310,4 +310,54 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
       ],
     },
   },
+  // Floor 2 (`docs/reports/floor-2-design.md`, 2026-10-13): they hit harder and
+  // come faster than floor 1's, and the first two leave a status on what they hit.
+  // Each keeps one step that deals nothing, which opening grace needs.
+  snarer: {
+    id: 'snarer',
+    name: 'Snarer',
+    hp: 3,
+    baseShield: 1,
+    fast: true,
+    grade: 3,
+    script: {
+      kind: 'cycle',
+      steps: [
+        { move: 'hunt', act: { k: 'strike', n: 1, inflict: { k: 'root', n: 2 } } },
+        { move: 'advance', act: { k: 'shield', n: 1 } },
+      ],
+    },
+  },
+  breaker: {
+    id: 'breaker',
+    name: 'Breaker',
+    hp: 4,
+    baseShield: 1,
+    grade: 4,
+    script: {
+      kind: 'cycle',
+      steps: [
+        { move: 'none', act: { k: 'pierce', n: 2, inflict: { k: 'frail', n: 2 } } },
+        { move: 'hunt', act: { k: 'strike', n: 2 } },
+        { move: 'none', act: { k: 'shield', n: 1 } },
+      ],
+    },
+  },
+  reaver: {
+    id: 'reaver',
+    name: 'Reaver',
+    hp: 3,
+    baseShield: 0,
+    // Not Fast: a Fast enemy hits for 1 (`rule.fast`). It is the faster one by hitting
+    // two rounds in three.
+    grade: 4,
+    script: {
+      kind: 'cycle',
+      steps: [
+        { move: 'hunt', act: { k: 'strike', n: 2 } },
+        { move: 'hunt', act: { k: 'strike', n: 2 } },
+        { move: 'advance', act: { k: 'shield', n: 1 } },
+      ],
+    },
+  },
 };

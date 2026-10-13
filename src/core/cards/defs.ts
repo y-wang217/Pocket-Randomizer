@@ -46,7 +46,11 @@ export type EnemyDefId =
   | 'juggernaut'
   | 'deadeye'
   | 'halberdier'
-  | 'warlord';
+  | 'warlord'
+  // Floor 2 (2026-10-13): harder, faster, and the first to leave a status.
+  | 'snarer'
+  | 'breaker'
+  | 'reaver';
 
 export type DamageKeyword = 'strike' | 'pierce' | 'slash' | 'blast';
 
@@ -90,7 +94,9 @@ export type Effect =
    */
   | { k: 'cover'; n: number }
   /** Stun (checkpoint 5a): every enemy the card's damage landed on, not a boss, skips its next `n` turns. */
-  | { k: 'stun'; n: number };
+  | { k: 'stun'; n: number }
+  /** Cleanse (floor 2): every living ally's Root and Frail lose `n` turns. */
+  | { k: 'cleanse'; n: number };
 
 export interface CardDef {
   id: string;
@@ -167,9 +173,17 @@ export interface UnitDef {
 
 export type Cond = 'slashInRange';
 export type MoveRule = 'none' | 'hunt' | 'advance' | { if: Cond; then: MoveRule; else: MoveRule };
+/** A status an enemy's hit leaves on a player unit for `n` of its turns (floor 2, 2026-10-13). */
+export interface Inflict {
+  k: 'root' | 'frail';
+  n: number;
+}
+
 export type ActRule =
   | { k: 'none' }
-  | { k: 'strike' | 'pierce' | 'slash' | 'shield'; n: number }
+  | { k: 'shield'; n: number }
+  /** A hit, and the status it leaves on every unit it lands on. */
+  | { k: 'strike' | 'pierce' | 'slash'; n: number; inflict?: Inflict }
   | { if: Cond; then: ActRule; else: ActRule };
 export interface EnemyStep {
   move: MoveRule;
@@ -250,6 +264,8 @@ export interface EncounterDef {
   waves?: readonly (readonly EnemySpawn[])[];
   /** HP every enemy of the battle gains over its definition's (checkpoint 6: the card run's acts). */
   hpBonus?: number;
+  /** The board's art: the meadow when absent, the fort for floor 2 on (2026-10-13). */
+  skin?: 'fort';
 }
 
 /**
@@ -310,6 +326,12 @@ export interface Rules {
    * living unit, or bonus MP for that turn. Each offer is all three, in this order.
    */
   waveReward: { supplies: number; hp: number; mp: number };
+  /**
+   * Melee into the end zone (2026-10-13): a melee unit's moves reach to
+   * `meleeReachMax`, and a unit in the end zone is pushed back to `repelCol`
+   * once a card of its deals damage there, or when the plan has played.
+   */
+  endZone: { meleeReachMax: Col; repelCol: Col };
   /** R3. */
   playerShieldClears: 'nextTurnStart';
   /** R4. Strike hits the first opposing unit in the lane counted from the attacker's side of the board. */

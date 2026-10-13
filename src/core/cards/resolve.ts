@@ -20,8 +20,8 @@ import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { enemyActions, enemyMovesAndTelegraph } from './enemies';
 import type { Ctx } from './keywords';
-import { payFor, resolveEffects, resolveMove, retire } from './keywords';
-import { abilitiesOf, cardDefOf, checkPlan, followUps, isMoveCard, livingEnemies, livingUnits, maxMpOf, type StepResult, unitOf } from './plan';
+import { payFor, repel, resolveEffects, resolveMove, retire } from './keywords';
+import { abilitiesOf, cardDefOf, checkPlan, damageOf, followUps, isMoveCard, livingEnemies, livingUnits, maxMpOf, type StepResult, unitOf } from './plan';
 import { shuffled, withStream } from './random';
 import { WAVE_REWARDS, type BattleState, type PlannedPlay, type UnitId, type WaveReward } from './state';
 
@@ -103,6 +103,8 @@ export function playPlan(ctx: Ctx): void {
       });
     } else playCard(ctx, play, () => resolveEffects(ctx, play, def, converts(play, index)));
   });
+  // A unit the plan left in the end zone without a hit there goes back out too.
+  for (const unit of livingUnits(s)) repel(ctx, unit);
 }
 
 export function commit(state: BattleState): StepResult {
@@ -112,6 +114,18 @@ export function commit(state: BattleState): StepResult {
   const s = draftOf(state);
   const ctx: Ctx = { s, events: [{ t: 'committed', round: s.round }] };
   playPlan(ctx);
+  // Root and Frail count the unit's turns: one is spent once its cards have played.
+  for (const unit of livingUnits(s)) {
+    for (const key of ['root', 'frail'] as const) {
+      const left = unit[key];
+      if (left === undefined) continue;
+      if (left > 1) unit[key] = left - 1;
+      else {
+        delete unit[key];
+        ctx.events.push({ t: 'statusEnded', unit: unit.id, status: key });
+      }
+    }
+  }
 
   // 3. Win check: the last enemy of a wave brings the next wave, of the last wave wins.
   if (livingEnemies(s).length === 0 && s.phase === 'plan') {
@@ -192,6 +206,9 @@ function playCard(ctx: Ctx, play: PlannedPlay, resolve: () => void): void {
   ctx.events.push({ t: 'played', card: play.card, unit: play.unit });
   resolve();
   retire(ctx, play);
+  // One hit in the end zone, then out of it (2026-10-13).
+  const unit = unitOf(ctx.s, play.unit);
+  if (unit && !unit.fainted && damageOf(def)) repel(ctx, unit);
 }
 
 /** Draw `n` from the top of the draw pile, reshuffling the discard in when it runs out. */

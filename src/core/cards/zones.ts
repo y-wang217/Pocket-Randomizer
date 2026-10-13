@@ -70,6 +70,27 @@ export function inDanger(pos: Pos): boolean {
   return zoneOf(pos) === 'danger';
 }
 
+/** The enemy's backline, where only a melee unit goes, and only for one hit (2026-10-13). */
+export function inEndZone(pos: Pos): boolean {
+  return zoneOf(pos) === 'enemyBackline';
+}
+
+/**
+ * Where a unit in the end zone is pushed back to: `RULES.endZone.repelCol` in
+ * its own lane, else the nearest free tile of that column by lane, upper
+ * first, else the column behind it. `null` only for a board with no free tile.
+ */
+export function repelTile(from: Pos, occupied: readonly Pos[]): Pos | null {
+  for (let col = RULES.endZone.repelCol; col >= RULES.reach.player.min; col--) {
+    const lanes = [1, 2, 3].sort((a, b) => Math.abs(a - from.lane) - Math.abs(b - from.lane) || a - b);
+    for (const lane of lanes) {
+      const p = tile(lane, col);
+      if (p && !occupied.some((o) => samePos(o, p))) return p;
+    }
+  }
+  return null;
+}
+
 function orthogonal(pos: Pos): Pos[] {
   return [tile(pos.lane - 1, pos.col), tile(pos.lane + 1, pos.col), tile(pos.lane, pos.col - 1), tile(pos.lane, pos.col + 1)].filter(
     (p): p is Pos => p !== null,
@@ -118,7 +139,8 @@ export function laneFromSide(side: Side, lane: Lane): Pos[] {
  * step into an empty tile inside the side's reach. A unit never moves
  * through another (R15).
  */
-export function moveDestinations(side: Side, from: Pos, n: number, occupied: readonly Pos[]): Pos[] {
+/** `maxCol`: a melee unit's reach into the end zone (`RULES.endZone`), past its side's. */
+export function moveDestinations(side: Side, from: Pos, n: number, occupied: readonly Pos[], maxCol?: number): Pos[] {
   const blocked = (p: Pos): boolean => occupied.some((o) => samePos(o, p));
   const seen: Pos[] = [from];
   let frontier: Pos[] = [from];
@@ -127,7 +149,8 @@ export function moveDestinations(side: Side, from: Pos, n: number, occupied: rea
     const next: Pos[] = [];
     for (const p of frontier) {
       for (const q of orthogonal(p)) {
-        if (!inReach(side, q) || blocked(q) || seen.some((s) => samePos(s, q))) continue;
+        const reached = maxCol === undefined ? inReach(side, q) : q.col >= RULES.reach[side].min && q.col <= maxCol;
+        if (!reached || blocked(q) || seen.some((s) => samePos(s, q))) continue;
         seen.push(q);
         next.push(q);
         out.push(q);

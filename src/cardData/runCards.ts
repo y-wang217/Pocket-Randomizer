@@ -58,6 +58,8 @@ const TOWN: Readonly<Record<string, CardDef>> = {
   // The Gunner's massive artillery, from the danger zone the others walk it into.
   // Most of the shared pool: every ult is 3 at most since the shared mana ruling.
   barrage: card({ id: 'barrage', name: 'Barrage', owner: 'B', cost: 3, type: null, effects: [{ k: 'blast', n: 3 }], ult: true, art: 'artillery' }),
+  // Floor 2 (2026-10-13): lifts what the floor's enemies leave, for the whole team.
+  cleanse: card({ id: 'cleanse', name: 'Cleanse', owner: 'neutral', cost: 1, type: null, effects: [{ k: 'cleanse', n: 2 }] }),
   // The Dasher steps beside the one it defends.
   interpose: card({ id: 'interpose', name: 'Interpose', owner: 'C', cost: 1, type: null, effects: [{ k: 'move', n: 1 }, { k: 'cover', n: 1 }], art: 'dash' }),
 };
@@ -80,6 +82,8 @@ const EQUIPMENT: Readonly<Record<string, CardDef>> = {
   grapple: card({ id: 'grapple', name: 'Grapple', owner: 'neutral', cost: 0, type: null, effects: [{ k: 'pull', n: 2 }], uses: 1, equipment: true, face: 'harpoon' }),
   smoke: card({ id: 'smoke', name: 'Smoke', owner: 'neutral', cost: 0, type: null, effects: [{ k: 'stealth', n: 1 }], uses: 1, equipment: true }),
   // Checkpoint 5b: crowd control for the Gunner's equipment.
+  // Floor 2 (2026-10-13): the City's cure for Root and Frail, once, for the run.
+  antidote: card({ id: 'antidote', name: 'Antidote', owner: 'neutral', cost: 0, type: null, effects: [{ k: 'cleanse', n: 9 }], uses: 1, equipment: true }),
   'riot-net': card({ id: 'riot-net', name: 'Riot Net', owner: 'neutral', cost: 0, type: null, effects: [{ k: 'blast', n: 1 }, { k: 'stun', n: 1 }], uses: 1, equipment: true }),
 };
 
@@ -137,6 +141,7 @@ export function upgradesOf(cards: Readonly<Record<string, CardDef>>): Record<str
     up(c('concuss'), { effects: [{ k: 'strike', n: 2 }, { k: 'stun', n: 1 }] }),
     up(c('overcharge'), { cost: 2 }),
     up(c('barrage'), { cost: 2 }),
+    up(c('cleanse'), { effects: [{ k: 'cleanse', n: 3 }] }),
     up(c('interpose'), { effects: [{ k: 'move', n: 2 }, { k: 'cover', n: 1 }] }),
   ];
   return Object.fromEntries(list.map((def) => [def.id, def]));

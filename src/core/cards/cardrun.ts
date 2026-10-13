@@ -26,6 +26,7 @@ import {
   BOOST_WEIGHTS,
   EVENTS,
   MARKET,
+  MARKET_FROM,
   RUN_RULES,
   SHAPES,
   STARTING_DECK,
@@ -45,7 +46,7 @@ import type { Action, BattleState } from './state';
 import { step } from './step';
 
 /** Bumps when a run's draws, its tables' meaning or a logged decision changes what a run log replays to. */
-export const CARD_RUN_VERSION = 'cardrun-0.15.0';
+export const CARD_RUN_VERSION = 'cardrun-0.16.0';
 
 export type StopKind = 'city' | 'town' | 'wild';
 
@@ -245,7 +246,8 @@ function quest(seed: string, node: string, what: string, pool: readonly string[]
 function stopNode(seed: string, act: number, index: number): StopNode {
   const key = `a${act + 1}/s${index}`;
   const def = ACTS[act]!;
-  const market = distinct(streamFor(seed, key, 'market'), Object.keys(MARKET), RUN_RULES.offer).map((card) => ({ card, price: MARKET[card]! }));
+  const sold = Object.keys(MARKET).filter((card) => (MARKET_FROM[card] ?? 0) <= act);
+  const market = distinct(streamFor(seed, key, 'market'), sold, RUN_RULES.offer).map((card) => ({ card, price: MARKET[card]! }));
   const wild = streamFor(seed, key, 'wild');
   const supplies = between(wild, RUN_RULES.wild.supplies);
   const rolled = wild.nextFloat() < RUN_RULES.wild.eventChance;
@@ -264,7 +266,7 @@ function stopNode(seed: string, act: number, index: number): StopNode {
     wild: {
       supplies,
       event: rolled ? event : null,
-      equipment: pickOne(streamFor(seed, key, 'wild/equipment'), Object.keys(MARKET)),
+      equipment: pickOne(streamFor(seed, key, 'wild/equipment'), sold),
       card: pickOne(streamFor(seed, key, 'wild/card'), TOWN_POOL),
       ambush: quest(seed, key, 'ambush', def.townQuests),
       offer: shapedOffer(streamFor(seed, key, 'ambush/offer')),

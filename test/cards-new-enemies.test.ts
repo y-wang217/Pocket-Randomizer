@@ -47,7 +47,8 @@ describe('the A3 enemies', () => {
     ];
     // The Colossus is Part D's (test/cards-boss.test.ts); the veterans and the Warlord are
     // checkpoint 6's (test/cards-act-scaling.test.ts).
-    const later = ['colossus', 'dummy', 'warlord', ...Object.values(VETERAN)];
+    // Floor 2's three are `test/cards-floor-2.test.ts`'s.
+    const later = ['colossus', 'dummy', 'warlord', 'snarer', 'breaker', 'reaver', ...Object.values(VETERAN)];
     expect(Object.keys(ENEMIES).filter((id) => !later.includes(id as EnemyDefId)).sort()).toEqual(table.map(([id]) => id).sort());
     for (const [id, hp, base, fast, grade, steps] of table) {
       const def = ENEMIES[id];

@@ -80,6 +80,16 @@ export type BattleEvent =
   | { t: 'usedUp'; card: CardIid }
   /** The last enemy of a wave fell and the next arrives at once, the units where they stand (2026-10-11). */
   | { t: 'waveStarted'; wave: number }
+  /** A unit in the end zone pushed back out of it, after its hit there or once the plan has played. */
+  | { t: 'repelled'; unit: UnitId; from: Pos; to: Pos }
+  /** An enemy's hit left a status on a unit; `turns` is what it now holds. */
+  | { t: 'inflicted'; unit: UnitId; status: 'root' | 'frail'; turns: number }
+  /** A shield a card would have given a Frail unit gave it nothing. */
+  | { t: 'frailBlocked'; unit: UnitId; amount: number }
+  /** Cleanse: each ally's Root and Frail after it. */
+  | { t: 'cleansed'; card: CardIid; n: number }
+  /** A status ran out at the end of the unit's turn. */
+  | { t: 'statusEnded'; unit: UnitId; status: 'root' | 'frail' }
   /** The wave that fell left a supply pack. */
   | { t: 'rewardOffered' }
   /** The pack claimed: `n` supplies, HP to each living unit, or MP this turn. */

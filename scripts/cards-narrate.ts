@@ -79,6 +79,11 @@ function narrate(log: BattleLog): string[] {
       case 'planPruned': return `${who(e.unit)} has fainted: ${card(e.card)} is not played`;
       case 'played': return `${who(e.unit)} plays ${card(e.card)}`;
       case 'moved': return `  ${who(e.unit)} moves ${at(e.from)} -> ${at(e.to)}`;
+      case 'repelled': return `  ${who(e.unit)} is repelled out of the end zone ${at(e.from)} -> ${at(e.to)}`;
+      case 'inflicted': return `  ${who(e.unit)} is ${e.status === 'root' ? 'rooted' : 'frail'} for ${e.turns} turns`;
+      case 'frailBlocked': return `  ${who(e.unit)} is frail: its shield ${e.amount} gives nothing`;
+      case 'cleansed': return `  cleanse ${e.n}: every ally's Root and Frail lose ${e.n} turns`;
+      case 'statusEnded': return `  ${who(e.unit)}'s ${e.status} wears off`;
       case 'converted': return `  Gunner ability: the Strike becomes a Pierce`;
       case 'fizzled': return `  fizzles (${e.why === 'targetGone' ? 'target gone' : 'nothing to hit'})`;
       case 'damaged': {

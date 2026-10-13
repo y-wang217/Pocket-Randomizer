@@ -5,7 +5,7 @@
  * The plan lives here, not in the UI. `select` and `unselect` edit
  * `state.plan`, and every legality question is answered from this object.
  */
-import type { CardOwner, Col, Cond, EnemyDefId, Lane, Pos, UnitBoost, UnitDefId } from './defs';
+import type { CardOwner, Col, Cond, EnemyDefId, Inflict, Lane, Pos, UnitBoost, UnitDefId } from './defs';
 
 export type { Pos, Lane, Col };
 
@@ -31,11 +31,17 @@ export interface UnitState {
   stealth?: number;
   /** Cover: enemy phases left in which this unit takes the hits meant for its neighbours. Absent when none. */
   cover?: number;
+  /** Root (floor 2): its turns left unable to move. Absent when none. */
+  root?: number;
+  /** Frail (floor 2): its turns left in which a card's shield gives it nothing. Absent when none. */
+  frail?: number;
 }
 
 export interface Intent {
   act: 'none' | 'strike' | 'pierce' | 'slash' | 'shield' | 'scream';
   n: number;
+  /** The status the hit leaves on each unit it lands on (floor 2). */
+  inflict?: Inflict;
   /** The step's name for its act, when it has one (Crush, Stomp). */
   label?: string;
   /** The tiles the action will hit, from the enemy's position when telegraphed. */
@@ -150,7 +156,7 @@ export type Action =
   | { type: 'claim'; reward: WaveReward };
 
 /** Why a card cannot be played by a unit right now. */
-export type PlayBlock = 'noMp' | 'noSlot' | 'wrongZone' | 'noTarget' | 'fainted' | 'outOfRange';
+export type PlayBlock = 'noMp' | 'noSlot' | 'wrongZone' | 'noTarget' | 'fainted' | 'outOfRange' | 'rooted';
 
 export type IllegalReason =
   | PlayBlock

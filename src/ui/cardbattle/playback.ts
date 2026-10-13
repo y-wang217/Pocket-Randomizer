@@ -123,6 +123,23 @@ export function roundSteps(before: BattleState, events: readonly BattleEvent[], 
         draft.mp = Math.max(0, draft.mp - def.cost);
         break;
       }
+      case 'repelled': {
+        const unit = unitOf(event.unit);
+        if (unit) unit.pos = { ...event.to };
+        const step = current('card', '');
+        step.moves.push({ id: event.unit, from: event.from, to: event.to });
+        step.lines.push(L.repelled(who(event.unit)));
+        break;
+      }
+      case 'inflicted':
+        (open ?? begin('round', '')).lines.push(L.inflicted(who(event.unit), CARD_COPY.status[event.status](event.turns)));
+        break;
+      case 'frailBlocked':
+        current('card', '').lines.push(L.frailBlocked(who(event.unit)));
+        break;
+      case 'cleansed':
+        current('card', '').lines.push(L.cleansed(event.n));
+        break;
       case 'moved': {
         const unit = unitOf(event.unit);
         if (unit) unit.pos = { ...event.to };

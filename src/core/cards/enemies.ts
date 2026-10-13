@@ -261,6 +261,7 @@ function telegraph(ctx: Ctx, enemy: EnemyState): void {
       intent = { act: 'slash', n: act.n, tiles: enemySlashTiles(enemy) };
       break;
   }
+  if ('inflict' in act && act.inflict) intent.inflict = { ...act.inflict };
   if (step.label && intent.act !== 'none') intent.label = step.label;
   enemy.intent = intent;
   ctx.events.push({ t: 'telegraphed', enemy: enemy.id, step: enemy.step, intent: { ...intent, tiles: intent.tiles.map((t) => ({ ...t })) } });
@@ -310,8 +311,21 @@ function enemyAct(ctx: Ctx, enemy: EnemyState): void {
   for (const unit of hits) {
     if (s.phase !== 'plan') return;
     if (unseen(ctx, unit, enemy)) continue;
-    damage(ctx, coveredBy(ctx, unit, enemy), intent.n);
+    const hit = coveredBy(ctx, unit, enemy);
+    damage(ctx, hit, intent.n);
+    if (intent.inflict && !hit.fainted) inflict(ctx, hit, intent.inflict.k, intent.inflict.n);
   }
+}
+
+/**
+ * Root and Frail (floor 2, `docs/reports/floor-2-design.md`): a hit leaves the
+ * status on the unit it landed on. A second takes the longer of the two, so it
+ * never stacks past what the enemy wrote.
+ */
+export function inflict(ctx: Ctx, unit: UnitState, status: 'root' | 'frail', n: number): void {
+  const turns = Math.max(unit[status] ?? 0, n);
+  unit[status] = turns;
+  ctx.events.push({ t: 'inflicted', unit: unit.id, status, turns });
 }
 
 /**

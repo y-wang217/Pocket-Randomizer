@@ -8,7 +8,7 @@ import { VETERAN } from '../../cardData/encounters';
 import { ENEMIES } from '../../cardData/enemies';
 import { RULES } from '../../cardData/rules';
 import { UNITS } from '../../cardData/units';
-import type { CardOwner, ClassId, EnemyDefId, Effect, Pos, Zone } from './defs';
+import type { CardOwner, ClassId, EnemyDefId, Effect, Inflict, Pos, Zone } from './defs';
 import { deployTiles } from './deploy';
 import { playBlock, playersOf } from './legal';
 import { cardDefOf, maxMpOf, needsOf, project, slotsOf, type Needs } from './plan';
@@ -73,6 +73,9 @@ export interface UnitView {
   fainted: boolean;
   /** Enemy phases left under Stealth: 0 when none. */
   stealth: number;
+  /** Its turns left Rooted and Frail (floor 2): 0 when none. */
+  root: number;
+  frail: number;
   /** Hidden once the plan's cards have played: a Smoke planned, or Stealth still on. */
   hiddenByPlan: boolean;
   /** Covering once the plan's cards have played (Guard Duty, Interpose, Bodyguard). */
@@ -111,7 +114,8 @@ export interface EnemyView {
   planned: { to: Pos | null; stun: number; intent: EnemyView['intent'] } | null;
   /** The HP at which its one stalk comes, while it has not come (D3); `null` for an enemy that never stalks. */
   stalkAt: number | null;
-  intent: { icon: Intent['act']; n: number; tiles: Pos[]; label?: string } | null;
+  /** `inflict`: the status its hit leaves (floor 2). */
+  intent: { icon: Intent['act']; n: number; tiles: Pos[]; label?: string; inflict?: Inflict } | null;
 }
 
 export interface HandCardView {
@@ -180,7 +184,9 @@ export function enemyNumber(state: BattleState, id: EnemyId): number {
 const PLAIN_OF: Partial<Record<EnemyDefId, EnemyDefId>> = Object.fromEntries(Object.entries(VETERAN).map(([plain, vet]) => [vet, plain]));
 
 function intentView(e: EnemyState): EnemyView['intent'] {
-  return e.pos && e.intent ? { icon: e.intent.act, n: e.intent.n, tiles: e.intent.tiles, ...(e.intent.label ? { label: e.intent.label } : {}) } : null;
+  return e.pos && e.intent
+    ? { icon: e.intent.act, n: e.intent.n, tiles: e.intent.tiles, ...(e.intent.label ? { label: e.intent.label } : {}), ...(e.intent.inflict ? { inflict: { ...e.intent.inflict } } : {}) }
+    : null;
 }
 
 /**
@@ -266,6 +272,8 @@ export function viewOf(state: BattleState, { forecast = true }: { forecast?: boo
       planned,
       fainted: u.fainted,
       stealth: u.stealth ?? 0,
+      root: u.root ?? 0,
+      frail: u.frail ?? 0,
       hiddenByPlan: !after.fainted && (after.stealth ?? 0) > 0,
       coveringByPlan: !after.fainted && (after.cover ?? 0) > 0,
       coveredBy: u.fainted ? [] : coveredBy,

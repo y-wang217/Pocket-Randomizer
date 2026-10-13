@@ -81,6 +81,9 @@ const EN = {
     stealth: 'Hidden: while it lasts, enemy attacks pass over this unit. A Strike that stops on it hits nobody.',
     cover: 'Cover: while it lasts, a hit meant for a unit next to this one, not diagonally, lands on this one instead.',
     stun: 'Stun: each enemy it hits and leaves standing neither moves nor acts for that many of its turns. Never a boss.',
+    root: 'Root: the unit cannot move, by its own card or a Command, for that many of its turns.',
+    frail: 'Frail: shields from cards give the unit nothing for that many of its turns. Its base shield still works.',
+    cleanse: 'Cleanse: every ally\'s Root and Frail lose that many turns.',
   },
   enemyStats: (hp: number, base: number) => `HP ${hp} · Base ${base}`,
   /** The unit filter (A6): tap a unit to see only what it can play. */
@@ -117,6 +120,7 @@ const EN = {
     noTarget: 'Nothing to hit',
     fainted: 'Fainted',
     outOfRange: 'Too far: 3 tiles ahead in its lane',
+    rooted: 'Rooted: cannot move',
   } satisfies Record<PlayBlock, string>,
   keyword: {
     strike: 'Strike',
@@ -143,6 +147,7 @@ const EN = {
     stealth: (n: number) => `Hidden ${n} turn`,
     cover: (n: number) => `Cover neighbours ${n} turn`,
     stun: (n: number) => `Stun what it hits ${n} turn`,
+    cleanse: (n: number) => `Cleanse ${n}`,
   },
   roundLog: 'Round log',
   replayRound: 'Replay round',
@@ -174,6 +179,11 @@ const EN = {
     covered: (who: string, ally: string) => `${who} takes the hit for ${ally}`,
     stunned: (who: string, n: number) => `${who} stunned ${n} turn`,
     stunEnded: (who: string) => `${who} shakes off the stun`,
+    repelled: (who: string) => `${who} repelled from the end zone`,
+    inflicted: (who: string, what: string) => `${who}: ${what}`,
+    frailBlocked: (who: string) => `${who} is Frail: no shield`,
+    cleansed: (n: number) => `Cleanse ${n}`,
+    statusEnded: (who: string, what: string) => `${who}: ${what} wears off`,
     notPlayed: 'Not played: fainted',
     hit: (who: string, n: number) => `${who} hit for ${n}`,
     absorbed: { shield: (n: number) => `shield -${n}`, baseShield: (n: number) => `base -${n}`, hp: (n: number) => `HP -${n}` },
@@ -199,6 +209,11 @@ const EN = {
     supplies: (n: number) => `+${n} supply`,
     hp: (n: number) => `HP pack: +${n} HP each`,
     mp: (n: number) => `MP pack: +${n} MP now`,
+  },
+  /** Root and Frail on a unit, with its turns left (floor 2). */
+  status: {
+    root: (n: number) => `Root ${n}`,
+    frail: (n: number) => `Frail ${n}`,
   },
   meters: {
     vitals: (hp: number, max: number, shield: number, base: number) => `HP ${hp}/${max} · Shield ${shield} · Base ${base}`,

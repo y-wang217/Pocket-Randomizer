@@ -10,9 +10,9 @@ import { RULES } from '../../cardData/rules';
 import type { CardDef, DamageKeyword, Pos } from './defs';
 import { displace, stun } from './enemies';
 import type { BattleEvent } from './events';
-import { abilitiesOf, bonusOf, cardDefOf, damageOf, livingEnemies, livingUnits, unitOf } from './plan';
+import { abilitiesOf, bonusOf, cardDefOf, damageOf, livingEnemies, livingUnits, moveReachOf, unitOf } from './plan';
 import type { BattleState, EnemyState, PileName, PlannedPlay, UnitId, UnitState } from './state';
-import { blastTiles, covers, enemyTiles, laneFromSide, moveDestinations, samePos, slashTiles, tile as tileAt } from './zones';
+import { blastTiles, covers, enemyTiles, inEndZone, laneFromSide, moveDestinations, repelTile, samePos, slashTiles, tile as tileAt } from './zones';
 
 export interface Ctx {
   s: BattleState;
@@ -172,7 +172,7 @@ export function resolveMove(ctx: Ctx, play: PlannedPlay, def: CardDef): void {
     ...livingUnits(s).filter((u) => u.id !== mover.id).map((u) => u.pos!),
     ...livingEnemies(s).flatMap((e) => enemyTiles(e)),
   ];
-  if (!moveDestinations('player', mover.pos, n, occupied).some((d) => samePos(d, to))) {
+  if (!moveDestinations('player', mover.pos, n, occupied, moveReachOf(mover.id)).some((d) => samePos(d, to))) {
     ctx.events.push({ t: 'fizzled', card: play.card, unit: play.unit, why: 'nothingHit' });
     return;
   }
@@ -243,6 +243,11 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
           break;
         }
         const amount = effect.n + bonusOf(s, unit.id, 'shield', unit.pos);
+        // Frail (floor 2): a card's shield gives the unit nothing.
+        if ((to.frail ?? 0) > 0) {
+          ctx.events.push({ t: 'frailBlocked', unit: to.id, amount });
+          break;
+        }
         to.shield += amount;
         ctx.events.push({ t: 'shielded', unit: to.id, amount });
         // Bodyguard (5a): a Shield the unit gives itself has it Cover its neighbours too.
@@ -299,6 +304,17 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
         // Every enemy the damage landed on and left standing, not a boss: the Harpoon pins those.
         for (const enemy of landed) if (enemy.pos) stun(ctx, enemy, effect.n, play.card);
         break;
+      case 'cleanse':
+        // Every living ally's Root and Frail lose `n` turns; one at 0 is gone.
+        for (const ally of livingUnits(s)) {
+          for (const key of ['root', 'frail'] as const) {
+            const left = (ally[key] ?? 0) - effect.n;
+            if (left > 0) ally[key] = left;
+            else delete ally[key];
+          }
+        }
+        ctx.events.push({ t: 'cleansed', card: play.card, n: effect.n });
+        break;
       case 'harpoon': {
         const boss = livingEnemies(s).find((e) => e.id === play.choice?.unit);
         if (!boss || boss.pinned > 0) {
@@ -354,3 +370,18 @@ export function payFor(s: BattleState, def: CardDef): void {
   s.mp = Math.max(0, s.mp - def.cost);
 }
 
+
+/**
+ * Melee into the end zone (2026-10-13): a unit standing there is pushed back
+ * to `RULES.endZone.repelCol` (`repelTile`), so no enemy ever acts against it.
+ */
+export function repel(ctx: Ctx, unit: UnitState): void {
+  const { s } = ctx;
+  if (!unit.pos || !inEndZone(unit.pos)) return;
+  const occupied = [...livingUnits(s).filter((u) => u !== unit).map((u) => u.pos!), ...livingEnemies(s).flatMap((e) => enemyTiles(e))];
+  const to = repelTile(unit.pos, occupied);
+  if (!to) return;
+  const from = unit.pos;
+  unit.pos = { ...to };
+  ctx.events.push({ t: 'repelled', unit: unit.id, from, to: { ...to } });
+}

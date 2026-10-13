@@ -192,6 +192,10 @@ const LEAD: Readonly<Record<string, readonly EnemySpawn[]>> = {
   bulwarkLancer: [{ def: 'bulwark' }, { def: 'lancer' }], // 3
   sniperHound: [{ def: 'sniper' }, { def: 'hound' }], // 4
   pikemanHound: [{ def: 'pikeman' }, { def: 'hound' }], // 4
+  // Floor 2's own (2026-10-13): no veteran of their own, so a floor 3 wave fields them as they are.
+  snarerHound: [{ def: 'snarer' }, { def: 'hound' }], // 4
+  breakerLancer: [{ def: 'breaker' }, { def: 'lancer' }], // 5
+  reaverSnarer: [{ def: 'reaver' }, { def: 'snarer' }], // 7
 };
 
 /**
@@ -252,6 +256,8 @@ const runFight = (base: EncounterDef, leads: readonly [keyof typeof LEAD, keyof 
     enemies: waves[0]!,
     waves: waves.slice(1),
     ...(scale.hpBonus > 0 ? { hpBonus: scale.hpBonus } : {}),
+    // Floor 2's fort (2026-10-13), and floor 3's until it has its own.
+    ...(act >= 1 ? { skin: 'fort' as const } : {}),
   };
 };
 
@@ -273,19 +279,20 @@ export const RUN_FIGHTS: Readonly<Record<string, EncounterDef>> = Object.fromEnt
       ['stray-drones', ['houndLancer', 'lancers'], 0],
       ['gatehouse', ['hounds', 'lancers'], 0],
       // Act 2: its boss is the Warlord now (checkpoint 6); Colossus Escort stays a sandbox scenario.
-      ['skirmish', ['hounds', 'lancerDrone'], 1],
-      ['turret-alley', ['lancerDrone', 'turretHound'], 1],
-      ['warlord-guard', ['drones', 'turretHound'], 1, true],
-      ['outriders', ['lancerDrone', 'hounds'], 1],
-      ['gun-nest', ['hounds', 'lancerDrone'], 1],
-      ['the-walls', ['lancerDrone', 'turretHound'], 1],
+      // Floor 2's first lead wave fields its own enemies, and floor 3's second (2026-10-13).
+      ['skirmish', ['snarerHound', 'lancerDrone'], 1],
+      ['turret-alley', ['breakerLancer', 'turretHound'], 1],
+      ['warlord-guard', ['reaverSnarer', 'turretHound'], 1, true],
+      ['outriders', ['snarerHound', 'hounds'], 1],
+      ['gun-nest', ['breakerLancer', 'lancerDrone'], 1],
+      ['the-walls', ['reaverSnarer', 'turretHound'], 1],
       // Act 3.
-      ['the-pack', ['bulwarkLancer', 'sniperHound'], 2],
-      ['wall-and-gun', ['pikemanHound', 'sniperHound'], 2],
+      ['the-pack', ['bulwarkLancer', 'reaverSnarer'], 2],
+      ['wall-and-gun', ['pikemanHound', 'breakerLancer'], 2],
       ['siege', null, 2],
-      ['raiders', ['bulwarkLancer', 'pikemanHound'], 2],
-      ['warband', ['pikemanHound', 'bulwarkLancer'], 2],
-      ['last-stand', ['sniperHound', 'bulwarkLancer'], 2],
+      ['raiders', ['bulwarkLancer', 'snarerHound'], 2],
+      ['warband', ['pikemanHound', 'reaverSnarer'], 2],
+      ['last-stand', ['sniperHound', 'breakerLancer'], 2],
     ] as const
   ).map(([base, leads, act, boss]) => {
     const fight = runFight(BASES[base]!, leads, act, boss === true);

@@ -77,7 +77,7 @@ export const SHAPES: Readonly<Record<ShapeId, ShapeDef>> = {
     name: 'Puppeteer',
     plan: 'The Commander moves and shields the others',
     // The Puppeteer's cards the starting deck leaves out come back here (133).
-    cards: ['call-medic', 'command', 'focus', 'need-help', 'resupply', 'orders', 'fortify', 'rally', 'patch-up'],
+    cards: ['call-medic', 'command', 'focus', 'need-help', 'resupply', 'orders', 'fortify', 'rally', 'patch-up', 'cleanse'],
   },
   bodyguard: {
     id: 'bodyguard',
@@ -166,7 +166,11 @@ export const MARKET: Readonly<Record<string, number>> = {
   grapple: 3,
   smoke: 3,
   'riot-net': 4,
+  antidote: 2,
 };
+
+/** The floor, from 0, a market item is first sold on: the Antidote from floor 2 (2026-10-13). Absent, floor 1. */
+export const MARKET_FROM: Readonly<Record<string, number>> = { antidote: 1 };
 
 /** A stat a boss upgrade adds to; a talent is offered in its place (`talents.ts`). */
 export type BoostKind = Exclude<keyof Required<UnitBoost>, 'talents'>;

@@ -51,8 +51,12 @@ describe('the acts', () => {
         if (scale.veterans === 'all') {
           for (const wave of waves) for (const s of wave) expect(Object.keys(VETERAN), `${id} ${s.def}`).not.toContain(s.def);
         }
-        // Every lead wave a veteran, the scenario itself plain (floor 2: one lead wave, its boss two).
-        if (scale.veterans === 'leads') expect(vets, id).toEqual([...vets.slice(0, -1).map(() => true), false]);
+        // Every enemy of a lead wave that has a veteran fields it, the scenario itself plain
+        // (floor 2: one lead wave, its boss two). Floor 2's own enemies have none (2026-10-13).
+        if (scale.veterans === 'leads') {
+          for (const wave of waves.slice(0, -1)) for (const s of wave) expect(Object.keys(VETERAN), `${id} ${s.def}`).not.toContain(s.def);
+          expect(vets.at(-1), id).toBe(false);
+        }
       }
     });
   });

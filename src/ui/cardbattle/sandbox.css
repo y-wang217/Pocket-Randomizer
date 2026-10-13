@@ -937,6 +937,28 @@
   align-items: center;
   gap: 6px;
 }
+/* Root and Frail on a unit's panel (floor 2): an icon and its turns, as a word. */
+.cb-statuses {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.cb-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--cb-ink);
+  background: rgba(134, 100, 172, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(134, 100, 172, 0.7);
+}
+.cb-status-chip[data-status='frail'] {
+  background: rgba(192, 70, 59, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(192, 70, 59, 0.6);
+}
 /* A fallen wave's supply pack, in the hand's place: a title and three choices. */
 .cb-pack {
   width: 100%;
