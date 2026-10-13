@@ -17917,3 +17917,55 @@ what each pays), `test/cards-new-enemies.test.ts` and
 `test/cards-enemies.test.ts` (the shorter scripts),
 `test/cards-act-scaling.test.ts` (every veteran harder than its plain enemy),
 `test/cards-opening.test.ts` (opening steps).
+
+## 147. Card run: floors, Spark, the Turret at Strike 1, and the decks in the README
+
+**2026-10-13**, a feature request, on `claude/shared-mana` after section 146.
+Prompt [`spec/gymrun-patch-card-run-floors-commander-card.md`](spec/gymrun-patch-card-run-floors-commander-card.md),
+with the author's answers filed beside it. `cards-0.16.0` to `cards-0.17.0`,
+`cardrun-0.14.0` to `cardrun-0.15.0`.
+
+### What changed
+
+- **The Turret** strikes for 1, from 2.
+- **Spark.** The Commander's `maxMp 1` ability is gone; every unit is max MP
+  1, a pool of 3. In its place, Spark: the Commander's, 0 MP, once a wave,
+  `gainMpNow 1`, MP into the pool as it resolves. The plan check counts it for
+  the plays after it, and the MP bar shows it as soon as Spark is planned.
+  Spark+ is twice a wave. It is in the run's starting deck (eleven cards),
+  not the sandbox's Puppeteer deck: adding it there reshuffled every scripted
+  deal, the tutorial's included, so the sandbox's pool is simply 3.
+- **Floors.** `FLOOR_LEADS`: floor 1's fights are the scenario alone and its
+  boss one lead wave then the boss; floor 2 one and two lead waves; floor 3
+  two and two (the Siege as it is). Town, Wild and City fights are their
+  floor's length. The stop between a floor's two fights has no City
+  (`StopNode.cityOpen`); its City is drawn all the same, so no draw moves.
+  Every player-facing "act" in the run's copy reads "floor".
+- **The decks in the README.** The root `README.md` carries the units and both
+  starting decks as a tuning sheet; `test/cards-readme-decks.test.ts` fails
+  when a deck changes and the sheet does not.
+
+### Deviations
+
+- **The full heal after a boss is not built.** The author chose *Pick + full
+  heal*, but HP does not carry between a run's fights: every fight starts every
+  unit at full. The heal would do nothing, and the session said so rather than
+  build it. The boss reward stays +4 supplies and the talent or stat pick.
+- **Veterans read "the waves before the last"**, not "the first two waves":
+  floor 2's fights have one lead wave now.
+
+### Seeds the change moved
+
+The narrate fixture is FF1842: with a pool of 3, Artillery costs all of it
+and no seed to FF60000 faints the dasher with it, so the fixture's friendly
+fire is now Fire!. Also moved: the City tests now reach the City at the stop
+before floor 1's boss, through `atCityStop`, on DEF0 and MKT; the step 7
+end-of-run test uses LOST2; the equipment test uses EQUIP0; the browser run
+screens use SCREENS3.
+
+### Measured
+
+`npm run cards:run -- 20 CRUN`: **3/20 runs won, 7.85 mean fights won, 1.40
+mean bosses**, against 3/20, 7.55 and 1.40 at section 146. The losses moved:
+the Warlord's Guard (floor 2's boss) stopped 6, Turret Alley 4, the
+Gatehouse defence quest 3. **Recorded, not chased.**
