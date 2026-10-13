@@ -17855,3 +17855,65 @@ so the narrate fixture replays unchanged.
 mean bosses**, against 10/20, 10.40 and 2.10 with Move free. Three runs lost
 that had won: CRUN7 and CRUN17 at the Warlord's Guard, CRUN18 at the act 3
 boss. No seed did better. **Recorded, not chased.**
+
+## 146. Card battle: enemies rest less, and a fallen wave leaves a supply pack
+
+**2026-10-13**, a feature request, on `claude/shared-mana` after section 145.
+Prompt
+[`spec/gymrun-patch-card-battle-fewer-rests-wave-reward.md`](spec/gymrun-patch-card-battle-fewer-rests-wave-reward.md):
+*"Make enemies have fewer rest turns. And give the player a small reward
+after each wave"*, with the author's answers filed beside it.
+`cards-0.15.0` to `cards-0.16.0`, `cardrun-0.13.0` to `cardrun-0.14.0`.
+
+### Fewer rests
+
+Every step that neither moves nor acts is gone but the Target Dummy's: the
+Turret, Bulwark, Sniper, Pikeman and Juggernaut lose one each, and the Drone
+the second of its two advance-only steps (six steps to five). A step that
+walks closer still rests its act.
+
+**A deviation the cut forced.** The veteran test holds that a veteran hits
+more often or harder than its plain enemy. The Sniper losing its wait made
+it the Deadeye; the Pikeman losing its wait made it the Halberdier. The
+Deadeye gains a third step, Hunt with Strike 1, and the Halberdier strikes 1
+as it hunts. Each keeps a step that deals nothing, which opening grace needs.
+
+### The supply pack
+
+The author answered *"instead of heal, get a supply pack - get resource or
+get a hp pack or a mp pack"*. Built as a pick of three, which `CLAUDE.md`
+asks of every offer: +1 supply, +1 HP to every living unit up to its max, or
++2 MP (`RULES.waveReward`, first drafts).
+
+**When.** The next wave still arrives at once (section 132's ruling), and
+`BattleState.waveReward` holds the pack. A `claim` action takes it before the
+wave's first plan: a select or a commit is refused `claimFirst`, and
+`legalActions` lists only the three claims. The MP pack lands on a pool the
+wave's first hand has already refilled, so it is spent that turn. A pick
+between waves would have needed a new phase that the guard bot's search and
+its wave-count scoring would have had to learn.
+
+**Supplies.** `BattleState.suppliesWon` holds them, and the card run adds them
+when the battle is won. In the sandbox there is no wallet, so a supply pack
+there pays nothing visible. That is a known gap.
+
+**On screen.** The pack takes the hand's place: a title and three buttons,
+the End Turn button disabled until one is claimed. No browser test reaches a
+second wave, so the pack's layout on a phone is not checked by one.
+
+**The bots.** The random bot claims at random. The guard bot claims HP while
+any unit is hurt, else MP.
+
+### Measured
+
+`npm run cards:run -- 20 CRUN`: **3/20 runs won, 7.55 mean fights won, 1.40
+mean bosses**, against 8/20, 9.95 and 1.90 at section 145. Turret Alley
+stopped 7 of the 17 losses; the Gatehouse defence quest 3, in act 1. The
+Turret, Shield 1 then Strike 2 with nothing between, now fires every other
+round. **Recorded, not chased.**
+
+**Held by** `test/cards-waves.test.ts` (the pack: its offers, the refusals,
+what each pays), `test/cards-new-enemies.test.ts` and
+`test/cards-enemies.test.ts` (the shorter scripts),
+`test/cards-act-scaling.test.ts` (every veteran harder than its plain enemy),
+`test/cards-opening.test.ts` (opening steps).
