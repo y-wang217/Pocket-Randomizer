@@ -1,6 +1,6 @@
 # Floor 2: new enemies, root and frail, Cleanse, melee into the end zone, and a skin
 
-**2026-10-13. Built** after the author's go-ahead (`../generation.md` section 148), with one change: the Reaver is not Fast, see below.
+**2026-10-13. Built** after the author's go-ahead (`../generation.md` section 149), with one change: the Reaver is not Fast, see below.
 For [`../spec/gymrun-patch-card-run-floors-commander-card.md`](../spec/gymrun-patch-card-run-floors-commander-card.md),
 its last message. Every number is a first draft.
 

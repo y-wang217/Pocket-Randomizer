@@ -1,17 +1,29 @@
 /**
  * Every word the card run's own screens show (`ui/cardrun/`), and the few the
- * battle screen adds in a run. English only for now: the battle's eight
- * languages (`copy.ts`) cover the battle, and these wait for the same
- * machine draft once the words settle in a playtest. Card, unit, enemy and
- * scenario names still go through `nameOf`, so they are translated wherever
- * a translation exists.
+ * battle screen adds in a run, in one table per language. English is the
+ * source; every other language is a table of the same shape in
+ * `cardData/translations/run/`, machine-drafted and not yet read by a native
+ * speaker (`docs/spec/gymrun-patch-card-run-translations.md`). Card, unit,
+ * enemy and scenario names go through `nameOf`, as in the battle.
+ *
+ * `RUN_COPY` is a live binding, swapped with the battle's by
+ * `setCardLanguage` (`copy.ts`), so the run and its battles are always in the
+ * same language. The run log is JSON and is never translated.
  *
  * Outside the design bible, like the battle (`docs/spec/gymrun-card-battle-engine-rulings.md`).
  */
 import type { RunRefusal } from '../core/cards/cardrun';
 import type { BoostKind } from './cardrunTables';
+import type { CardLanguage } from './copy';
+import { RUN_DE } from './translations/run/de';
+import { RUN_ES } from './translations/run/es';
+import { RUN_FR } from './translations/run/fr';
+import { RUN_JA } from './translations/run/ja';
+import { RUN_UK } from './translations/run/uk';
+import { RUN_ZH_HANS } from './translations/run/zh-Hans';
+import { RUN_ZH_HANT } from './translations/run/zh-Hant';
 
-export const RUN_COPY = {
+const EN = {
   title: 'Card Run',
   tagline: 'Three floors. Two fights, then a boss, a stop between each.',
   newRun: 'New run',
@@ -162,6 +174,8 @@ export const RUN_COPY = {
     city: 'Take a look! Good gear makes the road easier.',
     replace: 'Choose a card to replace.',
   },
+  /** A save from another build does not replay; it is dropped and this says so. */
+  staleSave: 'The saved run is from another version and cannot be resumed.',
   copied: 'Run log copied',
   copyLog: 'Copy run log',
   abandon: 'Abandon run',
@@ -179,4 +193,37 @@ export const RUN_COPY = {
     deckTooSmall: 'Your deck is too small to lose a card.',
     battleRefused: 'The battle would not take that.',
   } satisfies Record<RunRefusal, string>,
+  /**
+   * The lines the run's tables carry that a run screen shows, keyed by their
+   * English text: the shapes' names and plans, the ? events' names, texts and
+   * options, the talents' texts and the bosses' blurbs. English leaves it
+   * empty and reads the data.
+   */
+  text: {} as Record<string, string>,
 };
+
+/** The shape every language fills. */
+export type RunCopy = typeof EN;
+
+export const RUN_COPY_BY_LANGUAGE: Record<CardLanguage, RunCopy> = {
+  en: EN,
+  'zh-Hant': RUN_ZH_HANT,
+  'zh-Hans': RUN_ZH_HANS,
+  ja: RUN_JA,
+  de: RUN_DE,
+  uk: RUN_UK,
+  es: RUN_ES,
+  fr: RUN_FR,
+};
+
+// A live binding, reassigned only by `setRunLanguage`, which `setCardLanguage` calls.
+export let RUN_COPY: RunCopy = EN;
+
+export function setRunLanguage(language: CardLanguage): void {
+  RUN_COPY = RUN_COPY_BY_LANGUAGE[language];
+}
+
+/** A line from the run's tables in the current language, or as the data has it. */
+export function textOf(english: string): string {
+  return RUN_COPY.text[english] ?? english;
+}

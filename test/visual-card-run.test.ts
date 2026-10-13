@@ -17,12 +17,15 @@ import { mkdirSync } from 'node:fs';
 import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import type { RunLog } from '../src/core/cards/cardrun';
+import { RUN_COPY_BY_LANGUAGE } from '../src/cardData/cardrunCopy';
+import { CARD_LANGUAGES, type CardLanguage } from '../src/cardData/copy';
+import type { CardRunState, RunLog } from '../src/core/cards/cardrun';
 import { concussOnVeteran, runTo } from './fixtures/card-run-screens';
 import { openHarness, type Harness } from './visual/harness';
 
 const PHONE = { width: 390, height: 844 };
 const SAVE = 'gymrun.cardrun.v1';
+const PREFS = 'gymrun.cardbattle.prefs';
 const shots = process.env['GYMRUN_CB_SHOTS'];
 if (shots) mkdirSync(shots, { recursive: true });
 
@@ -37,14 +40,15 @@ afterAll(async () => {
 });
 
 /** The built app with `log` saved, resumed from the title: the run stands on the screen the log stopped at. */
-async function resume(log: RunLog): Promise<{ page: Page; errors: string[]; close: () => Promise<void> }> {
+async function resume(log: RunLog, language: CardLanguage = 'en'): Promise<{ page: Page; errors: string[]; close: () => Promise<void> }> {
   const context = await harness.browser.newContext({ viewport: PHONE, hasTouch: true });
   await context.addInitScript(([key, value]) => globalThis.localStorage.setItem(key!, value!), [SAVE, JSON.stringify(log)]);
+  await context.addInitScript(([key, value]) => globalThis.localStorage.setItem(key!, value!), [PREFS, JSON.stringify({ language, palette: 'standard' })]);
   const page = await context.newPage();
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto(`${harness.url}/`, { waitUntil: 'load' });
-  await page.getByRole('button', { name: 'Continue run' }).click();
+  await page.getByRole('button', { name: RUN_COPY_BY_LANGUAGE[language].continueRun }).click();
   return { page, errors, close: () => context.close() };
 }
 
@@ -134,4 +138,34 @@ describe('the card run at 390x844', () => {
     expect(errors).toEqual([]);
     await close();
   }, 120_000);
+
+  // The run's screens in every language (`docs/spec/gymrun-patch-card-run-translations.md`):
+  // German, Ukrainian and French run longest, so each language is laid out on the screens
+  // with the most words, and the deck, and still fits a phone.
+  for (const language of CARD_LANGUAGES.filter((l) => l !== 'en')) {
+    it(`${language}: the route, the deck, the offer, the replace and the boss screens fit at 390 wide`, async () => {
+      const screens: [string, (s: CardRunState) => boolean][] = [
+        ['route', (s) => s.screen.k === 'route'],
+        ['cards', (s) => s.screen.k === 'cards'],
+        ['replace', (s) => s.screen.k === 'replace'],
+        ['boost', (s) => s.screen.k === 'boost'],
+      ];
+      for (const [name, until] of screens) {
+        const { log } = runTo('SCREENS3', until);
+        const { page, errors, close } = await resume(log, language);
+        await page.waitForSelector(`.cr-screen[data-screen="${name}"]`);
+        expect(await page.locator('.cr').getAttribute('lang')).toBe(language);
+        if (name === 'route') {
+          await page.locator('.cr-deck-btn').click();
+          await page.waitForSelector('.cr-overlay');
+        }
+        const m = await measure(page);
+        expect(m.overflowX, `${name}: horizontal scroll`).toBeLessThanOrEqual(0);
+        expect(m.small, `${name}: targets under 44px`).toEqual([]);
+        await shoot(page, `${language}-${name}`);
+        expect(errors).toEqual([]);
+        await close();
+      }
+    }, 240_000);
+  }
 });

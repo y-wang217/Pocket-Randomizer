@@ -39,7 +39,7 @@ npm run build    # static bundle in dist/, deploys to any static host
 scenarios stitched into three floors, each two fights and a boss fight, with
 a Town or Wild stop between the two fights and a City, Town or Wild stop
 before the boss; floor 1's fights are one wave each, and each floor after
-adds one ([`docs/generation.md`](docs/generation.md) sections 125r and 147). GYMRUN itself is
+adds one ([`docs/generation.md`](docs/generation.md) sections 125r and 148). GYMRUN itself is
 built beside it as `gymrun.html`, unlinked; the smoke run plays that page.
 `npm run cards:run` plays whole card runs headless and prints how far each got.
 

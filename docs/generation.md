@@ -17731,7 +17731,57 @@ a file in the bundle, each drawn exactly as `cardAsset` draws it, and nothing
 for a missing file. `test/cards-sandbox.test.ts`: the open screen holds it
 outside the frame, the two bands as masks among it, and closing drops it.
 
-## 144. Card battle: one shared MP pool, refilled each turn to the units' max
+## 144. The card run's screens in every language
+
+**2026-10-12**, on `claude/brave-bardeen-54slbx`, from `main` at `3938a86`.
+From [`spec/gymrun-patch-card-run-translations.md`](spec/gymrun-patch-card-run-translations.md),
+filed before any change to `src/`. **No version axis moves**: copy and tests
+only. `cards-0.11.0`, `cardrun-0.9.0`, `contentHash` holds (`cardData/` is
+not under `src/data/`).
+
+**What changed.** Step 7b translated the run's names and left its own
+screens in English (section 141, item 12). They now follow the battle's
+language setting:
+
+- `RUN_COPY` (`cardData/cardrunCopy.ts`) is a live binding over one table
+  per language, the English source and seven drafts in
+  `cardData/translations/run/`, the same shape as the battle's `CARD_COPY`.
+  `setCardLanguage` swaps both, so a run and its battles are never in two
+  languages. The setting is still the battle's Menu; a change made there
+  mid-run shows on the run's screens when the battle screen closes.
+- The lines the run's tables carry onto a screen go through `textOf`, keyed
+  by their English like `nameOf`: the four shapes' names and plans, the five
+  ? events' names, texts and options, the seven talents' texts, and the three
+  act bosses' blurbs. A table line without a draft reads in English.
+- Every line a screen reader is given on the run (the strip's node labels,
+  the supplies count, the team, an upgrade pair) was already in `RUN_COPY` and
+  is translated with it. The shell sets `lang` on its root, as the battle
+  does, so a reader voices it in the right language.
+- Two strings that were not in the table now are: the stale-save message, and
+  a ? event's price, which lower-cased the English *Supplies*; it reads
+  `suppliesN` now, so it counts in each language's own plural (Ukrainian has
+  three forms).
+
+**Machine-drafted**, like every other translation table, and not yet read
+by a native speaker. Each language reuses the battle's words for its units,
+enemies and keywords (*Schwertläufer*, *Lame-éclair*, *疾剑士*). The run is
+*Kartenlauf*, *Partida de cartas*, *Expédition de cartes*, *カードラン*,
+*Картковий похід*, *卡牌远征*, *卡牌遠征*. Spanish calls the team *Escuadrón*
+because *Equipo* is already its word for equipment.
+
+**Held by** `test/cards-run-translations.test.ts`: every fixed word has a
+draft in every language, none left as the English except seven loanwords
+and labels a language shares (*Sandbox*, *Tutorial*, *Neutral*, *Talent*,
+*Boss*, *Camp*, *Team*); every table line a screen shows has a draft and no
+draft is stale; one setting swaps both tables; and a run steered through
+every screen (route, City, market, offer, upgrade, replace, shrine, Wild
+with a ? event, boss, end, and the deck) shows, in each language, none of
+the English it replaced, in its text, its labels or its titles. The
+browser leg (`test/visual-card-run.test.ts`) lays each language out on the
+route with the deck open, the offer, the replace and the boss screens at 390
+by 844: no sideways scroll, no touch target under 44px.
+
+## 145. Card battle: one shared MP pool, refilled each turn to the units' max
 
 **2026-10-12**, a feature request, on `claude/shared-mana`, from `main` at
 `0482454`. Prompt
@@ -17790,10 +17840,10 @@ boost), `test/cards-waves.test.ts` (bonus owed across a wave),
 `test/cards-tutorial.test.ts` (every ult 3 at most) and
 `test/cards-sandbox-tutorial.test.ts` (the one bar in the status).
 
-## 145. Card battle: no card is free but Move and one-use equipment, and no shield is
+## 146. Card battle: no card is free but Move and one-use equipment, and no shield is
 
 **2026-10-12**, a feature request and its follow-up, on `claude/shared-mana`
-after section 144. Prompt
+after section 145. Prompt
 [`spec/gymrun-patch-card-battle-no-free-cards.md`](spec/gymrun-patch-card-battle-no-free-cards.md):
 *"make the basic cards each cost mana … and shields aren't free"*, then
 *"move should be free but shield should cost mana"*, with the author's
@@ -17821,12 +17871,12 @@ Commander's second MP is the pool's, not a second card of its own.
 ### Measured
 
 `npm run cards:run -- 20 CRUN`: 10/20 runs won, 10.40 mean fights won, 2.10
-mean bosses, **identical** to section 144 seed by seed; only the action
+mean bosses, **identical** to section 145 seed by seed; only the action
 counts moved. A probe of the guard bot over 80 sandbox battles (`PROBE0` to
 `PROBE39`, `skirmish` and `test`) says why: it plays 2.18 cards a round and
 leaves **1.86 MP of the pool's 4 unspent** each round. Its hand of five and
 its targets bind before the pool does. Against `cards-0.11.0`, before section
-144, the same probe played 1.74 cards a round over 685 rounds, against 507
+145, the same probe played 1.74 cards a round over 685 rounds, against 507
 now, and lost 0.41 HP a battle against 0.17. For this bot, the shared pool
 made battles easier, not harder: a full 4 every turn outpaces the old +1 a
 round from 0. **Recorded, not chased.**
@@ -17838,7 +17888,7 @@ equipment, no shield free.
 
 `test/visual-card-battle.test.ts` failed, by seed, with a Sword dasher slot
 43.36px wide against the 44px touch-target floor. The dasher's three slots
-never fit a 390px phone: 134px for 136. Until section 144, round 1 held no MP
+never fit a 390px phone: 134px for 136. Until section 145, round 1 held no MP
 for the dasher's cards, so the test never filled one. The unit panel's left
 padding goes from 8px to 7px and the gap between slots from 2px to 1px, which
 leaves about 137px.
@@ -17856,9 +17906,9 @@ mean bosses**, against 10/20, 10.40 and 2.10 with Move free. Three runs lost
 that had won: CRUN7 and CRUN17 at the Warlord's Guard, CRUN18 at the act 3
 boss. No seed did better. **Recorded, not chased.**
 
-## 146. Card battle: enemies rest less, and a fallen wave leaves a supply pack
+## 147. Card battle: enemies rest less, and a fallen wave leaves a supply pack
 
-**2026-10-13**, a feature request, on `claude/shared-mana` after section 145.
+**2026-10-13**, a feature request, on `claude/shared-mana` after section 146.
 Prompt
 [`spec/gymrun-patch-card-battle-fewer-rests-wave-reward.md`](spec/gymrun-patch-card-battle-fewer-rests-wave-reward.md):
 *"Make enemies have fewer rest turns. And give the player a small reward
@@ -17907,7 +17957,7 @@ any unit is hurt, else MP.
 ### Measured
 
 `npm run cards:run -- 20 CRUN`: **3/20 runs won, 7.55 mean fights won, 1.40
-mean bosses**, against 8/20, 9.95 and 1.90 at section 145. Turret Alley
+mean bosses**, against 8/20, 9.95 and 1.90 at section 146. Turret Alley
 stopped 7 of the 17 losses; the Gatehouse defence quest 3, in act 1. The
 Turret, Shield 1 then Strike 2 with nothing between, now fires every other
 round. **Recorded, not chased.**
@@ -17918,9 +17968,9 @@ what each pays), `test/cards-new-enemies.test.ts` and
 `test/cards-act-scaling.test.ts` (every veteran harder than its plain enemy),
 `test/cards-opening.test.ts` (opening steps).
 
-## 147. Card run: floors, Spark, the Turret at Strike 1, and the decks in the README
+## 148. Card run: floors, Spark, the Turret at Strike 1, and the decks in the README
 
-**2026-10-13**, a feature request, on `claude/shared-mana` after section 146.
+**2026-10-13**, a feature request, on `claude/shared-mana` after section 147.
 Prompt [`spec/gymrun-patch-card-run-floors-commander-card.md`](spec/gymrun-patch-card-run-floors-commander-card.md),
 with the author's answers filed beside it. `cards-0.16.0` to `cards-0.17.0`,
 `cardrun-0.14.0` to `cardrun-0.15.0`.
@@ -17966,13 +18016,13 @@ screens use SCREENS3.
 ### Measured
 
 `npm run cards:run -- 20 CRUN`: **3/20 runs won, 7.85 mean fights won, 1.40
-mean bosses**, against 3/20, 7.55 and 1.40 at section 146. The losses moved:
+mean bosses**, against 3/20, 7.55 and 1.40 at section 147. The losses moved:
 the Warlord's Guard (floor 2's boss) stopped 6, Turret Alley 4, the
 Gatehouse defence quest 3. **Recorded, not chased.**
 
-## 148. Floor 2: Root and Frail, Cleanse, three new enemies, melee into the end zone, the fort
+## 149. Floor 2: Root and Frail, Cleanse, three new enemies, melee into the end zone, the fort
 
-**2026-10-13**, on `claude/shared-mana` after section 147, from the design
+**2026-10-13**, on `claude/shared-mana` after section 148, from the design
 [`reports/floor-2-design.md`](reports/floor-2-design.md) and the author's
 go-ahead with their assets, both filed under
 [`spec/gymrun-patch-card-run-floors-commander-card.md`](spec/gymrun-patch-card-run-floors-commander-card.md).
@@ -18011,7 +18061,7 @@ by hitting two rounds in three. Recorded in the design.
 ### Measured
 
 `npm run cards:run -- 20 CRUN`: **1/20 runs won, 7.40 mean fights won, 1.20
-mean bosses**, against 3/20, 7.85 and 1.40 at section 147. The Warlord's Guard,
+mean bosses**, against 3/20, 7.85 and 1.40 at section 148. The Warlord's Guard,
 floor 2's boss, now led by a Reaver and a Snarer, stopped 8 of 19 losses; the
 Gatehouse defence quest on floor 1 stopped 3. The bot never plays into the end
 zone on purpose and has no Cleanse in its starting deck. **Recorded, not
@@ -18019,3 +18069,14 @@ chased.**
 
 **Held by** `test/cards-floor-2.test.ts`, and the asset, glossary, enemy and
 scaling tests updated for the new entries.
+
+### Merging `main` (#118, the run's screens in every language)
+
+`main` merged section 144 first, so this branch's 144 to 148 are 145 to 149.
+Its seven run translations predate the floors: each gains `noCity`, "Act"
+reads "Floor" in the tagline, labels and the end of run, veterans sit "in the
+waves before the last", the boss stat reads "max MP", Battery's new text is
+translated, and floor 1's boss blurb is "Two waves". Its tests move with the
+branch: the translation test's steered run skips a closed City and uses
+RUNCOPY7, the browser run screens use SCREENS3. A long slot name (Ukrainian's
+Need Help, now playable on round 1) wraps onto a second line, not an ellipsis.

@@ -924,9 +924,11 @@
   color: var(--cb-surface);
   font-size: calc(8px * var(--cb-fit, 1));
   line-height: 1.1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* A long name (Ukrainian's Need Help) takes a second line rather than an ellipsis:
+     no fact is cut short. A word too long for the chip still shrinks to fit. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 /* --------------------------------------------------------------- hand */
