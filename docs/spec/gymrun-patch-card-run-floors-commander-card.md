@@ -49,3 +49,16 @@ Options offered: *Use what exists (Recommended)*. *Design new enemies too*:
 drafted and filed for the author's review before building.
 
 > Design new enemies too
+
+## A further message, verbatim, sent while the above was being built
+
+Filed before any work on it. It is a second batch: built after the floors,
+from its own design, which is filed under it for the author before code.
+
+> you'll want a new skin for floor 2, with new sprites for the new enemies. give me a list for requested assets liek before and i'll file them with chatgpt to create them.
+> allow new enemies to hit harder, faster. with new statuses like root(prevents movement)
+> frail (can't gain shield)
+> both for n where n is turn duration
+> also introduce 'cleanse n' which reduces duration of all debuffs by n turns
+>
+> also, melee currently can't hit units in the top row. this is frustrating and means melee doesn't get payoff. melee should be able to get to the end, hit once, and get repelled back outside of the 'end zone', meaning it takes move and strike to hit in the end zone, which is flavourful. make snese?
