@@ -45,7 +45,7 @@ import type { Action, BattleState } from './state';
 import { step } from './step';
 
 /** Bumps when a run's draws, its tables' meaning or a logged decision changes what a run log replays to. */
-export const CARD_RUN_VERSION = 'cardrun-0.13.0';
+export const CARD_RUN_VERSION = 'cardrun-0.14.0';
 
 export type StopKind = 'city' | 'town' | 'wild';
 
@@ -436,6 +436,8 @@ function consumeEquipment(s: CardRunState, battle: BattleState): void {
 
 function battleWon(s: CardRunState, battle: RunBattle): void {
   consumeEquipment(s, battle.state);
+  // The supplies the battle's wave packs paid (the author's answer of 2026-10-13).
+  s.supplies += battle.state.suppliesWon;
   s.stats.fights += 1;
   const stop = currentStop(s);
   switch (battle.kind) {

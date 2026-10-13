@@ -4,7 +4,7 @@
  * record of a round. Plain JSON, like the state.
  */
 import type { Pos } from './defs';
-import type { CardIid, EnemyId, IllegalReason, Intent, TargetId, UnitId } from './state';
+import type { CardIid, EnemyId, IllegalReason, Intent, TargetId, UnitId, WaveReward } from './state';
 
 export type BattleEvent =
   // The plan.
@@ -78,6 +78,10 @@ export type BattleEvent =
   | { t: 'usedUp'; card: CardIid }
   /** The last enemy of a wave fell and the next arrives at once, the units where they stand (2026-10-11). */
   | { t: 'waveStarted'; wave: number }
+  /** The wave that fell left a supply pack. */
+  | { t: 'rewardOffered' }
+  /** The pack claimed: `n` supplies, HP to each living unit, or MP this turn. */
+  | { t: 'claimed'; reward: WaveReward; n: number }
   // The end.
   | { t: 'won' }
   | { t: 'lost'; why: 'allFainted' | 'roundCap' };

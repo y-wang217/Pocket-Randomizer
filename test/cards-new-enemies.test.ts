@@ -36,13 +36,14 @@ const intent = (s: BattleState) => `${s.enemies[0]!.intent!.act}${s.enemies[0]!.
 describe('the A3 enemies', () => {
   it('match the table: HP, base shield, Fast, grade and cycle length', () => {
     const table: [EnemyDefId, number, number, boolean, number, number][] = [
-      ['drone', 3, 1, false, 2, 6],
+      ['drone', 3, 1, false, 2, 5],
       ['lancer', 2, 0, false, 1, 3],
       ['hound', 2, 0, true, 1, 2],
-      ['turret', 4, 1, false, 2, 3],
-      ['bulwark', 4, 2, false, 2, 3],
-      ['sniper', 2, 0, false, 3, 3],
-      ['pikeman', 3, 1, false, 3, 4],
+      // Fewer rests (2026-10-13): the Turret, Bulwark, Sniper and Pikeman each lost a step that did nothing.
+      ['turret', 4, 1, false, 2, 2],
+      ['bulwark', 4, 2, false, 2, 2],
+      ['sniper', 2, 0, false, 3, 2],
+      ['pikeman', 3, 1, false, 3, 3],
     ];
     // The Colossus is Part D's (test/cards-boss.test.ts); the veterans and the Warlord are
     // checkpoint 6's (test/cards-act-scaling.test.ts).
@@ -54,7 +55,7 @@ describe('the A3 enemies', () => {
     }
   });
 
-  it('Turret never moves: Shield 1, Strike 2 down its lane, then nothing', () => {
+  it('Turret never moves: Shield 1, then Strike 2 down its lane', () => {
     let s = lone('turret', at(1, 7), 0);
     const seen = [[where(s), intent(s)]];
     for (let round = 0; round < 3; round++) {
@@ -64,8 +65,8 @@ describe('the A3 enemies', () => {
     expect(seen).toEqual([
       ['1,7', 'shield1'],
       ['1,7', 'strike2'],
-      ['1,7', 'none0'],
       ['1,7', 'shield1'],
+      ['1,7', 'strike2'],
     ]);
   });
 
@@ -88,15 +89,15 @@ describe('the A3 enemies', () => {
     expect([where(s), intent(s)]).toEqual(['1,5', 'none0']);
   });
 
-  it('Sniper hunts, waits, then Strikes 3; Pikeman shields, hunts, waits, then Pierces 2', () => {
+  it('Sniper hunts, then Strikes 3; Pikeman shields, hunts, then Pierces 2', () => {
     let sniper = lone('sniper', at(2, 7), 0, { units: { B: null } });
     const shots = [intent(sniper)];
     for (let round = 0; round < 2; round++) shots.push(intent((sniper = commit(sniper))));
-    expect(shots).toEqual(['none0', 'none0', 'strike3']);
+    expect(shots).toEqual(['none0', 'strike3', 'none0']);
     expect(where(sniper)).toBe('1,7');
     let pike = lone('pikeman', at(2, 7), 0);
     const acts = [intent(pike)];
     for (let round = 0; round < 3; round++) acts.push(intent((pike = commit(pike))));
-    expect(acts).toEqual(['shield1', 'none0', 'none0', 'pierce2']);
+    expect(acts).toEqual(['shield1', 'none0', 'pierce2', 'shield1']);
   });
 });

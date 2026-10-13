@@ -7,6 +7,11 @@
  * `docs/spec/gymrun-patch-card-battle-grace-friendly-fire.md` A3, built from
  * the existing vocabulary only. Every `grade` is provisional: the bot's
  * per-scenario numbers (Part B) are what correct them.
+ *
+ * No step neither moves nor acts, but the Target Dummy's (the author's
+ * "fewer rest turns" of 2026-10-13): the Turret, Bulwark, Sniper, Pikeman and
+ * Juggernaut each lost theirs, and the Drone the second of its advance-only
+ * steps. A step that walks closer still rests its act.
  */
 import type { EnemyDef, EnemyDefId } from '../core/cards/defs';
 
@@ -28,7 +33,6 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
         },
         { move: 'none', act: { k: 'shield', n: 1 } },
         { move: 'hunt', act: { k: 'strike', n: 1 } },
-        { move: 'advance', act: { k: 'none' } },
       ],
     },
   },
@@ -73,7 +77,6 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
       steps: [
         { move: 'none', act: { k: 'shield', n: 1 } },
         { move: 'none', act: { k: 'strike', n: 2 } },
-        { move: 'none', act: { k: 'none' } },
       ],
     },
   },
@@ -91,7 +94,6 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
           move: { if: 'slashInRange', then: 'none', else: 'hunt' },
           act: { if: 'slashInRange', then: { k: 'slash', n: 1 }, else: { k: 'shield', n: 1 } },
         },
-        { move: 'none', act: { k: 'none' } },
       ],
     },
   },
@@ -105,7 +107,6 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
       kind: 'cycle',
       steps: [
         { move: 'hunt', act: { k: 'none' } },
-        { move: 'none', act: { k: 'none' } },
         { move: 'none', act: { k: 'strike', n: 3 } },
       ],
     },
@@ -121,7 +122,6 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
       steps: [
         { move: 'none', act: { k: 'shield', n: 1 } },
         { move: 'hunt', act: { k: 'none' } },
-        { move: 'none', act: { k: 'none' } },
         { move: 'none', act: { k: 'pierce', n: 2 } },
       ],
     },
@@ -248,7 +248,6 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
           move: { if: 'slashInRange', then: 'none', else: 'hunt' },
           act: { if: 'slashInRange', then: { k: 'slash', n: 2 }, else: { k: 'shield', n: 1 } },
         },
-        { move: 'none', act: { k: 'none' } },
       ],
     },
   },
@@ -260,10 +259,12 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
     grade: 4,
     script: {
       kind: 'cycle',
-      // The Sniper's aim, one step shorter.
+      // The Sniper's aim, and a second shot: the Sniper lost its wait (fewer rests,
+      // 2026-10-13), so one step shorter was no longer the harder pattern.
       steps: [
         { move: 'hunt', act: { k: 'none' } },
         { move: 'none', act: { k: 'strike', n: 3 } },
+        { move: 'hunt', act: { k: 'strike', n: 1 } },
       ],
     },
   },
@@ -275,9 +276,11 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
     grade: 4,
     script: {
       kind: 'cycle',
+      // The Pikeman's, striking as it hunts: the Pikeman lost its wait (fewer rests,
+      // 2026-10-13), which left the two patterns the same.
       steps: [
         { move: 'none', act: { k: 'shield', n: 1 } },
-        { move: 'hunt', act: { k: 'none' } },
+        { move: 'hunt', act: { k: 'strike', n: 1 } },
         { move: 'none', act: { k: 'pierce', n: 2 } },
       ],
     },

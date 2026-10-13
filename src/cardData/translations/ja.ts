@@ -156,6 +156,12 @@ export const JA: CardCopy = {
     wave: (n: number) => `ウェーブ${n}到来`,
     step: (n: number, of: number) => `${n}/${of}`,
   },
+  pack: {
+    title: '補給パック：1つ選ぶ',
+    supplies: (n: number) => `物資+${n}`,
+    hp: (n: number) => `HPパック：全員HP+${n}`,
+    mp: (n: number) => `MPパック：今すぐMP+${n}`,
+  },
   meters: {
     vitals: (hp: number, max: number, shield: number, base: number) => `HP ${hp}/${max} · シールド ${shield} · 基本 ${base}`,
     mana: (free: number, held: number, cap: number) => `MP 使用可 ${free}、確保 ${held}、上限 ${cap}`,

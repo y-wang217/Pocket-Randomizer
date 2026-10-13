@@ -122,6 +122,10 @@ export interface BattleState {
   uses: Record<CardIid, number>;
   /** Extra draws owed to the next hand (Need Help). */
   pendingDraws: { n: number; filter: 'notOwner'; owner: CardOwner }[];
+  /** A fallen wave's supply pack, waiting to be claimed before the next wave's first plan. */
+  waveReward: boolean;
+  /** Supplies the battle's packs have paid, for the card run to add once the battle is won. */
+  suppliesWon: number;
   /** The shared MP pool every unit's cards are paid from (`RULES.mp`). */
   mp: number;
   /** Bonus MP owed to the pool's next refills by a card (Resupply, Focus): one entry per grant. */
@@ -130,6 +134,10 @@ export interface BattleState {
   boosts?: Partial<Record<UnitDefId, UnitBoost>>;
 }
 
+/** What a supply pack holds; an offer is every one, in this order. */
+export type WaveReward = 'supplies' | 'hp' | 'mp';
+export const WAVE_REWARDS: readonly WaveReward[] = ['supplies', 'hp', 'mp'];
+
 export type Action =
   | { type: 'select'; card: CardIid; unit: UnitId; choice?: Choice }
   | { type: 'unselect'; planIndex: number }
@@ -137,7 +145,9 @@ export type Action =
   /** Deploy only: put a unit on a home tile, swapping with a unit already there. */
   | { type: 'place'; unit: UnitId; tile: Pos }
   /** Deploy only: the placement stands and round 1 begins. */
-  | { type: 'start' };
+  | { type: 'start' }
+  /** A fallen wave's supply pack: one of `WAVE_REWARDS`. */
+  | { type: 'claim'; reward: WaveReward };
 
 /** Why a card cannot be played by a unit right now. */
 export type PlayBlock = 'noMp' | 'noSlot' | 'wrongZone' | 'noTarget' | 'fainted' | 'outOfRange';
@@ -156,4 +166,8 @@ export type IllegalReason =
   /** A card action before the battle has started. */
   | 'deploying'
   /** A placement after it has. */
-  | 'notDeploying';
+  | 'notDeploying'
+  /** A card action while a supply pack waits. */
+  | 'claimFirst'
+  /** A claim with no pack waiting. */
+  | 'nothingToClaim';

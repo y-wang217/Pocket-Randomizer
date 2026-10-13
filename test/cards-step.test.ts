@@ -428,7 +428,7 @@ describe('determinism', () => {
       const created = begun('test', 'TWICE');
       let state = created.state;
       const events: BattleEvent[] = [...created.events];
-      for (let round = 0; round < 8; round++) {
+      for (let round = 0; round < 8 && state.phase === 'plan'; round++) {
         const result = commit(state);
         events.push(...result.events);
         state = result.state;

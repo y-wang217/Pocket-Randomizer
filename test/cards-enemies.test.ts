@@ -32,7 +32,7 @@ const e = (s: BattleState, index: number) => s.enemies[index]!;
 const tiles = (list: Pos[]) => list.map((p) => `${p.lane},${p.col}`).sort();
 
 describe('Drone', () => {
-  it('walks its full six-step cycle on a fixed board', () => {
+  it('walks its full five-step cycle on a fixed board', () => {
     // Lone Drone on step 1 (Hunt, Strike), players in column 2.
     let s = arena({ enemies: [at(1, 5), null, null], steps: [0] });
     const seen: [number, string, string][] = [];
@@ -51,8 +51,8 @@ describe('Drone', () => {
       [2, '1,4', 'strike1'], // Nobody on column 3 in reach of a Slash: Hunt, Strike.
       [3, '1,4', 'shield1'],
       [4, '1,4', 'strike1'],
-      [5, '1,3', 'none0'], // Advance to column 3, the limit.
-      [0, '1,3', 'strike1'],
+      [0, '1,4', 'strike1'], // The cycle again: its second advance-only step went with the fewer-rests ruling.
+      [1, '1,3', 'none0'], // Advance to column 3, the limit.
     ]);
   });
 

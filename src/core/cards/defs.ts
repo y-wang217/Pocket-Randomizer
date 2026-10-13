@@ -302,6 +302,12 @@ export interface Rules {
    * or a boost adds to it.
    */
   mp: { perUnit: number };
+  /**
+   * The supply pack a fallen wave leaves, claimed at the start of the next
+   * (the author's answer of 2026-10-13): supplies for the run, HP to every
+   * living unit, or bonus MP for that turn. Each offer is all three, in this order.
+   */
+  waveReward: { supplies: number; hp: number; mp: number };
   /** R3. */
   playerShieldClears: 'nextTurnStart';
   /** R4. Strike hits the first opposing unit in the lane counted from the attacker's side of the board. */

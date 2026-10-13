@@ -21,9 +21,9 @@ import { RULES } from '../../cardData/rules';
 import { enemyActions, enemyMovesAndTelegraph } from './enemies';
 import type { Ctx } from './keywords';
 import { payFor, resolveEffects, resolveMove, retire } from './keywords';
-import { abilitiesOf, cardDefOf, checkPlan, followUps, isMoveCard, livingEnemies, maxMpOf, type StepResult, unitOf } from './plan';
+import { abilitiesOf, cardDefOf, checkPlan, followUps, isMoveCard, livingEnemies, livingUnits, maxMpOf, type StepResult, unitOf } from './plan';
 import { shuffled, withStream } from './random';
-import type { BattleState, PlannedPlay, UnitId } from './state';
+import { WAVE_REWARDS, type BattleState, type PlannedPlay, type UnitId, type WaveReward } from './state';
 
 /** The index in the plan of the first play that fills each unit's first slot. */
 export function firstSlots(s: BattleState, plan: readonly PlannedPlay[]): Partial<Record<UnitId, number>> {
@@ -162,6 +162,9 @@ export function startWave(ctx: Ctx, wave: number): void {
   // Uses come back with the reshuffle (C4), but not on used equipment.
   for (const iid of Object.keys(s.uses)) if (!gone.includes(iid)) s.uses[iid] = CARDS[s.cards[iid]!.def]!.uses!;
   ctx.events.push({ t: 'waveStarted', wave });
+  // The wave that fell leaves a supply pack, claimed before this wave's first plan.
+  s.waveReward = true;
+  ctx.events.push({ t: 'rewardOffered' });
   grantWave(ctx);
   s.round = 0;
   nextHand(ctx);
@@ -279,4 +282,34 @@ export function nextHand(ctx: Ctx): void {
     }
   }
   s.pendingDraws = [];
+}
+
+/**
+ * A fallen wave's supply pack (the author's answer of 2026-10-13): supplies
+ * for the run, HP to every living unit up to its max, or bonus MP spent this
+ * turn. Claimed before the wave's first plan, so the MP pack lands on a pool
+ * already refilled.
+ */
+export function claim(state: BattleState, action: { reward?: unknown }): StepResult {
+  if (state.phase !== 'plan') return { ok: false, state, reason: state.phase === 'deploy' ? 'deploying' : 'battleOver' };
+  if (!state.waveReward) return { ok: false, state, reason: 'nothingToClaim' };
+  const reward = action.reward;
+  if (!WAVE_REWARDS.includes(reward as WaveReward)) return { ok: false, state, reason: 'malformed' };
+  const s = draftOf(state);
+  const ctx: Ctx = { s, events: [] };
+  const n = RULES.waveReward[reward as WaveReward];
+  s.waveReward = false;
+  switch (reward as WaveReward) {
+    case 'supplies':
+      s.suppliesWon += n;
+      break;
+    case 'hp':
+      for (const unit of livingUnits(s)) unit.hp = Math.min(unit.maxHp, unit.hp + n);
+      break;
+    case 'mp':
+      s.mp += n;
+      break;
+  }
+  ctx.events.push({ t: 'claimed', reward: reward as WaveReward, n });
+  return { ok: true, state: s, events: ctx.events };
 }

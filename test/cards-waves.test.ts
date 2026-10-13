@@ -12,11 +12,13 @@ import { describe, expect, it } from 'vitest';
 import { DECKS } from '../src/cardData/cards';
 import { ENCOUNTERS } from '../src/cardData/encounters';
 import { ENEMIES } from '../src/cardData/enemies';
+import { RULES } from '../src/cardData/rules';
 import { botStream, playBattle, randomBot } from '../src/core/cards/bots';
 import { createBattle, gradeTotal } from '../src/core/cards/create';
 import type { BattleEvent } from '../src/core/cards/events';
 import { guardBot } from '../src/core/cards/guard';
 import { checkInvariants } from '../src/core/cards/invariants';
+import { legalActions } from '../src/core/cards/legal';
 import { replay } from '../src/core/cards/log';
 import type { Action, BattleState } from '../src/core/cards/state';
 import { step } from '../src/core/cards/step';
@@ -141,5 +143,62 @@ describe('waves', () => {
         if (result.ok) expect(checkInvariants(result.state)).toEqual([]);
       });
     }
+  });
+});
+
+describe('the supply pack a fallen wave leaves (2026-10-13)', () => {
+  /** The board just after wave 1 falls: wave 2 has arrived and the pack waits. */
+  function packWaiting(): BattleState {
+    const s = lastOfWaveOne();
+    const selected = ok(s, { type: 'select', card: iidOf(s, 'shoot'), unit: 'B' }).state;
+    const { state, events } = ok(selected, { type: 'commit' });
+    expect(events).toContainEqual({ t: 'rewardOffered' });
+    return state;
+  }
+
+  it('waits on a claim before the wave is planned: three offers, nothing else legal', () => {
+    const s = packWaiting();
+    expect([s.wave, s.waveReward]).toEqual([1, true]);
+    expect(legalActions(s)).toEqual([
+      { type: 'claim', reward: 'supplies' },
+      { type: 'claim', reward: 'hp' },
+      { type: 'claim', reward: 'mp' },
+    ]);
+    expect(step(s, { type: 'commit' })).toMatchObject({ ok: false, reason: 'claimFirst' });
+    expect(step(s, { type: 'select', card: s.piles.hand[0]!, unit: 'B' })).toMatchObject({ ok: false, reason: 'claimFirst' });
+    expect(step(s, { type: 'claim', reward: 'gold' })).toMatchObject({ ok: false, reason: 'malformed' });
+    const view = viewOf(s);
+    expect(view.reward).toEqual([
+      { kind: 'supplies', n: RULES.waveReward.supplies },
+      { kind: 'hp', n: RULES.waveReward.hp },
+      { kind: 'mp', n: RULES.waveReward.mp },
+    ]);
+    expect(view.canCommit).toBe(false);
+    expect(checkInvariants(s)).toEqual([]);
+  });
+
+  it('pays what it says: supplies for the run, HP to every living unit up to its max, or MP this turn', () => {
+    const s = packWaiting();
+    const supplies = ok(s, { type: 'claim', reward: 'supplies' });
+    expect(supplies.events).toEqual([{ t: 'claimed', reward: 'supplies', n: RULES.waveReward.supplies }]);
+    expect([supplies.state.suppliesWon, supplies.state.waveReward]).toEqual([RULES.waveReward.supplies, false]);
+
+    const hp = ok(s, { type: 'claim', reward: 'hp' }).state;
+    // B was down to 1 of 2; A and C were full and stay so.
+    expect(hp.units.map((u) => [u.id, u.hp])).toEqual(s.units.map((u) => [u.id, Math.min(u.maxHp, u.hp + RULES.waveReward.hp)]));
+    expect(hp.units.find((u) => u.id === 'B')!.hp).toBe(2);
+
+    const mp = ok(s, { type: 'claim', reward: 'mp' }).state;
+    expect(mp.mp).toBe(s.mp + RULES.waveReward.mp);
+    // Claimed, the wave plans as any other, and a second claim is refused.
+    expect(step(mp, { type: 'commit' }).ok).toBe(true);
+    expect(step(mp, { type: 'claim', reward: 'hp' })).toMatchObject({ ok: false, reason: 'nothingToClaim' });
+  });
+
+  it('offers nothing after the last wave, and nothing in a one-wave battle', () => {
+    const created = createBattle('test', 'PACK1');
+    if (!created.ok) throw new Error('create');
+    expect(created.state.waveReward).toBe(false);
+    expect(step(created.state, { type: 'claim', reward: 'hp' })).toMatchObject({ ok: false });
   });
 });

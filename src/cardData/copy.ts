@@ -192,6 +192,13 @@ const EN = {
     step: (n: number, of: number) => `${n}/${of}`,
   },
   /** The panels' meters, each one's accessible name (`ui/cardbattle/meters.ts`). */
+  /** A fallen wave's supply pack, offered in the hand's place (`ui/cardbattle/sandbox.ts`). */
+  pack: {
+    title: 'Supply pack: take one',
+    supplies: (n: number) => `+${n} supply`,
+    hp: (n: number) => `HP pack: +${n} HP each`,
+    mp: (n: number) => `MP pack: +${n} MP now`,
+  },
   meters: {
     vitals: (hp: number, max: number, shield: number, base: number) => `HP ${hp}/${max} · Shield ${shield} · Base ${base}`,
     mana: (free: number, held: number, cap: number) => `MP ${free} free, ${held} held, of ${cap}`,

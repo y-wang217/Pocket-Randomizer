@@ -33,6 +33,9 @@ export const RULES: Rules = {
   // (`docs/spec/gymrun-patch-card-battle-shared-mana.md`): one pool for every
   // unit, refilled each turn to the sum of their max MP, one each by default.
   mp: { perUnit: 1 },
+  // The supply pack after each wave (`docs/spec/gymrun-patch-card-battle-fewer-rests-wave-reward.md`).
+  // First drafts: a wave's pack is smaller than a fight's 2 supplies.
+  waveReward: { supplies: 1, hp: 1, mp: 2 },
   playerShieldClears: 'nextTurnStart', // R3
   strikeReach: 'anyDistanceInLane', // R4
   patterns: { slashCols: 1, blastCols: 2, blastNeighbours: 'orthogonal' }, // R5

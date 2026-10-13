@@ -156,6 +156,12 @@ export const ZH_HANT: CardCopy = {
     wave: (n: number) => `第 ${n} 波來襲`,
     step: (n: number, of: number) => `${n}/${of}`,
   },
+  pack: {
+    title: '補給包：選一個',
+    supplies: (n: number) => `補給 +${n}`,
+    hp: (n: number) => `HP 包：每人 +${n} HP`,
+    mp: (n: number) => `MP 包：立即 +${n} MP`,
+  },
   meters: {
     vitals: (hp: number, max: number, shield: number, base: number) => `HP ${hp}/${max} · 護盾 ${shield} · 基礎 ${base}`,
     mana: (free: number, held: number, cap: number) => `MP 可用 ${free}，保留 ${held}，上限 ${cap}`,

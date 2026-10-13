@@ -127,6 +127,8 @@ export function layoutBattle(encounterId: string, seed: string, loadout?: Loadou
     plan: [],
     uses: Object.fromEntries(Object.values(cards).flatMap((c) => (CARDS[c.def]!.uses ? [[c.iid, CARDS[c.def]!.uses!]] : []))),
     pendingDraws: [],
+    waveReward: false,
+    suppliesWon: 0,
     // The round 1 hand refills it.
     mp: 0,
     pendingMp: [],

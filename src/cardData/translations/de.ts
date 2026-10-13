@@ -156,6 +156,12 @@ export const DE: CardCopy = {
     wave: (n: number) => `Welle ${n} kommt`,
     step: (n: number, of: number) => `${n}/${of}`,
   },
+  pack: {
+    title: 'Versorgungspaket: wähle eins',
+    supplies: (n: number) => `+${n} Vorrat`,
+    hp: (n: number) => `HP-Paket: +${n} HP für alle`,
+    mp: (n: number) => `MP-Paket: +${n} MP jetzt`,
+  },
   meters: {
     vitals: (hp: number, max: number, shield: number, base: number) => `LP ${hp}/${max} · Schild ${shield} · Basis ${base}`,
     mana: (free: number, held: number, cap: number) => `MP ${free} frei, ${held} gebunden, von ${cap}`,

@@ -156,6 +156,12 @@ export const UK: CardCopy = {
     wave: (n: number) => `Хвиля ${n} наступає`,
     step: (n: number, of: number) => `${n}/${of}`,
   },
+  pack: {
+    title: 'Пакунок припасів: візьміть один',
+    supplies: (n: number) => `+${n} припас`,
+    hp: (n: number) => `Пакунок HP: +${n} HP кожному`,
+    mp: (n: number) => `Пакунок MP: +${n} MP зараз`,
+  },
   meters: {
     vitals: (hp: number, max: number, shield: number, base: number) => `ОЗ ${hp}/${max} · Щит ${shield} · Базовий ${base}`,
     mana: (free: number, held: number, cap: number) => `MP ${free} вільно, ${held} зайнято, з ${cap}`,

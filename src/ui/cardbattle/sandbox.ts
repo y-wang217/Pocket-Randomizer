@@ -1216,6 +1216,22 @@ export function openSandbox(host: HTMLElement, options: SandboxOptions = {}): Sa
   }
 
   function renderHand(view: BattleView): void {
+    // A fallen wave's supply pack takes the hand's place until one is claimed.
+    if (view.reward && !playback) {
+      hand.dataset['count'] = '0';
+      delete hand.dataset['filter'];
+      const pack = el('div', 'cb-pack');
+      pack.append(el('div', 'cb-pack-title', CARD_COPY.pack.title));
+      const options = el('div', 'cb-pack-options');
+      for (const { kind, n } of view.reward) {
+        const option = button('cb-btn cb-pack-option', CARD_COPY.pack[kind](n), () => act({ type: 'claim', reward: kind }));
+        option.dataset['reward'] = kind;
+        options.append(option);
+      }
+      pack.append(options);
+      hand.replaceChildren(pack);
+      return;
+    }
     const all = view.hand.flatMap((group) => group.cards);
     const active = filter !== null && view.phase === 'plan' && !playback ? filter : null;
     const cards = active ? all.filter((card) => inFilter(card, active)) : all;

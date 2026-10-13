@@ -213,6 +213,8 @@ export function guardBot(w: GuardWeights = GUARD_WEIGHTS, search: GuardSearch = 
   let index = 0;
   return (state) => {
     if (state.phase !== 'plan' && state.phase !== 'deploy') return null;
+    // A supply pack: HP while any unit is hurt, else the MP for this turn's plan.
+    if (state.waveReward) return { type: 'claim', reward: livingUnits(state).some((u) => u.hp < u.maxHp) ? 'hp' : 'mp' };
     // A queue belongs to the state it was planned on and the steps after it.
     if (planned === null || index >= queue.length || !follows(planned, state)) {
       queue = state.phase === 'deploy' ? planDeploy(state, w, search).actions : planRound(state, w, search).actions;

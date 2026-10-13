@@ -115,7 +115,8 @@ describe('the Harpoon', () => {
     expect(s.piles.hand).toHaveLength(5);
     expect(viewOf(s).hand.flatMap((g) => g.cards).find((c) => c.iid === harpoon)).toMatchObject({ granted: true, retain: true, uses: { left: 2, of: 2 } });
     // Unplayed, it stays through the round: the next hand is it plus four.
-    const started = ok(s, { type: 'start' }).state;
+    // The fallen wave's supply pack is claimed before the wave's first plan.
+    const started = ok(ok(s, { type: 'start' }).state, { type: 'claim', reward: 'mp' }).state;
     const next = commit(started).state;
     expect(next.piles.hand).toContain(harpoon);
     expect(next.piles.hand).toHaveLength(5);

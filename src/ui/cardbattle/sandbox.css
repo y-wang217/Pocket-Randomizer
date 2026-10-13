@@ -937,6 +937,32 @@
   align-items: center;
   gap: 6px;
 }
+/* A fallen wave's supply pack, in the hand's place: a title and three choices. */
+.cb-pack {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.cb-pack-title {
+  font-weight: 800;
+}
+.cb-pack-options {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.cb-pack-option {
+  min-height: 52px;
+  padding: 4px 6px;
+}
+.cb-pack-option .cb-btn-label {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
+}
 /*
  * A hand card, laid on the pack's compact frame (240 by 336): the cost in the
  * left disc, the effect's number in the right, the keyword's icon in the

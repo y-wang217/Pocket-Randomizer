@@ -107,6 +107,8 @@ function narrate(log: BattleLog): string[] {
       case 'granted': return `(${card(e.card)} granted into the hand)`;
       case 'usedUp': return `  ${card(e.card)} has no uses left this wave`;
       case 'waveStarted': return `WAVE ${e.wave + 1} ARRIVES: HP carries over; shields, MP and the deck start again`;
+      case 'rewardOffered': return `  the fallen wave leaves a supply pack`;
+      case 'claimed': return `SUPPLY PACK: ${e.reward} +${e.n}`;
       case 'won': return 'WON';
       case 'lost': return `LOST (${e.why === 'allFainted' ? 'every unit fainted' : 'round cap'})`;
       default: return null;

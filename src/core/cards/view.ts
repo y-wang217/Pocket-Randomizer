@@ -13,7 +13,7 @@ import { deployTiles } from './deploy';
 import { playBlock, playersOf } from './legal';
 import { cardDefOf, maxMpOf, needsOf, project, slotsOf, type Needs } from './plan';
 import { enemyThreat, playedOut, previewPlay, type PlayPreview } from './preview';
-import type { BattleState, CardIid, EnemyId, EnemyState, Intent, PlayBlock, UnitId } from './state';
+import { WAVE_REWARDS, type BattleState, type CardIid, type EnemyId, type EnemyState, type Intent, type PlayBlock, type UnitId, type WaveReward } from './state';
 import { allTiles, covers, samePos, zoneOf } from './zones';
 
 /**
@@ -166,6 +166,8 @@ export interface BattleView {
   piles: { draw: number; discard: number; spent: number; removed: number; reserve: number };
   /** The shared MP pool: what it holds this turn, its max, and what the plan has already spent. */
   mana: { mp: number; max: number; reserved: number };
+  /** A fallen wave's supply pack waiting to be claimed: each offer and how much it gives. `null` when none. */
+  reward: { kind: WaveReward; n: number }[] | null;
 }
 
 /** An enemy's number as the screen shows it: its place in its wave, from 1 (the wave's first is 1). */
@@ -312,7 +314,8 @@ export function viewOf(state: BattleState, { forecast = true }: { forecast?: boo
     wave: state.wave,
     waves: Math.max(...state.enemies.map((e) => e.wave)) + 1,
     phase: state.phase,
-    canCommit: live,
+    // A supply pack is claimed before the wave's first plan.
+    canCommit: live && !state.waveReward,
     deployTiles: state.phase === 'deploy' ? deployTiles() : [],
     tiles,
     units,
@@ -326,6 +329,7 @@ export function viewOf(state: BattleState, { forecast = true }: { forecast?: boo
       removed: state.piles.removed.length,
       reserve: state.piles.reserve.length,
     },
+    reward: state.waveReward ? WAVE_REWARDS.map((kind) => ({ kind, n: RULES.waveReward[kind] })) : null,
     mana: { mp: state.mp, max: maxMpOf(state), reserved: state.plan.reduce((sum, play) => sum + cardDefOf(state, play.card)!.cost, 0) },
   };
 }

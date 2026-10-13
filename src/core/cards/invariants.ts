@@ -46,6 +46,7 @@ export function checkInvariants(s: BattleState): string[] {
   if (new Set(all).size !== all.length) out.push('a card is in two piles');
 
   if (s.mp < 0) out.push(`the pool holds negative MP ${s.mp}`);
+  if (s.waveReward && s.plan.length > 0) out.push('a plan is held while a supply pack waits');
   let mp = 0;
   const slots: Partial<Record<UnitId, number>> = {};
   for (const play of s.plan) {
