@@ -212,6 +212,7 @@ function effectFace(effects: readonly Effect[]): { icon: CardAssetId; n: number 
       case 'shield':
         return { icon: 'icon-shield', n: effect.n, targeted };
       case 'gainMp':
+      case 'gainMpNow':
       case 'mpNextTurns':
         return { icon: 'icon-mp', n: effect.n, targeted };
       case 'drawNext':
@@ -300,6 +301,9 @@ export function effectLines(effects: readonly Effect[]): string[] {
         break;
       case 'gainMp':
         lines.push(CARD_COPY.effect.gainMp(effect.n));
+        break;
+      case 'gainMpNow':
+        lines.push(CARD_COPY.effect.gainMpNow(effect.n));
         break;
       case 'mpNextTurns':
         lines.push(CARD_COPY.effect.mpNextTurns(effect.n, effect.turns));

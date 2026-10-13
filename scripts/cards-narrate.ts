@@ -92,6 +92,7 @@ function narrate(log: BattleLog): string[] {
       case 'fainted': return `  ${who(e.unit)} FAINTS; its cards leave the battle (${e.removed.join(' ')})`;
       case 'mpQueued': return `  +${e.n} MP at the next ${e.turns === 1 ? 'refill' : `${e.turns} refills`}`;
       case 'mpRefilled': return null;
+      case 'mpGainedNow': return `  +${e.n} MP into the pool at once`;
       case 'drawQueued': return `  next hand gets +${e.n} card not owned by this unit`;
       case 'enemyActed': return e.act === 'shield' ? null : `${who(e.enemy)} acts: ${e.act} ${e.n}`;
       case 'enemyMissed': return `  misses: nobody on the lit tiles`;

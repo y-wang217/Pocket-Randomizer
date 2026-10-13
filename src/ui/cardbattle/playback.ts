@@ -281,6 +281,10 @@ export function roundSteps(before: BattleState, events: readonly BattleEvent[], 
         current('card', '').lines.push(L.mp(event.unit, event.turns === 1 ? E.gainMp(event.n) : E.mpNextTurns(event.n, event.turns)));
         break;
       }
+      case 'mpGainedNow':
+        draft.mp += event.n;
+        current('card', '').lines.push(L.mp(event.unit, CARD_COPY.effect.gainMpNow(event.n)));
+        break;
       case 'mpRefilled':
         draft.mp = event.mp;
         begin('round', L.roundMp(event.mp), { quiet: true });

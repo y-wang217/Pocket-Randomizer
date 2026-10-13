@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import { CARDS, DECKS, UPGRADE_OF } from '../src/cardData/cards';
 import { ACTS, EVENTS, MARKET, RUN_RULES, STARTING_DECK, TOWN_POOL } from '../src/cardData/cardrunTables';
-import { ENCOUNTERS, VETERAN } from '../src/cardData/encounters';
+import { ENCOUNTERS, FLOOR_LEADS, VETERAN } from '../src/cardData/encounters';
 import { UNITS } from '../src/cardData/units';
 import { createBattle, layoutBattle, wavesOf } from '../src/core/cards/create';
 import type { EnemyDefId } from '../src/core/cards/defs';
@@ -58,6 +58,15 @@ function winBattle(s: CardRunState): { run: CardRunState; last: BattleState } {
 }
 
 /** A run on its first stop, the first fight won. */
+/** The stop before floor 1's boss, the first with a City: the Wild at the first stop, then fight 2 won. */
+function atCityStop(seed: string): CardRunState {
+  let run = go(atFirstStop(seed), { type: 'go', to: 'wild' });
+  while (run.screen.k !== 'battle') run = run.screen.k === 'wild' && !currentStop(run)!.wild.event ? go(run, { type: 'leave' }) : go(run, { type: 'event', option: EVENTS[currentStop(run)!.wild.event!]!.options.length - 1 });
+  run = winBattle(run).run;
+  expect([run.screen.k, currentStop(run)!.cityOpen]).toEqual(['route', true]);
+  return run;
+}
+
 function atFirstStop(seed: string): CardRunState {
   const run = winBattle(createRun(seed)).run;
   expect(run.screen.k).toBe('route');
@@ -77,11 +86,15 @@ describe('card run: shape and draws', () => {
     expect(last.kind === 'fight' && [last.encounter, last.boosts.length]).toEqual(['run-siege', 0]);
   });
 
-  it('uses every scenario the sandbox has, every fight is three waves, and every encounter it names exists', () => {
+  it("uses every scenario the sandbox has, every fight is its floor's waves, and every encounter it names exists", () => {
     const named = ACTS.flatMap((a) => [...a.fights, a.boss, ...a.townQuests, ...a.defenseQuests]);
     for (const id of named) expect(Object.hasOwn(ENCOUNTERS, id), id).toBe(true);
-    // Q1 (a): three waves back to back, the scenario itself the last of them (Siege is three waves already).
-    for (const id of named) expect(wavesOf(ENCOUNTERS[id]!), id).toHaveLength(3);
+    // The floors (2026-10-13): floor 1's fights one wave and its boss two, one more on each floor after;
+    // the scenario itself the last wave (Siege, floor 3's boss, is three waves already).
+    ACTS.forEach((act, index) => {
+      for (const id of [...act.fights, ...act.townQuests, ...act.defenseQuests]) expect(wavesOf(ENCOUNTERS[id]!), id).toHaveLength(FLOOR_LEADS[index]!.fight + 1);
+      expect(wavesOf(ENCOUNTERS[act.boss]!), act.boss).toHaveLength(FLOOR_LEADS[index]!.boss + 1);
+    });
     const reached = named.flatMap((id) => [id, id.replace(/^run-/, '')]);
     for (const id of ['skirmish', 'test', 'staggered', 'turret-alley', 'wall-and-gun', 'the-pack', 'siege']) expect(reached, id).toContain(id);
     // The scenario is the last wave, on its own tiles; act 3 fields its veterans (checkpoint 6).
@@ -141,8 +154,8 @@ describe('card run: the battle loadout', () => {
     expect(Object.values(state.cards).map((c) => c.def)).toEqual(['shoot+', 'ration', 'move']);
     const a = state.units.find((u) => u.id === 'A')!;
     expect([a.maxHp, a.hp, a.baseShield]).toEqual([UNITS.A.hp + 2, UNITS.A.hp + 2, UNITS.A.baseShield + 1]);
-    // Max MP: one each, the Commander's one more, and the boost's one more for the run.
-    expect(maxMpOf(state)).toBe(3 + 1 + 1);
+    // Max MP: one each, and the boost's one more for the run.
+    expect(maxMpOf(state)).toBe(3 + 1);
     expect(viewOf(state).units.find((u) => u.id === 'A')!.slots).toBe(2);
     expect(layoutBattle('test', 'LOAD', { cards: ['no-such-card'] })).toBeNull();
   });
@@ -210,7 +223,8 @@ describe('card run: stops and rewards', () => {
   });
 
   it('City defense quest: a battle, then a free upgrade of the card the player picks', () => {
-    let run = go(go(atFirstStop('DEF'), { type: 'go', to: 'city' }), { type: 'defend' });
+    // DEF0: the guard bot reaches the City and wins its defense quest.
+    let run = go(go(atCityStop('DEF0'), { type: 'go', to: 'city' }), { type: 'defend' });
     expect(run.battle?.encounter).toBe(currentStop(run)!.city.defense.encounter);
     run = winBattle(run).run;
     expect(run.screen).toEqual({ k: 'upgrade', source: 'defense' });
@@ -222,7 +236,7 @@ describe('card run: stops and rewards', () => {
   });
 
   it('City market: a stated price is charged, or the item cannot be bought, and nothing changes', () => {
-    let run = go(go(atFirstStop('MKT'), { type: 'go', to: 'city' }), { type: 'market' });
+    let run = go(go(atCityStop('MKT'), { type: 'go', to: 'city' }), { type: 'market' });
     const market = currentStop(run)!.city.market;
     run = { ...run, supplies: market[0]!.price };
     run = go(run, { type: 'buy', index: 0 });
@@ -286,7 +300,7 @@ describe('card run: stops and rewards', () => {
   it('removes a used piece of equipment from the deck for good, and keeps one never played', () => {
     // A deck whose first hand is all of it: the Ration is played round 1.
     const deck = ['ration', 'move', 'dig-in', 'attack', 'shoot', 'slash', 'dash', 'prep'];
-    let run = createRun('EQUIP', deck);
+    let run = createRun('EQUIP0', deck);
     const bot = guardBot();
     const started = go(run, { type: 'battle', action: bot(run.battle!.state)! });
     run = started;
@@ -342,7 +356,7 @@ describe('card run: the whole run, headless', () => {
   });
 
   it('refuses a run log from another version, naming both values', () => {
-    expect(() => replayRun({ version: 'cardrun-0.0.1', seed: 'X', actions: [] })).toThrow(/cardrun-0\.0\.1.*cardrun-0\.14\.0/);
+    expect(() => replayRun({ version: 'cardrun-0.0.1', seed: 'X', actions: [] })).toThrow(/cardrun-0\.0\.1.*cardrun-0\.15\.0/);
   });
 
   it('refuses anything malformed without throwing, and nothing once the run is over', () => {

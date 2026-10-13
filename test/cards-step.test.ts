@@ -48,8 +48,8 @@ describe('createBattle', () => {
     expect(state.round).toBe(1);
     expect(state.piles.hand).toHaveLength(5);
     expect(state.piles.draw).toHaveLength(10);
-    // Round 1's hand refills the shared pool: one MP each, the Commander's two.
-    expect(state.mp).toBe(4);
+    // Round 1's hand refills the shared pool: one MP each (the Commander's second is Spark, a card).
+    expect(state.mp).toBe(3);
     for (const e of state.enemies) expect(e.step).toBeGreaterThanOrEqual(0);
     expect(state.rngDraws).toBe(3 + 14);
     expect(JSON.parse(JSON.stringify(state))).toEqual(state);
@@ -176,7 +176,7 @@ describe('Puppeteer cards', () => {
     state = play(state, 'command', 'A', { unit: 'C', tile: at(3, 3) });
     state = play(state, 'attack', 'C');
     // Command 1 and Attack 1: the move it grants costs the pool nothing.
-    expect(viewOf(state).mana).toEqual({ mp: 2, max: 4, reserved: 2 });
+    expect(viewOf(state).mana).toEqual({ mp: 2, max: 3, reserved: 2 });
     const { state: after, events } = commit(state);
     expect(unit(after, 'C').pos).toEqual(at(3, 3));
     const moveAt = events.findIndex((e) => e.t === 'moved');
@@ -202,11 +202,11 @@ describe('Puppeteer cards', () => {
     const r1 = commit(state);
     expect(r1.events).toContainEqual({ t: 'mpQueued', card: iidOf(state, 'focus'), unit: 'A', n: 1, turns: 2 });
     const refill = (events: BattleEvent[]) => events.find((e) => e.t === 'mpRefilled');
-    expect(refill(r1.events)).toEqual({ t: 'mpRefilled', mp: 5, max: 4, bonus: 1 });
+    expect(refill(r1.events)).toEqual({ t: 'mpRefilled', mp: 4, max: 3, bonus: 1 });
     const r2 = commit(r1.state);
-    expect(refill(r2.events)).toEqual({ t: 'mpRefilled', mp: 5, max: 4, bonus: 1 });
+    expect(refill(r2.events)).toEqual({ t: 'mpRefilled', mp: 4, max: 3, bonus: 1 });
     const r3 = commit(r2.state);
-    expect(refill(r3.events)).toEqual({ t: 'mpRefilled', mp: 4, max: 4, bonus: 0 });
+    expect(refill(r3.events)).toEqual({ t: 'mpRefilled', mp: 3, max: 3, bonus: 0 });
     expect(r3.state.pendingMp).toEqual([]);
   });
 
@@ -237,7 +237,7 @@ describe('Puppeteer cards', () => {
     state = play(state, 'resupply', 'B');
     const { state: after, events } = commit(state);
     expect(events).toContainEqual({ t: 'mpQueued', card: iidOf(state, 'resupply'), unit: 'B', n: 2, turns: 1 });
-    expect(after.mp).toBe(4 + 2);
+    expect(after.mp).toBe(3 + 2);
     expect(after.pendingMp).toEqual([]);
   });
 
@@ -305,21 +305,21 @@ describe('Puppeteer cards', () => {
     state = play(state, 'attack', 'B');
     const { state: after } = commit(state);
     expect(unit(after, 'B').pos).toEqual(at(2, 3));
-    expect(after.mp).toBe(4);
+    expect(after.mp).toBe(3);
   });
 });
 
 describe('unit abilities', () => {
-  it('A holds max MP 2, so the shared pool refills to 4 at the start of each turn, turn 1 included', () => {
+  it('every unit holds max MP 1, so the shared pool refills to 3 at the start of each turn, turn 1 included', () => {
     const created = begun('test', 'A');
-    expect(created.events).toContainEqual({ t: 'mpRefilled', mp: 4, max: 4, bonus: 0 });
+    expect(created.events).toContainEqual({ t: 'mpRefilled', mp: 3, max: 3, bonus: 0 });
     const next = commit(created.state);
-    expect(next.events).toContainEqual({ t: 'mpRefilled', mp: 4, max: 4, bonus: 0 });
+    expect(next.events).toContainEqual({ t: 'mpRefilled', mp: 3, max: 3, bonus: 0 });
   });
 
   it('a fainted unit keeps its max MP in the pool (the author\'s ruling)', () => {
     const state = board({ units: { C: null } });
-    expect(maxMpOf(state)).toBe(4);
+    expect(maxMpOf(state)).toBe(3);
   });
 
   it('the pool gates every unit\'s cards together: two 1-cost cards need 2 MP between them', () => {

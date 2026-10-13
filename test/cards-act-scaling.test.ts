@@ -51,7 +51,8 @@ describe('the acts', () => {
         if (scale.veterans === 'all') {
           for (const wave of waves) for (const s of wave) expect(Object.keys(VETERAN), `${id} ${s.def}`).not.toContain(s.def);
         }
-        if (scale.veterans === 'leads' && id !== act.boss) expect([vets[0], vets[1]], id).toEqual([true, true]);
+        // Every lead wave a veteran, the scenario itself plain (floor 2: one lead wave, its boss two).
+        if (scale.veterans === 'leads') expect(vets, id).toEqual([...vets.slice(0, -1).map(() => true), false]);
       }
     });
   });

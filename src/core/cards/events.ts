@@ -32,6 +32,8 @@ export type BattleEvent =
   | { t: 'fainted'; unit: UnitId; removed: CardIid[] }
   /** A turn starts: the shared pool refills to its max plus any bonus a card owes it. */
   | { t: 'mpRefilled'; mp: number; max: number; bonus: number }
+  /** Spark: `n` MP into the pool at once, for the plays after it. */
+  | { t: 'mpGainedNow'; card: CardIid; unit: UnitId; n: number }
   /** A card owes the pool `n` bonus MP at each of the next `turns` refills. */
   | { t: 'mpQueued'; card: CardIid; unit: UnitId; n: number; turns: number }
   /** Need Help: an extra card owed to the next hand. */

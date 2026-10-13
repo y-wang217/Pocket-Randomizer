@@ -45,7 +45,7 @@ import type { Action, BattleState } from './state';
 import { step } from './step';
 
 /** Bumps when a run's draws, its tables' meaning or a logged decision changes what a run log replays to. */
-export const CARD_RUN_VERSION = 'cardrun-0.14.0';
+export const CARD_RUN_VERSION = 'cardrun-0.15.0';
 
 export type StopKind = 'city' | 'town' | 'wild';
 
@@ -90,6 +90,12 @@ export interface StopNode {
   act: number;
   /** A market of equipment, or a defense quest whose reward is a card upgrade. */
   city: { market: { card: string; price: number }[]; defense: QuestDraw };
+  /**
+   * Whether the City is open at this stop. The stop between a floor's two
+   * fights has none (the author's ruling of 2026-10-13); its City is drawn all
+   * the same, so no other draw moves.
+   */
+  cityOpen: boolean;
   /** A quest whose reward is supplies and one of three new cards. */
   town: { quest: QuestDraw; supplies: number; offer: string[] };
   /**
@@ -180,6 +186,8 @@ export type RunRefusal =
   | 'badIndex'
   /** A stated price the run cannot pay: never charged in part, never waived. */
   | 'cannotPay'
+  /** The City at a stop that has none: between a floor's two fights. */
+  | 'noCity'
   | 'alreadyBought'
   | 'notUpgradable'
   | 'deckTooSmall'
@@ -247,6 +255,7 @@ function stopNode(seed: string, act: number, index: number): StopNode {
     key,
     act,
     city: { market, defense: quest(seed, key, 'defense', def.defenseQuests) },
+    cityOpen: index !== 0,
     town: {
       quest: quest(seed, key, 'town', def.townQuests),
       supplies: between(streamFor(seed, key, 'town/supplies'), RUN_RULES.town.supplies),
@@ -511,6 +520,7 @@ export function stepRun(state: CardRunState, action: RunAction | unknown): RunRe
     case 'go': {
       if (screen.k !== 'route' || !stop) return refuse('wrongScreen');
       if (a.to === 'city') {
+        if (!stop.cityOpen) return refuse('noCity');
         s.stop = 'city';
         s.screen = { k: 'city' };
       } else if (a.to === 'town') {

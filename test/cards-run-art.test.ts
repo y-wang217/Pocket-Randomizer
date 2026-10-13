@@ -94,7 +94,8 @@ describe('each screen asks for its slots', () => {
     const root = await resumeAt('STEP7A', (s) => s.screen.k === 'route');
     expect(slots(root, '.cr-backdrop')).toEqual(['bg-route']);
     expect(slots(root, '.cr-heading')).toEqual(['sign-plank']);
-    expect(slots(root, '.cr-choices')).toEqual(['stop-city', 'stop-town', 'stop-wild']);
+    // The first stop has no City (2026-10-13): its pin is the City stop's own test, below.
+    expect(slots(root, '.cr-choices')).toEqual(['stop-town', 'stop-wild']);
     expect(slots(root, '.cr-foot')).toEqual(['char-scout']);
     expect(slots(root, '.cr-header')).toEqual(['icon-supplies', 'icon-deck']);
   });

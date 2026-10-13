@@ -22,8 +22,9 @@ import { at, iidOf } from './fixtures/card-battle';
 const MARKSMAN = { k: 'firstCardConverts', from: 'strike', to: 'pierce', while: 'fullHp' };
 
 describe('the basic starting deck', () => {
-  it('is ten cards that do nothing fancy: a hit per unit, a Brace per unit, two Moves, an Attack and a Dig In', () => {
-    expect(STARTING_DECK).toHaveLength(10);
+  it('is eleven cards that do nothing fancy: a hit per unit, a Brace per unit, two Moves, an Attack, a Dig In and Spark', () => {
+    expect(STARTING_DECK).toHaveLength(11);
+    expect(STARTING_DECK).toContain('spark');
     expect(createRun('BASIC').deck).toEqual([...STARTING_DECK]);
     for (const id of STARTING_DECK) {
       const def = CARDS[id]!;

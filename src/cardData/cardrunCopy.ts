@@ -13,22 +13,22 @@ import type { BoostKind } from './cardrunTables';
 
 export const RUN_COPY = {
   title: 'Card Run',
-  tagline: 'Three acts. A stop between every fight. A Colossus at the end of each.',
+  tagline: 'Three floors. Two fights, then a boss, a stop between each.',
   newRun: 'New run',
   continueRun: 'Continue run',
   sandbox: 'Sandbox',
   /** The battle screen's tutorial (`ui/cardbattle/coach.ts`), against the Target Dummy. */
   tutorial: 'Tutorial',
   seed: (seed: string) => `Seed ${seed}`,
-  act: (n: number, of: number) => `Act ${n}/${of}`,
+  act: (n: number, of: number) => `Floor ${n}/${of}`,
   /**
    * What an act does to its fights (`ACT_SCALING`, checkpoint 6), read off the
    * table: on the route screen, the run's battle screen and the progress strip
    * (step 7a). Empty for an act that changes nothing.
    */
   actScaling: (n: number, hp: number, veterans: 'none' | 'leads' | 'all') => {
-    const parts = [hp > 0 ? `enemies +${hp} HP` : '', { none: '', leads: 'veterans in the first two waves', all: 'veterans in every wave' }[veterans]].filter(Boolean);
-    return parts.length > 0 ? `Act ${n}: ${parts.join(', ')}` : '';
+    const parts = [hp > 0 ? `enemies +${hp} HP` : '', { none: '', leads: 'veterans in the waves before the last', all: 'veterans in every wave' }[veterans]].filter(Boolean);
+    return parts.length > 0 ? `Floor ${n}: ${parts.join(', ')}` : '';
   },
   /** The same, short, on the progress strip where the act begins. */
   actChip: (hp: number, veterans: 'none' | 'leads' | 'all') => [hp > 0 ? `+${hp} HP` : '', veterans === 'none' ? '' : 'veterans'].filter(Boolean).join(' · '),
@@ -141,7 +141,7 @@ export const RUN_COPY = {
       `${fights} fights won · ${bosses} bosses · ${quests} quests · ${upgrades} upgrades`,
     reached: (where: string) => `Reached: ${where}`,
     /** Step 7a: the act the run fell in, the shape it leaned into and the talents it took. */
-    fellIn: (act: number, of: number, where: string) => `Fell in act ${act}/${of}: ${where}`,
+    fellIn: (act: number, of: number, where: string) => `Fell on floor ${act}/${of}: ${where}`,
     leaned: (shapes: string, n: number) => `Leaned into: ${shapes}, ${n} card${n === 1 ? '' : 's'}`,
     leanedNone: 'Leaned into no shape',
     talents: (list: string) => `Talents: ${list}`,
@@ -173,6 +173,7 @@ export const RUN_COPY = {
     wrongScreen: 'Not now.',
     badIndex: 'That option is not there.',
     cannotPay: 'Not enough supplies.',
+    noCity: 'No City between these two fights',
     alreadyBought: 'Already bought.',
     notUpgradable: 'That card has no upgrade left.',
     deckTooSmall: 'Your deck is too small to lose a card.',

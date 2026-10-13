@@ -132,6 +132,7 @@ const EN = {
     shieldSelf: (n: number) => `Shield ${n}, self`,
     shieldFriendly: (n: number) => `Shield ${n}, ally`,
     gainMp: (n: number) => `+${n} MP next turn`,
+    gainMpNow: (n: number) => `+${n} MP now`,
     mpNextTurns: (n: number, turns: number) => `+${n} MP next ${turns} turns`,
     grantMove: (n: number) => `Ally: Move ${n}, no MP`,
     drawNext: (n: number) => `Next hand +${n}, not mine`,

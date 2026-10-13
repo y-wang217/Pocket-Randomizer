@@ -251,6 +251,8 @@ function checkCommon(state: BattleState, play: PlannedPlay, def: CardDef | undef
 
   spent.mpUsed += def.cost;
   if (spent.mpUsed > state.mp) return 'noMp';
+  // Spark: its MP lands as it plays, for the plays after it.
+  spent.mpUsed -= def.effects.reduce((n, e) => (e.k === 'gainMpNow' ? n + e.n : n), 0);
   slotsUsed[unit.id] = (slotsUsed[unit.id] ?? 0) + 1;
   if (slotsUsed[unit.id]! > slotsOf(state, unit.id)) return 'noSlot';
 

@@ -131,11 +131,13 @@ describe('card data', () => {
     expect([...rows].sort()).toEqual([6, 7]);
   });
 
-  it('makes no card free but one-use equipment, and never a shield (the no-free-cards ruling)', () => {
+  it('makes no card free but one-use equipment and Spark, and never a shield (the no-free-cards ruling)', () => {
     for (const card of Object.values(CARDS)) {
       if (card.effects.some((e) => e.k === 'shield')) expect(card.cost, card.id).toBeGreaterThanOrEqual(1);
-      if (!card.equipment) expect(card.cost, card.id).toBeGreaterThanOrEqual(1);
+      // Spark is the Commander's MP as a card (2026-10-13): free, once a wave.
+      if (!card.equipment && !card.id.startsWith('spark')) expect(card.cost, card.id).toBeGreaterThanOrEqual(1);
     }
+    expect(CARDS['spark']).toMatchObject({ owner: 'A', cost: 0, uses: 1, effects: [{ k: 'gainMpNow', n: 1 }] });
   });
 
   it('carries the rule defaults it is asked to', () => {

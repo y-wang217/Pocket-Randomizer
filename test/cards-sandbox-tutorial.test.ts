@@ -60,15 +60,15 @@ describe('hearts, bubbles and the MP bar', () => {
     // Every render draws the bar anew, so it is looked up each time.
     const bar = () => one(root, '.cb-status .cb-mana');
     const cells = () => all(bar(), '.cb-mana-cell').map((c) => c.dataset['state']);
-    // One MP each and the Commander's second: the pool refills to 4 for round 1.
-    expect(cells()).toEqual(['free', 'free', 'free', 'free']);
-    expect(bar().getAttribute('aria-label')).toBe('MP 4 free, 0 held, of 4');
+    // One MP each: the pool refills to 3 for round 1.
+    expect(cells()).toEqual(['free', 'free', 'free']);
+    expect(bar().getAttribute('aria-label')).toBe('MP 3 free, 0 held, of 3');
 
     // Call Medic on the Gunner holds one of the pool's MP.
     one(root, '.cb-card[data-card="call-medic"]').click();
     panel(root, 'B').click();
-    expect(cells()).toEqual(['free', 'free', 'free', 'held']);
-    expect(one(root, '.cb-status .cb-mana .cb-meter-count').textContent).toBe('3/4');
+    expect(cells()).toEqual(['free', 'free', 'held']);
+    expect(one(root, '.cb-status .cb-mana .cb-meter-count').textContent).toBe('2/3');
     sandbox.close();
   });
 });
@@ -102,7 +102,7 @@ describe('the tutorial', () => {
     expect(one(root, '.cb-panel[data-id="A"] [data-coach="vitals"]').dataset['coachTarget']).toBe('true');
     coach(root).click();
     expect(stepOf(root)).toBe('mana');
-    expect(one(root, '.cb-coach-text').textContent).toContain('refills to 4');
+    expect(one(root, '.cb-coach-text').textContent).toContain('refills to 3');
     coach(root).click();
 
     // Move: the card, who plays it, a lit tile.

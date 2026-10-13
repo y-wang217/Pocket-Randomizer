@@ -62,10 +62,11 @@ describe('the card run screens', () => {
     byText(root, '.cr-btn', 'Continue run')!.click();
     await tick();
     expect(root.querySelector('.cr-screen')!.getAttribute('data-screen')).toBe('route');
-    expect(all(root, '.cr-choice').map((c) => c.dataset['kind'])).toEqual(['city', 'town', 'wild']);
+    // The first stop, between floor 1's two fights, has no City (2026-10-13).
+    expect(all(root, '.cr-choice').map((c) => c.dataset['kind'])).toEqual(['town', 'wild']);
     // The Wild pays at once; its supplies are on the header.
     const before = Number(root.querySelector('.cr-supplies-n')!.textContent);
-    all(root, '.cr-choice')[2]!.click();
+    all(root, '.cr-choice')[1]!.click();
     expect(root.querySelector('.cr-screen')!.getAttribute('data-screen')).toBe('wild');
     expect(Number(root.querySelector('.cr-supplies-n')!.textContent)).toBeGreaterThan(before);
   });

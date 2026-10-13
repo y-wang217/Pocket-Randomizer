@@ -57,6 +57,8 @@ export type Effect =
   | { k: 'target'; n: number }
   /** Bonus MP on top of the pool's refill at the start of the next turn (R12). */
   | { k: 'gainMp'; n: number }
+  /** MP into the pool at once, for the cards the plan plays after it (Spark). */
+  | { k: 'gainMpNow'; n: number }
   /** Bonus MP on top of the pool's refill at the start of each of the next `turns` turns. */
   | { k: 'mpNextTurns'; n: number; turns: number }
   /** Command: a Move of `n` placed in another friendly unit's slot. */

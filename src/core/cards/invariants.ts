@@ -55,7 +55,7 @@ export function checkInvariants(s: BattleState): string[] {
       out.push(`planned ${play.card} is not a card`);
       continue;
     }
-    mp += def.cost;
+    mp += def.cost - def.effects.reduce((n, e) => (e.k === 'gainMpNow' ? n + e.n : n), 0);
     slots[play.unit] = (slots[play.unit] ?? 0) + 1;
     if (def.effects.some((e) => e.k === 'grantMove') && play.choice?.unit) {
       const ally = play.choice.unit as UnitId;

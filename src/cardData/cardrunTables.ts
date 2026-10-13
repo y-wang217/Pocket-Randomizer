@@ -48,11 +48,12 @@ export const ACTS: readonly ActDef[] = [
 ];
 
 /**
- * The run's starting deck: ten cards that do nothing fancy
+ * The run's starting deck: eleven cards that do nothing fancy
  * (`docs/spec/gymrun-card-run-shapes-prompt.md`). Each unit's basic hit and
- * its Brace, two Moves, an Attack and a Dig In.
+ * its Brace, two Moves, an Attack, a Dig In, and the Commander's Spark (the
+ * author's ruling of 2026-10-13). Listed in the root `README.md` for tuning.
  */
-export const STARTING_DECK: readonly string[] = ['baton', 'brace-a', 'shoot', 'brace-b', 'slash', 'brace-c', 'move', 'move', 'attack', 'dig-in'];
+export const STARTING_DECK: readonly string[] = ['baton', 'brace-a', 'spark', 'shoot', 'brace-b', 'slash', 'brace-c', 'move', 'move', 'attack', 'dig-in'];
 
 /**
  * The four shapes a deck can grow into (`docs/spec/gymrun-card-run-shapes-prompt.md`,

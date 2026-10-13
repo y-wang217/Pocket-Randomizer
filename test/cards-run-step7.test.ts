@@ -56,12 +56,12 @@ const nextFightAct = (s: CardRunState) => s.nodes.slice(s.at + 1).find((n) => n.
 describe('the act warning', () => {
   it('says what the next act adds before its first fight, and marks where each scaling act begins on the strip', async () => {
     const { root } = await resumeAt('STEP7A', (s) => s.screen.k === 'route' && nextFightAct(s) === 1);
-    expect(root.querySelector('.cr-act-warning')!.textContent).toBe('Act 2: enemies +1 HP, veterans in the first two waves');
+    expect(root.querySelector('.cr-act-warning')!.textContent).toBe('Floor 2: enemies +1 HP, veterans in the waves before the last');
     const chips = all(root, '.cr-strip .cr-act-chip');
     // Act 1 adds nothing, so only acts 2 and 3 carry a chip.
     expect(chips.map((c) => c.getAttribute('aria-label'))).toEqual([
-      `Act 2: enemies +${ACT_SCALING[1]!.hpBonus} HP, veterans in the first two waves`,
-      `Act 3: enemies +${ACT_SCALING[2]!.hpBonus} HP, veterans in every wave`,
+      `Floor 2: enemies +${ACT_SCALING[1]!.hpBonus} HP, veterans in the waves before the last`,
+      `Floor 3: enemies +${ACT_SCALING[2]!.hpBonus} HP, veterans in every wave`,
     ]);
   });
 
@@ -139,10 +139,10 @@ describe('the boss screen', () => {
 
 describe('the end of a run', () => {
   it('names the act it fell in, the shape it leaned into and the talents it took', async () => {
-    // LOST7: the bot falls in act 2 (LOST4 did before the shared MP pool, which it now wins).
-    const { root, run } = await resumeAt('LOST7', (s) => s.screen.k === 'over');
+    // LOST2: the bot falls on floor 2 (the floors of 2026-10-13 moved where LOST7 fell).
+    const { root, run } = await resumeAt('LOST2', (s) => s.screen.k === 'over');
     const notes = all(root, '.cr-screen .cr-note').map((n) => n.textContent ?? '');
-    expect(notes.some((n) => n.startsWith('Fell in act 2/3: '))).toBe(true);
+    expect(notes.some((n) => n.startsWith('Fell on floor 2/3: '))).toBe(true);
     const lean = shapesLeanedInto(run.deck);
     expect(notes).toContain(lean.shapes.length > 0 ? `Leaned into: ${lean.shapes.map((id) => SHAPES[id].name).join(', ')}, ${lean.n} card${lean.n === 1 ? '' : 's'}` : 'Leaned into no shape');
     expect(notes.some((n) => n.startsWith('Talents: ') || n === 'No talents taken')).toBe(true);

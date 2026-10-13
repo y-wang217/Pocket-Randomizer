@@ -76,7 +76,8 @@ export const ENEMIES: Readonly<Record<EnemyDefId, EnemyDef>> = {
       kind: 'cycle',
       steps: [
         { move: 'none', act: { k: 'shield', n: 1 } },
-        { move: 'none', act: { k: 'strike', n: 2 } },
+        // Strike 1, from 2 (the author's ruling of 2026-10-13, after Turret Alley stopped 7 runs).
+        { move: 'none', act: { k: 'strike', n: 1 } },
       ],
     },
   },

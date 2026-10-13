@@ -330,7 +330,12 @@ export function viewOf(state: BattleState, { forecast = true }: { forecast?: boo
       reserve: state.piles.reserve.length,
     },
     reward: state.waveReward ? WAVE_REWARDS.map((kind) => ({ kind, n: RULES.waveReward[kind] })) : null,
-    mana: { mp: state.mp, max: maxMpOf(state), reserved: state.plan.reduce((sum, play) => sum + cardDefOf(state, play.card)!.cost, 0) },
+    // A planned Spark's MP shows in the pool already, as the plan check counts it.
+    mana: {
+      mp: state.mp + state.plan.reduce((sum, play) => sum + cardDefOf(state, play.card)!.effects.reduce((n, e) => (e.k === 'gainMpNow' ? n + e.n : n), 0), 0),
+      max: maxMpOf(state),
+      reserved: state.plan.reduce((sum, play) => sum + cardDefOf(state, play.card)!.cost, 0),
+    },
   };
 }
 

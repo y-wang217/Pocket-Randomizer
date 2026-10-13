@@ -256,6 +256,10 @@ export function resolveEffects(ctx: Ctx, play: PlannedPlay, def: CardDef, conver
       case 'mpNextTurns':
         queueMp(ctx, play, effect.n, effect.turns);
         break;
+      case 'gainMpNow':
+        s.mp += effect.n;
+        ctx.events.push({ t: 'mpGainedNow', card: play.card, unit: play.unit, n: effect.n });
+        break;
       case 'drawNext':
         s.pendingDraws.push({ n: effect.n, filter: effect.filter, owner: def.owner });
         ctx.events.push({ t: 'drawQueued', card: play.card, n: effect.n });

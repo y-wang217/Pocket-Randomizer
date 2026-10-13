@@ -55,7 +55,7 @@ describe('the A3 enemies', () => {
     }
   });
 
-  it('Turret never moves: Shield 1, then Strike 2 down its lane', () => {
+  it('Turret never moves: Shield 1, then Strike 1 down its lane', () => {
     let s = lone('turret', at(1, 7), 0);
     const seen = [[where(s), intent(s)]];
     for (let round = 0; round < 3; round++) {
@@ -64,9 +64,9 @@ describe('the A3 enemies', () => {
     }
     expect(seen).toEqual([
       ['1,7', 'shield1'],
-      ['1,7', 'strike2'],
+      ['1,7', 'strike1'],
       ['1,7', 'shield1'],
-      ['1,7', 'strike2'],
+      ['1,7', 'strike1'],
     ]);
   });
 

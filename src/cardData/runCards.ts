@@ -20,6 +20,9 @@ const card = (def: CardDef): CardDef => def;
  */
 const BASIC: Readonly<Record<string, CardDef>> = {
   baton: card({ id: 'baton', name: 'Baton', owner: 'A', cost: 1, type: null, effects: [{ k: 'strike', n: 1 }], art: 'attack' }),
+  // The Commander's MP, as a card instead of a passive (the author's ruling of 2026-10-13):
+  // free, once a wave, and spendable by the cards the plan plays after it.
+  spark: card({ id: 'spark', name: 'Spark', owner: 'A', cost: 0, type: null, effects: [{ k: 'gainMpNow', n: 1 }], uses: 1, art: 'resupply' }),
   'brace-a': card({ id: 'brace-a', name: 'Brace', owner: 'A', cost: 1, type: null, effects: [{ k: 'shield', n: 1, to: 'self' }], art: 'prep' }),
   'brace-b': card({ id: 'brace-b', name: 'Brace', owner: 'B', cost: 1, type: null, effects: [{ k: 'shield', n: 1, to: 'self' }], art: 'prep' }),
   'brace-c': card({ id: 'brace-c', name: 'Brace', owner: 'C', cost: 1, type: null, effects: [{ k: 'shield', n: 1, to: 'self' }], art: 'prep' }),
@@ -81,7 +84,7 @@ const EQUIPMENT: Readonly<Record<string, CardDef>> = {
 };
 
 /** One upgrade per card: the same card, better. It wears its base card's art and keeps its owner. */
-const up = (base: CardDef, change: Partial<Pick<CardDef, 'cost' | 'effects'>>): CardDef => ({
+const up = (base: CardDef, change: Partial<Pick<CardDef, 'cost' | 'effects' | 'uses'>>): CardDef => ({
   ...base,
   ...change,
   id: `${base.id}+`,
@@ -93,6 +96,8 @@ const up = (base: CardDef, change: Partial<Pick<CardDef, 'cost' | 'effects'>>): 
 export function upgradesOf(cards: Readonly<Record<string, CardDef>>): Record<string, CardDef> {
   const c = (id: string): CardDef => cards[id]!;
   const list: CardDef[] = [
+    // Spark+ fires twice a wave rather than paying more at once.
+    up(c('spark'), { uses: 2 }),
     up(c('call-medic'), { effects: [{ k: 'shield', n: 2, to: 'friendly' }] }),
     up(c('command'), { effects: [{ k: 'grantMove', n: 2 }] }),
     up(c('focus'), { effects: [{ k: 'mpNextTurns', n: 1, turns: 3 }] }),

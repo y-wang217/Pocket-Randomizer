@@ -394,11 +394,16 @@ export function mountCardRun(host: HTMLElement): CardRunShell {
         const next = s.nodes.slice(s.at + 1).find((n) => n.kind === 'fight');
         if (next && actLine(next.act)) box.append(actWarning(actLine(next.act)));
         const choices = el('div', 'cr-choices');
+        // No City between a floor's two fights (the author's ruling of 2026-10-13).
+        if (stop!.cityOpen) {
+          choices.append(
+            choice('city', RUN_COPY.route.city, RUN_COPY.route.cityWhat, [
+              `${RUN_COPY.city.market}: ${stop!.city.market.map((m) => `${nameOf(CARDS[m.card]!.name)} ${m.price}`).join(', ')}`,
+              `${RUN_COPY.city.defend}: ${nameOf(ENCOUNTERS[stop!.city.defense.encounter]!.name)}`,
+            ]),
+          );
+        }
         choices.append(
-          choice('city', RUN_COPY.route.city, RUN_COPY.route.cityWhat, [
-            `${RUN_COPY.city.market}: ${stop!.city.market.map((m) => `${nameOf(CARDS[m.card]!.name)} ${m.price}`).join(', ')}`,
-            `${RUN_COPY.city.defend}: ${nameOf(ENCOUNTERS[stop!.city.defense.encounter]!.name)}`,
-          ]),
           choice('town', RUN_COPY.route.town, RUN_COPY.route.townWhat, [
             `${RUN_COPY.route.quest(nameOf(ENCOUNTERS[stop!.town.quest.encounter]!.name))} · ${enemyNames(stop!.town.quest.encounter)}`,
             `${RUN_COPY.route.reward}: ${RUN_COPY.plusSupplies(stop!.town.supplies)}, ${RUN_COPY.route.pickOne} ${stop!.town.offer.map((c) => nameOf(CARDS[c]!.name)).join(' / ')}`,

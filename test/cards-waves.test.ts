@@ -88,7 +88,7 @@ describe('waves', () => {
       ['B', 1, 0, 0, at(2, 3)],
       ['C', 3, 0, 0, at(3, 4)],
     ]);
-    expect(next.mp).toBe(4 + 1);
+    expect(next.mp).toBe(3 + 1);
     expect(next.pendingMp).toEqual([{ n: 1, turns: 1 }]);
     expect(next.pendingDraws).toEqual([]);
     // Every card back, Prep included; a fresh hand of five.
